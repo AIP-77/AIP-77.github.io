@@ -4,87 +4,164 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Панель сотрудника</title>
+  <!-- Подключаем Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
       padding: 20px;
-      background: #f5f5f5;
-      color: #333;
+      background: #f0f2f5;
+      color: #1c1e21;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
     }
     .card {
       background: white;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    h1, h2 {
+    h1 {
       margin: 0 0 8px 0;
+      font-size: 1.5rem;
       color: #1a8cd8;
+    }
+    h2 {
+      margin: 0 0 12px 0;
+      font-size: 1.2rem;
+      color: #333;
+    }
+    p {
+      margin: 8px 0;
+      font-size: 15px;
+    }
+    .label {
+      font-weight: 600;
+      color: #444;
+    }
+    .value {
+      color: #1a8cd8;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin: 8px 0;
+      overflow-x: auto;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 16px;
+    }
+    .error {
+      color: #e53935;
+      text-align: center;
+      padding: 20px;
     }
     .btn {
       background: #1a8cd8;
       color: white;
       border: none;
-      padding: 12px;
-      border-radius: 8px;
+      padding: 14px;
+      border-radius: 12px;
       font-size: 16px;
       width: 100%;
       margin-top: 10px;
       cursor: pointer;
+      font-weight: 600;
     }
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      font-size: 14px;
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #888;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
-  <h1>📊 Панель сотрудника</h1>
-  <div id="loading">Загрузка данных...</div>
-  <div id="content" style="display: none;">
-    <div class="card">
-      <h2>📌 Ваш отчёт за <span id="report-date"></span></h2>
-      <p><b>Отработано:</b> <span id="worked"></span></p>
-      <p><b>Итого по табелю:</b> <span id="planned"></span></p>
-      <p><b>Производительность:</b> <span id="efficiency"></span></p>
-      <p><b>Заработано за день:</b> <span id="pay-day"></span></p>
-      <p><b>Заработано за месяц:</b> <span id="pay-month"></span></p>
-    </div>
+  <div class="container">
+    <h1>📊 Персональная панель</h1>
+    <div id="loading" class="loading">Загрузка данных...</div>
+    <div id="error" class="error" style="display: none;"></div>
+    <div id="content" style="display: none;">
+      <div class="card">
+        <h2>📌 Ваш отчёт за <span id="report-date"></span></h2>
+        <p><span class="label">Отработано:</span> <span class="value" id="worked"></span></p>
+        <p><span class="label">Итого по табелю:</span> <span class="value" id="planned"></span></p>
+        <p><span class="label">Производительность:</span> <span class="value" id="efficiency"></span></p>
+        <p><span class="label">Заработано за день:</span> <span class="value" id="pay-day"></span></p>
+        <p><span class="label">Заработано за месяц:</span> <span class="value" id="pay-month"></span></p>
+      </div>
 
-    <div class="card">
-      <h2>📋 Детализация задач</h2>
-      <pre id="details"></pre>
-    </div>
+      <div class="card">
+        <h2>📋 Детализация задач</h2>
+        <pre id="details"></pre>
+      </div>
 
-    <div class="card">
-      <h2>📈 Производительность (рабочие дни)</h2>
-      <pre id="chart"></pre>
-    </div>
+      <div class="card">
+        <h2>📈 Производительность (рабочие дни)</h2>
+        <pre id="chart"></pre>
+      </div>
 
-    <button class="btn" onclick="downloadPDF()">Скачать PDF</button>
+      <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
+    </div>
+    <div class="footer">
+      Система автоматизации • © 2025
+    </div>
   </div>
 
   <script>
     // Инициализация Telegram WebApp
     Telegram.WebApp.ready();
+    Telegram.WebApp.expand(); // Раскрыть на весь экран
+
     const user = Telegram.WebApp.initDataUnsafe.user;
-    if (!user) {
-      document.getElementById('loading').textContent = 'Ошибка авторизации';
-      document.getElementById('content').style.display = 'none';
+    const chatId = user?.id;
+
+    if (!chatId) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').textContent = 'Ошибка: не удалось получить данные пользователя';
+      document.getElementById('error').style.display = 'block';
       throw new Error('No user data');
     }
 
+    // Установи здесь URL своего Google Apps Script (полученный через "Развернуть как веб-приложение")
+    const API_URL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXXXXXXXXXXX/exec';
+
     // Загружаем данные
-    fetch('https://script.google.com/macros/s/AKfycbxOStZxdnRZpsbXOEuHhrH5NMlXhmfiaG-QlMxCwtoQzdjcnGXNhk1E_h9I5vH4L1cs/exec' + encodeURIComponent(user.first_name + ' ' + user.last_name))
-      .then(res => res.json())
+    fetch(`${API_URL}?chat_id=${chatId}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Ошибка сети: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
+        if (data.error) {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('error').textContent = 'Ошибка: ' + data.error;
+          document.getElementById('error').style.display = 'block';
+          return;
+        }
+
         document.getElementById('loading').style.display = 'none';
         document.getElementById('content').style.display = 'block';
 
+        // Заполняем данные
         document.getElementById('report-date').textContent = data.date;
         document.getElementById('worked').textContent = data.worked;
         document.getElementById('planned').textContent = data.planned;
@@ -94,13 +171,21 @@
         document.getElementById('details').textContent = data.details.join('\n');
         document.getElementById('chart').textContent = data.chart;
 
+        // Активируем кнопку (заглушка)
+        const btn = document.querySelector('.btn');
+        btn.disabled = false;
+        btn.textContent = 'Готово! (PDF скоро)';
       })
       .catch(err => {
-        document.getElementById('loading').textContent = 'Ошибка загрузки: ' + err.message;
+        console.error('Ошибка загрузки данных:', err);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').textContent = 'Ошибка загрузки: ' + err.message;
+        document.getElementById('error').style.display = 'block';
       });
 
+    // Заглушка для PDF
     function downloadPDF() {
-      alert("Функция PDF будет добавлена");
+      Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
     }
   </script>
 </body>
