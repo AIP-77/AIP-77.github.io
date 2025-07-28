@@ -125,30 +125,47 @@
     </div>
   </div>
 
-  <script>
-    // Инициализация Telegram WebApp
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand(); // Раскрыть на весь экран
+<script>
+  // Инициализация Telegram WebApp
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
 
-    const user = Telegram.WebApp.initDataUnsafe.user;
-    const chatId = user?.id;
+  const user = Telegram.WebApp.initDataUnsafe.user;
+  const chatId = user?.id;
 
-    if (!chatId) {
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('error').textContent = 'Ошибка: не удалось получить данные пользователя';
-      document.getElementById('error').style.display = 'block';
-      throw new Error('No user data');
+  if (!chatId) {
+    document.getElementById('loading').textContent = 'Ошибка: не удалось получить пользователя';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = 'Ошибка: не удалось получить пользователя';
+    throw new Error('No user data');
+  }
+
+  const API_URL = 'https://script.google.com/macros/s/AKfycbxOStZxdnRZpsbXOEuHhrH5NMlXhmfiaG-QlMxCwtoQzdjcnGXNhk1E_h9I5vH4L1cs/exec';
+
+  // Устанавливаем в поле "сегодня минус 1 день" как значение по умолчанию
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  document.getElementById('report-date-select').valueAsDate = yesterday;
+
+  // Функция: загрузить отчёт за выбранную дату
+  function loadReportForDate() {
+    const dateInput = document.getElementById('report-date-select').value;
+    if (!dateInput) {
+      alert('Выберите дату');
+      return;
     }
 
-    // Установи здесь URL своего Google Apps Script (полученный через "Развернуть как веб-приложение")
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzPsummCCUsmttBNHSZJg9imN6lGC7m2rWnH4-f_Sq7IfRJVfKVBMuLFmXxWp9GSbrd/exec';
+    // Форматируем дату в dd.MM.yyyy
+    const [year, month, day] = dateInput.split('-');
+    const formattedDate = `${day}.${month}.${year}`;
 
-    // Загружаем данные
-    fetch(`${API_URL}?chat_id=${chatId}`)
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('content').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+
+    fetch(`${API_URL}?chat_id=${chatId}&date=${formattedDate}`)
       .then(response => {
-        if (!response.ok) {
-          throw new Error(`Ошибка сети: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Ошибка сети: ${response.status}`);
         return response.json();
       })
       .then(data => {
@@ -171,23 +188,22 @@
         document.getElementById('pay-month').textContent = data.payMonth;
         document.getElementById('details').textContent = data.details.join('\n');
         document.getElementById('chart').textContent = data.chart;
-
-        // Активируем кнопку (заглушка)
-        const btn = document.querySelector('.btn');
-        btn.disabled = false;
-        btn.textContent = 'Готово! (PDF скоро)';
       })
       .catch(err => {
-        console.error('Ошибка загрузки данных:', err);
+        console.error('Ошибка загрузки:', err);
         document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').textContent = 'Ошибка загрузки: ' + err.message;
+        document.getElementById('error').textContent = 'Ошибка: ' + err.message;
         document.getElementById('error').style.display = 'block';
       });
+  }
 
-    // Заглушка для PDF
-    function downloadPDF() {
-      Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
-    }
-  </script>
+  // Автозагрузка отчёта за вчера при открытии
+  window.onload = loadReportForDate;
+
+  // Заглушка для PDF
+  function downloadPDF() {
+    Telegram.WebApp.showAlert('PDF скоро будет доступен!');
+  }
+</script>
 </body>
 </html>
