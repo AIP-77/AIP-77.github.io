@@ -79,7 +79,7 @@
     }
 
     // Загружаем данные
-    fetch('https://script.google.com/macros/s/ВАШ_СКРИПТ/exec?employee=' + encodeURIComponent(user.first_name + ' ' + user.last_name))
+    fetch('https://script.google.com/macros/s/AKfycbxOStZxdnRZpsbXOEuHhrH5NMlXhmfiaG-QlMxCwtoQzdjcnGXNhk1E_h9I5vH4L1cs/exec' + encodeURIComponent(user.first_name + ' ' + user.last_name))
       .then(res => res.json())
       .then(data => {
         document.getElementById('loading').style.display = 'none';
