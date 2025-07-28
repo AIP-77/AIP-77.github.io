@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
-  <!-- Подключаем Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
@@ -26,19 +25,9 @@
       margin-bottom: 14px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    h1 {
+    h1, h2 {
       margin: 0 0 8px 0;
-      font-size: 1.5rem;
       color: #1a8cd8;
-    }
-    h2 {
-      margin: 0 0 12px 0;
-      font-size: 1.2rem;
-      color: #333;
-    }
-    p {
-      margin: 8px 0;
-      font-size: 15px;
     }
     .label {
       font-weight: 600;
@@ -61,7 +50,6 @@
       text-align: center;
       padding: 40px;
       color: #666;
-      font-size: 16px;
     }
     .error {
       color: #e53935;
@@ -80,10 +68,6 @@
       cursor: pointer;
       font-weight: 600;
     }
-    .btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
     .footer {
       text-align: center;
       margin-top: 30px;
@@ -95,6 +79,22 @@
       gap: 10px;
       align-items: center;
     }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      margin: 10px 0;
+    }
+    .day {
+      text-align: center;
+      padding: 6px 0;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+    .day.available {
+      background: #1a8cd8;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -102,11 +102,13 @@
     <h1>📊 Персональная панель</h1>
 
     <div class="card">
+      <p><b>Сотрудник:</b> <span id="employee-name">—</span></p>
       <div class="date-control">
         <label for="report-date-select">Дата:</label>
         <input type="date" id="report-date-select">
         <button class="btn" onclick="loadReportForDate()" style="font-size: 14px; padding: 8px 12px;">Показать</button>
       </div>
+      <div class="calendar" id="calendar"></div>
     </div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -141,7 +143,6 @@
   </div>
 
   <script>
-    // Инициализация Telegram WebApp
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
 
@@ -151,43 +152,30 @@
     if (!chatId) {
       document.getElementById('loading').textContent = 'Ошибка: не удалось получить пользователя';
       document.getElementById('error').style.display = 'block';
-      document.getElementById('error').textContent = 'Ошибка: не удалось получить пользователя';
       throw new Error('No user data');
     }
 
-    // ✅ Твой актуальный URL
     const API_URL = 'https://script.google.com/macros/s/AKfycbxiAvEbEPIQ5F8GydJ34ZuUErqY8kHiymaokR60I7qbmzmjXzLRp9zYN5MO-Mq1-Qp-/exec';
 
-    // Устанавливаем "вчера" как значение по умолчанию
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    document.getElementById('report-date-select').valueAsDate = yesterday;
+    const calendar = document.getElementById('calendar');
+    const dateSelect = document.getElementById('report-date-select');
 
-    // Функция: загрузить отчёт за выбранную дату
     function loadReportForDate() {
-      const dateInput = document.getElementById('report-date-select').value;
+      const dateInput = dateSelect.value;
       if (!dateInput) {
         Telegram.WebApp.showAlert('Выберите дату');
         return;
       }
 
-      // Форматируем в dd.MM.yyyy
       const [year, month, day] = dateInput.split('-');
       const formattedDate = `${day}.${month}.${year}`;
 
-      // Показываем загрузку
       document.getElementById('loading').style.display = 'block';
       document.getElementById('content').style.display = 'none';
       document.getElementById('error').style.display = 'none';
 
-      // Запрос к Google Apps Script
       fetch(`${API_URL}?chat_id=${chatId}&date=${formattedDate}`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Ошибка сети: ${response.status}`);
-          }
-          return response.json();
-        })
+        .then(r => r.json())
         .then(data => {
           if (data.error) {
             document.getElementById('loading').style.display = 'none';
@@ -199,41 +187,74 @@
           document.getElementById('loading').style.display = 'none';
           document.getElementById('content').style.display = 'block';
 
-          // Универсальная функция для безопасного обновления
-          const set = (id, value) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = value;
-            else console.error(`❌ Элемент #${id} не найден`);
-          };
+          document.getElementById('employee-name').textContent = data.name;
+          document.getElementById('report-date').textContent = data.date;
+          document.getElementById('worked').textContent = data.worked || '—';
+          document.getElementById('planned').textContent = data.planned || '—';
+          document.getElementById('efficiency').textContent = data.efficiency || '—';
+          document.getElementById('pay-day').textContent = data.payDay || '—';
+          document.getElementById('pay-month').textContent = data.payMonth || '—';
+          document.getElementById('details').textContent = data.details.join('\n');
+          document.getElementById('chart').textContent = data.chart;
 
-          set('report-date', data.date);
-          set('worked', data.worked || '—');
-          set('planned', data.planned || '—');
-          set('efficiency', data.efficiency || '—');
-          set('pay-day', data.payDay || '—');
-          set('pay-month', data.payMonth || '—');
-          document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
-          document.getElementById('chart').textContent = data.chart || 'Нет данных';
-
-          // Активируем кнопку PDF
           const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
           btn.disabled = false;
           btn.textContent = 'Скачать PDF';
+
+          // Заполняем календарь
+          if (data.availableDates) {
+            renderCalendar(data.availableDates);
+          }
         })
         .catch(err => {
-          console.error('Ошибка загрузки:', err);
-          document.getElementById('loading').style.display = 'none';
+          console.error('Ошибка:', err);
           document.getElementById('error').textContent = 'Ошибка: ' + err.message;
           document.getElementById('error').style.display = 'block';
         });
     }
 
-    // Автозагрузка при открытии
-    window.onload = loadReportForDate;
+    function renderCalendar(availableDates) {
+      calendar.innerHTML = '';
+      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      days.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        calendar.appendChild(el);
+      });
 
-    // Заглушка для PDF
+      for (let i = -14; i <= 14; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        const dd = d.getDate().toString().padStart(2, '0');
+        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+        const yy = d.getFullYear();
+        const dateStr = `${dd}.${mm}.${yy}`;
+        const formatted = `${dd}.${mm}.${yy.slice(2)}`;
+
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = dd;
+        if (availableDates.includes(dateStr)) {
+          el.classList.add('available');
+          el.title = 'Есть данные';
+        }
+        el.addEventListener('click', () => {
+          dateSelect.value = `${yy}-${mm}-${dd}`;
+        });
+        calendar.appendChild(el);
+      }
+    }
+
+    window.onload = () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      dateSelect.valueAsDate = yesterday;
+      loadReportForDate();
+    };
+
     function downloadPDF() {
-      Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
+      Telegram.WebApp.showAlert('PDF скоро будет доступен!');
     }
   </script>
 </body>
