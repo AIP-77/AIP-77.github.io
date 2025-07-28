@@ -95,10 +95,11 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <div id="loading" class="loading">Загрузка данных...</div>
-    <div id="error" class="error" style="display: none;"></div>
-    <div id="content" style="display: none;">
-      <div class="card">
+<div class="card">
+  <label for="report-date-select">Выберите дату:</label>
+  <input type="date" id="report-date-select" class="value">
+  <button class="btn" onclick="loadReportForDate()">Показать отчёт</button>
+</div>
         <h2>📌 Ваш отчёт за <span id="report-date"></span></h2>
         <p><span class="label">Отработано:</span> <span class="value" id="worked"></span></p>
         <p><span class="label">Итого по табелю:</span> <span class="value" id="planned"></span></p>
