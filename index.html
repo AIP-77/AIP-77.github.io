@@ -243,7 +243,7 @@
     // Функция: отрисовка календаря с подсветкой дней с данными
     function renderCalendar(availableDates) {
       calendar.innerHTML = '';
-      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      const days = ['Пн1', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
       days.forEach(day => {
         const el = document.createElement('div');
         el.textContent = day;
@@ -251,7 +251,7 @@
         calendar.appendChild(el);
       });
 
-      for (let i = -14; i <= 14; i++) {
+      for (let i = -31; i <=3 ; i++) {
         const d = new Date();
         d.setDate(d.getDate() + i);
         const dd = d.getDate().toString().padStart(2, '0');
