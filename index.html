@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
+  <!-- Подключаем Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
@@ -143,6 +144,7 @@
   </div>
 
   <script>
+    // Инициализация Telegram WebApp
     Telegram.WebApp.ready();
     Telegram.WebApp.expand();
 
@@ -155,11 +157,23 @@
       throw new Error('No user data');
     }
 
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzNTxBb4dv42xqX201tZnG64LWmiDQ-jtQHDvMUVexz1g93Xh2KIlWi5ToiVziwLQwu/exec';
+    // Твой URL веб-приложения Google Apps Script
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxiAvEbEPIQ5F8GydJ34ZuUErqY8kHiymaokR60I7qbmzmjXzLRp9zYN5MO-Mq1-Qp-/exec';
 
     const calendar = document.getElementById('calendar');
     const dateSelect = document.getElementById('report-date-select');
 
+    // Функция: форматировать дату как "ср, 24 июля"
+    function formatDateForDisplay(dateStr) {
+      const [dd, mm, yy] = dateStr.split('.');
+      const d = new Date(yy, mm - 1, dd);
+      const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+      const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+      return `${days[d.getDay()]},  ${dd} ${months[d.getMonth()]}`;
+    }
+
+    // Функция: загрузить отчёт за выбранную дату
     function loadReportForDate() {
       const dateInput = dateSelect.value;
       if (!dateInput) {
@@ -168,14 +182,17 @@
       }
 
       const [year, month, day] = dateInput.split('-');
-      const formattedDate = `${day}.${month}.${year}`;
+      const formattedDate = `${day}.${month}.${year}`; // dd.MM.yyyy
 
       document.getElementById('loading').style.display = 'block';
       document.getElementById('content').style.display = 'none';
       document.getElementById('error').style.display = 'none';
 
       fetch(`${API_URL}?chat_id=${chatId}&date=${formattedDate}`)
-        .then(r => r.json())
+        .then(response => {
+          if (!response.ok) throw new Error(`Ошибка сети: ${response.status}`);
+          return response.json();
+        })
         .then(data => {
           if (data.error) {
             document.getElementById('loading').style.display = 'none';
@@ -187,8 +204,9 @@
           document.getElementById('loading').style.display = 'none';
           document.getElementById('content').style.display = 'block';
 
+          // Заполняем данные
           document.getElementById('employee-name').textContent = data.name;
-          document.getElementById('report-date').textContent = data.date;
+          document.getElementById('report-date').textContent = formatDateForDisplay(formattedDate);
           document.getElementById('worked').textContent = data.worked || '—';
           document.getElementById('planned').textContent = data.planned || '—';
           document.getElementById('efficiency').textContent = data.efficiency || '—';
@@ -197,63 +215,61 @@
           document.getElementById('details').textContent = data.details.join('\n');
           document.getElementById('chart').textContent = data.chart;
 
+          // Активируем кнопку PDF
           const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
           btn.disabled = false;
           btn.textContent = 'Скачать PDF';
 
-          // Заполняем календарь
+          // Обновляем календарь
           if (data.availableDates) {
             renderCalendar(data.availableDates);
           }
         })
         .catch(err => {
-          console.error('Ошибка:', err);
+          console.error('Ошибка загрузки:', err);
           document.getElementById('error').textContent = 'Ошибка: ' + err.message;
           document.getElementById('error').style.display = 'block';
         });
     }
 
-function renderCalendar(availableDates) {
-  calendar.innerHTML = '';
-  const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  days.forEach(day => {
-    const el = document.createElement('div');
-    el.textContent = day;
-    el.style.fontWeight = 'bold';
-    calendar.appendChild(el);
-  });
+    // Функция: отрисовка календаря с подсветкой дней с данными
+    function renderCalendar(availableDates) {
+      calendar.innerHTML = '';
+      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      days.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        calendar.appendChild(el);
+      });
 
-  for (let i = -14; i <= 14; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const dd = d.getDate().toString().padStart(2, '0');
-    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-    const yy = d.getFullYear(); // ← число
-    const yyStr = yy.toString(); // ← преобразуем в строку
-    const dateStr = `${dd}.${mm}.${yyStr}`; // полная дата
-    const formattedShort = `${dd}.${mm}.${yyStr.slice(2)}`; // последние 2 цифры года
+      for (let i = -14; i <= 14; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        const dd = d.getDate().toString().padStart(2, '0');
+        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+        const yy = d.getFullYear().toString();
+        const dateStr = `${dd}.${mm}.${yy}`;
 
-    const el = document.createElement('div');
-    el.className = 'day';
-    el.textContent = dd;
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = dd;
 
-    // Проверяем, есть ли данные за эту дату
-    if (availableDates.includes(dateStr)) {
-      el.classList.add('available');
-      el.title = 'Есть данные';
+        if (availableDates.includes(dateStr)) {
+          el.classList.add('available');
+          el.title = 'Есть данные';
+        }
+
+        el.addEventListener('click', () => {
+          dateSelect.value = `${yy}-${mm}-${dd}`;
+          loadReportForDate();
+        });
+
+        calendar.appendChild(el);
+      }
     }
 
-    // При клике устанавливаем дату в input
-    el.addEventListener('click', () => {
-      const inputDate = `${yyStr}-${mm}-${dd}`;
-      dateSelect.value = inputDate;
-      loadReportForDate(); // Автоматически загружаем отчёт
-    });
-
-    calendar.appendChild(el);
-  }
-}
-
+    // Автозагрузка при открытии (вчера)
     window.onload = () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -261,8 +277,9 @@ function renderCalendar(availableDates) {
       loadReportForDate();
     };
 
+    // Заглушка для PDF
     function downloadPDF() {
-      Telegram.WebApp.showAlert('PDF скоро будет доступен!');
+      Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
     }
   </script>
 </body>
