@@ -213,38 +213,46 @@
         });
     }
 
-    function renderCalendar(availableDates) {
-      calendar.innerHTML = '';
-      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      days.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        calendar.appendChild(el);
-      });
+function renderCalendar(availableDates) {
+  calendar.innerHTML = '';
+  const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  days.forEach(day => {
+    const el = document.createElement('div');
+    el.textContent = day;
+    el.style.fontWeight = 'bold';
+    calendar.appendChild(el);
+  });
 
-      for (let i = -14; i <= 14; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-        const dd = d.getDate().toString().padStart(2, '0');
-        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-        const yy = d.getFullYear();
-        const dateStr = `${dd}.${mm}.${yy}`;
-        const formatted = `${dd}.${mm}.${yy.slice(2)}`;
+  for (let i = -14; i <= 14; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const dd = d.getDate().toString().padStart(2, '0');
+    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+    const yy = d.getFullYear(); // ← число
+    const yyStr = yy.toString(); // ← преобразуем в строку
+    const dateStr = `${dd}.${mm}.${yyStr}`; // полная дата
+    const formattedShort = `${dd}.${mm}.${yyStr.slice(2)}`; // последние 2 цифры года
 
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = dd;
-        if (availableDates.includes(dateStr)) {
-          el.classList.add('available');
-          el.title = 'Есть данные';
-        }
-        el.addEventListener('click', () => {
-          dateSelect.value = `${yy}-${mm}-${dd}`;
-        });
-        calendar.appendChild(el);
-      }
+    const el = document.createElement('div');
+    el.className = 'day';
+    el.textContent = dd;
+
+    // Проверяем, есть ли данные за эту дату
+    if (availableDates.includes(dateStr)) {
+      el.classList.add('available');
+      el.title = 'Есть данные';
     }
+
+    // При клике устанавливаем дату в input
+    el.addEventListener('click', () => {
+      const inputDate = `${yyStr}-${mm}-${dd}`;
+      dateSelect.value = inputDate;
+      loadReportForDate(); // Автоматически загружаем отчёт
+    });
+
+    calendar.appendChild(el);
+  }
+}
 
     window.onload = () => {
       const yesterday = new Date();
