@@ -163,7 +163,7 @@
     const calendar = document.getElementById('calendar');
     const dateSelect = document.getElementById('report-date-select');
 
-    // Функция: форматировать дату как "ср, 24 июля"
+    // Функция: форматировать дату как "пн, 28 июля"
     function formatDateForDisplay(dateStr) {
       const [dd, mm, yy] = dateStr.split('.');
       const d = new Date(yy, mm - 1, dd);
@@ -178,6 +178,14 @@
       const dateInput = dateSelect.value;
       if (!dateInput) {
         Telegram.WebApp.showAlert('Выберите дату');
+        return;
+      }
+
+      // Убедимся, что dateInput — строка
+      if (typeof dateInput !== 'string') {
+        console.error('Дата должна быть строкой:', dateInput);
+        document.getElementById('error').textContent = 'Ошибка: Неверный формат даты';
+        document.getElementById('error').style.display = 'block';
         return;
       }
 
