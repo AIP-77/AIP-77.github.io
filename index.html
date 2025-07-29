@@ -241,41 +241,60 @@
     }
 
     // Функция: отрисовка календаря с подсветкой дней с данными
-    function renderCalendar(availableDates) {
-      calendar.innerHTML = '';
-      const days = ['1', '2', '3', '4', '5', '6', '7'];
-      days.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        calendar.appendChild(el);
-      });
+function renderCalendar(availableDates) {
+  calendar.innerHTML = '';
+  const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  
+  // Заголовок календаря
+  days.forEach(day => {
+    const el = document.createElement('div');
+    el.textContent = day;
+    el.style.fontWeight = 'bold';
+    calendar.appendChild(el);
+  });
 
-      for (let i = -31; i <=0 ; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-        const dd = d.getDate().toString().padStart(2, '0');
-        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-        const yy = d.getFullYear().toString();
-        const dateStr = `${dd}.${mm}.${yy}`;
+  // Определяем диапазон: 31 дней назад — 1 дней вперёд
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() -31);
 
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = dd;
+  // Находим, сколько пустых ячеек нужно перед первой датой
+  const startDayOfWeek = startDate.getDay(); // 0=вс, 1=пн, ..., 6=сб
+  const offset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1; // Сдвиг: понедельник = 0
 
-        if (availableDates.includes(dateStr)) {
-          el.classList.add('available');
-          el.title = 'Есть данные';
-        }
+  // Добавляем пустые ячейки перед первой неделей
+  for (let i = 0; i < offset; i++) {
+    const el = document.createElement('div');
+    el.className = 'day';
+    calendar.appendChild(el);
+  }
 
-        el.addEventListener('click', () => {
-          dateSelect.value = `${yy}-${mm}-${dd}`;
-          loadReportForDate();
-        });
+  // Теперь добавляем 29 дней (31 назад, сегодня, 1 вперёд)
+  for (let i = -31; i <= 1; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const dd = d.getDate().toString().padStart(2, '0');
+    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+    const yy = d.getFullYear().toString();
+    const dateStr = `${dd}.${mm}.${yy}`;
 
-        calendar.appendChild(el);
-      }
+    const el = document.createElement('div');
+    el.className = 'day';
+    el.textContent = dd;
+
+    if (availableDates.includes(dateStr)) {
+      el.classList.add('available');
+      el.title = 'Есть данные';
     }
+
+    el.addEventListener('click', () => {
+      dateSelect.value = `${yy}-${mm}-${dd}`;
+      loadReportForDate();
+    });
+
+    calendar.appendChild(el);
+  }
+}
 
     // Автозагрузка при открытии (вчера)
     window.onload = () => {
