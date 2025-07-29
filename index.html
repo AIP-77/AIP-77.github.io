@@ -253,7 +253,7 @@ function renderCalendar(availableDates) {
     calendar.appendChild(el);
   });
 
-  // Определяем диапазон: 31 дней назад — 1 дней вперёд
+  // Определяем диапазон: 31 дней назад — 1 день вперёд
   const today = new Date();
   const startDate = new Date(today);
   startDate.setDate(today.getDate() -31);
