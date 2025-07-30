@@ -141,11 +141,6 @@
       </div>
 
       <div class="card">
-        <h2>📆 Явка за неделю</h2>
-        <canvas id="attendanceChart"></canvas>
-      </div>
-
-      <div class="card">
         <h2>💰 Заработок по месяцу</h2>
         <canvas id="earningsChart"></canvas>
       </div>
@@ -172,14 +167,15 @@
       throw new Error('No user data');
     }
 
-    // Твой URL веб-приложения Google Apps Script
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyR00_SH6uqzh7xzKCQdxBjmxKuWNWsWxuqtm9UC6TWvhIDxt7jING9nVbzE17BLZe4/exec';
+    // 🔗 Два API
+    const API_URL_FAST = 'https://script.google.com/macros/s/AKfycbyR00_SH6uqzh7xzKCQdxBjmxKuWNWsWxuqtm9UC6TWvhIDxt7jING9nVbzE17BLZe4/exec'; // Только данные за день
+    const API_URL_CHARTS = 'https://script.google.com/macros/s/AKfycbyR00_SH6uqzh7xzKCQdxBjmxKuWNWsWxuqtm9UC6TWvhIDxt7jING9nVbzE17BLZe4/exec'; // Кэшированные графики
 
     const calendar = document.getElementById('calendar');
     const dateSelect = document.getElementById('report-date-select');
 
     // Глобальные переменные для графиков
-    let efficiencyChart, attendanceChart, earningsChart;
+    let efficiencyChart, earningsChart;
 
     // Функция: форматировать дату как "пн, 28 июля"
     function formatDateForDisplay(dateStr) {
@@ -191,23 +187,14 @@
       return `${days[d.getDay()]},  ${dd} ${months[d.getMonth()]}`;
     }
 
-    // Функция: загрузить отчёт за выбранную дату
-    function loadReportForDate() {
-      const dateInput = dateSelect.value;
-      if (!dateInput) return;
-
-      const [year, month, day] = dateInput.split('-');
-      const formattedDate = `${day}.${month}.${year}`; // dd.MM.yyyy
-
+    // Функция: загрузить основной отчёт
+    function loadMainReport(dateStr) {
       document.getElementById('loading').style.display = 'block';
       document.getElementById('content').style.display = 'none';
       document.getElementById('error').style.display = 'none';
 
-      fetch(`${API_URL}?chat_id=${chatId}&date=${formattedDate}`)
-        .then(response => {
-          if (!response.ok) throw new Error(`Ошибка сети: ${response.status}`);
-          return response.json();
-        })
+      fetch(`${API_URL_FAST}?chat_id=${chatId}&date=${dateStr}`)
+        .then(r => r.json())
         .then(data => {
           if (data.error) {
             document.getElementById('loading').style.display = 'none';
@@ -219,26 +206,14 @@
           document.getElementById('loading').style.display = 'none';
           document.getElementById('content').style.display = 'block';
 
-          // Заполняем данные
           document.getElementById('employee-name').textContent = data.name;
-          document.getElementById('report-date').textContent = formatDateForDisplay(formattedDate);
+          document.getElementById('report-date').textContent = formatDateForDisplay(dateStr);
           document.getElementById('worked').textContent = data.worked || '—';
           document.getElementById('planned').textContent = data.planned || '—';
           document.getElementById('efficiency').textContent = data.efficiency || '—';
           document.getElementById('pay-day').textContent = data.payDay || '—';
           document.getElementById('pay-month').textContent = data.payMonth || '—';
-          document.getElementById('details').textContent = data.details.join('\n');
-
-          // Графики
-          if (data.efficiencyData && data.efficiencyData.length > 0) {
-            createEfficiencyChart(data.efficiencyData);
-          }
-          if (data.attendanceData && data.attendanceData.length > 0) {
-            createAttendanceChart(data.attendanceData);
-          }
-          if (data.earningsData && data.earningsData.length > 0) {
-            createEarningsChart(data.earningsData);
-          }
+          document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
 
           // Активируем кнопку PDF
           const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
@@ -249,69 +224,75 @@
           if (data.availableDates) {
             renderCalendar(data.availableDates);
           }
+
+          // Загружаем графики (отдельный запрос)
+          loadCharts();
         })
         .catch(err => {
-          console.error('Ошибка загрузки:', err);
+          console.error('Ошибка загрузки данных:', err);
           document.getElementById('error').textContent = 'Ошибка: ' + err.message;
           document.getElementById('error').style.display = 'block';
         });
     }
 
-    // Функция: отрисовка календаря с подсветкой дней с данными
-function renderCalendar(availableDates) {
-  calendar.innerHTML = '';
-  const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  
-  // Заголовок календаря
-  days.forEach(day => {
-    const el = document.createElement('div');
-    el.textContent = day;
-    el.style.fontWeight = 'bold';
-    calendar.appendChild(el);
-  });
+    // Функция: загрузить графики
+    function loadCharts() {
+      fetch(`${API_URL_CHARTS}?chat_id=${chatId}`)
+        .then(r => r.json())
+        .then(chartData => {
+          if (chartData.error) {
+            console.warn('Графики не загружены:', chartData.error);
+            return;
+          }
 
-  // Определяем диапазон: 31 день назад — 1 день вперёд
-  const today = new Date();
-  const startDate = new Date(today);
-  startDate.setDate(today.getDate() - 31);
-
-  // Находим, сколько пустых ячеек нужно перед первой датой
-  const startDayOfWeek = startDate.getDay(); // 0=вс, 1=пн, ..., 6=сб
-  const offset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1; // Сдвиг: понедельник = 0
-
-  // Добавляем пустые ячейки перед первой неделей
-  for (let i = 0; i < offset; i++) {
-    const el = document.createElement('div');
-    el.className = 'day';
-    calendar.appendChild(el);
-  }
-
-  // Теперь добавляем 32 дня (31 назад, сегодня, 1 вперёд)
-  for (let i = -31; i <= 1; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const dd = d.getDate().toString().padStart(2, '0');
-    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-    const yy = d.getFullYear().toString();
-    const dateStr = `${dd}.${mm}.${yy}`;
-
-    const el = document.createElement('div');
-    el.className = 'day';
-    el.textContent = dd;
-
-    if (availableDates.includes(dateStr)) {
-      el.classList.add('available');
-      el.title = 'Есть данные';
+          if (chartData.efficiencyData && chartData.efficiencyData.length > 0) {
+            createEfficiencyChart(chartData.efficiencyData);
+          }
+          if (chartData.earningsData && chartData.earningsData.length > 0) {
+            createEarningsChart(chartData.earningsData);
+          }
+        })
+        .catch(err => {
+          console.error('Ошибка загрузки графиков:', err);
+        });
     }
 
-    el.addEventListener('click', () => {
-      dateSelect.value = `${yy}-${mm}-${dd}`;
-      loadReportForDate();
-    });
+    // Функция: отрисовка календаря с подсветкой дней с данными
+    function renderCalendar(availableDates) {
+      calendar.innerHTML = '';
+      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      days.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        calendar.appendChild(el);
+      });
 
-    calendar.appendChild(el);
-  }
-}
+      for (let i = -31; i <= 1; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        const dd = d.getDate().toString().padStart(2, '0');
+        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+        const yy = d.getFullYear().toString();
+        const dateStr = `${dd}.${mm}.${yy}`;
+
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = dd;
+
+        if (availableDates.includes(dateStr)) {
+          el.classList.add('available');
+          el.title = 'Есть данные';
+        }
+
+        el.addEventListener('click', () => {
+          dateSelect.value = `${yy}-${mm}-${dd}`;
+          loadMainReport(dateStr);
+        });
+
+        calendar.appendChild(el);
+      }
+    }
 
     // График: Производительность по дням
     function createEfficiencyChart(data) {
@@ -327,30 +308,6 @@ function renderCalendar(availableDates) {
             backgroundColor: '#1a8cd8',
             borderColor: '#1a8cd8',
             borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: { y: { beginAtZero: true, max: 100 } }
-        }
-      });
-    }
-
-    // График: Явка за неделю
-    function createAttendanceChart(data) {
-      const ctx = document.getElementById('attendanceChart').getContext('2d');
-      if (attendanceChart) attendanceChart.destroy();
-      attendanceChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.map(d => d.day),
-          datasets: [{
-            label: 'Процент явки',
-            data: data.map(d => d.rate),
-            backgroundColor: 'rgba(26, 140, 216, 0.2)',
-            borderColor: '#1a8cd8',
-            borderWidth: 2,
-            fill: true
           }]
         },
         options: {
@@ -395,7 +352,8 @@ function renderCalendar(availableDates) {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       dateSelect.valueAsDate = yesterday;
-      loadReportForDate();
+      const formattedDate = `${yesterday.getDate().toString().padStart(2, '0')}.${(yesterday.getMonth() + 1).toString().padStart(2, '0')}.${yesterday.getFullYear()}`;
+      loadMainReport(formattedDate);
     };
 
     // Заглушка для PDF
