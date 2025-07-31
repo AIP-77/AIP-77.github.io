@@ -3,329 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Персональная панель</title>
-  <!-- Подключаем Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Подключаем Chart.js -->
+  <title>Отчёт сотрудника</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f0f2f5;
-      color: #1c1e21;
-      min-height: 100vh;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
+      font-family: Arial, sans-serif;
+      padding: 16px;
+      background: #f5f5f5;
+      color: #333;
     }
     .card {
       background: white;
-      border-radius: 16px;
-      padding: 18px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     h1, h2 {
       margin: 0 0 8px 0;
-      color: #1a8cd8;
     }
-    .label {
-      font-weight: 600;
-      color: #444;
-    }
-    .value {
-      color: #1a8cd8;
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 16px;
     }
     pre {
       white-space: pre-wrap;
-      word-wrap: break-word;
-      background: #f8f9fa;
-      padding: 12px;
-      border-radius: 8px;
       font-size: 14px;
-      margin: 8px 0;
-      overflow-x: auto;
+      line-height: 1.5;
     }
-    .loading {
+    .loader {
       text-align: center;
-      padding: 40px;
+      padding: 32px;
+      font-size: 18px;
       color: #666;
-    }
-    .error {
-      color: #e53935;
-      text-align: center;
-      padding: 20px;
-    }
-    .btn {
-      background: #1a8cd8;
-      color: white;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 16px;
-      width: 100%;
-      margin-top: 10px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .footer {
-      text-align: center;
-      margin-top: 30px;
-      color: #888;
-      font-size: 13px;
-    }
-    .date-control {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-      margin: 10px 0;
-    }
-    .day {
-      text-align: center;
-      padding: 6px 0;
-      font-size: 12px;
-      border-radius: 4px;
-    }
-    .day.available {
-      background: #1a8cd8;
-      color: white;
-    }
-    canvas {
-      max-height: 200px;
-    }
-    /* Спинер */
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #e0e0e0;
-      border-top: 4px solid #1a8cd8;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 10px auto;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .fade-in {
-      animation: fadeIn 0.5s ease-in;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>📊 Персональная статистика</h2>
+  <div id="loader" class="loader">Загрузка данных...</div>
+
+  <div id="app" style="display: none;">
+    <h1>📊 Отчёт: <span id="name"></span></h1>
+    <select id="report-date-select"></select>
 
     <div class="card">
-      <p><b>Сотрудник:</b> <span id="employee-name">—</span></p>
-      <div class="date-control">
-        <label for="report-date-select">Дата:</label>
-        <input type="date" id="report-date-select">
-      </div>
-      <div class="calendar" id="calendar"></div>
+      <h2>📅 <span id="date"></span></h2>
+      <p><strong>Отработано:</strong> <span id="worked"></span></p>
+      <p><strong>План:</strong> <span id="planned"></span></p>
+      <p><strong>Производительность:</strong> <span id="efficiency"></span></p>
+      <p><strong>Заработок за день:</strong> <span id="payDay"></span></p>
+      <p><strong>Заработок за месяц:</strong> <span id="payMonth"></span></p>
     </div>
 
-    <div id="loading" class="loading">
-      <p>Загрузка данных...</p>
-      <div class="spinner"></div>
-    </div>
-    <div id="error" class="error" style="display: none;"></div>
-
-    <div id="content" style="display: none;">
-      <div class="card fade-in">
-        <h2>📌 Ваш отчёт за <span id="report-date">—</span></h2>
-        <p><span class="label">Отработано:</span> <span class="value" id="worked">—</span></p>
-        <p><span class="label">Итого по табелю:</span> <span class="value" id="planned">—</span></p>
-        <p><span class="label">Производительность:</span> <span class="value" id="efficiency">—</span></p>
-        <p><span class="label">Заработано за день:</span> <span class="value" id="pay-day">—</span></p>
-        <p><span class="label">Заработано за месяц:</span> <span class="value" id="pay-month">—</span></p>
-      </div>
-
-      <div class="card">
-        <h2>📋 Детализация задач</h2>
-        <pre id="details">Загрузка...</pre>
-      </div>
-
-      <div class="card">
-        <h2>📈 Производительность (рабочие дни)</h2>
-        <canvas id="efficiencyChart"></canvas>
-      </div>
-
-      <div class="card">
-        <h2>💰 Заработок по месяцу</h2>
-        <canvas id="earningsChart"></canvas>
-      </div>
-
-      <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
+    <div class="card">
+      <h2>📋 Детали</h2>
+      <pre id="details"></pre>
     </div>
 
-    <div class="footer">
-      Система автоматизации AIP • © 2025
+    <div class="card">
+      <h2>📈 Производительность (рабочие дни)</h2>
+      <canvas id="efficiencyChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>💰 Заработок по месяцу</h2>
+      <canvas id="earningsChart"></canvas>
     </div>
   </div>
 
   <script>
-    // Инициализация Telegram WebApp
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxx7n8fKLgEDaHiju42hlQWL15Uo244ViXPT8u0ohzl2D10yFh49BMk5_TbDMjSxnCg/exec';
 
-    const user = Telegram.WebApp.initDataUnsafe.user;
-    const chatId = user?.id;
+    function getParameterByName(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
 
+    const chatId = getParameterByName('chat_id');
     if (!chatId) {
-      document.getElementById('loading').textContent = 'Ошибка: не удалось получить пользователя';
-      document.getElementById('error').style.display = 'block';
-      throw new Error('No user data');
+      document.getElementById('loader').textContent = 'Ошибка: chat_id не указан';
+    } else {
+      loadMainReport(chatId);
     }
 
-    // 🔗 Два API
-    const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbxx7n8fKLgEDaHiju42hlQWL15Uo244ViXPT8u0ohzl2D10yFh49BMk5_TbDMjSxnCg/exec';
-    const API_URL_CHARTS = 'https://script.google.com/macros/s/ВАШ_ID_CHARTS/exec'; // Кэшированные графики
+    async function loadMainReport(chatId) {
+      try {
+        const response = await fetch(`${API_URL}?chat_id=${chatId}`);
+        const data = await response.json();
 
-    const calendar = document.getElementById('calendar');
-    const dateSelect = document.getElementById('report-date-select');
-
-    // Глобальные переменные для графиков
-    let efficiencyChart, earningsChart;
-
-    // Функция: форматировать дату как "пн, 28 июля"
-    function formatDateForDisplay(dateStr) {
-      const [dd, mm, yy] = dateStr.split('.');
-      const d = new Date(yy, mm - 1, dd);
-      const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-      const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-      return `${days[d.getDay()]},  ${dd} ${months[d.getMonth()]}`;
-    }
-
-    // Функция: загрузить основной отчёт
-    function loadMainReport(dateStr) {
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('content').style.display = 'none';
-      document.getElementById('error').style.display = 'none';
-
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${dateStr}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('error').textContent = 'Ошибка: ' + data.error;
-            document.getElementById('error').style.display = 'block';
-            return;
-          }
-
-          document.getElementById('loading').style.display = 'none';
-          document.getElementById('content').style.display = 'block';
-
-          // Заполняем основные данные
-          document.getElementById('employee-name').textContent = data.name;
-          document.getElementById('report-date').textContent = formatDateForDisplay(dateStr);
-          document.getElementById('worked').textContent = data.worked || '—';
-          document.getElementById('planned').textContent = data.planned || '—';
-          document.getElementById('efficiency').textContent = data.efficiency || '—';
-          document.getElementById('pay-day').textContent = data.payDay || '—';
-          document.getElementById('pay-month').textContent = data.payMonth || '—';
-          document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
-
-          // Активируем кнопку PDF
-          const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
-          btn.disabled = false;
-          btn.textContent = 'Скачать PDF';
-
-          // Обновляем календарь
-          if (data.availableDates) {
-            renderCalendar(data.availableDates);
-          }
-
-          // Загружаем графики через 1 секунду (чтобы не тормозить основную загрузку)
-          setTimeout(() => {
-            loadCharts();
-          }, 1000);
-        })
-        .catch(err => {
-          console.error('Ошибка загрузки основных данных:', err);
-          document.getElementById('error').textContent = 'Ошибка: ' + err.message;
-          document.getElementById('error').style.display = 'block';
-        });
-    }
-
-    // Функция: загрузить графики
-    function loadCharts() {
-      fetch(`${API_URL_CHARTS}?chat_id=${chatId}`)
-        .then(r => r.json())
-        .then(chartData => {
-          if (chartData.error) {
-            console.warn('Графики не загружены:', chartData.error);
-            return;
-          }
-
-          if (chartData.efficiencyData && chartData.efficiencyData.length > 0) {
-            createEfficiencyChart(chartData.efficiencyData);
-          }
-          if (chartData.earningsData && chartData.earningsData.length > 0) {
-            createEarningsChart(chartData.earningsData);
-          }
-        })
-        .catch(err => {
-          console.error('Ошибка загрузки графиков:', err);
-        });
-    }
-
-    // Функция: отрисовка календаря
-    function renderCalendar(availableDates) {
-      calendar.innerHTML = '';
-      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      days.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        calendar.appendChild(el);
-      });
-
-      for (let i = -31; i <= 1; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-        const dd = d.getDate().toString().padStart(2, '0');
-        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-        const yy = d.getFullYear().toString();
-        const dateStr = `${dd}.${mm}.${yy}`;
-
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = dd;
-
-        if (availableDates.includes(dateStr)) {
-          el.classList.add('available');
-          el.title = 'Есть данные';
+        if (data.error) {
+          document.getElementById('loader').textContent = `Ошибка: ${data.error}`;
+          return;
         }
 
-        el.addEventListener('click', () => {
-          dateSelect.value = `${yy}-${mm}-${dd}`;
-          loadMainReport(dateStr);
+        // Заполняем данные
+        document.getElementById('name').textContent = data.name;
+        document.getElementById('date').textContent = data.date;
+        document.getElementById('worked').textContent = data.worked;
+        document.getElementById('planned').textContent = data.planned;
+        document.getElementById('efficiency').textContent = data.efficiency;
+        document.getElementById('payDay').textContent = data.payDay;
+        document.getElementById('payMonth').textContent = data.payMonth;
+        document.getElementById('details').textContent = data.details.join('\n');
+
+        // Заполняем даты
+        const select = document.getElementById('report-date-select');
+        data.availableDates.forEach(date => {
+          const option = document.createElement('option');
+          option.value = date;
+          option.textContent = date;
+          if (date === data.date.split(',')[1].trim()) option.selected = true;
+          select.appendChild(option);
         });
 
-        calendar.appendChild(el);
+        // Графики
+        if (data.efficiencyData && data.efficiencyData.length > 0) {
+          createEfficiencyChart(data.efficiencyData);
+        }
+        if (data.earningsData && data.earningsData.length > 0) {
+          createEarningsChart(data.earningsData);
+        }
+
+        // Показываем приложение
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+
+        // Обновление при выборе даты
+        select.addEventListener('change', async () => {
+          const selectedDate = select.value;
+          const response = await fetch(`${API_URL}?chat_id=${chatId}&date=${selectedDate}`);
+          const newData = await response.json();
+          if (!newData.error) {
+            updateReport(newData);
+          }
+        });
+
+      } catch (error) {
+        document.getElementById('loader').textContent = `Ошибка загрузки: ${error.message}`;
       }
     }
 
-    // График: Производительность по дням
+    function updateReport(data) {
+      document.getElementById('date').textContent = data.date;
+      document.getElementById('worked').textContent = data.worked;
+      document.getElementById('planned').textContent = data.planned;
+      document.getElementById('efficiency').textContent = data.efficiency;
+      document.getElementById('payDay').textContent = data.payDay;
+      document.getElementById('payMonth').textContent = data.payMonth;
+      document.getElementById('details').textContent = data.details.join('\n');
+
+      if (window.efficiencyChart) window.efficiencyChart.destroy();
+      if (window.earningsChart) window.earningsChart.destroy();
+
+      if (data.efficiencyData && data.efficiencyData.length > 0) {
+        createEfficiencyChart(data.efficiencyData);
+      }
+      if (data.earningsData && data.earningsData.length > 0) {
+        createEarningsChart(data.earningsData);
+      }
+    }
+
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
-      if (efficiencyChart) efficiencyChart.destroy();
-      efficiencyChart = new Chart(ctx, {
+      window.efficiencyChart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: data.map(d => d.day),
@@ -344,11 +187,9 @@
       });
     }
 
-    // График: Заработок по месяцу
     function createEarningsChart(data) {
       const ctx = document.getElementById('earningsChart').getContext('2d');
-      if (earningsChart) earningsChart.destroy();
-      earningsChart = new Chart(ctx, {
+      window.earningsChart = new Chart(ctx, {
         type: 'line',
         data: {
           labels: data.map(d => `${d.day}`),
@@ -372,20 +213,6 @@
           }
         }
       });
-    }
-
-    // Автозагрузка при открытии
-    window.onload = () => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      dateSelect.valueAsDate = yesterday;
-      const formattedDate = `${yesterday.getDate().toString().padStart(2, '0')}.${(yesterday.getMonth() + 1).toString().padStart(2, '0')}.${yesterday.getFullYear()}`;
-      loadMainReport(formattedDate);
-    };
-
-    // Заглушка для PDF
-    function downloadPDF() {
-      Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
     }
   </script>
 </body>
