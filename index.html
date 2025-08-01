@@ -287,7 +287,7 @@
         loading.textContent = 'Тестовый режим...';
         detectUserRole(chatId);
       } else {
-        showError('⚠️ Откройте через Telegram или добавьте ?test=1686935872');
+        showError('⚠️ Откройте через Telegram или добавьте ?test=ваш ID чата телеграмм');
       }
     }
 
@@ -427,6 +427,36 @@ function renderCalendar(availableDates) {
     el.style.borderRadius = '6px';
     calendar.appendChild(el);
   });
+
+  // Генерируем дни месяца
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(currentYear, currentMonth, day);
+    const dd = day.toString().padStart(2, '0');
+    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+    const yy = d.getFullYear();
+    const dateStr = `${dd}.${mm}.${yy}`;
+
+    const el = document.createElement('div');
+    el.className = 'day';
+    el.textContent = dd;
+    el.style.padding = '8px 0';
+    el.style.borderRadius = '6px';
+    el.style.fontSize = '14px';
+
+    if (availableDates.includes(dateStr)) {
+      el.classList.add('available');
+      el.title = 'Есть данные';
+      el.addEventListener('click', () => {
+        document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
+        loadEmployeeReport(chatId, dateStr);
+      });
+    } else {
+      el.style.color = '#ccc';
+    }
+
+    calendar.appendChild(el);
+  }
+}
 
   // Генерируем дни месяца
   for (let day = 1; day <= daysInMonth; day++) {
