@@ -96,18 +96,6 @@
       padding: 8px;
       border-bottom: 1px solid #eee;
     }
-    /* Кнопки */
-    .btn {
-      padding: 12px;
-      background: #1a8cd8;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 8px;
-    }
     /* Спиннер */
     .spinner {
       width: 40px;
@@ -146,9 +134,7 @@
     <div id="employee-view">
       <div class="card">
         <h2>📊 Персональная статистика</h2>
-        <div class="date-control">
-          <input type="date" id="date-select" />
-        </div>
+        <input type="date" id="date-select" />
       </div>
 
       <div class="card">
@@ -224,16 +210,6 @@
   <script>
     // === Настройки ===
     const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbyl_7_he7JK5IE-lbQzIGLahxH3thDWH_rlYcwBjfqNfMkdaCqRxMVOJPmGxEKG77UN/exec'; // ← Замени на свой
-    const chatId =Telegram.WebApp.initDataUnsafe.user?.id;
-
-    // === Глобальные переменные ===
-    let isManager = false;
-    let efficiencyChart = null;
-    let earningsChart = null;
-    let managerEfficiencyChart = null;
-    let managerPayChart = null;
-
-    // === Элементы ===
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
@@ -241,11 +217,60 @@
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
 
-    // === Инициализация ===
-    if (!chatId) {
-      showError('Ошибка: не удалось получить chat_id');
-    } else {
+    // === Глобальные переменные ===
+    let isManager = false;
+    let chatId = null;
+    let efficiencyChart = null;
+    let earningsChart = null;
+    let managerEfficiencyChart = null;
+    let managerPayChart = null;
+
+    // === Проверка WebApp и получение chatId ===
+    function initTelegram() {
+      // Проверка, доступен ли Telegram WebApp
+      if (!window.Telegram || !Telegram.WebApp) {
+        showError('❌ WebApp не загружена. Откройте через бота в Telegram.');
+        console.error('Telegram WebApp не доступен');
+        // Для теста: можно включить ручной ввод
+        enableTestMode();
+        return;
+      }
+
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+
+      const user = Telegram.WebApp.initDataUnsafe.user;
+      if (!user) {
+        showError('❌ Не удалось получить данные пользователя');
+        console.error('initDataUnsafe.user пуст:', Telegram.WebApp.initDataUnsafe);
+        enableTestMode();
+        return;
+      }
+
+      chatId = user.id?.toString();
+      if (!chatId) {
+        showError('❌ Не удалось получить chat_id');
+        console.error('chat_id отсутствует:', user);
+        enableTestMode();
+        return;
+      }
+
+      console.log('✅ Telegram WebApp готов. chat_id:', chatId);
       detectUserRole(chatId);
+    }
+
+    // === Режим тестирования (для браузера) ===
+    function enableTestMode() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const testChatId = urlParams.get('test');
+      if (testChatId) {
+        chatId = testChatId;
+        console.log('🔧 Тестовый режим активирован. chat_id:', chatId);
+        loading.textContent = 'Тестовый режим...';
+        detectUserRole(chatId);
+      } else {
+        showError('⚠️ Откройте через Telegram или добавьте ?test=1686935872');
+      }
     }
 
     // === Определение роли ===
@@ -262,13 +287,8 @@
 
           loading.style.display = 'none';
 
-          // Показываем вкладку "Команда" только для руководителей
           if (isManager) {
             tabManager.style.display = 'block';
-          }
-
-          // Загружаем нужную вкладку
-          if (isManager) {
             loadManagerDashboard(chatId);
           } else {
             loadEmployeeReport(chatId, getYesterdayFormatted());
@@ -276,6 +296,7 @@
         })
         .catch(err => {
           showError('Ошибка определения роли: ' + err.message);
+          console.error(err);
         });
     }
 
@@ -298,13 +319,9 @@
           document.getElementById('pay-month').textContent = data.payMonth;
           document.getElementById('details').textContent = data.details.join('\n');
 
-          // Календарь
           renderCalendar(data.availableDates);
-
-          // Графики
           if (efficiencyChart) efficiencyChart.destroy();
           if (earningsChart) earningsChart.destroy();
-
           if (data.efficiencyData && data.efficiencyData.length > 0) {
             createEfficiencyChart(data.efficiencyData);
           }
@@ -336,7 +353,6 @@
           document.getElementById('manager-efficiency').textContent = data.avgEfficiency;
           document.getElementById('manager-pay').textContent = data.totalPay;
 
-          // Список сотрудников
           const teamList = document.getElementById('team-list');
           teamList.innerHTML = data.team.map(emp => `
             <tr>
@@ -348,10 +364,8 @@
             </tr>
           `).join('');
 
-          // Графики
           if (managerEfficiencyChart) managerEfficiencyChart.destroy();
           if (managerPayChart) managerPayChart.destroy();
-
           if (data.efficiencyTrend && data.efficiencyTrend.length > 0) {
             createManagerEfficiencyChart(data.efficiencyTrend);
           }
@@ -388,7 +402,6 @@
         el.textContent = dd;
         if (availableDates.includes(dateStr)) {
           el.classList.add('available');
-          el.title = 'Есть данные';
           el.addEventListener('click', () => {
             document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
             loadEmployeeReport(chatId, dateStr);
@@ -398,19 +411,17 @@
       }
     }
 
-    // === Графики: Производительность и заработок (сотрудник) ===
+    // === Графики ===
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-             data.map(d => d.value),
-            backgroundColor: '#1a8cd8',
-            borderColor: '#1a8cd8',
-            borderWidth: 1
+            data: data.map(d => d.value),
+            backgroundColor: '#1a8cd8'
           }]
         },
         options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
@@ -421,40 +432,28 @@
       const ctx = document.getElementById('earningsChart').getContext('2d');
       earningsChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => `${d.day}`),
           datasets: [{
             label: 'Заработок (р.)',
-             data.map(d => d.pay),
-            backgroundColor: 'rgba(26, 140, 216, 0.2)',
+            data: data.map(d => d.pay),
             borderColor: '#1a8cd8',
-            borderWidth: 2,
             fill: true
           }]
         },
-        options: {
-          responsive: true,
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: (context) => `р. ${context.raw.toFixed(2)}`
-              }
-            }
-          }
-        }
+        options: { responsive: true }
       });
     }
 
-    // === Графики: Команда (руководитель) ===
     function createManagerEfficiencyChart(data) {
       const ctx = document.getElementById('managerEfficiencyChart').getContext('2d');
       managerEfficiencyChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Средняя эффективность (%)',
-             data.map(d => d.value),
+            data: data.map(d => d.value),
             borderColor: '#1a8cd8',
             fill: true
           }]
@@ -471,7 +470,7 @@
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Общий заработок (р.)',
-             data.map(d => d.pay),
+            data: data.map(d => d.pay),
             backgroundColor: '#1a8cd8'
           }]
         },
@@ -520,6 +519,9 @@
       const formattedDate = `${d}.${m}.${y}`;
       loadEmployeeReport(chatId, formattedDate);
     });
+
+    // === Запуск ===
+    initTelegram();
   </script>
 </body>
 </html>
