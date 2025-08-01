@@ -406,17 +406,7 @@
   calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
   calendar.style.gap = '4px';
 
-  // Определяем текущую дату
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth(); // Месяц (0-11)
-
-  // Генерируем календарь для текущего месяца
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); // Количество дней в текущем месяце
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-  const dayOfWeek = firstDayOfMonth.getDay(); // День недели первого числа месяца (0-6)
-
-  // Заголовки дней недели
+  // Дни недели (Пн - Вс)
   const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   dayNames.forEach(day => {
     const el = document.createElement('div');
@@ -428,36 +418,47 @@
     calendar.appendChild(el);
   });
 
-  // Генерируем дни месяца
-  for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(currentYear, currentMonth, day);
-    const dd = day.toString().padStart(2, '0');
-    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-    const yy = d.getFullYear();
-    const dateStr = `${dd}.${mm}.${yy}`;
+  // Генерируем 31 день: от (сегодня - 31) до вчера
+  const today = new Date();
+  const dates = [];
 
+  for (let i = 31; i >= 1; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i); // 31 день назад → вчера
+    dates.push(d);
+  }
+
+  // Заполняем сетку 7×5 = 35 ячеек
+  const totalCells = 35;
+  for (let i = 0; i < totalCells; i++) {
     const el = document.createElement('div');
-    el.className = 'day';
-    el.textContent = dd;
     el.style.padding = '8px 0';
     el.style.borderRadius = '6px';
     el.style.fontSize = '14px';
     el.style.cursor = 'pointer';
 
-    // Правильный день недели
-    const dayOfWeek = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()];
-    el.title = dayOfWeek;
+    const dateObj = dates[i];
+    if (dateObj) {
+      const dd = dateObj.getDate().toString().padStart(2, '0');
+      const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+      const yy = dateObj.getFullYear();
+      const dateStr = `${dd}.${mm}.${yy}`;
 
-    // Проверяем, есть ли данные за эту дату
-    if (availableDates.includes(dateStr)) {
-      el.classList.add('available');
-      el.title += ' — есть данные';
-      el.addEventListener('click', () => {
-        document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
-        loadEmployeeReport(chatId, dateStr);
-      });
+      el.textContent = dd;
+
+      // Проверяем, есть ли данные
+      if (availableDates.includes(dateStr)) {
+        el.classList.add('available');
+        el.title = 'Есть данные';
+        el.addEventListener('click', () => {
+          document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
+          loadEmployeeReport(chatId, dateStr);
+        });
+      } else {
+        el.style.color = '#ccc';
+      }
     } else {
-      el.style.color = '#ccc';
+      el.style.color = '#fff'; // Пустая ячейка
     }
 
     calendar.appendChild(el);
