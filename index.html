@@ -406,30 +406,32 @@
   calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
   calendar.style.gap = '4px';
 
-  // Дни недели (Пн - Вс)
-  const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  dayNames.forEach(day => {
-    const el = document.createElement('div');
-    el.textContent = day;
-    el.style.fontWeight = 'bold';
-    el.style.padding = '6px 0';
-    el.style.backgroundColor = '#f0f0f0';
-    el.style.borderRadius = '6px';
-    calendar.appendChild(el);
-  });
-
-  // Генерируем 31 день: от (сегодня - 31) до вчера
+  // Определяем текущую дату
   const today = new Date();
-  const dates = [];
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // Месяц (0-11)
 
-  for (let i = 31; i >= 1; i--) {
+  // Генерируем 33 дня: от (сегодня - 31) до завтра
+  const dates = [];
+  for (let i = 31; i >= -1; i--) { // -1 для завтрашнего дня
     const d = new Date(today);
-    d.setDate(today.getDate() - i); // 31 день назад → вчера
-    dates.push(d);
+    d.setDate(d.getDate() + i);
+    const dd = d.getDate().toString().padStart(2, '0');
+    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+    const yy = d.getFullYear();
+    const dateStr = `${dd}.${mm}.${yy}`;
+    dates.push({ date: d, dateStr });
   }
 
   // Заполняем сетку 7×5 = 35 ячеек
   const totalCells = 35;
+  let emptyCells = 0;
+
+  // Определяем, сколько пустых ячеек нужно добавить
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+  const dayOfWeek = firstDayOfMonth.getDay(); // День недели первого числа месяца (0-6)
+  emptyCells = dayOfWeek;
+
   for (let i = 0; i < totalCells; i++) {
     const el = document.createElement('div');
     el.style.padding = '8px 0';
@@ -437,28 +439,33 @@
     el.style.fontSize = '14px';
     el.style.cursor = 'pointer';
 
-    const dateObj = dates[i];
-    if (dateObj) {
-      const dd = dateObj.getDate().toString().padStart(2, '0');
-      const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-      const yy = dateObj.getFullYear();
-      const dateStr = `${dd}.${mm}.${yy}`;
-
-      el.textContent = dd;
-
-      // Проверяем, есть ли данные
-      if (availableDates.includes(dateStr)) {
-        el.classList.add('available');
-        el.title = 'Есть данные';
-        el.addEventListener('click', () => {
-          document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
-          loadEmployeeReport(chatId, dateStr);
-        });
-      } else {
-        el.style.color = '#ccc';
-      }
+    if (i < emptyCells) {
+      // Пустые ячейки в начале
+      el.textContent = '';
+      el.style.color = '#fff'; // Прозрачный текст
     } else {
-      el.style.color = '#fff'; // Пустая ячейка
+      const index = i - emptyCells;
+      const dateObj = dates[index];
+      if (dateObj) {
+        const { date, dateStr } = dateObj;
+        const dd = date.getDate().toString().padStart(2, '0');
+
+        el.textContent = dd;
+
+        // Проверяем, есть ли данные за эту дату
+        if (availableDates.includes(dateStr)) {
+          el.classList.add('available');
+          el.title = 'Есть данные';
+          el.addEventListener('click', () => {
+            document.getElementById('date-select').value = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${dd}`;
+            loadEmployeeReport(chatId, dateStr);
+          });
+        } else {
+          el.style.color = '#ccc';
+        }
+      } else {
+        el.style.color = '#fff'; // Пустая ячейка
+      }
     }
 
     calendar.appendChild(el);
