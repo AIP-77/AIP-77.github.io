@@ -406,19 +406,9 @@ function renderCalendar(availableDates) {
   calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
   calendar.style.gap = '4px';
 
-  // Определяем текущую дату
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth(); // Месяц (0-11)
-
-  // Генерируем календарь для текущего месяца
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate(); // Количество дней в текущем месяце
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-  const dayOfWeek = firstDayOfMonth.getDay(); // День недели первого числа месяца (0-6)
-
-  // Заголовки дней недели
-  const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  days.forEach(day => {
+  // Дни недели (Пн - Вс)
+  const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  dayNames.forEach(day => {
     const el = document.createElement('div');
     el.textContent = day;
     el.style.fontWeight = 'bold';
@@ -428,10 +418,13 @@ function renderCalendar(availableDates) {
     calendar.appendChild(el);
   });
 
-  // Генерируем дни месяца
-  for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(currentYear, currentMonth, day);
-    const dd = day.toString().padStart(2, '0');
+  // Генерируем 31 день, начиная с 31 дня назад
+  const today = new Date();
+  for (let i = 31; i >= 1; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i); // 31 день назад → вчера
+
+    const dd = d.getDate().toString().padStart(2, '0');
     const mm = (d.getMonth() + 1).toString().padStart(2, '0');
     const yy = d.getFullYear();
     const dateStr = `${dd}.${mm}.${yy}`;
@@ -442,12 +435,16 @@ function renderCalendar(availableDates) {
     el.style.padding = '8px 0';
     el.style.borderRadius = '6px';
     el.style.fontSize = '14px';
+    el.style.cursor = 'pointer';
 
+    // Проверяем, есть ли данные за эту дату
     if (availableDates.includes(dateStr)) {
       el.classList.add('available');
       el.title = 'Есть данные';
       el.addEventListener('click', () => {
+        // Устанавливаем значение в date input
         document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
+        // Загружаем отчёт
         loadEmployeeReport(chatId, dateStr);
       });
     } else {
@@ -457,37 +454,6 @@ function renderCalendar(availableDates) {
     calendar.appendChild(el);
   }
 }
-
-  // Генерируем дни месяца
-  for (let day = 1; day <= daysInMonth; day++) {
-    const d = new Date(currentYear, currentMonth, day);
-    const dd = day.toString().padStart(2, '0');
-    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-    const yy = d.getFullYear();
-    const dateStr = `${dd}.${mm}.${yy}`;
-
-    const el = document.createElement('div');
-    el.className = 'day';
-    el.textContent = dd;
-    el.style.padding = '8px 0';
-    el.style.borderRadius = '6px';
-    el.style.fontSize = '14px';
-
-    if (availableDates.includes(dateStr)) {
-      el.classList.add('available');
-      el.title = 'Есть данные';
-      el.addEventListener('click', () => {
-        document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
-        loadEmployeeReport(chatId, dateStr);
-      });
-    } else {
-      el.style.color = '#ccc';
-    }
-
-    calendar.appendChild(el);
-  }
-}
-
     // === Графики ===
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
