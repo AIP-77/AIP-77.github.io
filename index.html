@@ -120,10 +120,11 @@
 </head>
 <body>
   <div class="container">
-    <!-- Загрузка с спиннером -->
+    <!-- Загрузка с таймером -->
     <div id="loading" class="loading">
       <div class="spinner"></div>
-      Загрузка данных...
+      <p>Загрузка данных...</p>
+      <p id="loading-timer">0.0 с</p>
     </div>
     <div id="error" class="error"></div>
 
@@ -212,7 +213,7 @@
 
   <script>
     // === Настройки ===
-    const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbyl_7_he7JK5IE-lbQzIGLahxH3thDWH_rlYcwBjfqNfMkdaCqRxMVOJPmGxEKG77UN/exec';
+    const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbyl_7_he7JK5IE-lbQzIGLahxH3thDWH_rlYcwBjfqNfMkdaCqRxMVOJPmGxEKG77UN/exec'; // ← Замени на свой
     let chatId = null;
     let isManager = false;
     let efficiencyChart = null;
@@ -228,8 +229,21 @@
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
 
+    // === Таймер загрузки ===
+    function startLoadingTimer() {
+      const start = Date.now();
+      const timerEl = document.getElementById('loading-timer');
+      const interval = setInterval(() => {
+        const elapsed = (Date.now() - start) / 1000;
+        timerEl.textContent = `${elapsed.toFixed(1)} с`;
+      }, 100);
+      return () => clearInterval(interval);
+    }
+
     // === Инициализация Telegram WebApp ===
     function initTelegram() {
+      const stopTimer = startLoadingTimer();
+
       if (!window.Telegram || !Telegram.WebApp) {
         showError('❌ WebApp не загружен. Откройте через Telegram.');
         enableTestMode();
@@ -248,7 +262,9 @@
 
       chatId = user.id.toString();
       console.log('✅ Telegram WebApp готов. chat_id:', chatId);
-      loading.style.display = 'none';
+
+      document.getElementById('loading').style.display = 'none';
+      stopTimer();
       detectUserRole(chatId);
     }
 
@@ -427,11 +443,11 @@
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-             data.map(d => d.value),
+            data: data.map(d => d.value),
             backgroundColor: '#1a8cd8'
           }]
         },
@@ -443,11 +459,11 @@
       const ctx = document.getElementById('earningsChart').getContext('2d');
       earningsChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => `${d.day}`),
           datasets: [{
             label: 'Заработок (р.)',
-             data.map(d => d.pay),
+            data: data.map(d => d.pay),
             borderColor: '#1a8cd8',
             fill: true
           }]
@@ -460,11 +476,11 @@
       const ctx = document.getElementById('managerEfficiencyChart').getContext('2d');
       managerEfficiencyChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Средняя эффективность (%)',
-             data.map(d => d.value),
+            data: data.map(d => d.value),
             borderColor: '#1a8cd8',
             fill: true
           }]
@@ -477,11 +493,11 @@
       const ctx = document.getElementById('managerPayChart').getContext('2d');
       managerPayChart = new Chart(ctx, {
         type: 'bar',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Общий заработок (р.)',
-             data.map(d => d.pay),
+            data: data.map(d => d.pay),
             backgroundColor: '#1a8cd8'
           }]
         },
