@@ -65,6 +65,13 @@
       font-weight: bold;
     }
     /* Спиннер */
+   .loading {
+     text-align: center;
+     padding: 40px;
+     font-size: 16px;
+     color: #666;
+    }
+    
     .spinner {
       width: 40px;
       height: 40px;
@@ -230,6 +237,7 @@
     const tabManager = document.getElementById('tab-manager');
 
     // === Таймер загрузки ===
+    let loadingStartTime = null;
     function startLoadingTimer() {
       const start = Date.now();
       const timerEl = document.getElementById('loading-timer');
@@ -252,6 +260,7 @@
 
       Telegram.WebApp.ready();
       Telegram.WebApp.expand();
+      
 
       const user = Telegram.WebApp.initDataUnsafe.user;
       if (!user || !user.id) {
