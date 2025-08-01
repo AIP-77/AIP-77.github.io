@@ -283,37 +283,68 @@
     }
 
     // === Рендер календаря ===
-    function renderCalendar(availableDates) {
-      const calendar = document.getElementById('calendar');
-      calendar.innerHTML = '';
-      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      days.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        calendar.appendChild(el);
-      });
+// === Рендер календаря ===
+function renderCalendar(availableDates) {
+  const calendar = document.getElementById('calendar');
+  if (!calendar) return;
 
-      for (let i = -31; i <= 1; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-        const dd = d.getDate().toString().padStart(2, '0');
-        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-        const yy = d.getFullYear().toString();
-        const dateStr = `${dd}.${mm}.${yy}`;
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = dd;
-        if (availableDates.includes(dateStr)) {
-          el.classList.add('available');
-          el.addEventListener('click', () => {
-            document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
-            loadEmployeeReport(chatId, dateStr);
-          });
+  // Очищаем
+  calendar.innerHTML = '';
+
+  // Сетка 7 колонок
+  calendar.style.display = 'grid';
+  calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
+  calendar.style.gap = '4px';
+  calendar.style.textAlign = 'center';
+
+  // Дни недели
+  const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  days.forEach(day => {
+    const el = document.createElement('div');
+    el.textContent = day;
+    el.style.fontWeight = 'bold';
+    el.style.padding = '6px 0';
+    el.style.backgroundColor = '#f0f0f0';
+    el.style.borderRadius = '6px';
+    calendar.appendChild(el);
+  });
+
+  // Генерация дней (последние 30 дней)
+  for (let i = 30; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dd = d.getDate().toString().padStart(2, '0');
+    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+    const yy = d.getFullYear();
+    const dateStr = `${dd}.${mm}.${yy}`;
+
+    const el = document.createElement('div');
+    el.className = 'day';
+    el.textContent = dd;
+    el.style.padding = '8px 0';
+    el.style.borderRadius = '6px';
+    el.style.fontSize = '14px';
+
+    // Если есть данные — выделяем
+    if (availableDates.includes(dateStr)) {
+      el.style.backgroundColor = '#1a8cd8';
+      el.style.color = 'white';
+      el.style.cursor = 'pointer';
+      el.title = 'Есть данные';
+      el.addEventListener('click', () => {
+        const dateSelect = document.getElementById('date-select');
+        if (dateSelect) {
+          dateSelect.value = `${yy}-${mm}-${dd}`;
+          loadEmployeeReport(chatId, dateStr);
         }
-        calendar.appendChild(el);
-      }
+      });
+    } else {
+      el.style.color = '#aaa';
     }
+
+    calendar.appendChild(el);
+  }
+}
 
     // === Графики ===
     let efficiencyChart = null;
