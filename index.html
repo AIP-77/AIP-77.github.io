@@ -398,7 +398,7 @@
     }
 
     // === Рендер календаря ===
- function renderCalendar(availableDates) {
+function renderCalendar(availableDates) {
   const calendar = document.getElementById('calendar');
   if (!calendar) return;
   calendar.innerHTML = '';
@@ -413,14 +413,11 @@
 
   // Генерируем 33 дня: от (сегодня - 31) до завтра
   const dates = [];
+
   for (let i = 31; i >= -1; i--) { // -1 для завтрашнего дня
     const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    const dd = d.getDate().toString().padStart(2, '0');
-    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-    const yy = d.getFullYear();
-    const dateStr = `${dd}.${mm}.${yy}`;
-    dates.push({ date: d, dateStr });
+    d.setDate(d.getDate() - i); // 31 день назад → завтра
+    dates.push(d);
   }
 
   // Заполняем сетку 7×5 = 35 ячеек
@@ -447,8 +444,10 @@
       const index = i - emptyCells;
       const dateObj = dates[index];
       if (dateObj) {
-        const { date, dateStr } = dateObj;
-        const dd = date.getDate().toString().padStart(2, '0');
+        const dd = dateObj.getDate().toString().padStart(2, '0');
+        const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+        const yy = dateObj.getFullYear();
+        const dateStr = `${dd}.${mm}.${yy}`;
 
         el.textContent = dd;
 
@@ -457,7 +456,7 @@
           el.classList.add('available');
           el.title = 'Есть данные';
           el.addEventListener('click', () => {
-            document.getElementById('date-select').value = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${dd}`;
+            document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
             loadEmployeeReport(chatId, dateStr);
           });
         } else {
