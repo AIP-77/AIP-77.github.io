@@ -425,7 +425,7 @@ function renderCalendar(availableDates) {
     d.setDate(today.getDate() - i); // 31 день назад → вчера
 
     const dd = d.getDate().toString().padStart(2, '0');
-    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+    const mm = (d.getMonth() + 1).toString().padStart(2, '0'); // 1-12
     const yy = d.getFullYear();
     const dateStr = `${dd}.${mm}.${yy}`;
 
@@ -437,14 +437,16 @@ function renderCalendar(availableDates) {
     el.style.fontSize = '14px';
     el.style.cursor = 'pointer';
 
+    // Правильный день недели
+    const dayOfWeek = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()];
+    el.title = dayOfWeek;
+
     // Проверяем, есть ли данные за эту дату
     if (availableDates.includes(dateStr)) {
       el.classList.add('available');
-      el.title = 'Есть данные';
+      el.title += ' — есть данные';
       el.addEventListener('click', () => {
-        // Устанавливаем значение в date input
         document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
-        // Загружаем отчёт
         loadEmployeeReport(chatId, dateStr);
       });
     } else {
