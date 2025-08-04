@@ -317,40 +317,59 @@
     }
 
     // === Загрузка персонального отчёта ===
-    function loadEmployeeReport(chatId, date) {
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) {
-            showError(data.error);
-            return;
-          }
+function loadEmployeeReport(chatId, date) {
+  if (!date || typeof date !== 'string') {
+    console.error("❌ loadEmployeeReport: некорректная дата =", date);
+    showError("Ошибка: некорректная дата");
+    return;
+  }
 
-          document.getElementById('name').textContent = data.name;
-          document.getElementById('report-date').textContent = data.date;
-          document.getElementById('worked').textContent = data.worked;
-          document.getElementById('planned').textContent = data.planned;
-          document.getElementById('efficiency').textContent = data.efficiency;
-          document.getElementById('pay-day').textContent = data.payDay;
-          document.getElementById('pay-month').textContent = data.payMonth;
-          document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
+  fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        showError(data.error);
+        return;
+      }
 
-          renderCalendar(data.availableDates);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
 
-          if (efficiencyChart) efficiencyChart.destroy();
-          if (earningsChart) earningsChart.destroy();
+      // Заполняем данные
+      document.getElementById('employee-name').textContent = data.name || "—";
+      document.getElementById('report-date').textContent = data.date || "—";
+      document.getElementById('worked').textContent = data.worked || "—";
+      document.getElementById('planned').textContent = data.planned || "—";
+      document.getElementById('efficiency').textContent = data.efficiency || "—";
+      document.getElementById('pay-day').textContent = data.payDay || "—";
+      document.getElementById('pay-month').textContent = data.payMonth || "—";
+      document.getElementById('details').textContent = data.details?.join('\n') || "Нет данных";
 
-          if (data.efficiencyData && data.efficiencyData.length > 0) {
-            createEfficiencyChart(data.efficiencyData);
-          }
-          if (data.earningsData && data.earningsData.length > 0) {
-            createEarningsChart(data.earningsData);
-          }
-        })
-        .catch(err => {
-          showError('Ошибка загрузки: ' + err.message);
-        });
-    }
+      // Активируем кнопку PDF
+      const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Скачать PDF';
+      }
+
+      // Обновляем календарь
+      if (data.availableDates && Array.isArray(data.availableDates)) {
+        renderCalendar(data.availableDates);
+      }
+
+      // Графики
+      if (data.efficiencyData && Array.isArray(data.efficiencyData)) {
+        createEfficiencyChart(data.efficiencyData);
+      }
+      if (data.earningsData && Array.isArray(data.earningsData)) {
+        createEarningsChart(data.earningsData);
+      }
+    })
+    .catch(err => {
+      console.error("❌ Ошибка загрузки отчёта:", err);
+      showError("Ошибка загрузки: " + err.message);
+    });
+}
 
     // === Загрузка панели руководителя ===
     function loadManagerDashboard(chatId) {
