@@ -251,34 +251,44 @@
     }
 
     // === Инициализация Telegram WebApp ===///////////////////////////////////////////////////////////////////////////////////////////////////
-    function initTelegram() {
-      const stopTimer = startLoadingTimer();
+    // === Инициализация Telegram WebApp ===
+function initTelegram() {
+  const stopTimer = startLoadingTimer();
 
-      if (!window.Telegram || !Telegram.WebApp) {
-        showError('❌ WebApp не загружен. Откройте через Telegram.');
-        enableTestMode();
-        return;
-      }
+  if (!window.Telegram || !Telegram.WebApp) {
+    showError('❌ WebApp не загружен. Откройте через Telegram.');
+    enableTestMode();
+    return;
+  }
 
-      Telegram.WebApp.ready();
-      Telegram.WebApp.expand();
-      
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
 
-      const user = Telegram.WebApp.initDataUnsafe.user;
-      if (!user || !user.id) {
-        showError('❌ Не удалось получить пользователя');
-        enableTestMode();
-        return;
-      }
+  const user = Telegram.WebApp.initDataUnsafe.user;
+  if (!user || !user.id) {
+    showError('❌ Не удалось получить пользователя');
+    enableTestMode();
+    return;
+  }
 
-      chatId = user.id.toString();
-      console.log('✅ Telegram WebApp готов. chat_id:', chatId);
+  chatId = user.id.toString();
+  console.log('✅ Telegram WebApp готов. chat_id:', chatId);
 
-      document.getElementById('loading').style.display = 'none';
-      stopTimer();
-      detectUserRole(chatId);
-    }
+  document.getElementById('loading').style.display = 'none';
+  stopTimer();
+  detectUserRole(chatId);
+}
 
+// === Автозагрузка при открытии ===
+window.onload = () => {
+  // Устанавливаем вчерашнюю дату по умолчанию
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  document.getElementById('report-date-select').valueAsDate = yesterday;
+
+  // Запускаем Telegram WebApp
+  initTelegram();
+};
     // === Режим тестирования (для браузера) ===/////////////////////////////////////////////////////////////////////////////////////////////////////
     function enableTestMode() {
       const urlParams = new URLSearchParams(window.location.search);
