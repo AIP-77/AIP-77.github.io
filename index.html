@@ -291,33 +291,29 @@
     }
 
     // === Определение роли ===
-    function detectUserRole(chatId) {
-      const stopTimer = startLoadingTimer();
+function detectUserRole(chatId) {
+  fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        showError(data.error);
+        return;
+      }
 
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&check_role=true`)
-        .then(r => r.json())
-        .then(roleData => {
-          if (roleData.error) {
-            showError(roleData.error);
-            return;
-          }
+      isManager = data.isManager;
+      loading.style.display = 'none';
 
-          isManager = roleData.isManager;
-          stopTimer();
-          loading.style.display = 'none';
-
-          if (isManager) {
-            tabManager.style.display = 'block';
-            loadManagerDashboard(chatId);
-          } else {
-            loadEmployeeReport(chatId, getYesterdayFormatted());
-          }
-        })
-        .catch(err => {
-          stopTimer();
-          showError('Ошибка определения роли: ' + err.message);
-        });
-    }
+      if (isManager) {
+        tabManager.style.display = 'block';
+        loadManagerDashboard(data);
+      } else {
+        loadEmployeeReport(data);
+      }
+    })
+    .catch(err => {
+      showError('Ошибка: ' + err.message);
+    });
+}
 
     // === Загрузка персонального отчёта ===
     function loadEmployeeReport(chatId, date) {
