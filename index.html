@@ -24,71 +24,48 @@
     .card {
       background: white;
       border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
+      padding: 18px;
+      margin-bottom: 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    h1, h2 {
+    h1, h2, h3 {
       margin: 0 0 8px 0;
-      color: #1c1e21;
+      color: #1a8cd8;
     }
-    .loading {
-      text-align: center;
-      padding: 40px;
-      font-size: 16px;
-      color: #666;
+    .label {
+      font-weight: 600;
+      color: #444;
     }
-    .error {
-      color: #d32f2f;
-      padding: 16px;
-      background: #ffebee;
+    .value {
+      color: #1a8cd8;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #f8f9fa;
+      padding: 12px;
       border-radius: 8px;
-      margin: 16px 0;
-      display: none;
+      font-size: 14px;
+      margin: 8px 0;
+      overflow-x: auto;
     }
-    
-    /* Вкладки ///////////////////////////////////////////////////////////*/
+    /* Вкладки */
     .tabs {
       display: flex;
       margin-bottom: 16px;
+      border-bottom: 1px solid #ddd;
     }
     .tab {
-      flex: 1;
-      text-align: center;
-      padding: 12px;
-      background: #eee;
-      border-bottom: 3px solid transparent;
+      padding: 10px 16px;
       cursor: pointer;
+      font-weight: 600;
+      color: #666;
     }
     .tab.active {
-      background: white;
-      border-bottom: 3px solid #1a8cd8;
-      font-weight: bold;
+      color: #1a8cd8;
+      border-bottom: 2px solid #1a8cd8;
     }
-    
-    /* Спиннер ///////////////////////////////////////////////////////////*/
-   .loading {
-     text-align: center;
-     padding: 40px;
-     font-size: 16px;
-     color: #666;
-    }
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #e0e0e0;
-      border-top: 4px solid #1a8cd8;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    /* Календарь //////////////////////////////////////////////////////////*/
+    /* Календарь */
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -97,9 +74,9 @@
     }
     .day {
       text-align: center;
-      padding: 8px 0;
-      font-size: 14px;
-      border-radius: 8px;
+      padding: 6px 0;
+      font-size: 12px;
+      border-radius: 4px;
       color: #333;
     }
     .day.available {
@@ -114,29 +91,74 @@
       border-collapse: collapse;
     }
     th {
-      background: #eee;
+      background: #f0f0f0;
       padding: 8px;
       text-align: left;
-      font-weight: bold;
+      font-weight: 600;
+      font-size: 14px;
     }
     td {
       padding: 8px;
       border-bottom: 1px solid #eee;
     }
-    canvas {
-      max-height: 200px;
+    /* Кнопки */
+    .btn {
+      background: #1a8cd8;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    /* Спиннер */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 16px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e0e0e0;
+      border-top: 4px solid #1a8cd8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Ошибки */
+    .error {
+      color: #e53935;
+      text-align: center;
+      padding: 20px;
+      background: #ffebee;
+      border-radius: 8px;
+      margin: 16px 0;
+      display: none;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #888;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Загрузка с таймером -->
-    <div id="loading" class="loading">
-      <div class="spinner"></div>
-      <p>Загрузка данных...</p>
-      <p id="loading-timer">0.0 с</p>
-    </div>
-    <div id="error" class="error"></div>
+    <h1>📊 Персональная панель</h1>
 
     <!-- Вкладки -->
     <div class="tabs">
@@ -144,26 +166,29 @@
       <div id="tab-manager" class="tab" style="display: none;">Команда</div>
     </div>
 
-    <!-- Персональная панель -->
+    <!-- Загрузка -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка данных...</p>
+      <p id="loading-timer">0.0 с</p>
+    </div>
+    <div id="error" class="error"></div>
+
+    <!-- Персональная статистика -->
     <div id="employee-view">
       <div class="card">
-        <h2>📊 Персональная статистика</h2>
-        <input type="date" id="date-select" />
+        <p><span class="label">Сотрудник:</span> <span id="name"></span></p>
+        <p><span class="label">Дата:</span> <span id="report-date"></span></p>
+        <p><span class="label">Отработано:</span> <span id="worked"></span></p>
+        <p><span class="label">Итого по табелю:</span> <span id="planned"></span></p>
+        <p><span class="label">Производительность:</span> <span id="efficiency"></span></p>
+        <p><span class="label">Заработано за день:</span> <span id="pay-day"></span></p>
+        <p><span class="label">Заработано за месяц:</span> <span id="pay-month"></span></p>
       </div>
 
       <div class="card">
-        <p><b>Сотрудник:</b> <span id="name"></span></p>
-        <p><b>Дата:</b> <span id="report-date"></span></p>
-        <p><b>Отработано:</b> <span id="worked"></span></p>
-        <p><b>План:</b> <span id="planned"></span></p>
-        <p><b>Производительность:</b> <span id="efficiency"></span></p>
-        <p><b>Заработок за день:</b> <span id="pay-day"></span></p>
-        <p><b>Заработок за месяц:</b> <span id="pay-month"></span></p>
-      </div>
-
-      <div class="card">
-        <h2>📋 Детали</h2>
-        <pre id="details"></pre>
+        <h2>📋 Детализация задач</h2>
+        <pre id="details">Загрузка...</pre>
       </div>
 
       <div class="card">
@@ -177,72 +202,45 @@
       </div>
 
       <div class="card">
-        <h2>📅 Календарь посещаемости</h2>
+        <h2>📅 Календарь</h2>
         <div class="calendar" id="calendar"></div>
       </div>
+
+      <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
     </div>
 
     <!-- Панель руководителя -->
-<!-- Панель руководителя -->
-<div id="manager-view" style="display: none;">
-  <div class="card">
-    <h2>👨‍💼 Управление: <span id="manager-department"></span></h2>
-    <p><b>Дата:</b> <span id="manager-date"></span></p>
-    <p><b>Сотрудников:</b> <span id="total-employees"></span></p>
-    <p><b>Явка:</b> <span id="manager-present"></span> / <span id="manager-absent"></span> (<span id="manager-attendance"></span>)</p>
-    <p><b>Средняя эффективность:</b> <span id="manager-efficiency"></span></p>
-    <p><b>Общий заработок:</b> <span id="manager-pay"></span></p>
-  </div>
+    <div id="manager-view" style="display: none;">
+      <div class="card">
+        <h2>👨‍💼 Управление отделами</h2>
+        <p><b>Дата:</b> <span id="manager-date"></span></p>
+      </div>
+      <div id="departments-container"></div>
+    </div>
 
-  <div class="card">
-    <h2>📋 Сотрудники</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Сотрудник</th>
-          <th>Статус</th>
-          <th>Отработано</th>
-          <th>Эффективность</th>
-          <th>Заработок</th>
-        </tr>
-      </thead>
-      <tbody id="team-list"></tbody>loadEmployeeReport
-    </table>
+    <div class="footer">
+      Система автоматизации AIP • © 2025
+    </div>
   </div>
-
-  <div class="card">
-    <h2>📈 Эффективность команды (7 дней)</h2>
-    <canvas id="managerEfficiencyChart"></canvas>
-  </div>
-
-  <div class="card">
-    <h2>💰 Заработок команды (7 дней)</h2>
-    <canvas id="managerPayChart"></canvas>
-  </div>
-
-  <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
-</div>
 
   <script>
-    // === Настройки ===///////////////////////////////////////////////////
-    const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbyl_7_he7JK5IE-lbQzIGLahxH3thDWH_rlYcwBjfqNfMkdaCqRxMVOJPmGxEKG77UN/exec';
+    // === Настройки ===
+    const API_URL_MAIN = 'https://script.google.com/macros/s/ВАШ_ID/exec'; // ← Замени на свой
     let chatId = null;
     let isManager = false;
     let efficiencyChart = null;
     let earningsChart = null;
-    let managerEfficiencyChart = null;
-    let managerPayChart = null;
 
-    // === Элементы ===/////////////////////////////////////////////////////
+    // === Элементы ===
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
     const managerView = document.getElementById('manager-view');
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
+    const departmentsContainer = document.getElementById('departments-container');
 
-    // === Таймер загрузки ===//////////////////////////////////////////////
-    let loadingStartTime = null;
+    // === Таймер загрузки ===
     function startLoadingTimer() {
       const start = Date.now();
       const timerEl = document.getElementById('loading-timer');
@@ -253,46 +251,32 @@
       return () => clearInterval(interval);
     }
 
-    // === Инициализация Telegram WebApp ===/////////////////////////////////
     // === Инициализация Telegram WebApp ===
-function initTelegram() {
-  const stopTimer = startLoadingTimer();
+    function initTelegram() {
+      if (!window.Telegram || !Telegram.WebApp) {
+        showError('❌ WebApp не загружен. Откройте через Telegram.');
+        enableTestMode();
+        return;
+      }
 
-  if (!window.Telegram || !Telegram.WebApp) {
-    showError('❌ WebApp не загружен. Откройте через Telegram.');
-    enableTestMode();
-    return;
-  }
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
 
-  Telegram.WebApp.ready();
-  Telegram.WebApp.expand();
+      const user = Telegram.WebApp.initDataUnsafe.user;
+      if (!user || !user.id) {
+        showError('❌ Не удалось получить пользователя');
+        enableTestMode();
+        return;
+      }
 
-  const user = Telegram.WebApp.initDataUnsafe.user;
-  if (!user || !user.id) {
-    showError('❌ Не удалось получить пользователя');
-    enableTestMode();
-    return;
-  }
+      chatId = user.id.toString();
+      console.log('✅ Telegram WebApp готов. chat_id:', chatId);
 
-  chatId = user.id.toString();
-  console.log('✅ Telegram WebApp готов. chat_id:', chatId);
+      document.getElementById('loading').style.display = 'none';
+      detectUserRole(chatId);
+    }
 
-  document.getElementById('loading').style.display = 'none';
-  stopTimer();
-  detectUserRole(chatId);
-}
-
-// === Автозагрузка при открытии ===
-window.onload = () => {
-  // Устанавливаем вчерашнюю дату по умолчанию
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  document.getElementById('report-date-select').valueAsDate = yesterday;
-
-  // Запускаем Telegram WebApp
-  initTelegram();
-};
-    // === Режим тестирования (для браузера) ===/////////////////////////////
+    // === Режим тестирования (для браузера) ===
     function enableTestMode() {
       const urlParams = new URLSearchParams(window.location.search);
       const testChatId = urlParams.get('test');
@@ -306,35 +290,42 @@ window.onload = () => {
       }
     }
 
-    // === Определение роли ===//////////////////////////////////////////////
-// === Определение роли пользователя ===
-function detectUserRole(chatId) {
-  fetch(`${API_URL_MAIN}?chat_id=${chatId}&check_role=true`)
-    .then(r => r.json())
-    .then(roleData => {
-      if (roleData.error) {
-        showError(roleData.error);
-        return;
-      }
+    // === Определение роли ===
+    function detectUserRole(chatId) {
+      const stopTimer = startLoadingTimer();
 
-      isManager = roleData.isManager;
+      fetch(`${API_URL_MAIN}?chat_id=${chatId}&check_role=true`)
+        .then(r => r.json())
+        .then(roleData => {
+          if (roleData.error) {
+            showError(roleData.error);
+            return;
+          }
 
-      loading.style.display = 'none';
+          isManager = roleData.isManager;
+          stopTimer();
+          loading.style.display = 'none';
 
-      if (isManager) {
-        tabManager.style.display = 'block';
-        loadManagerDashboard(chatId);
-      } else {
-        loadEmployeeReport(chatId, getYesterdayFormatted());
-      }
-    })
-    .catch(err => {
-      showError('Ошибка определения роли: ' + err.message);
-    });
-}
+          if (isManager) {
+            tabManager.style.display = 'block';
+            loadManagerDashboard(chatId);
+          } else {
+            loadEmployeeReport(chatId, getYesterdayFormatted());
+          }
+        })
+        .catch(err => {
+          stopTimer();
+          showError('Ошибка определения роли: ' + err.message);
+        });
+    }
 
-    // === Загрузка персонального отчёта ===////////////////////////////////
+    // === Загрузка персонального отчёта ===
     function loadEmployeeReport(chatId, date) {
+      const stopTimer = startLoadingTimer();
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('content').style.display = 'none';
+      document.getElementById('error').style.display = 'none';
+
       fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
         .then(r => r.json())
         .then(data => {
@@ -343,6 +334,10 @@ function detectUserRole(chatId) {
             return;
           }
 
+          stopTimer();
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('content').style.display = 'block';
+
           document.getElementById('name').textContent = data.name;
           document.getElementById('report-date').textContent = data.date;
           document.getElementById('worked').textContent = data.worked;
@@ -350,165 +345,152 @@ function detectUserRole(chatId) {
           document.getElementById('efficiency').textContent = data.efficiency;
           document.getElementById('pay-day').textContent = data.payDay;
           document.getElementById('pay-month').textContent = data.payMonth;
-          document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
+          document.getElementById('details').textContent = data.details.join('\n');
 
           renderCalendar(data.availableDates);
 
           if (efficiencyChart) efficiencyChart.destroy();
           if (earningsChart) earningsChart.destroy();
 
-          if (data.efficiencyData && data.efficiencyData.length > 0) {
+          if (data.efficiencyData && Array.isArray(data.efficiencyData) && data.efficiencyData.length > 0) {
             createEfficiencyChart(data.efficiencyData);
           }
-          if (data.earningsData && data.earningsData.length > 0) {
+          if (data.earningsData && Array.isArray(data.earningsData) && data.earningsData.length > 0) {
             createEarningsChart(data.earningsData);
+          }
+
+          const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Скачать PDF';
           }
         })
         .catch(err => {
+          stopTimer();
           showError('Ошибка загрузки: ' + err.message);
         });
     }
 
-    // === Загрузка панели руководителя ===/////////////////////////////////
     // === Загрузка панели руководителя ===
-function loadManagerDashboard(chatId) {
-  const stopTimer = startLoadingTimer();
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('content').style.display = 'none';
-  document.getElementById('error').style.display = 'none';
+    function loadManagerDashboard(chatId) {
+      const stopTimer = startLoadingTimer();
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('content').style.display = 'none';
+      document.getElementById('error').style.display = 'none';
 
-  fetch(`${API_URL_MAIN}?chat_id=${chatId}&manager=true`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.error) {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').textContent = 'Ошибка: ' + data.error;
-        document.getElementById('error').style.display = 'block';
-        return;
-      }
+      fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            showError(data.error);
+            return;
+          }
 
-      stopTimer();
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('content').style.display = 'block';
+          stopTimer();
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('manager-view').style.display = 'block';
 
-      // Заполняем данные
-      document.getElementById('manager-department').textContent = data.departments || "—";
-      document.getElementById('manager-date').textContent = data.date || "—";
-      document.getElementById('total-employees').textContent = data.totalEmployees || "0";
-      document.getElementById('manager-present').textContent = data.present || "0";
-      document.getElementById('manager-absent').textContent = data.absent || "0";
-      document.getElementById('manager-attendance').textContent = data.attendanceRate || "0%";
-      document.getElementById('manager-efficiency').textContent = data.avgEfficiency || "0,00%";
-      document.getElementById('manager-pay').textContent = data.totalPay || "р. 0,00";
+          document.getElementById('manager-date').textContent = data.date;
 
-      // Список сотрудников
-      const teamList = document.getElementById('team-list');
-      if (Array.isArray(data.team)) {
-        teamList.innerHTML = data.team.map(emp => `
-          <tr>
-            <td>${emp.name}</td>
-            <td><span style="color: ${emp.status === 'работает' ? 'green' : 'red'};">${emp.status}</span></td>
-            <td>${emp.worked}</td>
-            <td>${emp.efficiency}</td>
-            <td>${emp.pay}</td>
-          </tr>
-        `).join('');
-      } else {
-        teamList.innerHTML = '<tr><td colspan="5">Нет данных</td></tr>';
-      }
+          departmentsContainer.innerHTML = '';
 
-      // Графики
-      if (data.efficiencyData && Array.isArray(data.efficiencyData)) {
-        createManagerEfficiencyChart(data.efficiencyData);
-      }
-      if (data.earningsData && Array.isArray(data.earningsData)) {
-        createManagerPayChart(data.earningsData);
-      }
+          data.departments.forEach(dept => {
+            const deptCard = document.createElement('div');
+            deptCard.className = 'card';
+            deptCard.innerHTML = `
+              <h3>📋 ${dept.name}</h3>
+              <p><b>Сотрудников:</b> ${dept.total}</p>
+              <p><b>Явка:</b> ${dept.present} / ${dept.absent} (<span style="color: ${dept.present > 0 ? 'green' : 'red'};">${dept.attendanceRate}</span>)</p>
+              <p><b>Средняя эффективность:</b> <span style="color: ${parseFloat(dept.avgEfficiency.replace(',', '.')) > 80 ? 'green' : 'orange'};">${dept.avgEfficiency}</span></p>
+              <p><b>Общий заработок:</b> ${dept.totalPay}</p>
 
-      // Активируем кнопку PDF
-      const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Скачать PDF';
-      }
-    })
-    .catch(err => {
-      stopTimer();
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('error').textContent = 'Ошибка: ' + err.message;
-      document.getElementById('error').style.display = 'block';
-    });
-}
-    // === Рендер календаря ===/////////////////////////////////////////////
-function renderCalendar(availableDates) {
-  const calendar = document.getElementById('calendar');
-  if (!calendar) return;
-  calendar.innerHTML = '';
-  calendar.style.display = 'grid';
-  calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
-  calendar.style.gap = '4px';
+              <table>
+                <thead>
+                  <tr>
+                    <th>Сотрудник</th>
+                    <th>Статус</th>
+                    <th>Отработано</th>
+                    <th>Эффективность</th>
+                    <th>Заработок</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${dept.employees.map(emp => `
+                    <tr>
+                      <td>${emp.name}</td>
+                      <td><span style="color: ${emp.status === 'работает' ? 'green' : 'red'};">${emp.status}</span></td>
+                      <td>${emp.worked}</td>
+                      <td>${emp.efficiency}</td>
+                      <td>${emp.pay}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `;
+            departmentsContainer.appendChild(deptCard);
+          });
 
-  // Дни недели
-  const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  dayNames.forEach(day => {
-    const el = document.createElement('div');
-    el.textContent = day;
-    el.style.fontWeight = 'bold';
-    el.style.padding = '6px 0';
-    el.style.backgroundColor = '#f0f0f0';
-    el.style.borderRadius = '6px';
-    calendar.appendChild(el);
-  });
-
-  // Определяем диапазон: 31 день назад — 1 день вперёд (всего 33 дня)
-  const today = new Date();
-  const startDate = new Date(today);
-  startDate.setDate(today.getDate() - 31); // 31 день назад
-
-  // Сдвиг: сколько пустых ячеек до первого дня
-  const startDayOfWeek = startDate.getDay(); // 0 = Вс, 1 = Пн, ..., 6 = Сб
-  const offset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1; // Понедельник = 0
-
-  // Пустые ячейки в начале
-  for (let i = 0; i < offset; i++) {
-    const el = document.createElement('div');
-    el.className = 'day';
-    calendar.appendChild(el);
-  }
-
-  // Генерируем 33 дня
-  for (let i = 0; i <= 32; i++) {
-    const currentDate = new Date(startDate);
-    currentDate.setDate(startDate.getDate() + i);
-
-    const dd = currentDate.getDate().toString().padStart(2, '0');
-    const mm = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-    const yy = currentDate.getFullYear();
-    const dateStr = `${dd}.${mm}.${yy}`;
-
-    const el = document.createElement('div');
-    el.className = 'day';
-    el.textContent = dd;
-    el.style.padding = '8px 0';
-    el.style.borderRadius = '6px';
-    el.style.fontSize = '14px';
-    el.style.cursor = 'pointer';
-
-    // Проверяем, есть ли данные
-    if (availableDates.includes(dateStr)) {
-      el.classList.add('available');
-      el.title = 'Есть данные';
-      el.addEventListener('click', () => {
-        document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
-        loadEmployeeReport(chatId, dateStr);
-      });
-    } else {
-      el.style.color = '#ccc';
+          const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Скачать PDF';
+          }
+        })
+        .catch(err => {
+          stopTimer();
+          showError('Ошибка загрузки панели руководителя: ' + err.message);
+        });
     }
 
-    calendar.appendChild(el);
-  }
-}
+    // === Рендер календаря (как у вас — идеален) ===
+    function renderCalendar(availableDates) {
+      const calendar = document.getElementById('calendar');
+      calendar.innerHTML = '';
+      calendar.style.display = 'grid';
+      calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
+      calendar.style.gap = '4px';
+
+      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      days.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        el.style.padding = '6px 0';
+        el.style.backgroundColor = '#f0f0f0';
+        el.style.borderRadius = '6px';
+        calendar.appendChild(el);
+      });
+
+      for (let i = 31; i >= 1; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dd = d.getDate().toString().padStart(2, '0');
+        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+        const yy = d.getFullYear();
+        const dateStr = `${dd}.${mm}.${yy}`;
+
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = dd;
+        el.style.padding = '8px 0';
+        el.style.borderRadius = '6px';
+        el.style.fontSize = '14px';
+
+        if (availableDates.includes(dateStr)) {
+          el.classList.add('available');
+          el.title = 'Есть данные';
+          el.addEventListener('click', () => {
+            document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
+            loadEmployeeReport(chatId, dateStr);
+          });
+        } else {
+          el.style.color = '#ccc';
+        }
+
+        calendar.appendChild(el);
+      }
+    }
+
     // === Графики ===
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
@@ -525,7 +507,7 @@ function renderCalendar(availableDates) {
         options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
       });
     }
-/////////////////////////////////////////////////////////////////////////////
+
     function createEarningsChart(data) {
       const ctx = document.getElementById('earningsChart').getContext('2d');
       earningsChart = new Chart(ctx, {
@@ -542,61 +524,12 @@ function renderCalendar(availableDates) {
         options: { responsive: true }
       });
     }
-//////////////////////////////////////////////////////////////////////////
-// === График: эффективность команды ===
-function createManagerEfficiencyChart(data) {
-  const ctx = document.getElementById('managerEfficiencyChart').getContext('2d');
-  if (window.managerEfficiencyChart) window.managerEfficiencyChart.destroy();
-  window.managerEfficiencyChart = new Chart(ctx, {
-    type: 'line',
-     {
-      labels: data.map(d => d.day),
-      datasets: [{
-        label: 'Средняя эффективность (%)',
-         data.map(d => d.value),
-        borderColor: '#1a8cd8',
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: { y: { beginAtZero: true, max: 100 } }
-    }
-  });
-}
-//////////////////////////////////////////////////////////////////////////
-// === График: заработок команды ===
-function createManagerPayChart(data) {
-  const ctx = document.getElementById('managerPayChart').getContext('2d');
-  if (window.managerPayChart) window.managerPayChart.destroy();
-  window.managerPayChart = new Chart(ctx, {
-    type: 'bar',
-     {
-      labels: data.map(d => `${d.day}`),
-      datasets: [{
-        label: 'Общий заработок (р.)',
-         data.map(d => d.pay),
-        backgroundColor: '#1a8cd8'
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: (context) => `р. ${context.raw.toFixed(2)}`
-          }
-        }
-      }
-    }
-  });
-}
 
-    // === Вспомогательные функции ===//////////////////////////////////////
+    // === Вспомогательные функции ===
     function showError(msg) {
-      loading.style.display = 'none';
-      error.textContent = msg;
-      error.style.display = 'block';
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').textContent = msg;
+      document.getElementById('error').style.display = 'block';
     }
 
     function getYesterdayFormatted() {
@@ -626,16 +559,18 @@ function createManagerPayChart(data) {
       }
     });
 
-    // === Обработка выбора даты ===
-    document.getElementById('date-select').addEventListener('change', (e) => {
-      const date = e.target.value;
-      const [y, m, d] = date.split('-');
-      const formattedDate = `${d}.${m}.${y}`;
-      loadEmployeeReport(chatId, formattedDate);
-    });
+    // === Заглушка для PDF ===
+    function downloadPDF() {
+      Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
+    }
 
     // === Запуск ===
-    initTelegram();
+    window.onload = () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      document.getElementById('date-select').valueAsDate = yesterday;
+      initTelegram();
+    };
   </script>
 </body>
 </html>
