@@ -46,7 +46,7 @@
       margin: 16px 0;
       display: none;
     }
-    /* Вкладки */
+    /* Вкладки */////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     .tabs {
       display: flex;
       margin-bottom: 16px;
@@ -64,7 +64,7 @@
       border-bottom: 3px solid #1a8cd8;
       font-weight: bold;
     }
-    /* Спиннер */
+    /* Спиннер *//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    .loading {
      text-align: center;
      padding: 40px;
@@ -85,7 +85,7 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    /* Календарь */
+    /* Календарь *///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -179,47 +179,49 @@
       </div>
     </div>
 
-    <!-- Панель руководителя -->
-    <div id="manager-view" style="display: none;">
-      <div class="card">
-        <h2>👨‍💼 Управление: <span id="manager-department"></span></h2>
-        <p><b>Дата:</b> <span id="manager-date"></span></p>
-        <p><b>Сотрудников:</b> <span id="total-employees"></span></p>
-        <p><b>Явка:</b> <span id="manager-present"></span> / <span id="manager-absent"></span> (<span id="manager-attendance"></span>)</p>
-        <p><b>Средняя эффективность:</b> <span id="manager-efficiency"></span></p>
-        <p><b>Общий заработок:</b> <span id="manager-pay"></span></p>
-      </div>
-
-      <div class="card">
-        <h2>📋 Сотрудники</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Сотрудник</th>
-              <th>Статус</th>
-              <th>Отработано</th>
-              <th>Эффективность</th>
-              <th>Заработок</th>
-            </tr>
-          </thead>
-          <tbody id="team-list"></tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <h2>📈 Эффективность команды (7 дней)</h2>
-        <canvas id="managerEfficiencyChart"></canvas>
-      </div>
-
-      <div class="card">
-        <h2>💰 Заработок команды (7 дней)</h2>
-        <canvas id="managerPayChart"></canvas>
-      </div>
-    </div>
+    <!-- Панель руководителя -->////////////////////////////////////////////////////////////////////////
+<!-- Панель руководителя -->
+<div id="manager-view" style="display: none;">
+  <div class="card">
+    <h2>👨‍💼 Управление: <span id="manager-department"></span></h2>
+    <p><b>Дата:</b> <span id="manager-date"></span></p>
+    <p><b>Сотрудников:</b> <span id="total-employees"></span></p>
+    <p><b>Явка:</b> <span id="manager-present"></span> / <span id="manager-absent"></span> (<span id="manager-attendance"></span>)</p>
+    <p><b>Средняя эффективность:</b> <span id="manager-efficiency"></span></p>
+    <p><b>Общий заработок:</b> <span id="manager-pay"></span></p>
   </div>
 
+  <div class="card">
+    <h2>📋 Сотрудники</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Сотрудник</th>
+          <th>Статус</th>
+          <th>Отработано</th>
+          <th>Эффективность</th>
+          <th>Заработок</th>
+        </tr>
+      </thead>
+      <tbody id="team-list"></tbody>loadEmployeeReport
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>📈 Эффективность команды (7 дней)</h2>
+    <canvas id="managerEfficiencyChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>💰 Заработок команды (7 дней)</h2>
+    <canvas id="managerPayChart"></canvas>
+  </div>
+
+  <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
+</div>
+
   <script>
-    // === Настройки ===
+    // === Настройки ===///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbyl_7_he7JK5IE-lbQzIGLahxH3thDWH_rlYcwBjfqNfMkdaCqRxMVOJPmGxEKG77UN/exec'; // ← Замени на свой
     let chatId = null;
     let isManager = false;
@@ -228,7 +230,7 @@
     let managerEfficiencyChart = null;
     let managerPayChart = null;
 
-    // === Элементы ===
+    // === Элементы ===///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
@@ -236,7 +238,7 @@
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
 
-    // === Таймер загрузки ===
+    // === Таймер загрузки ===///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     let loadingStartTime = null;
     function startLoadingTimer() {
       const start = Date.now();
@@ -248,7 +250,7 @@
       return () => clearInterval(interval);
     }
 
-    // === Инициализация Telegram WebApp ===
+    // === Инициализация Telegram WebApp ===///////////////////////////////////////////////////////////////////////////////////////////////////
     function initTelegram() {
       const stopTimer = startLoadingTimer();
 
@@ -277,7 +279,7 @@
       detectUserRole(chatId);
     }
 
-    // === Режим тестирования (для браузера) ===
+    // === Режим тестирования (для браузера) ===/////////////////////////////////////////////////////////////////////////////////////////////////////
     function enableTestMode() {
       const urlParams = new URLSearchParams(window.location.search);
       const testChatId = urlParams.get('test');
@@ -291,32 +293,34 @@
       }
     }
 
-    // === Определение роли ===
-    function detectUserRole(chatId) {
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&check_role=true`)
-        .then(r => r.json())
-        .then(roleData => {
-          if (roleData.error) {
-            showError(roleData.error);
-            return;
-          }
+    // === Определение роли ===//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// === Определение роли пользователя ===
+function detectUserRole(chatId) {
+  fetch(`${API_URL_MAIN}?chat_id=${chatId}&check_role=true`)
+    .then(r => r.json())
+    .then(roleData => {
+      if (roleData.error) {
+        showError(roleData.error);
+        return;
+      }
 
-          isManager = roleData.isManager;
-          loading.style.display = 'none';
+      isManager = roleData.isManager;
 
-          if (isManager) {
-            tabManager.style.display = 'block';
-            loadManagerDashboard(chatId);
-          } else {
-            loadEmployeeReport(chatId, getYesterdayFormatted());
-          }
-        })
-        .catch(err => {
-          showError('Ошибка определения роли: ' + err.message);
-        });
-    }
+      loading.style.display = 'none';
 
-    // === Загрузка персонального отчёта ===
+      if (isManager) {
+        tabManager.style.display = 'block';
+        loadManagerDashboard(chatId);
+      } else {
+        loadEmployeeReport(chatId, getYesterdayFormatted());
+      }
+    })
+    .catch(err => {
+      showError('Ошибка определения роли: ' + err.message);
+    });
+}
+
+    // === Загрузка персонального отчёта ===/////////////////////////////////////////////////////////////////////////////////
     function loadEmployeeReport(chatId, date) {
       fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
         .then(r => r.json())
@@ -352,52 +356,77 @@
         });
     }
 
+    // === Загрузка панели руководителя ===////////////////////////////////////////////////////////////////
     // === Загрузка панели руководителя ===
-    function loadManagerDashboard(chatId) {
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&manager=true`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) {
-            showError(data.error);
-            return;
-          }
+function loadManagerDashboard(chatId) {
+  const stopTimer = startLoadingTimer();
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('error').style.display = 'none';
 
-          document.getElementById('manager-department').textContent = data.departments;
-          document.getElementById('manager-date').textContent = data.date;
-          document.getElementById('total-employees').textContent = data.totalEmployees;
-          document.getElementById('manager-present').textContent = data.present;
-          document.getElementById('manager-absent').textContent = data.absent;
-          document.getElementById('manager-attendance').textContent = data.attendanceRate;
-          document.getElementById('manager-efficiency').textContent = data.avgEfficiency;
-          document.getElementById('manager-pay').textContent = data.totalPay;
+  fetch(`${API_URL_MAIN}?chat_id=${chatId}&manager=true`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').textContent = 'Ошибка: ' + data.error;
+        document.getElementById('error').style.display = 'block';
+        return;
+      }
 
-          const teamList = document.getElementById('team-list');
-          teamList.innerHTML = data.team.map(emp => `
-            <tr>
-              <td>${emp.name}</td>
-              <td><span style="color: ${emp.status === 'работает' ? 'green' : 'red'};">${emp.status}</span></td>
-              <td>${emp.worked}</td>
-              <td>${emp.efficiency}</td>
-              <td>${emp.pay}</td>
-            </tr>
-          `).join('');
+      stopTimer();
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
 
-          if (managerEfficiencyChart) managerEfficiencyChart.destroy();
-          if (managerPayChart) managerPayChart.destroy();
+      // Заполняем данные
+      document.getElementById('manager-department').textContent = data.departments || "—";
+      document.getElementById('manager-date').textContent = data.date || "—";
+      document.getElementById('total-employees').textContent = data.totalEmployees || "0";
+      document.getElementById('manager-present').textContent = data.present || "0";
+      document.getElementById('manager-absent').textContent = data.absent || "0";
+      document.getElementById('manager-attendance').textContent = data.attendanceRate || "0%";
+      document.getElementById('manager-efficiency').textContent = data.avgEfficiency || "0,00%";
+      document.getElementById('manager-pay').textContent = data.totalPay || "р. 0,00";
 
-          if (data.efficiencyTrend && data.efficiencyTrend.length > 0) {
-            createManagerEfficiencyChart(data.efficiencyTrend);
-          }
-          if (data.payTrend && data.payTrend.length > 0) {
-            createManagerPayChart(data.payTrend);
-          }
-        })
-        .catch(err => {
-          showError('Ошибка загрузки: ' + err.message);
-        });
-    }
+      // Список сотрудников
+      const teamList = document.getElementById('team-list');
+      if (Array.isArray(data.team)) {
+        teamList.innerHTML = data.team.map(emp => `
+          <tr>
+            <td>${emp.name}</td>
+            <td><span style="color: ${emp.status === 'работает' ? 'green' : 'red'};">${emp.status}</span></td>
+            <td>${emp.worked}</td>
+            <td>${emp.efficiency}</td>
+            <td>${emp.pay}</td>
+          </tr>
+        `).join('');
+      } else {
+        teamList.innerHTML = '<tr><td colspan="5">Нет данных</td></tr>';
+      }
 
-    // === Рендер календаря ===
+      // Графики
+      if (data.efficiencyData && Array.isArray(data.efficiencyData)) {
+        createManagerEfficiencyChart(data.efficiencyData);
+      }
+      if (data.earningsData && Array.isArray(data.earningsData)) {
+        createManagerPayChart(data.earningsData);
+      }
+
+      // Активируем кнопку PDF
+      const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Скачать PDF';
+      }
+    })
+    .catch(err => {
+      stopTimer();
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').textContent = 'Ошибка: ' + err.message;
+      document.getElementById('error').style.display = 'block';
+    });
+}
+    // === Рендер календаря ===////////////////////////////////////////////////////////////////////////////////////////
 function renderCalendar(availableDates) {
   const calendar = document.getElementById('calendar');
   if (!calendar) return;
@@ -483,7 +512,7 @@ function renderCalendar(availableDates) {
         options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
       });
     }
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     function createEarningsChart(data) {
       const ctx = document.getElementById('earningsChart').getContext('2d');
       earningsChart = new Chart(ctx, {
@@ -500,41 +529,57 @@ function renderCalendar(availableDates) {
         options: { responsive: true }
       });
     }
-
-    function createManagerEfficiencyChart(data) {
-      const ctx = document.getElementById('managerEfficiencyChart').getContext('2d');
-      managerEfficiencyChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.map(d => d.day),
-          datasets: [{
-            label: 'Средняя эффективность (%)',
-            data: data.map(d => d.value),
-            borderColor: '#1a8cd8',
-            fill: true
-          }]
-        },
-        options: { responsive: true }
-      });
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// === График: эффективность команды ===
+function createManagerEfficiencyChart(data) {
+  const ctx = document.getElementById('managerEfficiencyChart').getContext('2d');
+  if (window.managerEfficiencyChart) window.managerEfficiencyChart.destroy();
+  window.managerEfficiencyChart = new Chart(ctx, {
+    type: 'line',
+     {
+      labels: data.map(d => d.day),
+      datasets: [{
+        label: 'Средняя эффективность (%)',
+         data.map(d => d.value),
+        borderColor: '#1a8cd8',
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true, max: 100 } }
     }
-
-    function createManagerPayChart(data) {
-      const ctx = document.getElementById('managerPayChart').getContext('2d');
-      managerPayChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: data.map(d => d.day),
-          datasets: [{
-            label: 'Общий заработок (р.)',
-            data: data.map(d => d.pay),
-            backgroundColor: '#1a8cd8'
-          }]
-        },
-        options: { responsive: true }
-      });
+  });
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// === График: заработок команды ===
+function createManagerPayChart(data) {
+  const ctx = document.getElementById('managerPayChart').getContext('2d');
+  if (window.managerPayChart) window.managerPayChart.destroy();
+  window.managerPayChart = new Chart(ctx, {
+    type: 'bar',
+     {
+      labels: data.map(d => `${d.day}`),
+      datasets: [{
+        label: 'Общий заработок (р.)',
+         data.map(d => d.pay),
+        backgroundColor: '#1a8cd8'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (context) => `р. ${context.raw.toFixed(2)}`
+          }
+        }
+      }
     }
+  });
+}
 
-    // === Вспомогательные функции ===
+    // === Вспомогательные функции ===/////////////////////////////////////////////////////////////////////////////////////////////////////////////
     function showError(msg) {
       loading.style.display = 'none';
       error.textContent = msg;
