@@ -4,36 +4,220 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
+  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; color: #1c1e21; }
-    .container { max-width: 600px; margin: 0 auto; }
-    .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .label { font-weight: 600; color: #444; }
-    .value { color: #1a8cd8; }
-    .loading { text-align: center; padding: 40px; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top: 4px solid #1a8cd8; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .error { color: #e53935; text-align: center; padding: 20px; background: #ffebee; border-radius: 8px; margin: 16px 0; display: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f2f5;
+      color: #1c1e21;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    h1, h2, h3 {
+      margin: 0 0 8px 0;
+      color: #1a8cd8;
+    }
+    .label {
+      font-weight: 600;
+      color: #444;
+    }
+    .value {
+      color: #1a8cd8;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin: 8px 0;
+      overflow-x: auto;
+    }
+    /* Вкладки */
+    .tabs {
+      display: flex;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #666;
+    }
+    .tab.active {
+      color: #1a8cd8;
+      border-bottom: 2px solid #1a8cd8;
+    }
+    /* Календарь */
+    .calendar {
+      display: grid;
+      gap: 4px;
+      margin: 10px 0;
+    }
+    .day {
+      text-align: center;
+      padding: 6px 0;
+      font-size: 12px;
+      border-radius: 4px;
+      color: #333;
+    }
+    .day.available {
+      background: #1a8cd8;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    /* Таблица */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      background: #f0f0f0;
+      padding: 8px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    td {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    /* Кнопки */
+    .btn {
+      background: #1a8cd8;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    /* Спиннер */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 16px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e0e0e0;
+      border-top: 4px solid #1a8cd8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Ошибки */
+    .error {
+      color: #e53935;
+      text-align: center;
+      padding: 20px;
+      background: #ffebee;
+      border-radius: 8px;
+      margin: 16px 0;
+      display: none;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #888;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
+
+    <!-- Вкладки -->
+    <div class="tabs">
+      <div id="tab-employee" class="tab active">Мой отчёт</div>
+      <div id="tab-manager" class="tab" style="display: none;">Команда</div>
+    </div>
+
+    <!-- Загрузка -->
     <div id="loading" class="loading">
       <div class="spinner"></div>
-      <p>Загрузка...</p>
+      <p>Загрузка данных...</p>
+      <p id="loading-timer">0.0 с</p>
     </div>
     <div id="error" class="error"></div>
-    <div id="content" style="display: none;">
+
+    <!-- Персональная статистика -->
+    <div id="employee-view">
       <div class="card">
         <p><span class="label">Сотрудник:</span> <span id="name"></span></p>
         <p><span class="label">Отработано:</span> <span id="worked"></span></p>
-        <p><span class="label">План:</span> <span id="planned"></span></p>
-        <p><span class="label">Эффективность:</span> <span id="efficiency"></span></p>
-        <p><span class="label">За день:</span> <span id="pay-day"></span></p>
+        <p><span class="label">Итого по табелю:</span> <span id="planned"></span></p>
+        <p><span class="label">Производительность:</span> <span id="efficiency"></span></p>
+        <p><span class="label">Заработано за день:</span> <span id="pay-day"></span></p>
+        <p><span class="label">Заработано за месяц:</span> <span id="pay-month"></span></p>
       </div>
+
+      <div class="card">
+        <h2>📋 Детализация задач</h2>
+        <pre id="details">Загрузка...</pre>
+      </div>
+
+      <div class="card">
+        <h2>📈 Производительность (рабочие дни)</h2>
+        <canvas id="efficiencyChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h2>💰 Заработок по месяцу</h2>
+        <canvas id="earningsChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h2>📅 Календарь</h2>
+        <div class="calendar" id="calendar"></div>
+      </div>
+
+      <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
+    </div>
+
+    <!-- Панель руководителя -->
+    <div id="manager-view" style="display: none;">
+      <div class="card">
+        <h2>👨‍💼 Управление командой</h2>
+        <p><b>Дата:</b> <span id="manager-date"></span></p>
+      </div>
+      <div id="departments-container"></div>
+    </div>
+
+    <div class="footer">
+      Система AIP • © 2025
     </div>
   </div>
 
@@ -41,34 +225,69 @@
     // === Настройки ===
     const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycby8alBWPZhwwHHQRSZUagODUCJRLWF-d6ggzJMKgdKgidR4ugNHZPdvGV5eZ3ISR_eA/exec'; // ← Замени на свой
     let chatId = null;
+    let isManager = false;
+    let efficiencyChart = null;
+    let earningsChart = null;
 
     // === Элементы ===
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
-    const content = document.getElementById('content');
+    const employeeView = document.getElementById('employee-view');
+    const managerView = document.getElementById('manager-view');
+    const tabEmployee = document.getElementById('tab-employee');
+    const tabManager = document.getElementById('tab-manager');
+    const departmentsContainer = document.getElementById('departments-container');
 
+    // === Глобальные переменные ===
+    let chatId = null;
+    let isManager = false;
+
+    // === Вспомогательные функции ===
     function showError(msg) {
       loading.style.display = 'none';
       error.textContent = msg;
       error.style.display = 'block';
     }
 
+    function startLoadingTimer() {
+      const start = Date.now();
+      const timerEl = document.getElementById('loading-timer');
+      const interval = setInterval(() => {
+        const elapsed = (Date.now() - start) / 1000;
+        timerEl.textContent = `${elapsed.toFixed(1)} с`;
+      }, 100);
+      return () => clearInterval(interval);
+    }
+
+    // === Инициализация Telegram WebApp ===
     function initTelegram() {
       if (!window.Telegram || !Telegram.WebApp) {
-        showError('❌ WebApp не загружен');
+        showError('❌ WebApp не загружен. Откройте через Telegram.');
         return;
       }
+
       Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+
       const user = Telegram.WebApp.initDataUnsafe.user;
       if (!user || !user.id) {
         showError('❌ Не удалось получить пользователя');
         return;
       }
+
       chatId = user.id.toString();
+      console.log('✅ Telegram WebApp готов. chat_id:', chatId);
+
+      // === 1. Быстрая загрузка ===
       loadQuickData(chatId);
     }
 
+    // === 2. Быстрая загрузка (из Кэш_Индекс) ===
     function loadQuickData(chatId) {
+      const stopTimer = startLoadingTimer();
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+
       fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
         .then(r => r.json())
         .then(data => {
@@ -76,20 +295,189 @@
             showError(data.error);
             return;
           }
-          document.getElementById('name').textContent = data.name;
-          document.getElementById('worked').textContent = data.worked;
-          document.getElementById('planned').textContent = data.planned;
-          document.getElementById('efficiency').textContent = data.efficiency;
-          document.getElementById('pay-day').textContent = data.payDay;
+
+          stopTimer();
           loading.style.display = 'none';
-          content.style.display = 'block';
+
+          // Показываем основное сразу
+          document.getElementById('name').textContent = data.name || '—';
+          document.getElementById('worked').textContent = data.worked || '—';
+          document.getElementById('planned').textContent = data.planned || '—';
+          document.getElementById('efficiency').textContent = data.efficiency || '—';
+          document.getElementById('pay-day').textContent = data.payDay || '—';
+
+          isManager = data.isManager;
+          if (isManager) {
+            tabManager.style.display = 'block';
+          }
+
+          // === Фоновая загрузка полных данных ===
+          setTimeout(() => loadFullData(chatId), 1000);
         })
         .catch(err => {
-          showError('Ошибка: ' + err.message);
+          stopTimer();
+          showError('Ошибка быстрой загрузки: ' + err.message);
         });
     }
 
+    // === 3. Полная загрузка (из Кэш_Архив) ===
+    function loadFullData(chatId) {
+      fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
+        .then(r => r.json())
+        .then(fullData => {
+          if (fullData.error) {
+            console.warn('❌ Полные данные не загружены:', fullData.error);
+            return;
+          }
+
+          // Обновляем интерфейс
+          document.getElementById('pay-month').textContent = fullData.payMonth || '—';
+          document.getElementById('details').textContent = fullData.details?.join('\n') || 'Нет данных';
+
+          // Календарь
+          if (fullData.availableDates) {
+            renderCalendar(fullData.availableDates);
+          }
+
+          // Графики
+          if (efficiencyChart) efficiencyChart.destroy();
+          if (earningsChart) earningsChart.destroy();
+
+          if (fullData.efficiencyData?.length) {
+            createEfficiencyChart(fullData.efficiencyData);
+          }
+          if (fullData.earningsData?.length) {
+            createEarningsChart(fullData.earningsData);
+          }
+
+          // Панель руководителя
+          if (isManager) {
+            loadManagerDashboard(fullData);
+          }
+
+          // Активируем PDF
+          const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Скачать PDF';
+          }
+        })
+        .catch(err => {
+          console.warn('Ошибка загрузки полных данных:', err);
+        });
+    }
+
+    // === Рендер календаря ===
+    function renderCalendar(availableDates) {
+      const calendar = document.getElementById('calendar');
+      if (!calendar) return;
+      calendar.innerHTML = '';
+      calendar.style.display = 'grid';
+      calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
+      calendar.style.gap = '4px';
+
+      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      days.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        el.style.padding = '6px 0';
+        el.style.backgroundColor = '#f0f0f0';
+        el.style.borderRadius = '6px';
+        calendar.appendChild(el);
+      });
+
+      for (let i = 31; i >= 1; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dd = d.getDate().toString().padStart(2, '0');
+        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+        const yy = d.getFullYear();
+        const dateStr = `${dd}.${mm}.${yy}`;
+
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = dd;
+        el.style.padding = '8px 0';
+        el.style.borderRadius = '6px';
+        el.style.fontSize = '14px';
+
+        if (availableDates.includes(dateStr)) {
+          el.classList.add('available');
+          el.title = 'Есть данные';
+          el.addEventListener('click', () => {
+            loadFullData(chatId); // Перезагрузка на выбранную дату (упрощённо)
+          });
+        } else {
+          el.style.color = '#ccc';
+        }
+
+        calendar.appendChild(el);
+      }
+    }
+
+    // === Создание графиков ===
+    function createEfficiencyChart(data) {
+      const ctx = document.getElementById('efficiencyChart').getContext('2d');
+      efficiencyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.day),
+          datasets: [{
+            label: 'Производительность (%)',
+            data: data.map(d => d.value),
+            backgroundColor: '#1a8cd8'
+          }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+      });
+    }
+
+    function createEarningsChart(data) {
+      const ctx = document.getElementById('earningsChart').getContext('2d');
+      earningsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(d => d.day),
+          datasets: [{
+            label: 'Заработок (р.)',
+            data: data.map(d => d.pay),
+            borderColor: '#1a8cd8',
+            fill: true
+          }]
+        },
+        options: { responsive: true }
+      });
+    }
+
+    // === Переключение вкладок ===
+    tabEmployee.addEventListener('click', () => {
+      employeeView.style.display = 'block';
+      managerView.style.display = 'none';
+      tabEmployee.classList.add('active');
+      tabManager.classList.remove('active');
+    });
+
+    tabManager.addEventListener('click', () => {
+      if (isManager) {
+        loadManagerDashboard(chatId);
+        employeeView.style.display = 'none';
+        managerView.style.display = 'block';
+        tabManager.classList.add('active');
+        tabEmployee.classList.remove('active');
+      }
+    });
+
+    // === Заглушка для PDF ===
+    function downloadPDF() {
+      Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
+    }
+
+    // === Автозагрузка при открытии ===
     window.onload = () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      document.getElementById('date-select')?.valueAsDate = yesterday;
       initTelegram();
     };
   </script>
