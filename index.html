@@ -291,29 +291,19 @@
     }
 
     // === Определение роли ===
-function detectUserRole(chatId) {
-  fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.error) {
-        showError(data.error);
-        return;
-      }
-
-      isManager = data.isManager;
-      loading.style.display = 'none';
-
-      if (isManager) {
-        tabManager.style.display = 'block';
-        loadManagerDashboard(data);
-      } else {
-        loadEmployeeReport(data);
-      }
-    })
-    .catch(err => {
-      showError('Ошибка: ' + err.message);
-    });
-}
+fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) {
+      showError(data.error);
+      return;
+    }
+    // Загружаем всё сразу: данные, календарь, графики
+    loadEmployeeReport(data);
+  })
+  .catch(err => {
+    showError('Ошибка: ' + err.message);
+  });
 
     // === Загрузка персонального отчёта ===
     function loadEmployeeReport(chatId, date) {
