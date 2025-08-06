@@ -253,6 +253,7 @@
 
     // === Инициализация Telegram WebApp ===
     function initTelegram() {
+      console.log('📱 Telegram chat_id:', chatId, 'Тип:', typeof chatId);
       if (!window.Telegram || !Telegram.WebApp) {
         showError('❌ WebApp не загружен. Откройте через Telegram.');
         enableTestMode();
@@ -365,7 +366,7 @@ fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
         });
     }
 
-    // === Загрузка панели руководителя ===
+    // === Загрузка панели руководителя =============================================================
     function loadManagerDashboard(chatId) {
       const stopTimer = startLoadingTimer();
       document.getElementById('loading').style.display = 'block';
