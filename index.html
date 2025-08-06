@@ -290,7 +290,7 @@
       }
     }
 
-    // === Определение роли ===
+    // === Определение роли ===========================================================
 fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
   .then(r => r.json())
   .then(data => {
@@ -298,14 +298,22 @@ fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
       showError(data.error);
       return;
     }
-    // Загружаем всё сразу: данные, календарь, графики
-    loadEmployeeReport(data);
+
+    isManager = data.isManager;
+    loading.style.display = 'none';
+
+    if (isManager) {
+      tabManager.style.display = 'block';
+      loadManagerDashboard(data);
+    } else {
+      loadEmployeeReport(data);
+    }
   })
   .catch(err => {
     showError('Ошибка: ' + err.message);
   });
 
-    // === Загрузка персонального отчёта ===
+    // === Загрузка персонального отчёта ================================================
     function loadEmployeeReport(chatId, date) {
       const stopTimer = startLoadingTimer();
       document.getElementById('loading').style.display = 'block';
