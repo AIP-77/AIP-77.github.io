@@ -49,7 +49,7 @@
       margin: 8px 0;
       overflow-x: auto;
     }
-    /* Вкладки */
+    /* Вкладки ============================================================================================*/
     .tabs {
       display: flex;
       margin-bottom: 16px;
@@ -65,7 +65,7 @@
       color: #1a8cd8;
       border-bottom: 2px solid #1a8cd8;
     }
-    /* Календарь */
+    /* Календарь =========================================================================================*/
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -101,7 +101,7 @@
       padding: 8px;
       border-bottom: 1px solid #eee;
     }
-    /* Кнопки */
+    /* Кнопки ==========================================================================*/
     .btn {
       background: #1a8cd8;
       color: white;
@@ -118,7 +118,7 @@
       background: #ccc;
       cursor: not-allowed;
     }
-    /* Спиннер */
+    /* Спиннер ==========================================================================*/
     .loading {
       text-align: center;
       padding: 40px;
@@ -138,7 +138,7 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    /* Ошибки */
+    /* Ошибки ==========================================================================*/
     .error {
       color: #e53935;
       text-align: center;
@@ -225,13 +225,13 @@
 
   <script>
     // === Настройки ======================================================================================================
-    const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbyl_7_he7JK5IE-lbQzIGLahxH3thDWH_rlYcwBjfqNfMkdaCqRxMVOJPmGxEKG77UN/exec'; // ← Замени на свой
+    const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbzDxebDa9DYlLEQh-ODmEJ_cajeEVi29-5ATl-a0WptnWCrNNTbP1uAkLtoat1exONv/exec'; // ← Замени на свой
     let chatId = null;
     let isManager = false;
     let efficiencyChart = null;
     let earningsChart = null;
 
-    // === Элементы ===
+    // === Элементы =======================================================================================================
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
@@ -240,7 +240,7 @@
     const tabManager = document.getElementById('tab-manager');
     const departmentsContainer = document.getElementById('departments-container');
 
-    // === Таймер загрузки ===
+    // === Таймер загрузки =================================================================================================
     function startLoadingTimer() {
       const start = Date.now();
       const timerEl = document.getElementById('loading-timer');
@@ -251,7 +251,7 @@
       return () => clearInterval(interval);
     }
 
-    // === Инициализация Telegram WebApp ===
+    // === Инициализация Telegram WebApp ====================================================================================
     function initTelegram() {
       console.log('📱 Telegram chat_id:', chatId, 'Тип:', typeof chatId);
       if (!window.Telegram || !Telegram.WebApp) {
@@ -277,7 +277,7 @@
       detectUserRole(chatId);
     }
 
-    // === Режим тестирования (для браузера) ===
+    // === Режим тестирования (для браузера) ================================================================
     function enableTestMode() {
       const urlParams = new URLSearchParams(window.location.search);
       const testChatId = urlParams.get('test');
