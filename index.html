@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
   <!-- Telegram WebApp SDK -->
-  < src="https://telegram.org/js/telegram-web-app.js"></>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -223,8 +223,14 @@
   </div>
 
   <script>
-    // === Настройки — ЗАМЕНИ НА СВОИ URL ===
-    const API_URL_MAIN = 'AKfycby8alBWPZhwwHHQRSZUagODUCJRLWF-d6ggzJMKgdKgidR4ugNHZPdvGV5eZ3ISR_eA'; // Основной URL
+    // === Настройки — ЗАМЕНИ НА СВОЙ URL ===
+    const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycby8alBWPZhwwHHQRSZUagODUCJRLWF-d6ggzJMKgdKgidR4ugNHZPdvGV5eZ3ISR_eA/exec';
+
+    // === Глобальные переменные ===
+    let chatId = null;
+    let isManager = false;
+    let efficiencyChart = null;
+    let earningsChart = null;
 
     // === Элементы ===
     const loading = document.getElementById('loading');
@@ -234,12 +240,6 @@
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
     const departmentsContainer = document.getElementById('departments-container');
-
-    // === Глобальные переменные ===
-    let chatId = null;
-    let isManager = false;
-    let efficiencyChart = null;
-    let earningsChart = null;
 
     // === Вспомогательные функции ===
     function showError(msg) {
@@ -261,6 +261,7 @@
     // === Инициализация Telegram WebApp ===
     function initTelegram() {
       const stopTimer = startLoadingTimer();
+
       if (!window.Telegram || !Telegram.WebApp) {
         console.log('🔧 Запуск в тестовом режиме (браузер)');
         enableTestMode();
@@ -431,11 +432,11 @@
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-            data: data.map(d => d.value),
+             data.map(d => d.value),
             backgroundColor: '#1a8cd8'
           }]
         },
@@ -447,11 +448,11 @@
       const ctx = document.getElementById('earningsChart').getContext('2d');
       earningsChart = new Chart(ctx, {
         type: 'line',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-            data: data.map(d => d.pay),
+             data.map(d => d.pay),
             borderColor: '#1a8cd8',
             fill: true
           }]
@@ -518,11 +519,10 @@
       Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
     }
 
-    // === Автозагрузка ===
+    // === Автозагрузка при открытии ===
     window.onload = () => {
       initTelegram();
     };
-
   </script>
 </body>
 </html>
