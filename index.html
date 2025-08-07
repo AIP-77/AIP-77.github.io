@@ -171,36 +171,51 @@
     }
 
     // === Тестовый режим ===
-    function enableTestMode() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const testChatId = urlParams.get('test');
-      if (testChatId) {
-        chatId = testChatId;
-        console.log('🔧 Тестовый режим активирован. chat_id:', chatId);
+// === Тестовый режим — получает реальные данные из Кэш_Индекс ===
+function enableTestMode() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const testChatId = urlParams.get('test');
+  
+  if (testChatId) {
+    chatId = testChatId;
+    console.log('🔧 Тестовый режим активирован. chat_id:', chatId);
+    
+    // === Загружаем данные, как в Telegram ===
+    fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          showError(data.error);
+          return;
+        }
+
+        // Показываем основные данные
+        document.getElementById('name').textContent = data.name || '—';
+        document.getElementById('date').textContent = data.date || '—';
+        document.getElementById('worked').textContent = data.worked || '—';
+        document.getElementById('planned').textContent = data.planned || '—';
+        document.getElementById('efficiency').textContent = data.efficiency || '—';
+        document.getElementById('pay-day').textContent = data.payDay || '—';
+        document.getElementById('pay-month').textContent = data.payMonth || '—';
+
+        isManager = data.isManager;
         loading.style.display = 'none';
         employeeView.style.display = 'block';
 
-        // Пример: подставь свои данные
-        document.getElementById('name').textContent = 'Галимов А.Г.';
-        document.getElementById('worked').textContent = '08:17';
-        document.getElementById('planned').textContent = '06:54';
-        document.getElementById('efficiency').textContent = '120,05%';
-        document.getElementById('pay-day').textContent = 'р. 2 700,00';
-        document.getElementById('pay-month').textContent = 'р. 7 800,00';
-
-        // Активируем вкладку руководителя
-        tabManager.style.display = 'block';
-
-        // Активируем PDF
-        const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Скачать PDF';
+        if (isManager) {
+          tabManager.style.display = 'block';
         }
-      } else {
-        showError('⚠️ Откройте через Telegram или добавьте ?test=1686935872');
-      }
-    }
+
+        // Фоновая загрузка графиков и календаря
+        setTimeout(() => loadFullData(chatId), 100);
+      })
+      .catch(err => {
+        showError('Ошибка загрузки тестовых данных: ' + err.message);
+      });
+  } else {
+    showError('⚠️ Откройте с параметром ?test=1686935872');
+  }
+}
 
     // === Полная загрузка (фоново) ===
     function loadFullData(chatId) {
