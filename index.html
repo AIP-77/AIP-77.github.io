@@ -222,40 +222,47 @@
           showError('Ошибка загрузки данных: ' + err.message);
         });
     }
+    
+// календарь
+function renderCalendar(availableDates) {
+  const calendar = document.getElementById('calendar');
+  if (!calendar) return;
+  calendar.innerHTML = '';
+  const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  days.forEach(day => {
+    const el = document.createElement('div');
+    el.textContent = day;
+    el.style.fontWeight = 'bold';
+    el.style.backgroundColor = '#f0f0f0';
+    el.style.borderRadius = '6px';
+    calendar.appendChild(el);
+  });
 
-    function renderCalendar(availableDates) {
-      const calendar = document.getElementById('calendar');
-      if (!calendar) return;
-      calendar.innerHTML = '';
-      const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      days.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        el.style.backgroundColor = '#f0f0f0';
-        el.style.borderRadius = '6px';
-        calendar.appendChild(el);
-      });
+  for (let i = 31; i >= 1; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dd = d.getDate().toString().padStart(2, '0');
+    const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+    const yy = d.getFullYear();
+    const dateStr = `${dd}.${mm}.${yy}`;
 
-      for (let i = 31; i >= 1; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dd = d.getDate().toString().padStart(2, '0');
-        const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-        const yy = d.getFullYear();
-        const dateStr = `${dd}.${mm}.${yy}`;
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = dd;
-        if (availableDates.includes(dateStr)) {
-          el.classList.add('available');
-          el.addEventListener('click', () => loadFullData(chatId));
-        } else {
-          el.style.color = '#ccc';
-        }
-        calendar.appendChild(el);
-      }
+    const el = document.createElement('div');
+    el.className = 'day';
+    el.textContent = dd;
+    el.style.padding = '8px 0';
+    el.style.borderRadius = '6px';
+    el.style.fontSize = '14px';
+
+    if (availableDates.includes(dateStr)) {
+      el.classList.add('available');
+      el.addEventListener('click', () => loadFullData(chatId));
+    } else {
+      el.style.color = '#ccc';
     }
+
+    calendar.appendChild(el);
+  }
+}
 
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
