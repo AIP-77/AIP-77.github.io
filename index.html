@@ -396,10 +396,10 @@ function enableTestMode() {
       tabEmployee.classList.add('active');
       tabManager.classList.remove('active');
     });
-
+// === Вкладка "Команда" ===
     tabManager.addEventListener('click', () => {
       if (isManager) {
-        loadManagerDashboard(chatId);
+        //loadManagerDashboard(chatId);
         employeeView.style.display = 'none';
         managerView.style.display = 'block';
         tabManager.classList.add('active');
