@@ -49,45 +49,6 @@
       margin: 8px 0;
       overflow-x: auto;
     }
-    /* Вкладки */
-    .tabs {
-      display: flex;
-      margin-bottom: 16px;
-      border-bottom: 1px solid #ddd;
-    }
-    .tab {
-      flex: 1;
-      text-align: center;
-      padding: 10px 16px;
-      cursor: pointer;
-      font-weight: 600;
-      color: #666;
-    }
-    .tab.active {
-      color: #1a8cd8;
-      border-bottom: 2px solid #1a8cd8;
-    }
-    /* Календарь */
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-      margin: 10px 0;
-    }
-    .day {
-      text-align: center;
-      padding: 6px 0;
-      font-size: 12px;
-      border-radius: 4px;
-      color: #333;
-    }
-    .day.available {
-      background: #1a8cd8;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    /* Спиннер */
     .loading {
       text-align: center;
       padding: 40px;
@@ -107,7 +68,6 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    /* Ошибки */
     .error {
       color: #e53935;
       text-align: center;
@@ -117,7 +77,6 @@
       margin: 16px 0;
       display: none;
     }
-    /* Кнопки */
     .btn {
       background: #1a8cd8;
       color: white;
@@ -134,7 +93,6 @@
       background: #ccc;
       cursor: not-allowed;
     }
-    /* Футер */
     .footer {
       text-align: center;
       margin-top: 30px;
@@ -147,12 +105,6 @@
   <div class="container">
     <h1>📊 Персональная панель</h1>
 
-    <!-- Вкладки -->
-    <div class="tabs">
-      <div id="tab-employee" class="tab active">Мой отчёт</div>
-      <div id="tab-manager" class="tab" style="display: none;">Команда</div>
-    </div>
-
     <!-- Загрузка с таймером -->
     <div id="loading" class="loading">
       <div class="spinner"></div>
@@ -161,25 +113,16 @@
     </div>
     <div id="error" class="error"></div>
 
-    <!-- Персональная панель -->
-    <div id="employee-view">
+    <!-- Персональная статистика -->
+    <div id="employee-view" style="display: none;">
       <div class="card">
         <p><span class="label">Сотрудник:</span> <span id="name"></span></p>
-        <div class="date-control">
-          <label for="report-date-select">Дата:</label>
-          <input type="date" id="report-date-select">
-          <button class="btn" onclick="loadReportForDate()" style="font-size: 14px; padding: 8px 12px;">Показать</button>
-        </div>
-        <div class="calendar" id="calendar"></div>
-      </div>
-
-      <div class="card">
-        <h2>📌 Ваш отчёт за <span id="report-date"></span></h2>
-        <p><span class="label">Отработано:</span> <span class="value" id="worked"></span></p>
-        <p><span class="label">Итого по табелю:</span> <span class="value" id="planned"></span></p>
-        <p><span class="label">Производительность:</span> <span class="value" id="efficiency"></span></p>
-        <p><span class="label">Заработано за день:</span> <span class="value" id="pay-day"></span></p>
-        <p><span class="label">Заработано за месяц:</span> <span class="value" id="pay-month"></span></p>
+        <p><span class="label">Дата:</span> <span id="report-date"></span></p>
+        <p><span class="label">Отработано:</span> <span id="worked"></span></p>
+        <p><span class="label">Итого по табелю:</span> <span id="planned"></span></p>
+        <p><span class="label">Производительность:</span> <span id="efficiency"></span></p>
+        <p><span class="label">Заработано за день:</span> <span id="pay-day"></span></p>
+        <p><span class="label">Заработано за месяц:</span> <span id="pay-month"></span></p>
       </div>
 
       <div class="card">
@@ -195,6 +138,11 @@
       <div class="card">
         <h2>💰 Заработок по месяцу</h2>
         <canvas id="earningsChart"></canvas>
+      </div>
+
+      <div class="card">
+        <h2>📅 Календарь</h2>
+        <div class="calendar" id="calendar"></div>
       </div>
 
       <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
@@ -229,15 +177,23 @@
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
     const managerView = document.getElementById('manager-view');
-    const tabEmployee = document.getElementById('tab-employee');
-    const tabManager = document.getElementById('tab-manager');
     const departmentsContainer = document.getElementById('departments-container');
-    const dateSelect = document.getElementById('report-date-select');
+
+    // === Таймер загрузки ===
+    function startLoadingTimer() {
+      const start = Date.now();
+      const timerEl = document.getElementById('loading-timer');
+      const interval = setInterval(() => {
+        const elapsed = (Date.now() - start) / 1000;
+        timerEl.textContent = `${elapsed.toFixed(1)} с`;
+      }, 100);
+      return () => clearInterval(interval);
+    }
 
     // === Инициализация Telegram WebApp ===
     function initTelegram() {
       if (!window.Telegram || !Telegram.WebApp) {
-        console.log('🔧 WebApp не загружен. Откройте через Telegram.');
+        showError('❌ WebApp не загружен. Откройте через Telegram.');
         enableTestMode();
         return;
       }
@@ -247,7 +203,7 @@
 
       const user = Telegram.WebApp.initDataUnsafe.user;
       if (!user || !user.id) {
-        console.log('🔧 Не удалось получить пользователя');
+        showError('❌ Не удалось получить пользователя');
         enableTestMode();
         return;
       }
@@ -279,7 +235,7 @@
       document.getElementById('loading').style.display = 'block';
       document.getElementById('error').style.display = 'none';
 
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&check_role=true`)
+      fetch(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`)
         .then(r => r.json())
         .then(roleData => {
           if (roleData.error) {
@@ -299,7 +255,6 @@
           }
         })
         .catch(err => {
-          stopTimer();
           showError('Ошибка определения роли: ' + err.message);
         });
     }
@@ -323,7 +278,6 @@
           document.getElementById('loading').style.display = 'none';
           document.getElementById('content').style.display = 'block';
 
-          // Заполняем данные
           document.getElementById('name').textContent = data.name || "—";
           document.getElementById('report-date').textContent = data.date || "—";
           document.getElementById('worked').textContent = data.worked || "00:00";
@@ -333,12 +287,6 @@
           document.getElementById('pay-month').textContent = data.payMonth || "р. 0,00";
           document.getElementById('details').textContent = data.details?.join('\n') || "Нет данных";
 
-          // Календарь
-          if (data.availableDates && Array.isArray(data.availableDates)) {
-            renderCalendar(data.availableDates);
-          }
-
-          // Графики
           if (efficiencyChart) efficiencyChart.destroy();
           if (earningsChart) earningsChart.destroy();
 
@@ -349,7 +297,10 @@
             createEarningsChart(data.earningsData);
           }
 
-          // Активируем кнопку PDF
+          if (data.availableDates && Array.isArray(data.availableDates)) {
+            renderCalendar(data.availableDates);
+          }
+
           const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
           if (btn) {
             btn.disabled = false;
@@ -379,53 +330,44 @@
 
           stopTimer();
           document.getElementById('loading').style.display = 'none';
-          document.getElementById('manager-view').style.display = 'block';
+          document.getElementById('content').style.display = 'block';
 
-          // Заполняем данные
           document.getElementById('manager-department').textContent = data.departments || "—";
           document.getElementById('manager-date').textContent = data.date || "—";
 
-          // Список отделов
           departmentsContainer.innerHTML = '';
-          if (data.departments && Array.isArray(data.departments)) {
-            data.departments.forEach(dept => {
-              const deptCard = document.createElement('div');
-              deptCard.className = 'card';
-              deptCard.innerHTML = `
-                <h3>📋 ${dept.name}</h3>
-                <p><b>Сотрудников:</b> ${dept.total}</p>
-                <p><b>Явка:</b> ${dept.present} / ${dept.absent} (<span style="color: ${dept.present > 0 ? 'green' : 'red'};">${dept.attendanceRate}</span>)</p>
-                <p><b>Средняя эффективность:</b> <span style="color: ${parseFloat(dept.avgEfficiency.replace(',', '.')) > 80 ? 'green' : 'orange'};">${dept.avgEfficiency}</span></p>
-                <p><b>Общий заработок:</b> ${dept.totalPay}</p>
 
-                <table style="width: 100%; margin-top: 10px; font-size: 14px;">
-                  <thead>
-                    <tr style="background: #f0f0f0;">
-                      <th style="text-align: left;">Сотрудник</th>
-                      <th style="text-align: left;">Статус</th>
-                      <th style="text-align: left;">Отработано</th>
-                      <th style="text-align: left;">Эффективность</th>
-                      <th style="text-align: left;">Заработок</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${dept.employees.map(emp => `
-                      <tr>
-                        <td>${emp.name}</td>
-                        <td><span style="color: ${emp.status === 'работает' ? 'green' : 'red'};">${emp.status}</span></td>
-                        <td>${emp.worked}</td>
-                        <td>${emp.efficiency}</td>
-                        <td>${emp.pay}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+          data.departments.forEach(dept => {
+            const deptCard = document.createElement('div');
+            deptCard.className = 'card';
+
+            let employeesHtml = '<table><thead><tr><th>Сотрудник</th><th>Статус</th><th>Отработано</th><th>Эффективность</th><th>Заработок</th></tr></thead><tbody>';
+            dept.employees.forEach(emp => {
+              const statusColor = emp.status === 'работает' ? 'green' : 'red';
+              employeesHtml += `
+                <tr>
+                  <td>${emp.name}</td>
+                  <td><span style="color: ${statusColor};">${emp.status}</span></td>
+                  <td>${emp.worked}</td>
+                  <td>${emp.efficiency}</td>
+                  <td>${emp.pay}</td>
+                </tr>
               `;
-              departmentsContainer.appendChild(deptCard);
             });
-          }
+            employeesHtml += '</tbody></table>';
 
-          // Графики
+            deptCard.innerHTML = `
+              <h3>📋 ${dept.name}</h3>
+              <p><b>Сотрудников:</b> ${dept.total}</p>
+              <p><b>Явка:</b> ${dept.present} / ${dept.absent} (<span style="color: ${dept.present > 0 ? 'green' : 'red'};">${dept.attendanceRate}</span>)</p>
+              <p><b>Средняя эффективность:</b> <span style="color: ${parseFloat(dept.avgEfficiency.replace(',', '.')) > 80 ? 'green' : 'orange'};">${dept.avgEfficiency}</span></p>
+              <p><b>Общий заработок:</b> ${dept.totalPay}</p>
+
+              ${employeesHtml}
+            `;
+            departmentsContainer.appendChild(deptCard);
+          });
+
           if (managerEfficiencyChart) managerEfficiencyChart.destroy();
           if (managerPayChart) managerPayChart.destroy();
 
@@ -436,7 +378,6 @@
             createManagerPayChart(data.earningsData);
           }
 
-          // Активируем кнопку PDF
           const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
           if (btn) {
             btn.disabled = false;
@@ -449,7 +390,7 @@
         });
     }
 
-    // === Рендер календаря (сетка 7×5) ===
+    // === Рендер календаря ===
     function renderCalendar(availableDates) {
       const calendar = document.getElementById('calendar');
       if (!calendar) return;
@@ -458,7 +399,6 @@
       calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
       calendar.style.gap = '4px';
 
-      // Дни недели
       const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
       days.forEach(day => {
         const el = document.createElement('div');
@@ -470,11 +410,9 @@
         calendar.appendChild(el);
       });
 
-      // Генерируем 31 день: от (сегодня - 31) до вчера
-      const today = new Date();
       for (let i = 31; i >= 1; i--) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
+        const d = new Date();
+        d.setDate(d.getDate() - i);
         const dd = d.getDate().toString().padStart(2, '0');
         const mm = (d.getMonth() + 1).toString().padStart(2, '0');
         const yy = d.getFullYear();
@@ -491,7 +429,7 @@
           el.classList.add('available');
           el.title = 'Есть данные';
           el.addEventListener('click', () => {
-            dateSelect.value = `${yy}-${mm}-${dd}`;
+            document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
             loadEmployeeReport(chatId, dateStr);
           });
         } else {
@@ -574,16 +512,6 @@
     }
 
     // === Вспомогательные функции ===
-    function startLoadingTimer() {
-      const start = Date.now();
-      const timerEl = document.getElementById('loading-timer');
-      const interval = setInterval(() => {
-        const elapsed = (Date.now() - start) / 1000;
-        timerEl.textContent = `${elapsed.toFixed(1)} с`;
-      }, 100);
-      return () => clearInterval(interval);
-    }
-
     function showError(msg) {
       document.getElementById('loading').style.display = 'none';
       document.getElementById('error').textContent = msg;
@@ -599,17 +527,16 @@
       return `${dd}.${mm}.${yy}`;
     }
 
-    function loadReportForDate() {
-      const dateInput = dateSelect.value;
-      if (!dateInput) {
-        Telegram.WebApp.showAlert('Выберите дату');
-        return;
-      }
-      const [year, month, day] = dateInput.split('-');
-      const formattedDate = `${day}.${month}.${year}`;
-      loadEmployeeReport(chatId, formattedDate);
+    function formatDateForDisplay(dateStr) {
+      const [dd, mm, yy] = dateStr.split('.');
+      const d = new Date(yy, mm - 1, parseInt(dd, 10));
+      const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+      const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+      return `${days[d.getDay()]},  ${dd} ${months[d.getMonth()]}`;
     }
 
+    // === Заглушка для PDF ===
     function downloadPDF() {
       Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
     }
@@ -618,27 +545,9 @@
     window.onload = () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      dateSelect.valueAsDate = yesterday;
+      document.getElementById('date-select').valueAsDate = yesterday;
       initTelegram();
     };
-
-    // === Переключение вкладок ===
-    tabEmployee.addEventListener('click', () => {
-      employeeView.style.display = 'block';
-      managerView.style.display = 'none';
-      tabEmployee.classList.add('active');
-      tabManager.classList.remove('active');
-    });
-
-    tabManager.addEventListener('click', () => {
-      if (isManager) {
-        loadManagerDashboard(chatId);
-        employeeView.style.display = 'none';
-        managerView.style.display = 'block';
-        tabManager.classList.add('active');
-        tabEmployee.classList.remove('active');
-      }
-    });
   </script>
 </body>
 </html>
