@@ -75,6 +75,7 @@
 
       <div class="card">
         <h2>📅 Календарь</h2>
+        <input type="date" id="date-select" style="display: none;"> 
         <div class="calendar" id="calendar"></div>
       </div>
 
@@ -91,7 +92,7 @@
 
     <div class="footer">Система AIP • © 2025</div>
   </div>
-
+// =========================================================
   <script>
     const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbwubiPTgwTQ4kXKG2NGNuvjO_x7l-UgD5Pi2RyhEbWsjne0ZKdF4Swmxho9eLk6Sho/exec';
     let chatId = null;
@@ -106,13 +107,13 @@
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
     const departmentsContainer = document.getElementById('departments-container');
-
+// ================================================================================
     function showError(msg) {
       loading.style.display = 'none';
       error.textContent = msg;
       error.style.display = 'block';
     }
-
+// ===============================================================================
     function initTelegram() {
       if (!window.Telegram || !Telegram.WebApp) {
         enableTestMode();
@@ -149,13 +150,13 @@
           }
 
           // Загружаем персональные данные
-          loadFullData(chatId);
+          loadEmployeeReport(chatId, date);
         })
         .catch(err => {
           showError('Ошибка определения роли: ' + err.message);
         });
     }
-
+// === Тест для браузера ==========================================================================
     function enableTestMode() {
       const urlParams = new URLSearchParams(window.location.search);
       const testChatId = urlParams.get('test');
@@ -181,15 +182,25 @@
       }
     }
 
-    function loadFullData(chatId) {
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}`)
+   // function loadFullData(chatId) {
+    function loadEmployeeReport(chatId, date) {   
+      // Показываем спиннер
+      const originalContent = employeeView.innerHTML;
+      employeeView.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка данных за выбранную дату...</p></div>';
+      
+      fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
         .then(r => r.json())
         .then(data => {
           if (data.error) {
             showError(data.error);
+            employeeView.innerHTML = originalContent;
             return;
           }
-
+          
+          // Восстанавливаем интерфейс
+          employeeView.innerHTML = originalContent;
+          
+          // Обновляем данные
           document.getElementById('name').textContent = data.name || '—';
           document.getElementById('date').textContent = data.date || '—';
           document.getElementById('worked').textContent = data.worked || '—';
@@ -198,11 +209,13 @@
           document.getElementById('pay-day').textContent = data.payDay || '—';
           document.getElementById('pay-month').textContent = data.payMonth || '—';
           document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
-
+          
+          // Календарь 
           if (data.availableDates) {
             renderCalendar(data.availableDates);
           }
-
+          
+          // Графики
           if (efficiencyChart) efficiencyChart.destroy();
           if (earningsChart) earningsChart.destroy();
 
