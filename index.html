@@ -128,8 +128,6 @@ function getYesterdayFormatted() {
         enableTestMode();
         return;
       }
-
-
       
       Telegram.WebApp.ready();
       Telegram.WebApp.expand();
@@ -161,7 +159,7 @@ function getYesterdayFormatted() {
           }
 
           // Загружаем персональные данные
-          loadEmployeeReport(chatId, date);
+          loadEmployeeReport(chatId, getYesterdayFormatted());
         })
         .catch(err => {
           showError('Ошибка определения роли: ' + err.message);
@@ -401,6 +399,7 @@ function renderCalendar(availableDates) {
         loadManagerDashboard(chatId);
       }
     });
+
 
     function downloadPDF() {
       Telegram.WebApp.showAlert('Функция PDF скоро будет доступна!');
