@@ -293,7 +293,8 @@ function renderCalendar(availableDates) {
     const mm = (currentDate.getMonth() + 1).toString().padStart(2, '0');
     const yy = currentDate.getFullYear();
     const dateStr = `${dd}.${mm}.${yy}`; // ← Это строка даты
-
+    console.log('📅 dateStr:', dateStr, typeof dateStr); // ← Добавь это для отладки
+    
     const el = document.createElement('div');
     el.className = 'day';
     el.textContent = dd;
@@ -306,6 +307,7 @@ function renderCalendar(availableDates) {
       el.classList.add('available');
       el.title = 'Есть данные';
       el.addEventListener('click', () => {
+        console.log('👉 Клик! Передаю dateStr:', dateStr, typeof dateStr); // ← Отладка  
         // ✅ Передаём строку dateStr, а не элемент
         loadEmployeeReport(chatId, dateStr);
       });
