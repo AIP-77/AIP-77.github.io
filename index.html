@@ -141,7 +141,7 @@ function getYesterdayFormatted() {
       chatId = user.id.toString();
       console.log('✅ chat_id:', chatId);
 
-      // Получаем роль
+      // === 1. Определяем роль ===
       fetch(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`)
         .then(r => r.json())
         .then(roleData => {
@@ -157,14 +157,29 @@ function getYesterdayFormatted() {
           if (isManager) {
             tabManager.style.display = 'block';
           }
-
-          // Загружаем персональные данные
+          // === 2. Загружаем персональные данные за вчера ===
           loadEmployeeReport(chatId, getYesterdayFormatted());
-        })
-        .catch(err => {
-          showError('Ошибка определения роли: ' + err.message);
-        });
-    }
+
+      // === 3. Загружаем доступные даты (фоново) ===
+      setTimeout(() => {
+        fetch(`${API_URL_MAIN}?chat_id=${chatId}&get_dates=true`)
+          .then(r => r.json())
+          .then(dateData => {
+            if (dateData.availableDates && Array.isArray(dateData.availableDates)) {
+              console.log('📅 Получены даты для календаря:', dateData.availableDates);
+              renderCalendar(dateData.availableDates);
+            }
+          })
+          .catch(err => {
+            console.warn('❌ Ошибка загрузки дат для календаря:', err);
+          });
+      }, 500); // Через полсекунды, чтобы не мешать основной загрузке
+
+    })
+    .catch(err => {
+      showError('Ошибка определения роли: ' + err.message);
+    });
+}
 // === Тест для браузера ==========================================================================
     function enableTestMode() {
       const urlParams = new URLSearchParams(window.location.search);
