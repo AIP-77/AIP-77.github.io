@@ -282,22 +282,23 @@ function renderCalendar(availableDates) {
     calendar.appendChild(el);
   });
 
-  // Диапазон: 31 день назад — 1 день вперёд
+  // Определяем диапазон: 31 день назад — 1 день вперёд (всего 33 дня)
   const today = new Date();
   const startDate = new Date(today);
-  startDate.setDate(today.getDate() - 31);
+  startDate.setDate(today.getDate() - 31); // 31 день назад
 
-  // Сдвиг: пустые ячейки в начале
-  const startDayOfWeek = startDate.getDay();
-  const offset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+  // Сдвиг: сколько пустых ячеек до первого дня
+  const startDayOfWeek = startDate.getDay(); // 0 = Вс, 1 = Пн, ..., 6 = Сб
+  const offset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1; // Понедельник = 0
 
+  // Пустые ячейки в начале
   for (let i = 0; i < offset; i++) {
     const el = document.createElement('div');
     el.className = 'day';
     calendar.appendChild(el);
   }
 
-  // Генерируем дни
+  // Генерируем 33 дня
   for (let i = 0; i <= 32; i++) {
     const currentDate = new Date(startDate);
     currentDate.setDate(startDate.getDate() + i);
@@ -305,9 +306,8 @@ function renderCalendar(availableDates) {
     const dd = currentDate.getDate().toString().padStart(2, '0');
     const mm = (currentDate.getMonth() + 1).toString().padStart(2, '0');
     const yy = currentDate.getFullYear();
-    const dateStr = `${dd}.${mm}.${yy}`; // ← Это строка даты
-    console.log('📅 dateStr:', dateStr, typeof dateStr); // ← Добавь это для отладки
-    
+    const dateStr = `${dd}.${mm}.${yy}`;
+
     const el = document.createElement('div');
     el.className = 'day';
     el.textContent = dd;
@@ -316,12 +316,12 @@ function renderCalendar(availableDates) {
     el.style.fontSize = '14px';
     el.style.cursor = 'pointer';
 
+    // Проверяем, есть ли данные
     if (availableDates.includes(dateStr)) {
       el.classList.add('available');
       el.title = 'Есть данные';
       el.addEventListener('click', () => {
-        console.log('👉 Клик! Передаю dateStr:', dateStr, typeof dateStr); // ← Отладка  
-        // ✅ Передаём строку dateStr, а не элемент
+        document.getElementById('date-select').value = `${yy}-${mm}-${dd}`;
         loadEmployeeReport(chatId, dateStr);
       });
     } else {
