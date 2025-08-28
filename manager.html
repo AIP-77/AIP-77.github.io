@@ -38,7 +38,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 Тестовый режим V.м1 🛠)</h4>
+    <h4>(🛠 Тестовый режим V.м1 🛠)</h4> 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab" style="display: none;">Отдел</div>
@@ -108,12 +108,12 @@
       <div class="card">
         <h2>ℹ Информация</h2>
         <ul id="info-list" class="info-list">
-          <li>Загрузка...</li>
+          <li>Загрузка информации...</li>
         </ul>
       </div>
     </div>
 
-    <div class="footer">Система автоматизации AIP • © 2025</div>
+    <div class="footer">Система автоматизации AIP • © 09.2025</div>
   </div>
 
   <script>
@@ -229,56 +229,7 @@
       }
     }
 
-    // 5. Загрузка личного отчёта
-    function loadEmployeeReport(chatId, date) {
-      const originalContent = employeeView.innerHTML;
-      employeeView.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка данных за выбранную дату...</p></div>';
-
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) {
-            showError(data.error);
-            employeeView.innerHTML = originalContent;
-            return;
-          }
-
-          employeeView.innerHTML = originalContent;
-          document.getElementById('name').textContent = data.name || '—';
-          document.getElementById('date').textContent = data.date || '—';
-          document.getElementById('worked').textContent = data.worked || '—';
-          document.getElementById('planned').textContent = data.planned || '—';
-          document.getElementById('efficiency').textContent = data.efficiency || '—';
-          document.getElementById('pay-day').textContent = data.payDay || '—';
-          document.getElementById('pay-month').textContent = data.payMonth || '—';
-          document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
-
-          if (data.availableDates) {
-            renderCalendar(data.availableDates);
-          }
-
-          if (efficiencyChart) efficiencyChart.destroy();
-          if (earningsChart) earningsChart.destroy();
-
-          if (data.efficiencyData?.length) {
-            createEfficiencyChart(data.efficiencyData);
-          }
-          if (data.earningsData?.length) {
-            createEarningsChart(data.earningsData);
-          }
-
-          const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Скачать PDF';
-          }
-        })
-        .catch(err => {
-          showError('Ошибка загрузки данных: ' + err.message);
-        });
-    }
-
-    // 6. Календарь для сотрудника
+    // 5. Календарь для сотрудника
     function renderCalendar(availableDates) {
       const calendar = document.getElementById('calendar');
       if (!calendar) return;
@@ -342,7 +293,106 @@
       }
     }
 
-    // 7. Календарь для руководителя
+    // 6. Создание графиков — ДО использования
+    function createEfficiencyChart(data) {
+      const ctx = document.getElementById('efficiencyChart').getContext('2d');
+      efficiencyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.day),
+          datasets: [{ 
+            label: 'Производительность (%)', 
+            data: data.map(d => d.value), 
+            backgroundColor: '#1a8cd8' 
+          }]
+        },
+        options: { 
+          responsive: true, 
+          scales: { 
+            y: { 
+              beginAtZero: true, 
+              max: 100,
+              title: { display: true, text: '%' }
+            }
+          }
+        }
+      });
+    }
+
+    function createEarningsChart(data) {
+      const ctx = document.getElementById('earningsChart').getContext('2d');
+      earningsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(d => d.day),
+          datasets: [{ 
+            label: 'Заработок (р.)', 
+            data: data.map(d => d.pay), 
+            borderColor: '#1a8cd8', 
+            fill: true,
+            backgroundColor: 'rgba(26, 140, 216, 0.2)'
+          }]
+        },
+        options: { 
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { mode: 'index', intersect: false }
+          }
+        }
+      });
+    }
+
+    // 7. Загрузка личного отчёта
+    function loadEmployeeReport(chatId, date) {
+      const originalContent = employeeView.innerHTML;
+      employeeView.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка данных за выбранную дату...</p></div>';
+
+      fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            showError(data.error);
+            employeeView.innerHTML = originalContent;
+            return;
+          }
+
+          employeeView.innerHTML = originalContent;
+          document.getElementById('name').textContent = data.name || '—';
+          document.getElementById('date').textContent = data.date || '—';
+          document.getElementById('worked').textContent = data.worked || '—';
+          document.getElementById('planned').textContent = data.planned || '—';
+          document.getElementById('efficiency').textContent = data.efficiency || '—';
+          document.getElementById('pay-day').textContent = data.payDay || '—';
+          document.getElementById('pay-month').textContent = data.payMonth || '—';
+          document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
+
+          if (data.availableDates) {
+            renderCalendar(data.availableDates);
+          }
+
+          if (efficiencyChart) efficiencyChart.destroy();
+          if (earningsChart) earningsChart.destroy();
+
+          if (data.efficiencyData?.length) {
+            createEfficiencyChart(data.efficiencyData);
+          }
+          if (data.earningsData?.length) {
+            createEarningsChart(data.earningsData);
+          }
+
+          const btn = document.querySelector('.btn[onclick="downloadPDF()"]');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Скачать PDF';
+          }
+        })
+        .catch(err => {
+          showError('Ошибка загрузки данных: ' + err.message);
+        });
+    }
+
+    // 8. Календарь для руководителя
     function renderManagerCalendar(availableDates) {
       const calendar = document.getElementById('manager-calendar');
       if (!calendar) return;
@@ -406,7 +456,7 @@
       }
     }
 
-    // 8. Загрузка панели руководителя
+    // 9. Загрузка панели руководителя
     function loadManagerDashboard(chatId, date = null) {
       managerLoading.style.display = 'block';
       departmentsContainer.innerHTML = '';
@@ -462,7 +512,7 @@
         });
     }
 
-    // 9. Загрузка информации из N1!J:Json_N
+    // 10. Загрузка информации из N1!J:Json_N
     function loadInfoTab() {
       infoView.style.display = 'block';
       const list = document.getElementById('info-list');
@@ -483,7 +533,7 @@
         });
     }
 
-    // 10. Переключение вкладок
+    // 11. Переключение вкладок
     tabEmployee.addEventListener('click', () => {
       employeeView.style.display = 'block';
       managerView.style.display = 'none';
