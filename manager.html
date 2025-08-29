@@ -38,11 +38,11 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 Тестовый режим V.м1 🛠)</h4> 
+    <h4>(🛠 Тестовый режим V.1_Календарь 🛠)</h4> 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab" style="display: none;">Отдел</div>
-      <div id="tab-info" class="tab active" style="display: none;">ℹ Информация</div>
+      <div id="tab-info" class="tab" style="display: none;">ℹ Информация</div>
     </div>
 
     <div id="loading" class="loading">
@@ -108,8 +108,7 @@
       <div class="card">
         <h2>ℹ Информация</h2>
         <ul id="info-list" class="info-list">
-        <div class="spinner"></div>  
-          <li>Загрузка информации...</li>
+          <li><div class="spinner"></div> Загрузка информации...</li>
         </ul>
       </div>
     </div>
@@ -294,7 +293,7 @@
       }
     }
 
-    // 6. Создание графиков — ДО использования
+    // 6. Создание графиков
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       efficiencyChart = new Chart(ctx, {
@@ -457,7 +456,7 @@
       }
     }
 
-    // 9. Загрузка панели руководителя
+    // 9. Загрузка панели руководителя (исправленная)
     function loadManagerDashboard(chatId, date = null) {
       managerLoading.style.display = 'block';
       departmentsContainer.innerHTML = '';
@@ -484,24 +483,33 @@
 
           departmentsContainer.innerHTML = '';
           data.departments.forEach(dept => {
+            const avgEfficiency = dept.avgEfficiency || "0%";
+            const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
+
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
               <h3>📋 ${dept.name}</h3>
               <p><b>Сотрудников:</b> ${dept.total}</p>
               <p><b>Явка:</b> ${dept.present} / ${dept.absent} (<span style="color: ${dept.present > 0 ? 'green' : 'red'};">${dept.attendanceRate}</span>)</p>
-              <p><b>Средняя эффективность:</b> <span style="color: ${parseFloat(dept.avgEfficiency.replace(',', '.')) > 80 ? 'green' : 'orange'};">${dept.avgEfficiency}</span></p>
-              <p><b>Общий заработок:</b> ${dept.totalPay}</p>
+              <p><b>Средняя эффективность:</b> <span style="color: ${numericEfficiency > 80 ? 'green' : 'orange'};">${avgEfficiency}</span></p>
+              <p><b>Общий заработок:</b> ${dept.totalPay || "р. 0,00"}</p>
               <table><thead><tr><th>Сотрудник</th><th>Статус</th><th>Отработано</th><th>Эффективность</th><th>Заработок</th></tr></thead><tbody>
-                ${dept.employees.map(emp => `
-                  <tr>
-                    <td>${emp.name}</td>
-                    <td><span style="color: ${emp.status === 'работает' ? 'green' : 'red'};">${emp.status}</span></td>
-                    <td>${emp.worked}</td>
-                    <td>${emp.efficiency}</td>
-                    <td>${emp.pay}</td>
-                  </tr>
-                `).join('')}
+                ${dept.employees.map(emp => {
+                  const worked = emp.worked || "00:00";
+                  const efficiency = emp.efficiency || "0%";
+                  const pay = emp.pay || "р. 0,00";
+                  const status = emp.status || "отсутствует";
+                  return `
+                    <tr>
+                      <td>${emp.name}</td>
+                      <td><span style="color: ${status === 'работает' ? 'green' : 'red'};">${status}</span></td>
+                      <td>${worked}</td>
+                      <td>${efficiency}</td>
+                      <td>${pay}</td>
+                    </tr>
+                  `;
+                }).join('')}
               </tbody></table>
             `;
             departmentsContainer.appendChild(card);
@@ -513,11 +521,11 @@
         });
     }
 
-    // 10. Загрузка информации из N1!J:Json_N
+    // 10. Загрузка информации
     function loadInfoTab() {
       infoView.style.display = 'block';
       const list = document.getElementById('info-list');
-      list.innerHTML = '<li>Загрузка информации...</li>';
+      list.innerHTML = '<li><div class="spinner"></div> Загрузка информации...</li>';
 
       fetch(`${API_URL_MAIN}?chat_id=${chatId}&info=true`)
         .then(r => r.json())
@@ -526,7 +534,6 @@
             list.innerHTML = '<li>Нет информации.</li>';
             return;
           }
-
           list.innerHTML = data.info.map(line => `<li>${line}</li>`).join('');
         })
         .catch(() => {
