@@ -19,8 +19,11 @@
     .tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: #666; }
     .tab.active { color: #1a8cd8; border-bottom: 2px solid #1a8cd8; }
     .calendar { display: grid; gap: 4px; margin: 10px 0; }
-    .day { text-align: center; padding: 6px 0; font-size: 12px; border-radius: 4px; color: #333; }
-    .day.available { background: #1a8cd8; color: white; font-weight: bold; cursor: pointer; }
+    .day { text-align: center; padding: 6px 0; font-size: 12px; border-radius: 4px; color: #333; cursor: pointer; }
+    .day.available { background: #1a8cd8; color: white; font-weight: bold; }
+    .day.present { background: green; color: white; }
+    .day.absent { color: red; }
+    .day:hover { background: #e0e0e0; }
     table { width: 100%; border-collapse: collapse; }
     th { background: #f0f0f0; padding: 8px; text-align: left; font-weight: 600; font-size: 14px; }
     td { padding: 8px; border-bottom: 1px solid #eee; }
@@ -392,71 +395,69 @@
         });
     }
 
-    // 8. Календарь для руководителя
-    function renderManagerCalendar(availableDates) {
-      const calendar = document.getElementById('manager-calendar');
-      if (!calendar) return;
-      calendar.innerHTML = '';
-      calendar.style.display = 'grid';
-      calendar.style.gridTemplateColumns = 'repeat(7, 1fr)';
-      calendar.style.gap = '4px';
+    // 8. Загрузка календаря явки по отделам
+    async function loadDepartmentCalendar() {
+      try {
+        const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true`);
+        const data = await response.json();
 
-      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      dayNames.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        el.style.padding = '6px 0';
-        el.style.backgroundColor = '#f0f0f0';
-        el.style.borderRadius = '6px';
-        calendar.appendChild(el);
-      });
+        const container = document.getElementById('manager-calendar');
+        if (!container) return;
 
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() - 31);
+        container.innerHTML = '';
 
-      const startDayOfWeek = startDate.getDay();
-      const offset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = 'repeat(7, 1fr)';
+        container.style.gap = '4px';
 
-      for (let i = 0; i < offset; i++) {
-        const el = document.createElement('div');
-        el.className = 'day';
-        calendar.appendChild(el);
-      }
+        // Заголовки дней недели
+        ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].forEach(day => {
+          const el = document.createElement('div');
+          el.textContent = day;
+          el.style.fontWeight = 'bold';
+          el.style.backgroundColor = '#f0f0f0';
+          el.style.padding = '6px 0';
+          el.style.borderRadius = '6px';
+          container.appendChild(el);
+        });
 
-      for (let i = 0; i <= 32; i++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + i);
+        data.departments.forEach(dept => {
+          const deptCell = document.createElement('div');
+          deptCell.className = 'day';
+          deptCell.textContent = dept.name;
+          deptCell.style.gridColumn = 'span 7';
+          deptCell.style.fontWeight = 'bold';
+          deptCell.style.color = '#d81a8c';
+          deptCell.style.padding = '8px 0';
+          container.appendChild(deptCell);
 
-        const dd = currentDate.getDate().toString().padStart(2, '0');
-        const mm = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-        const yy = currentDate.getFullYear();
-        const dateStr = `${dd}.${mm}.${yy}`;
-
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = dd;
-        el.style.padding = '8px 0';
-        el.style.borderRadius = '6px';
-        el.style.fontSize = '14px';
-        el.style.cursor = 'pointer';
-
-        if (availableDates.includes(dateStr)) {
-          el.classList.add('available');
-          el.title = 'Есть данные';
-          el.addEventListener('click', () => {
-            loadManagerDashboard(chatId, dateStr);
+          data.dates.forEach(date => {
+            const dayCell = document.createElement('div');
+            dayCell.className = 'day';
+            const info = dept.dates[date] || { present: [], absent: [] };
+            dayCell.textContent = info.present.length;
+            dayCell.title = [
+              'Работали: ' + info.present.join(', '),
+              'Отсутствовали: ' + info.absent.join(', ')
+            ].join('\n');
+            dayCell.style.color = info.present.length > 0 ? 'green' : 'red';
+            dayCell.style.cursor = 'pointer';
+            dayCell.addEventListener('click', () => {
+              loadManagerDashboard(chatId, date);
+            });
+            container.appendChild(dayCell);
           });
-        } else {
-          el.style.color = '#ccc';
+        });
+      } catch (err) {
+        console.error("❌ Ошибка загрузки календаря:", err);
+        const container = document.getElementById('manager-calendar');
+        if (container) {
+          container.innerHTML = '<p style="color: red;">Ошибка загрузки календаря</p>';
         }
-
-        calendar.appendChild(el);
       }
     }
 
-    // 9. Загрузка панели руководителя (исправленная)
+    // 9. Загрузка панели руководителя
     function loadManagerDashboard(chatId, date = null) {
       managerLoading.style.display = 'block';
       departmentsContainer.innerHTML = '';
@@ -476,10 +477,6 @@
           }
 
           document.getElementById('manager-date').textContent = data.date;
-
-          if (data.availableDates) {
-            renderManagerCalendar(data.availableDates);
-          }
 
           departmentsContainer.innerHTML = '';
           data.departments.forEach(dept => {
@@ -560,6 +557,7 @@
         tabEmployee.classList.remove('active');
         tabInfo.classList.remove('active');
         loadManagerDashboard(chatId);
+        loadDepartmentCalendar();
       }
     });
 
