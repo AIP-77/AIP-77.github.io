@@ -396,7 +396,7 @@
     }
 
     // 8. Загрузка календаря явки по отделам
-    async function loadDepartmentCalendar() {
+   async function loadDepartmentCalendar() {
   try {
     const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true`);
     const data = await response.json();
@@ -448,7 +448,7 @@
       });
     });
   } catch (err) {
-    console.error("❌ Ошибка:", err);
+    console.error("❌ Ошибка:",err);
   }
 }
     // 9. Загрузка панели руководителя
