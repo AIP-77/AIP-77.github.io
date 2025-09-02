@@ -409,7 +409,7 @@
     container.style.gridTemplateColumns = `80px repeat(${data.departments.length}, 1fr)`;
     container.style.gap = '4px';
 
-    // Заголовки
+    // === Заголовки ===
     const headerNames = ['Дата', ...data.departments];
     headerNames.forEach(title => {
       const el = document.createElement('div');
@@ -422,7 +422,7 @@
       container.appendChild(el);
     });
 
-    // Данные
+    // === Данные ===
     data.calendar.forEach(day => {
       const dateCell = document.createElement('div');
       dateCell.textContent = day.date;
@@ -431,7 +431,7 @@
       container.appendChild(dateCell);
 
       data.departments.forEach(dept => {
-        const info = day.departments[dept] || { present: [], absent: [] };
+        const info = day.departments[dept] || { present: [], absent: []};
         const cell = document.createElement('div');
         cell.className = 'day';
         cell.textContent = info.present.length;
@@ -448,7 +448,7 @@
       });
     });
   } catch (err) {
-    console.error("❌ Ошибка:",err);
+    console.error("❌ Ошибка:", err);
   }
 }
     // 9. Загрузка панели руководителя
