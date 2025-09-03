@@ -294,54 +294,55 @@
     }
 
     // 6. Создание графиков
-    function createEfficiencyChart(data) {
-      const ctx = document.getElementById('efficiencyChart').getContext('2d');
-      efficiencyChart = new Chart(ctx, {
-        type: 'bar',
-         {
-          labels: data.map(d => d.day),
-          datasets: [{ 
-            label: 'Производительность (%)', 
-             data.map(d => d.value), 
-            backgroundColor: '#1a8cd8' 
-          }]
-        },
-        options: { 
-          responsive: true, 
-          scales: { 
-            y: { 
-              beginAtZero: true, 
-              max: 100,
-              title: { display: true, text: '%' }
-            }
-          }
+   // 6. Создание графиков
+function createEfficiencyChart(data) {
+  const ctx = document.getElementById('efficiencyChart').getContext('2d');
+  efficiencyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.day),
+      datasets: [{ 
+        label: 'Производительность (%)', 
+        data: data.map(d => d.value), 
+        backgroundColor: '#1a8cd8' 
+      }]
+    },
+    options: { 
+      responsive: true, 
+      scales: { 
+        y: { 
+          beginAtZero: true, 
+          max: 100,
+          title: { display: true, text: '%' }
         }
-      });
+      }
     }
+  });
+}
 
-    function createEarningsChart(data) {
-      const ctx = document.getElementById('earningsChart').getContext('2d');
-      earningsChart = new Chart(ctx, {
-        type: 'line',
-         {
-          labels: data.map(d => d.day),
-          datasets: [{ 
-            label: 'Заработок (р.)', 
-             data.map(d => d.pay), 
-            borderColor: '#1a8cd8', 
-            fill: true,
-            backgroundColor: 'rgba(26, 140, 216, 0.2)'
-          }]
-        },
-        options: { 
-          responsive: true,
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: { mode: 'index', intersect: false }
-          }
-        }
-      });
+function createEarningsChart(data) {
+  const ctx = document.getElementById('earningsChart').getContext('2d');
+  earningsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.day),
+      datasets: [{ 
+        label: 'Заработок (р.)', 
+        data: data.map(d => d.pay), 
+        borderColor: '#1a8cd8', 
+        fill: true,
+        backgroundColor: 'rgba(26, 140, 216, 0.2)'
+      }]
+    },
+    options: { 
+      responsive: true,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { mode: 'index', intersect: false }
+      }
     }
+  });
+}
 
     // 7. Загрузка личного отчёта
     function loadEmployeeReport(chatId, date) {
