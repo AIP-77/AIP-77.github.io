@@ -152,59 +152,58 @@
     }
 
     // 3. Инициализация Telegram
-    function initTelegram() {
-      if (!window.Telegram || !Telegram.WebApp) {
-        enableTestMode();
+   function initTelegram() {
+  if (!window.Telegram || !Telegram.WebApp) {
+    enableTestMode();
+    return;
+  }
+
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+
+  const user = Telegram.WebApp.initDataUnsafe.user;
+  if (!user || !user.id) {
+    showError('❌Не удалось получить пользователя');
+    return;
+  }
+
+  chatId = user.id.toString();
+  console.log('✅chat_id:', chatId);
+
+  // Определяем роль
+  fetch(`${API URL_MAIN}?chat_id=${chatId}&role_only=true`)
+    .then(r => r.json())
+    .then(roleData => {
+      if (roleData.error) {
+        showError(roleData.error);
         return;
       }
 
-      Telegram.WebApp.ready();
-      Telegram.WebApp.expand();
+      isManager = roleData.isManager;
+      loading.style.display = 'none';
+      employeeView.style.display = 'block';
 
-      const user = Telegram.WebApp.initDataUnsafe.user;
-      if (!user || !user.id) {
-        showError('❌ Не удалось получить пользователя');
-        return;
+      if (isManager) {
+        tabManager.style.display = 'block';
       }
+      tabInfo.style.display = 'block';
 
-      chatId = user.id.toString();
-      console.log('✅ chat_id:', chatId);
+      loadEmployeeReport(chatId, getYesterdayFormatted());
 
-      // Определяем роль
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`)
-        .then(r => r.json())
-        .then(roleData => {
-          if (roleData.error) {
-            showError(roleData.error);
-            return;
-          }
-
-          isManager = roleData.isManager;
-          loading.style.display = 'none';
-          employeeView.style.display = 'block';
-
-          if (isManager) {
-            tabManager.style.display = 'block';
-          }
-          tabInfo.style.display = 'block';
-
-          loadEmployeeReport(chatId, getYesterdayFormatted());
-
-          // Загружаем даты для календаря
-          setTimeout(() => {
-            fetch(`${API_URL_MAIN}?chat_id=${chatId}&get_dates=true`)
-              .then(r => r.json())
-              .then(dateData => {
-                if (dateData.availableDates && Array.isArray(dateData.availableDates)) {
-                  renderCalendar(dateData.availableDates);
-                }
-              })
-              .catch(err => console.warn('❌ Ошибка загрузки дат:', err));
-          }, 500);
-        })
-        .catch(err => showError('Ошибка определения роли: ' + err.message));
-    }
-
+      //Загружаем даты для календаря
+      setTimeout(() => {
+        fetch(`${API URL_MAIN}?chat_id=${chatId}&get_dates=true`)
+          .then(r => r.json())
+          .then(dateData => {
+            if (dateData.availableDates && Array.isArray(dateData.availableDates)) {
+              renderCalendar(dateData.availableDates);
+            }
+          })
+          .catch(err => console.warn('❌Ошибка загрузки дат:',err));
+      }, 500);
+    })
+    .catch(err => showError('Ошибка определения роли: ' +err.message));
+}
     // 4. Тестовый режим
     function enableTestMode() {
       const urlParams = new URLSearchParams(window.location.search);
