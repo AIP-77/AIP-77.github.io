@@ -393,65 +393,87 @@
     }
 
     // 8. Загрузка календаря явки по отделам
-    async function loadDepartmentCalendar() {
-      try {
-        const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true`);
-        const data = await response.json();
+async function loadDepartmentCalendar() {
+  const container = document.getElementById('manager-calendar');
+  if (!container) return;
 
-        const container = document.getElementById('manager-calendar');
-        if (!container) return;
-        container.innerHTML = '';
+  // Показываем индикатор загрузки
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка календаря...</p></div>';
 
-        container.style.display = 'grid';
-        container.style.gridTemplateColumns = `80px repeat(${data.departments.length}, 1fr)`;
-        container.style.gap = '4px';
+  try {
+    const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-cache'
+    });
 
-        // Заголовки
-        const headerNames = ['Дата', ...data.departments];
-        headerNames.forEach(title => {
-          const el = document.createElement('div');
-          el.textContent = title;
-          el.style.fontWeight = 'bold';
-          el.style.backgroundColor = '#f0f0f0';
-          el.style.padding = '6px 0';
-          el.style.borderRadius = '6px';
-          el.style.textAlign = 'center';
-          container.appendChild(el);
-        });
-
-        // Данные
-        data.calendar.forEach(day => {
-          const dateCell = document.createElement('div');
-          dateCell.textContent = day.date;
-          dateCell.style.fontWeight = 'bold';
-          dateCell.style.color = '#1a8cd8';
-          container.appendChild(dateCell);
-
-          data.departments.forEach(dept => {
-            const info = day.departments[dept] || { present: [], absent: [] };
-            const cell = document.createElement('div');
-            cell.className = 'day';
-            cell.textContent = info.present.length;
-            cell.title = [
-              'Работали: ' + info.present.join(', '),
-              'Отсутствовали: ' + info.absent.join(', ')
-            ].join('\n');
-            cell.style.color = info.present.length > 0 ? 'green' : 'red';
-            cell.style.cursor = 'pointer';
-            cell.addEventListener('click', () => {
-              loadManagerDashboard(chatId, day.date);
-            });
-            container.appendChild(cell);
-          });
-        });
-      } catch (err) {
-        console.error("❌ Ошибка загрузки календаря:", err);
-        const container = document.getElementById('manager-calendar');
-        if (container) {
-          container.innerHTML = '<p style="color: red;">Ошибка загрузки календаря</p>';
-        }
-      }
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    // Успешно загружено — очищаем и рисуем
+    container.innerHTML = '';
+
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = `80px repeat(${data.departments.length}, 1fr)`;
+    container.style.gap = '4px';
+
+    // === Заголовки ===
+    const headerNames = ['Дата', ...data.departments];
+    headerNames.forEach(title => {
+      const el = document.createElement('div');
+      el.textContent = title;
+      el.style.fontWeight = 'bold';
+      el.style.backgroundColor = '#f0f0f0';
+      el.style.padding = '6px 0';
+      el.style.borderRadius = '6px';
+      el.style.textAlign = 'center';
+      container.appendChild(el);
+    });
+
+    // === Данные по дням ===
+    data.calendar.forEach(day => {
+      // Дата
+      const dateCell = document.createElement('div');
+      dateCell.textContent = day.date;
+      dateCell.style.fontWeight = 'bold';
+      dateCell.style.color = '#1a8cd8';
+      container.appendChild(dateCell);
+
+      // Ячейки по отделам
+      data.departments.forEach(dept => {
+        const info = day.departments[dept] || { present: [], absent: [] };
+        const cell = document.createElement('div');
+        cell.className = 'day';
+        cell.textContent = info.present.length;
+        cell.title = [
+          'Работали: ' + info.present.join(', '),
+          'Отсутствовали: ' + info.absent.join(', ')
+        ].join('\n');
+        cell.style.color = info.present.length > 0 ? 'green' : 'red';
+        cell.style.cursor = 'pointer';
+        cell.addEventListener('click', () => {
+          loadManagerDashboard(chatId, day.date);
+        });
+        container.appendChild(cell);
+      });
+    });
+  } catch (err) {
+    console.error("❌ Ошибка загрузки календаря:", err);
+    container.innerHTML = `
+      <p style="color: red; text-align: center;">
+        Ошибка загрузки календаря<br>
+        <small>${err.message}</small>
+      </p>
+    `;
+  }
+}
 
     // 9. Загрузка панели руководителя
     function loadManagerDashboard(chatId, date = null) {
