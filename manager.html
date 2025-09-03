@@ -229,7 +229,6 @@
       }
     }
 
-    // 5. Календарь для сотрудника
    // 5. Календарь для сотрудника
 function renderCalendar(availableDates) {
   const calendar = document.getElementById('calendar');
@@ -295,7 +294,6 @@ function renderCalendar(availableDates) {
   }
 }
 
-    // 6. Создание графиков
    // 6. Создание графиков
 function createEfficiencyChart(data) {
   const ctx = document.getElementById('efficiencyChart').getContext('2d');
@@ -400,7 +398,6 @@ async function loadDepartmentCalendar() {
   const container = document.getElementById('manager-calendar');
   if (!container) return;
 
-  // Показываем индикатор загрузки
   container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка календаря...</p></div>';
 
   try {
@@ -420,14 +417,12 @@ async function loadDepartmentCalendar() {
       throw new Error(data.error);
     }
 
-    // Успешно загружено — очищаем и рисуем
     container.innerHTML = '';
 
     container.style.display = 'grid';
     container.style.gridTemplateColumns = `80px repeat(${data.departments.length}, 1fr)`;
     container.style.gap = '4px';
 
-    // === Заголовки ===
     const headerNames = ['Дата', ...data.departments];
     headerNames.forEach(title => {
       const el = document.createElement('div');
@@ -440,16 +435,13 @@ async function loadDepartmentCalendar() {
       container.appendChild(el);
     });
 
-    // === Данные по дням ===
     data.calendar.forEach(day => {
-      // Дата
       const dateCell = document.createElement('div');
       dateCell.textContent = day.date;
       dateCell.style.fontWeight = 'bold';
       dateCell.style.color = '#1a8cd8';
       container.appendChild(dateCell);
 
-      // Ячейки по отделам
       data.departments.forEach(dept => {
         const info = day.departments[dept] || { present: [], absent: [] };
         const cell = document.createElement('div');
