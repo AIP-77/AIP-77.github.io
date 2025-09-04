@@ -690,40 +690,45 @@
      * @param {Object} data - Данные из API
      */
     function renderManagerDashboard(data) {
-      departmentsContainer.innerHTML = '';
-      data.departments.forEach(dept => {
-        const avgEfficiency = dept.avgEfficiency || "0%";
-        const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
+  departmentsContainer.innerHTML = '';
+  if (!data.departments || !Array.isArray(data.departments)) {
+    showError("Неверный формат данных");
+    return;
+  }
 
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <h3>📋 ${dept.name}</h3>
-          <p><b>Сотрудников:</b> ${dept.total}</p>
-          <p><b>Явка:</b> ${dept.present} / ${dept.absent} (<span style="color: ${dept.present > 0 ? 'green' : 'red'};">${dept.attendanceRate}</span>)</p>
-          <p><b>Средняя эффективность:</b> <span style="color: ${numericEfficiency > 80 ? 'green' : 'orange'};">${avgEfficiency}</span></p>
-          <p><b>Общий заработок:</b> ${dept.totalPay || "р. 0,00"}</p>
-          <table><thead><tr><th>Сотрудник</th><th>Статус</th><th>Отработано</th><th>Эффективность</th><th>Заработок</th></tr></thead><tbody>
-            ${dept.employees.map(emp => {
-              const worked = emp.worked || "00:00";
-              const efficiency = emp.efficiency || "0%";
-              const pay = emp.pay || "р. 0,00";
-              const status = emp.status || "отсутствует";
-              return `
-                <tr>
-                  <td>${emp.name}</td>
-                  <td><span style="color: ${status === 'работает' ? 'green' : 'red'};">${status}</span></td>
-                  <td>${worked}</td>
-                  <td>${efficiency}</td>
-                  <td>${pay}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody></table>
-        `;
-        departmentsContainer.appendChild(card);
-      });
-    }
+  data.departments.forEach(dept => {
+    const avgEfficiency = dept.avgEfficiency || "0%";
+    const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <h3>📋 ${dept.name}</h3>
+      <p><b>Сотрудников:</b> ${dept.total}</p>
+      <p><b>Явка:</b> ${dept.present} / ${dept.absent} (<span style="color: ${dept.present > 0 ? 'green' : 'red'};">${dept.attendanceRate}</span>)</p>
+      <p><b>Средняя эффективность:</b> <span style="color: ${numericEfficiency > 80 ? 'green' : 'orange'};">${avgEfficiency}</span></p>
+      <p><b>Общий заработок:</b> ${dept.totalPay || "р. 0,00"}</p>
+      <table><thead><tr><th>Сотрудник</th><th>Статус</th><th>Отработано</th><th>Эффективность</th><th>Заработок</th></tr></thead><tbody>
+        ${dept.employees.map(emp => {
+          const worked = emp.worked || "00:00";
+          const efficiency = emp.efficiency || "0%";
+          const pay = emp.pay || "р. 0,00";
+          const status = emp.status || "отсутствует";
+          return `
+            <tr>
+              <td>${emp.name}</td>
+              <td><span style="color: ${status === 'работает' ? 'green' : 'red'};">${status}</span></td>
+              <td>${worked}</td>
+              <td>${efficiency}</td>
+              <td>${pay}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody></table>
+    `;
+    departmentsContainer.appendChild(card);
+  });
+}
 
     /**
      * Загружает вкладку "Нормативы"
