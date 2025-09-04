@@ -649,38 +649,41 @@
      * @param {string} date - Дата в формате DD.MM.YYYY
      */
     function loadManagerDashboard(chatId, date = null) {
-      if (cachedManagerData && cachedManagerDate === date) {
-        renderManagerDashboard(cachedManagerData);
+  if (cachedManagerData && cachedManagerDate === date) {
+    renderManagerDashboard(cachedManagerData);
+    return;
+  }
+
+  managerLoading.style.display = 'block';
+  departmentsContainer.innerHTML = '';
+  document.getElementById('manager-date').textContent = date || getYesterdayFormatted();
+
+  const url = date
+    ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
+    : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
+
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(data => {
+      managerLoading.style.display = 'none';
+      if (data.error) {
+        showError(data.error);
         return;
       }
 
-      managerLoading.style.display = 'block';
-      departmentsContainer.innerHTML = '';
-      document.getElementById('manager-date').textContent = date || getYesterdayFormatted();
-
-      const url = date
-        ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
-        : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
-
-      fetch(url)
-        .then(r => r.json())
-        .then(data => {
-          managerLoading.style.display = 'none';
-          if (data.error) {
-            showError(data.error);
-            return;
-          }
-
-          document.getElementById('manager-date').textContent = data.date;
-          cachedManagerData = data;
-          cachedManagerDate = data.date;
-          renderManagerDashboard(data);
-        })
-        .catch(err => {
-          managerLoading.style.display = 'none';
-          showError('Ошибка загрузки данных команды: ' + err.message);
-        });
-    }
+      document.getElementById('manager-date').textContent = data.date;
+      cachedManagerData = data;
+      cachedManagerDate = data.date;
+      renderManagerDashboard(data);
+    })
+    .catch(err => {
+      managerLoading.style.display = 'none';
+      showError('Ошибка загрузки данных команды: ' + err.message);
+    });
+}
 
     /**
      * Отрисовывает панель руководителя (список отделов и сотрудников)
