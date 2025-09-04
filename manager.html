@@ -580,23 +580,28 @@
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     
     const data = await response.json();
-    if (data.error) throw new Error(data.error);
+    console.log('✅Ответ:', data); // 🔍 Отладка
 
-    // ✅ Защита от undefined
+    if (data.error) throw new Error(data.error);
     if (!data.calendar || !Array.isArray(data.departments)) {
-      throw new Error("Неверный формат данных календаря");
+      throw new Error("Неверный формат данных");
     }
+
+    // === Создаём сетку ===
+    const daysInMonth = 31; // Пример: сентябрь
+    const startDayOfWeek = 1; // Потом: Пнедельник день недели — пондень
+    const offset = startDayOfWeek === 1 ? 0 : startDayOfWeek - 1;
 
     container.innerHTML = '';
     container.style.display = 'grid';
-    container.style.gridTemplateColumns = `80px repeat(${data.departments.length}, 1fr)`;
+    container.style.gridTemplateColumns = 'repeat(7)';
     container.style.gap = '4px';
 
-    // === Заголовки ===
-    const headerNames = ['Дата', ...data.departments];
-    headerNames.forEach(title => {
+    // === Заголовки дней ===
+    const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    dayNames.forEach(day => {
       const el = document.createElement('div');
-      el.textContent = title;
+      el.textContent = day;
       el.style.fontWeight = 'bold';
       el.style.backgroundColor = '#f0f0f0';
       el.style.padding = '6px 0';
@@ -605,41 +610,36 @@
       container.appendChild(el);
     });
 
-    // === Данные по дням ===
-    data.calendar.forEach(day => {
-      // Дата
-      const dateCell = document.createElement('div');
-      dateCell.textContent = day.date;
-      dateCell.style.fontWeight = 'bold';
-      dateCell.style.color = '#1a8cd8';
-      container.appendChild(dateCell);
+    // === Дни ===
+    for (let i = 0; i < offset; i++) {
+      const el = document.createElement('div');
+      el.className = 'day';
+      container.appendChild(el);
+    }
 
-      // Ячейки по отделам
-      data.departments.forEach(dept => {
-        const info = day.departments?.[dept] || { present: [], absent: [] };
-        const cell = document.createElement('div');
-        cell.className = 'day';
-        cell.textContent = info.present.length;
-        cell.title = [
-          'Работали: ' + info.present.join(', '),
-          'Отсутствовали: ' + info.absent.join(', ')
-        ].join('\n');
-        cell.style.color = info.present.length > 0 ? 'green' : 'red';
-        cell.style.cursor = 'pointer';
-        cell.addEventListener('click', () => {
-          loadManagerDashboard(chatId, day.date);
-        });
-        container.appendChild(cell);
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dateStr = `${i.toString().padStart(2, '0')}.09.2025`;
+      const isPresent = data.calendar.some(day => day.date === dateStr && day.departments[data.departments[0]]?.present?.length > 0);
+
+      const el = document.createElement('div');
+      el.className = 'day';
+      el.textContent = i;
+      el.style.padding = '8px 0';
+      el.style.fontSize = '14px';
+      el.style.cursor = 'pointer';
+      el.style.color = isPresent ? 'white' : '#ccc';
+      el.style.backgroundColor = isPresent ? '#1a8cd8' : '#f0f0f0';
+      el.title = isPresent ? 'Есть данные' : 'Нет данных';
+
+      el.addEventListener('click', () => {
+        loadManagerDashboard(chatId, dateStr);
       });
+
+      container.appendChild(el);
     });
   } catch (err) {
-    console.error("❌ Ошибка загрузки календаря:", err);
-    container.innerHTML = `
-      <p style="color: red; text-align: center;">
-        Ошибка загрузки календаря<br>
-        <small>${err.message}</small>
-      </p>
-    `;
+    console.error("❌ Ошибка загрузки календаря:",err);
+    container.innerHTML = `<p style="color: red; text-align: center;">ошибка: ${err.message}</p>`;
   }
 }
 
