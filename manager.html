@@ -39,7 +39,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10+Календарь 🛠)</h4> 
+    <h4>(🛠 V.11+Календарь 🛠)</h4> 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab" style="display: none;">Отдел</div>
@@ -402,7 +402,8 @@
     container.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
   }
 }
-
+    
+//
 function renderManagerCalendarGrid(container, availableDates) {
   container.innerHTML = '';
   container.style.display = 'grid';
