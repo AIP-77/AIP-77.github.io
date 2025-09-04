@@ -39,7 +39,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.8+Календарь 🛠)</h4> 
+    <h4>(🛠 V.12+календарь 🛠)</h4> 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab" style="display: none;">Отдел</div>
@@ -237,9 +237,10 @@
         const el = document.createElement('div');
         el.textContent = day;
         el.style.fontWeight = 'bold';
-        el.style.padding = '6px 0';
         el.style.backgroundColor = '#f0f0f0';
+        el.style.padding = '6px 0';
         el.style.borderRadius = '6px';
+        el.style.textAlign = 'center';
         calendar.appendChild(el);
       });
 
@@ -341,7 +342,10 @@
       employeeView.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка данных за выбранную дату...</p></div>';
 
       fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
         .then(data => {
           if (data.error) {
             showError(data.error);
@@ -381,6 +385,7 @@
         })
         .catch(err => {
           showError('Ошибка загрузки данных: ' + err.message);
+          employeeView.innerHTML = originalContent;
         });
     }
 
@@ -396,50 +401,70 @@
         const data = await response.json();
         if (data.error) throw new Error(data.error);
 
-        container.innerHTML = '';
-        container.style.display = 'grid';
-        container.style.gridTemplateColumns = `80px repeat(${data.departments.length}, 1fr)`;
-        container.style.gap = '4px';
-
-        const headerNames = ['Дата', ...data.departments];
-        headerNames.forEach(title => {
-          const el = document.createElement('div');
-          el.textContent = title;
-          el.style.fontWeight = 'bold';
-          el.style.backgroundColor = '#f0f0f0';
-          el.style.padding = '6px 0';
-          el.style.borderRadius = '6px';
-          el.style.textAlign = 'center';
-          container.appendChild(el);
-        });
-
-        data.calendar.forEach(day => {
-          const dateCell = document.createElement('div');
-          dateCell.textContent = day.date;
-          dateCell.style.fontWeight = 'bold';
-          dateCell.style.color = '#1a8cd8';
-          container.appendChild(dateCell);
-
-          data.departments.forEach(dept => {
-            const info = day.departments[dept] || { present: [], absent: [] };
-            const cell = document.createElement('div');
-            cell.className = 'day';
-            cell.textContent = info.present.length;
-            cell.title = [
-              'Работали: ' + info.present.join(', '),
-              'Отсутствовали: ' + info.absent.join(', ')
-            ].join('\n');
-            cell.style.color = info.present.length > 0 ? 'green' : 'red';
-            cell.style.cursor = 'pointer';
-            cell.addEventListener('click', () => {
-              loadManagerDashboard(chatId, day.date);
-            });
-            container.appendChild(cell);
-          });
-        });
+        renderManagerCalendarGrid(container, data.dates);
       } catch (err) {
         console.error("❌ Ошибка загрузки календаря:", err);
-        container.innerHTML = `<p style="color: red; text-align: center;">Ошибка загрузки календаря<br><small>${err.message}</small></p>`;
+        container.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
+      }
+    }
+
+    function renderManagerCalendarGrid(container, availableDates) {
+      container.innerHTML = '';
+      container.style.display = 'grid';
+      container.style.gridTemplateColumns = 'repeat(7, 1fr)';
+      container.style.gap = '4px';
+
+      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      dayNames.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        el.style.backgroundColor = '#f0f0f0';
+        el.style.padding = '6px 0';
+        el.style.borderRadius = '6px';
+        el.style.textAlign = 'center';
+        container.appendChild(el);
+      });
+
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 31);
+      const startDayOfWeek = startDate.getDay();
+      const offset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
+
+      for (let i = 0; i < offset; i++) {
+        const el = document.createElement('div');
+        el.className = 'day';
+        container.appendChild(el);
+      }
+
+      for (let i = 0; i <= 32; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
+
+        const dd = currentDate.getDate().toString().padStart(2, '0');
+        const mm = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+        const yy = currentDate.getFullYear();
+        const dateStr = `${dd}.${mm}.${yy}`;
+
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = dd;
+        el.style.padding = '8px 0';
+        el.style.fontSize = '14px';
+        el.style.cursor = 'pointer';
+
+        if (Array.isArray(availableDates) && availableDates.includes(dateStr)) {
+          el.classList.add('available');
+          el.title = 'Есть данные';
+          el.addEventListener('click', () => {
+            loadManagerDashboard(chatId, dateStr);
+          });
+        } else {
+          el.style.color = '#ccc';
+        }
+
+        container.appendChild(el);
       }
     }
 
@@ -458,7 +483,10 @@
         : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
 
       fetch(url)
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
         .then(data => {
           managerLoading.style.display = 'none';
           if (data.error) {
@@ -479,6 +507,11 @@
 
     function renderManagerDashboard(data) {
       departmentsContainer.innerHTML = '';
+      if (!data.departments || !Array.isArray(data.departments)) {
+        showError("Неверный формат данных");
+        return;
+      }
+
       data.departments.forEach(dept => {
         const avgEfficiency = dept.avgEfficiency || "0%";
         const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
