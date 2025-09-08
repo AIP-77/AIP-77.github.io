@@ -433,7 +433,7 @@
       document.getElementById('prevMonth').disabled = currentMonthIndex === 0;
       document.getElementById('nextMonth').disabled = currentMonthIndex === availableMonths.length - 1;
     }
-
+// ==== поддержка выбора месяца
     async function loadCalendarGrid(month) {
       const container = document.getElementById('manager-calendar');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка календаря...</p></div>';
