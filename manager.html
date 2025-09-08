@@ -42,7 +42,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.18+календарь 🛠)</h4> 
+    <h4>(🛠 V.20+календарь 🛠)</h4> 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab" style="display: none;">Отдел</div>
@@ -126,7 +126,7 @@
   </div>
 
   <script>
-    // ✅ Укажите ваш URL
+    // ✅ Замените на ваш URL
     const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbzAj0gxuC6fWQKIESyr1bgu1eBX31mRcQyTsAjCKikg9pwiu4Ww-MTq-PwmRFpiNNB-/exec';
     let chatId = null;
     let isManager = false;
@@ -183,7 +183,7 @@
       chatId = user.id.toString();
       console.log('✅ chat_id:', chatId);
 
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&action=info`)
+      fetch(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`)
         .then(r => r.json())
         .then(roleData => {
           if (roleData.error) {
@@ -201,11 +201,11 @@
           loadEmployeeReport(chatId, getYesterdayFormatted());
 
           setTimeout(() => {
-            fetch(`${API_URL_MAIN}?chat_id=${chatId}&action=department_calendar`)
+            fetch(`${API_URL_MAIN}?chat_id=${chatId}&get_dates=true`)
               .then(r => r.json())
               .then(dateData => {
-                if (dateData.months && Array.isArray(dateData.months)) {
-                  renderCalendar(dateData.months);
+                if (dateData.availableDates && Array.isArray(dateData.availableDates)) {
+                  renderCalendar(dateData.availableDates);
                 }
               })
               .catch(err => console.warn('❌ Ошибка загрузки дат:', err));
@@ -237,7 +237,7 @@
       }
     }
 
-    function renderCalendar(months) {
+    function renderCalendar(availableDates) {
       const calendar = document.getElementById('calendar');
       if (!calendar) return;
       calendar.innerHTML = '';
@@ -287,7 +287,7 @@
         el.style.fontSize = '14px';
         el.style.cursor = 'pointer';
 
-        if (Array.isArray(months) && months.includes(dateStr)) {
+        if (Array.isArray(availableDates) && availableDates.includes(dateStr)) {
           el.classList.add('available');
           el.title = 'Есть данные';
           el.addEventListener('click', () => {
@@ -409,19 +409,24 @@
       container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка месяцев...</p></div>';
 
       try {
-        const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&action=department_calendar`);
+        // Загружаем список месяцев
+        const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true`);
         const data = await response.json();
-        if (data.error) throw new Error(data.error);
 
-        availableMonths = data.months || [];
-        if (availableMonths.length === 0) {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        if (!data.months || data.months.length === 0) {
           container.innerHTML = '<p style="text-align: center;">Нет данных</p>';
           return;
         }
 
+        availableMonths = data.months;
         currentMonthIndex = 0;
         renderMonthSelector();
         await loadCalendarGrid(availableMonths[currentMonthIndex]);
+
       } catch (err) {
         console.error("❌ Ошибка загрузки календаря:", err);
         container.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
@@ -433,18 +438,22 @@
       document.getElementById('prevMonth').disabled = currentMonthIndex === 0;
       document.getElementById('nextMonth').disabled = currentMonthIndex === availableMonths.length - 1;
     }
-// ==== поддержка выбора месяца
+
     async function loadCalendarGrid(month) {
       const container = document.getElementById('manager-calendar');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка календаря...</p></div>';
 
       try {
-        const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&action=department_calendar&month=${encodeURIComponent(month)}`);
+        const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true&month=${encodeURIComponent(month)}`);
         const data = await response.json();
-        if (data.error) throw new Error(data.error);
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
 
         renderCalendarGrid(container, data.days, month);
       } catch (err) {
+        console.error("❌ Ошибка загрузки сетки:", err);
         container.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
       }
     }
@@ -509,8 +518,8 @@
       document.getElementById('manager-date').textContent = date || getYesterdayFormatted();
 
       const url = date
-        ? `${API_URL_MAIN}?chat_id=${chatId}&action=manager&date=${date}`
-        : `${API_URL_MAIN}?chat_id=${chatId}&action=manager`;
+        ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
+        : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
 
       fetch(url)
         .then(r => {
@@ -581,7 +590,7 @@
       const list = document.getElementById('info-list');
       list.innerHTML = '<li><div class="spinner"></div> Загрузка информации...</li>';
 
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&action=info`)
+      fetch(`${API_URL_MAIN}?chat_id=${chatId}&info=true`)
         .then(r => r.json())
         .then(data => {
           if (data.error || !data.info || data.info.length === 0) {
