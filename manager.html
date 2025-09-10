@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
+  <!-- ✅ Убраны пробелы после URL -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -126,7 +127,7 @@
   </div>
 
   <script>
-    // ✅ Замените на ваш URL
+    // ✅ Убраны пробелы после URL
     const API_URL_MAIN = 'https://script.google.com/macros/s/AKfycbzAj0gxuC6fWQKIESyr1bgu1eBX31mRcQyTsAjCKikg9pwiu4Ww-MTq-PwmRFpiNNB-/exec';
     let chatId = null;
     let isManager = false;
@@ -183,9 +184,20 @@
       chatId = user.id.toString();
       console.log('✅ chat_id:', chatId);
 
+      // ✅ Логируем URL для проверки
+      console.log('📡 Запрос:', `${API_URL_MAIN}?chat_id=${chatId}&role_only=true`);
+
       fetch(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`)
-        .then(r => r.json())
+        .then(r => {
+          // ✅ Проверяем статус ответа
+          if (!r.ok) {
+            throw new Error(`HTTP ${r.status}`);
+          }
+          return r.json();
+        })
         .then(roleData => {
+          console.log('✅ Получены данные роли:', roleData);
+
           if (roleData.error) {
             showError(roleData.error);
             return;
@@ -211,7 +223,10 @@
               .catch(err => console.warn('❌ Ошибка загрузки дат:', err));
           }, 500);
         })
-        .catch(err => showError('Ошибка определения роли: ' + err.message));
+        .catch(err => {
+          console.error('❌ Ошибка загрузки роли:', err);
+          showError('Ошибка загрузки роли: ' + err.message);
+        });
     }
 
     function enableTestMode() {
@@ -305,11 +320,11 @@
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{ 
             label: 'Производительность (%)', 
-             data.map(d => d.value), 
+            data: data.map(d => d.value), 
             backgroundColor: '#1a8cd8' 
           }]
         },
@@ -330,11 +345,11 @@
       const ctx = document.getElementById('earningsChart').getContext('2d');
       earningsChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{ 
             label: 'Заработок (р.)', 
-             data.map(d => d.pay), 
+            data: data.map(d => d.pay), 
             borderColor: '#1a8cd8', 
             fill: true,
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
@@ -409,7 +424,6 @@
       container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка месяцев...</p></div>';
 
       try {
-        // Загружаем список месяцев
         const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true`);
         const data = await response.json();
 
