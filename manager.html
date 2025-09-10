@@ -389,7 +389,20 @@
           document.getElementById('efficiency').textContent = data.efficiency || '—';
           document.getElementById('pay-day').textContent = data.payDay || '—';
           document.getElementById('pay-month').textContent = data.payMonth || '—';
-          document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
+         // document.getElementById('details').textContent = data.details?.join('\n') || 'Нет данных';
+          // === Форматируем детализацию задач ===
+        const detailsList = data.details || [];
+       const detailsText = Array.isArray(detailsList)
+          ? detailsList.map(item => {
+      const work = item.work || '—';
+      const count = item.count || 0;
+      const time = item.time || '00:00:00';
+      const pay = item.pay || '0,00 ₽';
+      return `${work} (${count}): ${time}, ${pay}`;
+        }).join('\n')
+       : 'Нет данных';
+
+document.getElementById('details').textContent = detailsText;
 
           if (data.availableDates) {
             renderCalendar(data.availableDates);
