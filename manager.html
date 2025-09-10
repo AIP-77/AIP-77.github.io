@@ -524,18 +524,13 @@
     }
 //===================================================================
     function loadManagerDashboard(chatId, date = null) {
-  if (cachedManagerData && cachedManagerDate === date) {
-    renderManagerDashboard(cachedManagerData);
-    return;
-  }
-
-  managerLoading.style.display = 'block';
-  departmentsContainer.innerHTML = '';
-  document.getElementById('manager-date').textContent = date || getYesterdayFormatted();
+  console.log("🚀 Запрос данных:", { chatId, date }); // ✅ Логируем
 
   const url = date
     ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
     : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
+
+  console.log("📡 URL запроса:", url); // ✅ Проверяем URL
 
   fetch(url)
     .then(r => {
@@ -543,19 +538,18 @@
       return r.json();
     })
     .then(data => {
-      managerLoading.style.display = 'none';
+      console.log("✅ Получены данные:", data); // ✅ Видим ответ
       if (data.error) {
         showError(data.error);
         return;
       }
-
       document.getElementById('manager-date').textContent = data.date;
       cachedManagerData = data;
       cachedManagerDate = data.date;
       renderManagerDashboard(data);
     })
     .catch(err => {
-      managerLoading.style.display = 'none';
+      console.error("❌ Ошибка загрузки:", err); // ✅ Видим причину
       showError('Ошибка загрузки данных команды: ' + err.message);
     });
 }
