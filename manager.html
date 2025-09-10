@@ -416,37 +416,36 @@
           employeeView.innerHTML = originalContent;
         });
     }
-
+//==========================================================================
     async function loadDepartmentCalendar() {
-      const container = document.getElementById('manager-calendar');
-      if (!container) return;
+  const container = document.getElementById('manager-calendar');
+  if (!container) return;
 
-      container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка месяцев...</p></div>';
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка месяцев...</p></div>';
 
-      try {
-        const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true`);
-        const data = await response.json();
+  try {
+    const response = await fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true`);
+    const data = await response.json();
 
-        if (data.error) {
-          throw new Error(data.error);
-        }
+    if (data.error) throw new Error(data.error);
 
-        if (!data.months || data.months.length === 0) {
-          container.innerHTML = '<p style="text-align: center;">Нет данных</p>';
-          return;
-        }
-
-        availableMonths = data.months;
-        currentMonthIndex = 0;
-        renderMonthSelector();
-        await loadCalendarGrid(availableMonths[currentMonthIndex]);
-
-      } catch (err) {
-        console.error("❌ Ошибка загрузки календаря:", err);
-        container.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
-      }
+    availableMonths = data.months || [];
+    if (availableMonths.length === 0) {
+      container.innerHTML = '<p style="text-align: center;">Нет данных</p>';
+      return;
     }
 
+    // ✅ Выбираем последний месяц (например, "Сентябрь 2025")
+    currentMonthIndex = availableMonths.length - 1;
+    renderMonthSelector();
+    await loadCalendarGrid(availableMonths[currentMonthIndex]);
+
+  } catch (err) {
+    console.error("❌ Ошибка загрузки календаря:", err);
+    container.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
+  }
+}
+//=================================================================================================
     function renderMonthSelector() {
       document.getElementById('currentMonth').textContent = availableMonths[currentMonthIndex];
       document.getElementById('prevMonth').disabled = currentMonthIndex === 0;
@@ -498,7 +497,7 @@
           el.style.backgroundColor = '#1a8cd8';
           el.style.color = 'white';
           el.style.fontWeight = 'bold';
-          el.style.borderRadius = '50%';
+          //el.style.borderRadius = '50%';✅ Убран border-radius — квадратная подсветка
           el.style.width = '30px';
           el.style.height = '30px';
           el.style.margin = '0 auto';
@@ -507,8 +506,11 @@
           el.style.justifyContent = 'center';
           el.title = 'Есть данные';
           el.addEventListener('click', () => {
-            const [day, mm, yy] = d.date.toString().padStart(2, '0').split('.').map(Number);
-            const dateStr = `${d.date.toString().padStart(2, '0')}.${mm.toString().padStart(2, '0')}.${yy}`;
+            // ✅ Форматируем дату: 09.09.2025
+           // const [day, mm, yy] = d.date.toString().padStart(2, '0').split('.').map(Number);
+           // const dateStr = `${d.date.toString().padStart(2, '0')}.${mm.toString().padStart(2, '0')}.${yy}`;
+              const dateStr = `${d.date.toString().padStart(2, '0')}.${(month.split(' ')[1] === '2025' ? '09' : '10')}.2025`;
+        loadManagerDashboard(chatId, dateStr);
             loadManagerDashboard(chatId, dateStr);
           });
         } else if (!d.date) {
@@ -520,44 +522,44 @@
         container.appendChild(el);
       });
     }
-
+//===================================================================
     function loadManagerDashboard(chatId, date = null) {
-      if (cachedManagerData && cachedManagerDate === date) {
-        renderManagerDashboard(cachedManagerData);
+  if (cachedManagerData && cachedManagerDate === date) {
+    renderManagerDashboard(cachedManagerData);
+    return;
+  }
+
+  managerLoading.style.display = 'block';
+  departmentsContainer.innerHTML = '';
+  document.getElementById('manager-date').textContent = date || getYesterdayFormatted();
+
+  const url = date
+    ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
+    : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
+
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(data => {
+      managerLoading.style.display = 'none';
+      if (data.error) {
+        showError(data.error);
         return;
       }
 
-      managerLoading.style.display = 'block';
-      departmentsContainer.innerHTML = '';
-      document.getElementById('manager-date').textContent = date || getYesterdayFormatted();
-
-      const url = date
-        ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
-        : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
-
-      fetch(url)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          managerLoading.style.display = 'none';
-          if (data.error) {
-            showError(data.error);
-            return;
-          }
-
-          document.getElementById('manager-date').textContent = data.date;
-          cachedManagerData = data;
-          cachedManagerDate = data.date;
-          renderManagerDashboard(data);
-        })
-        .catch(err => {
-          managerLoading.style.display = 'none';
-          showError('Ошибка загрузки данных команды: ' + err.message);
-        });
-    }
-
+      document.getElementById('manager-date').textContent = data.date;
+      cachedManagerData = data;
+      cachedManagerDate = data.date;
+      renderManagerDashboard(data);
+    })
+    .catch(err => {
+      managerLoading.style.display = 'none';
+      showError('Ошибка загрузки данных команды: ' + err.message);
+    });
+}
+//======================================================================
     function renderManagerDashboard(data) {
       departmentsContainer.innerHTML = '';
       if (!data.departments || !Array.isArray(data.departments)) {
