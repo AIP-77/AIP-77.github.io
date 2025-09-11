@@ -288,57 +288,92 @@
       const yy = d.getFullYear();
       return `${dd}.${mm}.${yy}`;
     }
-
+//==================================
     function initTelegram() {
-      if (!window.Telegram || !Telegram.WebApp) {
-        enableTestMode();
-        return;
-      }
-      Telegram.WebApp.ready();
-      Telegram.WebApp.expand();
-      const user = Telegram.WebApp.initDataUnsafe.user;
-      if (!user || !user.id) {
-        showError('❌ Не удалось получить пользователя');
-        return;
-      }
-      chatId = user.id.toString();
-      console.log('✅ chat_id:', chatId);
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(roleData => {
-          console.log('✅ Получены данные роли:', roleData);
-          if (roleData.error) {
-            showError(roleData.error);
-            return;
-          }
-          isManager = roleData.isManager;
-          loading.style.display = 'none';
-          employeeView.style.display = 'block';
-          if (isManager) {
-            tabManager.style.display = 'block';
-            tabInfo.style.display = 'block';
-          }
-          loadEmployeeReport(chatId, getYesterdayFormatted());
-          setTimeout(() => {
-            fetch(`${API_URL_MAIN}?chat_id=${chatId}&get_dates=true`)
-              .then(r => r.json())
-              .then(dateData => {
-                if (dateData.availableDates && Array.isArray(dateData.availableDates)) {
-                  renderCalendar(dateData.availableDates);
-                }
-              })
-              .catch(err => console.warn('❌ Ошибка загрузки дат:', err));
-          }, 500);
-        })
-        .catch(err => {
-          console.error('❌ Ошибка загрузки роли:', err);
-          showError('Ошибка загрузки роли: ' + err.message);
-        });
+  if (!window.Telegram || !Telegram.WebApp) {
+    enableTestMode();
+    return;
+  }
+
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+  const user = Telegram.WebApp.initDataUnsafe.user;
+
+  if (!user || !user.id) {
+    showError('Не удалось получить пользователя');
+    return;
+  }
+
+  chatId = user.id.toString();
+  console.log('chat_id:', chatId);
+
+  // Загружаем роль и основные данные параллельно
+  Promise.all([
+    fetch(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`).then(r => r.json()),
+    fetch(`${API_URL_MAIN}?chat_id=${chatId}`).then(r => r.json())
+  ])
+  .then(([roleData, employeeData]) => {
+    if (roleData.error) {
+      showError(roleData.error);
+      return;
     }
 
+    isManager = roleData.isManager;
+    loading.style.display = 'none';
+    employeeView.style.display = 'block';
+
+    if (isManager) {
+      tabManager.style.display = 'block';
+      tabInfo.style.display = 'block';
+    }
+
+    // Отображаем данные сотрудника
+    if (!employeeData.error) {
+      document.getElementById('name').textContent = employeeData.name || '—';
+      document.getElementById('date').textContent = employeeData.date || '—';
+      document.getElementById('worked').textContent = employeeData.worked || '—';
+      document.getElementById('planned').textContent = employeeData.planned || '—';
+      document.getElementById('efficiency').textContent = employeeData.efficiency || '—';
+      document.getElementById('pay-day').textContent = employeeData.payDay || '—';
+      document.getElementById('pay-month').textContent = employeeData.payMonth || '—';
+
+      const detailsText = Array.isArray(employeeData.details)
+        ? employeeData.details.map(item => {
+            const work = item.work || '—';
+            const count = item.count || 0;
+            const time = item.time || '00:00:00';
+            const pay = item.pay || '0,00 ₽';
+            return `${work} (${count}): ${time}, ${pay}`;
+          }).join('\n')
+        : 'Нет данных';
+
+      document.getElementById('details').textContent = detailsText;
+
+      if (employeeData.availableDates) {
+        renderCalendar(employeeData.availableDates);
+      }
+
+      if (employeeData.efficiencyData?.length) {
+        createEfficiencyChart(employeeData.efficiencyData);
+      }
+
+      if (employeeData.earningsData?.length) {
+        createEarningsChart(employeeData.earningsData);
+      }
+    }
+
+    // Загружаем календарь отдела, если пользователь — руководитель
+    if (isManager) {
+      loadDepartmentCalendar();
+    }
+  })
+  .catch(err => {
+    console.error('Ошибка загрузки данных:', err);
+    showError('Ошибка загрузки данных: ' + err.message);
+  });
+}
+
+//======================================
     function enableTestMode() {
       const urlParams = new URLSearchParams(window.location.search);
       const testChatId = urlParams.get('test');
