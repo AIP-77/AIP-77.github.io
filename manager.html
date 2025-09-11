@@ -304,33 +304,23 @@
         if (Array.isArray(availableDates) && availableDates.includes(dateStr)) {
           el.classList.add('available');
           el.title = 'Есть данные';
+          //======================================================
           /*el.addEventListener('click', () => {
             loadEmployeeReport(chatId, dateStr);
           });*/
+          //========================================================
          el.addEventListener('click', () => {
-  // Получаем название месяца и год из заголовка (например, "Сентябрь 2025")
-  const [monthName, year] = month.split(' ');
-  // Преобразуем название месяца в его номер (например, "Сентябрь" → 9)
+  const [monthName, year] = targetMonth.split(' ');
   const monthsList = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
   ];
   const monthNum = monthsList.indexOf(monthName) + 1;
-  // Формируем дату в формате dd.MM.yyyy
   const dateStr = `${d.date.toString().padStart(2, '0')}.${monthNum.toString().padStart(2, '0')}.${year}`;
-  // Загружаем данные за выбранную дату
   loadManagerDashboard(chatId, dateStr);
 });
 
- 
-        } else {
-          el.style.color = '#ccc';
-        }
-
-        calendar.appendChild(el);
-      }
-    }
-
+//=============================================
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       efficiencyChart = new Chart(ctx, {
@@ -581,6 +571,7 @@ document.getElementById('details').textContent = detailsText;
       showError('Ошибка загрузки данных команды: ' + err.message);
     });
 }*/
+//=========================================================          
  function loadManagerDashboard(chatId, date = null) {
   const url = date
     ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
@@ -605,8 +596,7 @@ document.getElementById('details').textContent = detailsText;
       showError('Ошибка загрузки данных команды: ' + err.message);
     });
 }
-
-   
+  
 //======================================================================
    /*function renderManagerDashboard(data) {
       departmentsContainer.innerHTML = '';
@@ -648,6 +638,7 @@ document.getElementById('details').textContent = detailsText;
         departmentsContainer.appendChild(card);
       });
     }*/
+    //==========================================      
     function renderManagerDashboard(data) {
   departmentsContainer.innerHTML = '';
   if (!data.departments || !Array.isArray(data.departments)) {
@@ -667,7 +658,6 @@ document.getElementById('details').textContent = detailsText;
       return;
     }
 
-    // Если данные есть — рендерим таблицу
     const avgEfficiency = dept.avgEfficiency || "0%";
     const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
 
@@ -710,7 +700,6 @@ document.getElementById('details').textContent = detailsText;
     departmentsContainer.appendChild(card);
   });
 }
-
 
 //===========================================================
     function loadInfoTab() {
