@@ -304,9 +304,25 @@
         if (Array.isArray(availableDates) && availableDates.includes(dateStr)) {
           el.classList.add('available');
           el.title = 'Есть данные';
-          el.addEventListener('click', () => {
+          /*el.addEventListener('click', () => {
             loadEmployeeReport(chatId, dateStr);
-          });
+          });*/
+         el.addEventListener('click', () => {
+  // Получаем название месяца и год из заголовка (например, "Сентябрь 2025")
+  const [monthName, year] = month.split(' ');
+  // Преобразуем название месяца в его номер (например, "Сентябрь" → 9)
+  const monthsList = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ];
+  const monthNum = monthsList.indexOf(monthName) + 1;
+  // Формируем дату в формате dd.MM.yyyy
+  const dateStr = `${d.date.toString().padStart(2, '0')}.${monthNum.toString().padStart(2, '0')}.${year}`;
+  // Загружаем данные за выбранную дату
+  loadManagerDashboard(chatId, dateStr);
+});
+
+ 
         } else {
           el.style.color = '#ccc';
         }
@@ -535,7 +551,7 @@ document.getElementById('details').textContent = detailsText;
       });
     }
 //===================================================================
-    function loadManagerDashboard(chatId, date = null) {
+  /*  function loadManagerDashboard(chatId, date = null) {
   console.log("🚀 Запрос данных:", { chatId, date }); // ✅ Логируем
 
   const url = date
@@ -564,9 +580,35 @@ document.getElementById('details').textContent = detailsText;
       console.error("❌ Ошибка загрузки:", err); // ✅ Видим причину
       showError('Ошибка загрузки данных команды: ' + err.message);
     });
+}*/
+ function loadManagerDashboard(chatId, date = null) {
+  const url = date
+    ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
+    : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
+
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(data => {
+      if (data.error) {
+        showError(data.error);
+        return;
+      }
+      document.getElementById('manager-date').textContent = date || data.date;
+      cachedManagerData = data;
+      cachedManagerDate = date || data.date;
+      renderManagerDashboard(data);
+    })
+    .catch(err => {
+      showError('Ошибка загрузки данных команды: ' + err.message);
+    });
 }
+
+   
 //======================================================================
-    function renderManagerDashboard(data) {
+   /*function renderManagerDashboard(data) {
       departmentsContainer.innerHTML = '';
       if (!data.departments || !Array.isArray(data.departments)) {
         showError("Неверный формат данных");
@@ -605,8 +647,72 @@ document.getElementById('details').textContent = detailsText;
         `;
         departmentsContainer.appendChild(card);
       });
+    }*/
+    function renderManagerDashboard(data) {
+  departmentsContainer.innerHTML = '';
+  if (!data.departments || !Array.isArray(data.departments)) {
+    showError("Неверный формат данных");
+    return;
+  }
+
+  data.departments.forEach(dept => {
+    if (!dept.employees || dept.employees.length === 0) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <h3>📋 ${dept.name}</h3>
+        <p>Нет данных за выбранную дату.</p>
+      `;
+      departmentsContainer.appendChild(card);
+      return;
     }
 
+    // Если данные есть — рендерим таблицу
+    const avgEfficiency = dept.avgEfficiency || "0%";
+    const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <h3>📋 ${dept.name}</h3>
+      <p><b>Сотрудников:</b> ${dept.employees.length}</p>
+      <p><b>Средняя эффективность:</b> <span style="color: ${numericEfficiency > 80 ? 'green' : 'orange'};">${avgEfficiency}</span></p>
+      <p><b>Общий заработок:</b> ${dept.totalPay || "р. 0,00"}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Сотрудник</th>
+            <th>Статус</th>
+            <th>Отработано</th>
+            <th>Эффективность</th>
+            <th>Заработок</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${dept.employees.map(emp => {
+            const worked = emp.worked || "00:00";
+            const efficiency = emp.efficiency || "0%";
+            const pay = emp.pay || "р. 0,00";
+            const status = emp.status || "отсутствует";
+            return `
+              <tr>
+                <td>${emp.name}</td>
+                <td><span style="color: ${status === 'работает' ? 'green' : 'red'};">${status}</span></td>
+                <td>${worked}</td>
+                <td>${efficiency}</td>
+                <td>${pay}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    departmentsContainer.appendChild(card);
+  });
+}
+
+
+//===========================================================
     function loadInfoTab() {
       infoView.style.display = 'block';
       const list = document.getElementById('info-list');
