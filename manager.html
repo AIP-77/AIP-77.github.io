@@ -621,20 +621,24 @@
   managerLoading.style.display = 'block';
   departmentsContainer.innerHTML = '';
 
+  // Сбрасываем кэш перед загрузкой новых данных
+  cachedManagerData = null;
+  cachedManagerDate = null;
+
   const url = date
     ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}`
     : `${API_URL_MAIN}?chat_id=${chatId}&manager=true`;
 
-  console.log("Запрос на сервер:", url); // Логируем URL запроса
+  console.log("Запрос на сервер:", url);
 
   fetch(url)
     .then(r => {
-      console.log("Статус ответа:", r.status); // Логируем статус ответа
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
     })
     .then(data => {
-      console.log("Полученные данные:", data); // Логируем полученные данные
+      console.log("Полученные данные:", data);
+
       managerLoading.style.display = 'none';
 
       if (data.error) {
@@ -642,13 +646,16 @@
         return;
       }
 
+      // Обновляем дату и кэш
       document.getElementById('manager-date').textContent = date || data.date;
       cachedManagerData = data;
       cachedManagerDate = date || data.date;
+
+      // Рендерим данные
       renderManagerDashboard(data);
     })
     .catch(err => {
-      console.error("Ошибка при загрузке данных:", err); // Логируем ошибку
+      console.error("Ошибка при загрузке данных:", err);
       managerLoading.style.display = 'none';
       showError('Ошибка загрузки данных команды: ' + err.message);
     });
@@ -656,64 +663,69 @@
 
 //================================================
     function renderManagerDashboard(data) {
-      departmentsContainer.innerHTML = '';
-      if (!data.departments || !Array.isArray(data.departments)) {
-        showError("Неверный формат данных");
-        return;
-      }
-      data.departments.forEach(dept => {
-        if (!dept.employees || dept.employees.length === 0) {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <h3>📋 ${dept.name}</h3>
-            <p>Нет данных за выбранную дату.</p>
-          `;
-          departmentsContainer.appendChild(card);
-          return;
-        }
-        const avgEfficiency = dept.avgEfficiency || "0%";
-        const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <h3>📋 ${dept.name}</h3>
-          <p><b>Сотрудников:</b> ${dept.employees.length}</p>
-          <p><b>Средняя эффективность:</b> <span style="color: ${numericEfficiency > 80 ? 'green' : 'orange'};">${avgEfficiency}</span></p>
-          <p><b>Общий заработок:</b> ${dept.totalPay || "р. 0,00"}</p>
-          <table>
-            <thead>
-              <tr>
-                <th>Сотрудник</th>
-                <th>Статус</th>
-                <th>Отработано</th>
-                <th>Эффективность</th>
-                <th>Заработок</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${dept.employees.map(emp => {
-                const worked = emp.worked || "00:00";
-                const efficiency = emp.efficiency || "0%";
-                const pay = emp.pay || "р. 0,00";
-                const status = emp.status || "отсутствует";
-                return `
-                  <tr>
-                    <td>${emp.name}</td>
-                    <td><span style="color: ${status === 'работает' ? 'green' : 'red'};">${status}</span></td>
-                    <td>${worked}</td>
-                    <td>${efficiency}</td>
-                    <td>${pay}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        `;
-        departmentsContainer.appendChild(card);
-      });
+  departmentsContainer.innerHTML = '';
+
+  if (!data.departments || !Array.isArray(data.departments)) {
+    showError("Неверный формат данных");
+    return;
+  }
+
+  data.departments.forEach(dept => {
+    if (!dept.employees || dept.employees.length === 0) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <h3>📋 ${dept.name}</h3>
+        <p>Нет данных за выбранную дату.</p>
+      `;
+      departmentsContainer.appendChild(card);
+      return;
     }
 
+    const avgEfficiency = dept.avgEfficiency || "0%";
+    const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <h3>📋 ${dept.name}</h3>
+      <p><b>Сотрудников:</b> ${dept.employees.length}</p>
+      <p><b>Средняя эффективность:</b> <span style="color: ${numericEfficiency > 80 ? 'green' : 'orange'};">${avgEfficiency}</span></p>
+      <p><b>Общий заработок:</b> ${dept.totalPay || "р. 0,00"}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Сотрудник</th>
+            <th>Статус</th>
+            <th>Отработано</th>
+            <th>Эффективность</th>
+            <th>Заработок</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${dept.employees.map(emp => {
+            const worked = emp.worked || "00:00";
+            const efficiency = emp.efficiency || "0%";
+            const pay = emp.pay || "р. 0,00";
+            const status = emp.status || "отсутствует";
+            return `
+              <tr>
+                <td>${emp.name}</td>
+                <td><span style="color: ${status === 'работает' ? 'green' : 'red'};">${status}</span></td>
+                <td>${worked}</td>
+                <td>${efficiency}</td>
+                <td>${pay}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    departmentsContainer.appendChild(card);
+  });
+}
+
+//===============================================
     function loadInfoTab() {
       infoView.style.display = 'block';
       const list = document.getElementById('info-list');
