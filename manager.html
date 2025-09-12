@@ -246,31 +246,43 @@
       <!-- Кнопка для скачивания PDF -->
       <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
     </div>
+    //==================================================
     <!-- Вкладка с данными отдела для руководителей -->
-    <div id="manager-view" style="display: none;">
-      <!-- Карточка с календарём отдела -->
-      <div class="card">
-        <h2>📅 Календарь отдела</h2>
-        <div class="month-selector">
-          <button id="prevMonth">◀</button>
-          <span id="currentMonth">Загрузка...</span>
-          <button id="nextMonth">▶</button>
-        </div>
-        <div class="calendar" id="manager-calendar"></div>
-      </div>
-      <!-- Карточка с данными отдела -->
-      <div class="card">
-        <h2>👨‍💼 Управление отделом</h2>
-        <p><b>Дата:</b> <span id="manager-date"></span></p>
-        <!-- Индикатор загрузки для данных отдела -->
-        <div id="manager-loading" class="loading" style="display: none;">
-          <div class="spinner"></div>
-          <p>Загрузка данных за выбранную дату...</p>
-        </div>
-        <!-- Контейнер для данных отдела -->
-        <div id="departments-container"></div>
-      </div>
+  <div id="manager-view" style="display: none;">
+  <!-- Блок для выбора отдела -->
+  <div class="card">
+    <h2>🏢 Выбор отдела</h2>
+    <div id="departments-selector-loading" class="loading" style="display: none;">
+      <div class="spinner"></div>
+      <p>Загрузка списка отделов...</p>
     </div>
+    <select id="departments-selector" class="form-select" style="display: none;">
+      <option value="">Выберите отдел</option>
+    </select>
+  </div>
+  <!-- Блок с календарём отдела -->
+  <div class="card">
+    <h2>📅 Календарь отдела</h2>
+    <div class="month-selector">
+      <button id="prevMonth">◀</button>
+      <span id="currentMonth">Загрузка...</span>
+      <button id="nextMonth">▶</button>
+    </div>
+    <div class="calendar" id="manager-calendar"></div>
+  </div>
+  <!-- Блок с данными отдела -->
+  <div class="card">
+    <h2>👨‍💼 Управление отделом</h2>
+    <p><b>Дата:</b> <span id="manager-date"></span></p>
+    <div id="manager-loading" class="loading" style="display: none;">
+      <div class="spinner"></div>
+      <p>Загрузка данных за выбранную дату...</p>
+    </div>
+    <div id="departments-container"></div>
+  </div>
+</div>
+
+    // ===========================================
     <!-- Вкладка с информацией -->
     <div id="info-view" style="display: none;">
       <div class="card">
