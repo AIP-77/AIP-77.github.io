@@ -7,11 +7,43 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Стили остаются без изменений */
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f0f2f5; color: #1c1e21; min-height: 100vh; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f2f5;
+      color: #1c1e21;
+      min-height: 100vh;
+    }
     .container { max-width: 600px; margin: 0 auto; }
     .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    /* ... остальные стили без изменений ... */
+    h1, h2, h3 { margin: 0 0 8px 0; color: #1a8cd8; }
+    h4 { margin: 0 0 6px 0; color: #d81a8c; }
+    .label { font-weight: 600; color: #444; }
+    .value { color: #1a8cd8; }
+    pre { white-space: pre-wrap; word-wrap: break-word; background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 14px; margin: 8px 0; overflow-x: auto; }
+    .tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid #ddd; }
+    .tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: #666; }
+    .tab.active { color: #1a8cd8; border-bottom: 2px solid #1a8cd8; }
+    .calendar { display: grid; gap: 4px; margin: 10px 0; }
+    .day { text-align: center; padding: 6px 0; font-size: 12px; border-radius: 4px; color: #333; cursor: pointer; }
+    .day.available { background: #1a8cd8; color: white; font-weight: bold; }
+    .day:hover { background: #e0e0e0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f0f0f0; padding: 8px; text-align: left; font-weight: 600; font-size: 14px; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    .btn { background: #1a8cd8; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; width: 100%; margin-top: 10px; cursor: pointer; font-weight: 600; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .loading { text-align: center; padding: 20px; color: #666; font-size: 16px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top: 4px solid #1a8cd8; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .error { color: #e53935; text-align: center; padding: 20px; background: #ffebee; border-radius: 8px; margin: 16px 0; display: none; }
+    .footer { text-align: center; margin-top: 30px; color: #888; font-size: 13px; }
+    .info-list { list-style: none; padding: 0; }
+    .info-list li { padding: 8px 0; border-bottom: 1px solid #eee; }
+    .month-selector { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+    .month-selector button { background: #1a8cd8; color: white; border: none; padding: 8px 12px; border-radius: 6px; }
+    .month-selector span { font-weight: bold; }
     .form-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; margin-top: 10px; font-size: 16px; }
     .hidden { display: none !important; }
   </style>
@@ -19,7 +51,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.40+календари+отделы 🛠)</h4>
+    <h4>(🛠 V.42+календари+отделов 🛠)</h4>
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab hidden">Отдел</div>
@@ -37,11 +69,11 @@
     <div id="employee-view">
       <!-- Основные данные сотрудника -->
       <div class="card">
-        <div id="main-data-loading" class="loading" style="display: none;">
+        <div id="main-data-loading" class="loading">
           <div class="spinner"></div>
           <p>Загрузка основных данных...</p>
         </div>
-        <div id="main-data-content">
+        <div id="main-data-content" class="hidden">
           <h2>👷‍♂️ Персональный отчет</h2>
           <p><span class="label">Сотрудник:</span> <span id="name">—</span></p>
           <p><span class="label">Дата:</span> <span id="date">—</span></p>
@@ -55,11 +87,11 @@
 
       <!-- Детализация задач -->
       <div class="card">
-        <div id="details-loading" class="loading" style="display: none;">
+        <div id="details-loading" class="loading hidden">
           <div class="spinner"></div>
           <p>Загрузка детализации задач...</p>
         </div>
-        <div id="details-content">
+        <div id="details-content" class="hidden">
           <h2>📋 Детализация задач</h2>
           <pre id="details">Загрузка...</pre>
         </div>
@@ -67,11 +99,11 @@
 
       <!-- График производительности -->
       <div class="card">
-        <div id="efficiency-loading" class="loading" style="display: none;">
+        <div id="efficiency-loading" class="loading hidden">
           <div class="spinner"></div>
           <p>Загрузка данных производительности...</p>
         </div>
-        <div id="efficiency-content">
+        <div id="efficiency-content" class="hidden">
           <h3>📈 Производительность за последние 7 дней</h3>
           <canvas id="efficiencyChart"></canvas>
         </div>
@@ -79,11 +111,11 @@
 
       <!-- График заработка -->
       <div class="card">
-        <div id="earnings-loading" class="loading" style="display: none;">
+        <div id="earnings-loading" class="loading hidden">
           <div class="spinner"></div>
           <p>Загрузка данных о заработке...</p>
         </div>
-        <div id="earnings-content">
+        <div id="earnings-content" class="hidden">
           <h3>💰 Заработок за последние 7 дней</h3>
           <canvas id="earningsChart"></canvas>
         </div>
@@ -91,11 +123,11 @@
 
       <!-- Календарь посещаемости -->
       <div class="card">
-        <div id="calendar-loading" class="loading" style="display: none;">
+        <div id="calendar-loading" class="loading hidden">
           <div class="spinner"></div>
           <p>Загрузка календаря посещаемости...</p>
         </div>
-        <div id="calendar-content">
+        <div id="calendar-content" class="hidden">
           <h2>📅 Календарь посещаемости</h2>
           <div class="calendar" id="calendar"></div>
         </div>
@@ -172,6 +204,7 @@
     let availableMonths = [];
     let currentMonthIndex = 0;
     let currentDepartment = null;
+    let isLoading = false;
 
     // Ссылки на DOM-элементы
     const loading = document.getElementById('loading');
@@ -212,6 +245,19 @@
       loading.classList.add('hidden');
       error.textContent = msg;
       error.classList.remove('hidden');
+      isLoading = false;
+    }
+
+    /**
+     * Функция для выполнения запроса с таймаутом
+     */
+    function fetchWithTimeout(url, options = {}, timeout = 15000) {
+      return Promise.race([
+        fetch(url, options),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Таймаут запроса')), timeout)
+        )
+      ]);
     }
 
     /**
@@ -229,7 +275,7 @@
     /**
      * Функция инициализации приложения в Telegram
      */
-    function initTelegram() {
+    async function initTelegram() {
       if (!window.Telegram || !Telegram.WebApp) {
         enableTestMode();
         return;
@@ -247,173 +293,217 @@
       chatId = user.id.toString();
       console.log('chat_id:', chatId);
 
-      // Поэтапная загрузка данных
-      loadMainData()
-        .then(() => loadDetails())
-        .then(() => loadRole())
-        .then(() => {
-          if (isManager) {
-            tabManager.classList.remove('hidden');
-            tabInfo.classList.remove('hidden');
-          }
-          loading.classList.add('hidden');
-        })
-        .catch(err => {
-          console.error('Ошибка инициализации:', err);
-          showError('Ошибка инициализации: ' + err.message);
-        });
+      try {
+        // Загружаем основные данные
+        await loadMainData();
+
+        // Загружаем детализацию задач
+        await loadDetails();
+
+        // Загружаем роль пользователя
+        await loadRole();
+
+        // Если пользователь - руководитель, показываем вкладку "Отдел"
+        if (isManager) {
+          tabManager.classList.remove('hidden');
+          tabInfo.classList.remove('hidden');
+        }
+
+        // Загружаем данные для графиков и календаря параллельно
+        await Promise.allSettled([
+          loadEfficiencyData().catch(e => console.error('Ошибка загрузки данных производительности:', e)),
+          loadEarningsData().catch(e => console.error('Ошибка загрузки данных о заработке:', e)),
+          loadCalendarData().catch(e => console.error('Ошибка загрузки календаря:', e))
+        ]);
+
+        loading.classList.add('hidden');
+      } catch (err) {
+        console.error('Ошибка инициализации:', err);
+        showError('Ошибка инициализации: ' + err.message);
+      }
     }
 
     /**
      * Загрузка основных данных сотрудника
      */
-    function loadMainData() {
-      mainDataLoading.classList.remove('hidden');
-      mainDataContent.classList.add('hidden');
+    async function loadMainData() {
+      if (isLoading) return;
+      isLoading = true;
 
-      return fetch(`${API_URL_MAIN}?chat_id=${chatId}&main_data=true`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        mainDataLoading.classList.remove('hidden');
+        mainDataContent.classList.add('hidden');
 
-          document.getElementById('name').textContent = data.name || '—';
-          document.getElementById('date').textContent = data.date || '—';
-          document.getElementById('worked').textContent = data.worked || '—';
-          document.getElementById('planned').textContent = data.planned || '—';
-          document.getElementById('efficiency').textContent = data.efficiency || '—';
-          document.getElementById('pay-day').textContent = data.payDay || '—';
-          document.getElementById('pay-month').textContent = data.payMonth || '—';
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&main_data=true`);
+        const data = await response.json();
 
-          mainDataLoading.classList.add('hidden');
-          mainDataContent.classList.remove('hidden');
-        });
+        if (data.error) throw new Error(data.error);
+
+        document.getElementById('name').textContent = data.name || '—';
+        document.getElementById('date').textContent = data.date || '—';
+        document.getElementById('worked').textContent = data.worked || '—';
+        document.getElementById('planned').textContent = data.planned || '—';
+        document.getElementById('efficiency').textContent = data.efficiency || '—';
+        document.getElementById('pay-day').textContent = data.payDay || '—';
+        document.getElementById('pay-month').textContent = data.payMonth || '—';
+
+        mainDataLoading.classList.add('hidden');
+        mainDataContent.classList.remove('hidden');
+      } catch (err) {
+        console.error('Ошибка загрузки основных данных:', err);
+        mainDataLoading.innerHTML = '<p style="color: red;">Ошибка загрузки основных данных</p>';
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
      * Загрузка детализации задач
      */
-    function loadDetails() {
-      detailsLoading.classList.remove('hidden');
-      detailsContent.classList.add('hidden');
+    async function loadDetails() {
+      if (isLoading) return;
+      isLoading = true;
 
-      return fetch(`${API_URL_MAIN}?chat_id=${chatId}&details=true`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        detailsLoading.classList.remove('hidden');
+        detailsContent.classList.add('hidden');
 
-          const detailsText = Array.isArray(data.details)
-            ? data.details.map(item => {
-                const work = item.work || '—';
-                const count = item.count || 0;
-                const time = item.time || '00:00:00';
-                const pay = item.pay || '0,00 ₽';
-                return `${work} (${count}): ${time}, ${pay}`;
-              }).join('\n')
-            : 'Нет данных';
-          document.getElementById('details').textContent = detailsText;
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&details=true`);
+        const data = await response.json();
 
-          detailsLoading.classList.add('hidden');
-          detailsContent.classList.remove('hidden');
-        });
+        if (data.error) throw new Error(data.error);
+
+        const detailsText = Array.isArray(data.details)
+          ? data.details.map(item => {
+              const work = item.work || '—';
+              const count = item.count || 0;
+              const time = item.time || '00:00:00';
+              const pay = item.pay || '0,00 ₽';
+              return `${work} (${count}): ${time}, ${pay}`;
+            }).join('\n')
+          : 'Нет данных';
+        document.getElementById('details').textContent = detailsText;
+
+        detailsLoading.classList.add('hidden');
+        detailsContent.classList.remove('hidden');
+      } catch (err) {
+        console.error('Ошибка загрузки детализации задач:', err);
+        detailsLoading.innerHTML = '<p style="color: red;">Ошибка загрузки детализации задач</p>';
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
      * Загрузка роли пользователя
      */
-    function loadRole() {
-      return fetch(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+    async function loadRole() {
+      if (isLoading) return;
+      isLoading = true;
 
-          isManager = data.isManager;
-          return Promise.all([
-            loadEfficiencyData(),
-            loadEarningsData(),
-            loadCalendarData()
-          ]);
-        });
+      try {
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&role_only=true`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        isManager = data.isManager;
+      } catch (err) {
+        console.error('Ошибка загрузки роли:', err);
+        showError('Ошибка загрузки роли пользователя');
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
      * Загрузка данных производительности
      */
-    function loadEfficiencyData() {
-      efficiencyLoading.classList.remove('hidden');
-      efficiencyContent.classList.add('hidden');
+    async function loadEfficiencyData() {
+      if (isLoading) return;
+      isLoading = true;
 
-      return fetch(`${API_URL_MAIN}?chat_id=${chatId}&efficiency_data=true`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        efficiencyLoading.classList.remove('hidden');
+        efficiencyContent.classList.add('hidden');
 
-          if (data.efficiencyData?.length) {
-            createEfficiencyChart(data.efficiencyData);
-          }
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&efficiency_data=true`);
+        const data = await response.json();
 
-          efficiencyLoading.classList.add('hidden');
-          efficiencyContent.classList.remove('hidden');
-        });
+        if (data.error) throw new Error(data.error);
+
+        if (data.efficiencyData?.length) {
+          createEfficiencyChart(data.efficiencyData);
+        }
+
+        efficiencyLoading.classList.add('hidden');
+        efficiencyContent.classList.remove('hidden');
+      } catch (err) {
+        console.error('Ошибка загрузки данных производительности:', err);
+        efficiencyLoading.innerHTML = '<p style="color: red;">Ошибка загрузки данных производительности</p>';
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
      * Загрузка данных о заработке
      */
-    function loadEarningsData() {
-      earningsLoading.classList.remove('hidden');
-      earningsContent.classList.add('hidden');
+    async function loadEarningsData() {
+      if (isLoading) return;
+      isLoading = true;
 
-      return fetch(`${API_URL_MAIN}?chat_id=${chatId}&earnings_data=true`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        earningsLoading.classList.remove('hidden');
+        earningsContent.classList.add('hidden');
 
-          if (data.earningsData?.length) {
-            createEarningsChart(data.earningsData);
-          }
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&earnings_data=true`);
+        const data = await response.json();
 
-          earningsLoading.classList.add('hidden');
-          earningsContent.classList.remove('hidden');
-        });
+        if (data.error) throw new Error(data.error);
+
+        if (data.earningsData?.length) {
+          createEarningsChart(data.earningsData);
+        }
+
+        earningsLoading.classList.add('hidden');
+        earningsContent.classList.remove('hidden');
+      } catch (err) {
+        console.error('Ошибка загрузки данных о заработке:', err);
+        earningsLoading.innerHTML = '<p style="color: red;">Ошибка загрузки данных о заработке</p>';
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
      * Загрузка данных календаря посещаемости
      */
-    function loadCalendarData() {
-      calendarLoading.classList.remove('hidden');
-      calendarContent.classList.add('hidden');
+    async function loadCalendarData() {
+      if (isLoading) return;
+      isLoading = true;
 
-      return fetch(`${API_URL_MAIN}?chat_id=${chatId}&get_dates=true`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        calendarLoading.classList.remove('hidden');
+        calendarContent.classList.add('hidden');
 
-          if (data.availableDates && Array.isArray(data.availableDates)) {
-            renderCalendar(data.availableDates);
-          }
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&get_dates=true`);
+        const data = await response.json();
 
-          calendarLoading.classList.add('hidden');
-          calendarContent.classList.remove('hidden');
-        });
+        if (data.error) throw new Error(data.error);
+
+        if (data.availableDates && Array.isArray(data.availableDates)) {
+          renderCalendar(data.availableDates);
+        }
+
+        calendarLoading.classList.add('hidden');
+        calendarContent.classList.remove('hidden');
+      } catch (err) {
+        console.error('Ошибка загрузки календаря:', err);
+        calendarLoading.innerHTML = '<p style="color: red;">Ошибка загрузки календаря посещаемости</p>';
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
@@ -567,183 +657,167 @@
     /**
      * Функция для загрузки отчёта сотрудника за выбранную дату
      */
-    function loadEmployeeReport(chatId, date) {
-      // Показываем спиннер для всего блока "Мой отчёт"
-      employeeView.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка данных за выбранную дату...</p></div>';
+    async function loadEmployeeReport(chatId, date) {
+      if (isLoading) return;
+      isLoading = true;
 
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        // Сохраняем текущее содержимое
+        const originalContent = employeeView.innerHTML;
 
-          // Восстанавливаем оригинальное содержимое
-          employeeView.innerHTML = `
-            <div class="card">
-              <div id="main-data-loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Загрузка основных данных...</p>
-              </div>
-              <div id="main-data-content">
-                <p><span class="label">Сотрудник:</span> <span id="name">—</span></p>
-                <p><span class="label">Дата:</span> <span id="date">—</span></p>
-                <p><span class="label">Отработано:</span> <span id="worked">—</span></p>
-                <p><span class="label">Рабочее время:</span> <span id="planned">—</span></p>
-                <p><span class="label">Производительность:</span> <span id="efficiency">—</span></p>
-                <p><span class="label">Заработано за день:</span> <span id="pay-day">—</span></p>
-                <p><span class="label">Заработано за месяц:</span> <span id="pay-month">—</span></p>
-              </div>
-            </div>
-            <div class="card">
-              <div id="details-loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Загрузка детализации задач...</p>
-              </div>
-              <div id="details-content">
-                <h2>📋 Детализация задач</h2>
-                <pre id="details">Загрузка...</pre>
-              </div>
-            </div>
-            <div class="card">
-              <div id="efficiency-loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Загрузка данных производительности...</p>
-              </div>
-              <div id="efficiency-content">
-                <h3>📈 Производительность за последние 7 дней</h3>
-                <canvas id="efficiencyChart"></canvas>
-              </div>
-            </div>
-            <div class="card">
-              <div id="earnings-loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Загрузка данных о заработке...</p>
-              </div>
-              <div id="earnings-content">
-                <h3>💰 Заработок за последние 7 дней</h3>
-                <canvas id="earningsChart"></canvas>
-              </div>
-            </div>
-            <div class="card">
-              <div id="calendar-loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Загрузка календаря посещаемости...</p>
-              </div>
-              <div id="calendar-content">
-                <h2>📅 Календарь посещаемости</h2>
-                <div class="calendar" id="calendar"></div>
-              </div>
-            </div>
-            <button class="btn" onclick="downloadPDF()" disabled>Скачать PDF</button>
-          `;
+        // Показываем спиннер
+        employeeView.innerHTML = '<div class="loading"><div class="spinner"></div><p>Загрузка данных за выбранную дату...</p></div>';
 
-          // Обновляем данные
-          renderEmployeeData(data);
-        })
-        .catch(err => {
-          showError('Ошибка загрузки данных: ' + err.message);
-          // Восстанавливаем оригинальное содержимое
-          location.reload();
-        });
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&date=${date}`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        // Восстанавливаем оригинальное содержимое
+        employeeView.innerHTML = originalContent;
+
+        // Обновляем данные
+        document.getElementById('name').textContent = data.mainData.name || '—';
+        document.getElementById('date').textContent = data.mainData.date || '—';
+        document.getElementById('worked').textContent = data.mainData.worked || '—';
+        document.getElementById('planned').textContent = data.mainData.planned || '—';
+        document.getElementById('efficiency').textContent = data.mainData.efficiency || '—';
+        document.getElementById('pay-day').textContent = data.mainData.payDay || '—';
+        document.getElementById('pay-month').textContent = data.mainData.payMonth || '—';
+
+        // Детализация задач
+        const detailsText = Array.isArray(data.details)
+          ? data.details.map(item => {
+              const work = item.work || '—';
+              const count = item.count || 0;
+              const time = item.time || '00:00:00';
+              const pay = item.pay || '0,00 ₽';
+              return `${work} (${count}): ${time}, ${pay}`;
+            }).join('\n')
+          : 'Нет данных';
+        document.getElementById('details').textContent = detailsText;
+
+        // Графики
+        if (data.efficiencyData?.length) {
+          createEfficiencyChart(data.efficiencyData);
+        }
+        if (data.earningsData?.length) {
+          createEarningsChart(data.earningsData);
+        }
+
+        // Календарь
+        if (data.availableDates) {
+          renderCalendar(data.availableDates);
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+        showError('Ошибка загрузки данных: ' + err.message);
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
      * Функция для загрузки списка отделов
      */
-    function loadDepartmentsList() {
-      departmentsSelectorLoading.classList.remove('hidden');
-      departmentsSelectorContent.classList.add('hidden');
+    async function loadDepartmentsList() {
+      if (isLoading) return;
+      isLoading = true;
 
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&managed_departments=true`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        departmentsSelectorLoading.classList.remove('hidden');
+        departmentsSelectorContent.classList.add('hidden');
 
-          if (!data.departments || !Array.isArray(data.departments) || data.departments.length === 0) {
-            departmentsSelectorLoading.innerHTML = '<p>Нет доступных отделов для управления.</p>';
-            return;
-          }
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&managed_departments=true`);
+        const data = await response.json();
 
-          departmentsSelector.innerHTML = '<option value="">Выберите отдел</option>';
-          data.departments.forEach(department => {
-            const option = document.createElement('option');
-            option.value = department;
-            option.textContent = department;
-            departmentsSelector.appendChild(option);
-          });
+        if (data.error) throw new Error(data.error);
 
-          departmentsSelectorLoading.classList.add('hidden');
-          departmentsSelectorContent.classList.remove('hidden');
-        })
-        .catch(err => {
-          console.error("Ошибка загрузки списка отделов:", err);
-          departmentsSelectorLoading.innerHTML = `<p style="color: red;">Ошибка загрузки списка отделов: ${err.message}</p>`;
+        if (!data.departments || !Array.isArray(data.departments) || data.departments.length === 0) {
+          departmentsSelectorLoading.innerHTML = '<p>Нет доступных отделов для управления.</p>';
+          return;
+        }
+
+        departmentsSelector.innerHTML = '<option value="">Выберите отдел</option>';
+        data.departments.forEach(department => {
+          const option = document.createElement('option');
+          option.value = department;
+          option.textContent = department;
+          departmentsSelector.appendChild(option);
         });
+
+        departmentsSelectorLoading.classList.add('hidden');
+        departmentsSelectorContent.classList.remove('hidden');
+      } catch (err) {
+        console.error("Ошибка загрузки списка отделов:", err);
+        departmentsSelectorLoading.innerHTML = `<p style="color: red;">Ошибка загрузки списка отделов: ${err.message}</p>`;
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
      * Функция для загрузки календаря выбранного отдела
      */
-    function loadDepartmentCalendar(department) {
-      currentDepartment = department;
-      departmentCalendarLoading.classList.remove('hidden');
-      departmentCalendarContent.classList.add('hidden');
+    async function loadDepartmentCalendar(department) {
+      if (isLoading) return;
+      isLoading = true;
 
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true&department=${encodeURIComponent(department)}`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        currentDepartment = department;
+        departmentCalendarLoading.classList.remove('hidden');
+        departmentCalendarContent.classList.add('hidden');
 
-          availableMonths = data.months || [];
-          if (availableMonths.length === 0) {
-            departmentCalendarLoading.innerHTML = '<p style="text-align: center;">Нет данных</p>';
-            return;
-          }
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true&department=${encodeURIComponent(department)}`);
+        const data = await response.json();
 
-          currentMonthIndex = availableMonths.length - 1;
-          document.getElementById('currentMonth').textContent = availableMonths[currentMonthIndex];
-          document.getElementById('prevMonth').disabled = currentMonthIndex === 0;
-          document.getElementById('nextMonth').disabled = currentMonthIndex === availableMonths.length - 1;
+        if (data.error) throw new Error(data.error);
 
-          loadDepartmentCalendarGrid(availableMonths[currentMonthIndex], department);
-        })
-        .catch(err => {
-          console.error("Ошибка загрузки календаря отдела:", err);
-          departmentCalendarLoading.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
-        });
+        availableMonths = data.months || [];
+        if (availableMonths.length === 0) {
+          departmentCalendarLoading.innerHTML = '<p style="text-align: center;">Нет данных</p>';
+          return;
+        }
+
+        currentMonthIndex = availableMonths.length - 1;
+        document.getElementById('currentMonth').textContent = availableMonths[currentMonthIndex];
+        document.getElementById('prevMonth').disabled = currentMonthIndex === 0;
+        document.getElementById('nextMonth').disabled = currentMonthIndex === availableMonths.length - 1;
+
+        await loadDepartmentCalendarGrid(availableMonths[currentMonthIndex], department);
+      } catch (err) {
+        console.error("Ошибка загрузки календаря отдела:", err);
+        departmentCalendarLoading.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
      * Функция для загрузки сетки календаря отдела
      */
-    function loadDepartmentCalendarGrid(month, department) {
-      departmentCalendarLoading.classList.remove('hidden');
-      departmentCalendarContent.classList.add('hidden');
+    async function loadDepartmentCalendarGrid(month, department) {
+      if (isLoading) return;
+      isLoading = true;
 
-      fetch(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true&month=${encodeURIComponent(month)}&department=${encodeURIComponent(department)}`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+      try {
+        departmentCalendarLoading.classList.remove('hidden');
+        departmentCalendarContent.classList.add('hidden');
 
-          renderDepartmentCalendarGrid(data.days, month, department);
-          departmentCalendarLoading.classList.add('hidden');
-          departmentCalendarContent.classList.remove('hidden');
-        })
-        .catch(err => {
-          console.error("Ошибка загрузки сетки календаря:", err);
-          departmentCalendarLoading.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
-        });
+        const response = await fetchWithTimeout(`${API_URL_MAIN}?chat_id=${chatId}&department_calendar=true&month=${encodeURIComponent(month)}&department=${encodeURIComponent(department)}`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        renderDepartmentCalendarGrid(data.days, month, department);
+        departmentCalendarLoading.classList.add('hidden');
+        departmentCalendarContent.classList.remove('hidden');
+      } catch (err) {
+        console.error("Ошибка загрузки сетки календаря:", err);
+        departmentCalendarLoading.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
@@ -806,29 +880,31 @@
     /**
      * Функция для загрузки данных отдела за выбранную дату
      */
-    function loadManagerDashboard(chatId, date = null, department = null) {
-      managerDataLoading.classList.remove('hidden');
-      managerDataContent.classList.add('hidden');
+    async function loadManagerDashboard(chatId, date = null, department = null) {
+      if (isLoading) return;
+      isLoading = true;
 
-      const url = date
-        ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}&department=${encodeURIComponent(department)}`
-        : `${API_URL_MAIN}?chat_id=${chatId}&manager=true&department=${encodeURIComponent(department)}`;
+      try {
+        managerDataLoading.classList.remove('hidden');
+        managerDataContent.classList.add('hidden');
 
-      fetch(url)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (data.error) throw new Error(data.error);
+        const url = date
+          ? `${API_URL_MAIN}?chat_id=${chatId}&manager=true&date=${date}&department=${encodeURIComponent(department)}`
+          : `${API_URL_MAIN}?chat_id=${chatId}&manager=true&department=${encodeURIComponent(department)}`;
 
-          document.getElementById('manager-date').textContent = date || data.date;
-          renderManagerData(data);
-        })
-        .catch(err => {
-          console.error("Ошибка при загрузке данных отдела:", err);
-          managerDataLoading.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
-        });
+        const response = await fetchWithTimeout(url);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        document.getElementById('manager-date').textContent = date || data.date;
+        renderManagerData(data);
+      } catch (err) {
+        console.error("Ошибка при загрузке данных отдела:", err);
+        managerDataLoading.innerHTML = `<p style="color: red; text-align: center;">Ошибка: ${err.message}</p>`;
+      } finally {
+        isLoading = false;
+      }
     }
 
     /**
@@ -938,15 +1014,13 @@
     departmentsSelector.addEventListener('change', (event) => {
       const selectedDepartment = event.target.value;
       if (selectedDepartment) {
-        departmentCalendarLoading.classList.remove('hidden');
-        departmentCalendarContent.classList.add('hidden');
         loadDepartmentCalendar(selectedDepartment);
       }
     });
 
     // Обработчики событий для навигации по месяцам
     document.getElementById('prevMonth').addEventListener('click', () => {
-      if (currentMonthIndex > 0) {
+      if (currentMonthIndex > 0 && !isLoading) {
         currentMonthIndex--;
         document.getElementById('currentMonth').textContent = availableMonths[currentMonthIndex];
         document.getElementById('prevMonth').disabled = currentMonthIndex === 0;
@@ -956,7 +1030,7 @@
     });
 
     document.getElementById('nextMonth').addEventListener('click', () => {
-      if (currentMonthIndex < availableMonths.length - 1) {
+      if (currentMonthIndex < availableMonths.length - 1 && !isLoading) {
         currentMonthIndex++;
         document.getElementById('currentMonth').textContent = availableMonths[currentMonthIndex];
         document.getElementById('prevMonth').disabled = currentMonthIndex === 0;
