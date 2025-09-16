@@ -4,9 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
+  <!-- Подключение Telegram WebApp API -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Подключение Chart.js для графиков -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    /* Основные стили страницы */
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
@@ -16,46 +19,151 @@
       min-height: 100vh;
     }
     .container { max-width: 600px; margin: 0 auto; }
-    .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    h1, h2, h3 { margin: 0 0 8px 0; color: #1a8cd8; }
-    .tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid #ddd; }
-    .tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: #666; }
-    .tab.active { color: #1a8cd8; border-bottom: 2px solid #1a8cd8; }
-    .loading { text-align: center; padding: 20px; color: #666; font-size: 16px; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top: 4px solid #1a8cd8; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .error { color: #e53935; text-align: center; padding: 20px; background: #ffebee; border-radius: 8px; margin: 16px 0; }
-    .hidden { display: none !important; }
-    .form-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; margin-top: 10px; font-size: 16px; }
-    .calendar { display: grid; gap: 4px; margin: 10px 0; grid-template-columns: repeat(7, 1fr); }
-    .day { text-align: center; padding: 6px 0; font-size: 12px; border-radius: 4px; color: #333; cursor: pointer; }
-    .day.available { background: #1a8cd8; color: white; font-weight: bold; }
-    .day:hover { background: #e0e0e0; }
-    .footer { text-align: center; margin-top: 30px; color: #888; font-size: 13px; }
-    .month-selector { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
-    .month-selector button { background: #1a8cd8; color: white; border: none; padding: 8px 12px; border-radius: 6px; }
-    .month-selector span { font-weight: bold; }
+
+    /* Стили карточек с данными */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Заголовки */
+    h1, h2, h3 {
+      margin: 0 0 8px 0;
+      color: #1a8cd8;
+    }
+
+    /* Вкладки навигации */
+    .tabs {
+      display: flex;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #666;
+    }
+    .tab.active {
+      color: #1a8cd8;
+      border-bottom: 2px solid #1a8cd8;
+    }
+
+    /* Индикатор загрузки */
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 16px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e0e0e0;
+      border-top: 4px solid #1a8cd8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Сообщение об ошибке */
+    .error {
+      color: #e53935;
+      text-align: center;
+      padding: 20px;
+      background: #ffebee;
+      border-radius: 8px;
+      margin: 16px 0;
+    }
+
+    /* Скрытие элементов */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Выбор месяца */
+    .month-selector {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .month-selector button {
+      background: #1a8cd8;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+    .month-selector span {
+      font-weight: bold;
+    }
+
+    /* Календарь */
+    .calendar {
+      display: grid;
+      gap: 4px;
+      margin: 10px 0;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .day {
+      text-align: center;
+      padding: 6px 0;
+      font-size: 12px;
+      border-radius: 4px;
+      color: #333;
+      cursor: pointer;
+    }
+    .day.available {
+      background: #1a8cd8;
+      color: white;
+      font-weight: bold;
+    }
+    .day:hover {
+      background: #e0e0e0;
+    }
+
+    /* Подвал */
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #888;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
+  <!-- Основной контейнер -->
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.5.1+календари 🛠)</h4>
+    <h4>(🛠 V.5.3+полная_стабильность 🛠)</h4>
 
+    <!-- Вкладки: Мой отчёт / Отдел / Нормативы -->
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab hidden">Отдел</div>
       <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
     </div>
 
+    <!-- Общий спиннер загрузки -->
     <div id="loading" class="loading">
       <div class="spinner"></div>
       <p>Загрузка данных...</p>
     </div>
+    <!-- Блок ошибки -->
     <div id="error" class="error hidden"></div>
 
-    <!-- Вкладка "Мой отчёт" -->
+    <!-- ВКЛАДКА: МОЙ ОТЧЁТ (5 блоков) -->
     <div id="employee-view" class="hidden">
+      
+      <!-- БЛОК 1: Персональный отчет -->
       <div class="card">
         <h2>👷‍♂️ Персональный отчет</h2>
         <div id="main-data-loading" class="loading">
@@ -73,6 +181,7 @@
         </div>
       </div>
 
+      <!-- БЛОК 2: Детализация задач -->
       <div class="card">
         <h2>📋 Детализация задач</h2>
         <div id="details-loading" class="loading">
@@ -84,6 +193,7 @@
         </div>
       </div>
 
+      <!-- БЛОК 3: График производительности -->
       <div class="card">
         <h3>📈 Производительность</h3>
         <div id="efficiency-loading" class="loading">
@@ -95,6 +205,7 @@
         </div>
       </div>
 
+      <!-- БЛОК 4: График заработка -->
       <div class="card">
         <h3>💰 Заработок</h3>
         <div id="earnings-loading" class="loading">
@@ -106,6 +217,7 @@
         </div>
       </div>
 
+      <!-- БЛОК 5: Календарь посещаемости -->
       <div class="card">
         <h2>📅 Календарь посещаемости</h2>
         <div id="calendar-loading" class="loading">
@@ -123,8 +235,9 @@
       </div>
     </div>
 
-    <!-- Вкладка "Отдел" -->
+    <!-- ВКЛАДКА: ОТДЕЛ (для руководителей) -->
     <div id="manager-view" class="hidden">
+      <!-- Выбор отдела -->
       <div class="card">
         <h2>🏢 Выбор отдела</h2>
         <div id="departments-selector-loading" class="loading">
@@ -138,6 +251,7 @@
         </div>
       </div>
 
+      <!-- Календарь отдела -->
       <div class="card">
         <h2>📅 Календарь отдела</h2>
         <div id="department-calendar-loading" class="loading hidden">
@@ -154,6 +268,7 @@
         </div>
       </div>
 
+      <!-- Управление отделом -->
       <div class="card">
         <h2>👨‍💼 Управление отделом</h2>
         <div id="manager-data-loading" class="loading hidden">
@@ -167,10 +282,12 @@
       </div>
     </div>
 
+    <!-- Подвал -->
     <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
   </div>
 
   <script>
+    // === 1. Настройки и константы ===
     const API_URL = 'https://script.google.com/macros/s/AKfycbzAj0gxuC6fWQKIESyr1bgu1eBX31mRcQyTsAjCKikg9pwiu4Ww-MTq-PwmRFpiNNB-/exec';
     let chatId = null;
     let isManager = false;
@@ -180,7 +297,7 @@
     let efficiencyChart = null;
     let earningsChart = null;
 
-    // === DOM элементы ===
+    // === 2. DOM ссылки на элементы ===
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
@@ -188,10 +305,10 @@
 
     // Вкладки
     const tabEmployee = document.getElementById('tab-employee');
-    const tabManager = document.getElementById('tab-manager'); // ✅ Теперь определено
+    const tabManager = document.getElementById('tab-manager');
     const tabInfo = document.getElementById('tab-info');
 
-    // Элементы для вкладки "Мой отчёт"
+    // Элементы "Мой отчёт"
     const mainDataLoading = document.getElementById('main-data-loading');
     const mainDataContent = document.getElementById('main-data-content');
     const detailsLoading = document.getElementById('details-loading');
@@ -203,7 +320,7 @@
     const calendarLoading = document.getElementById('calendar-loading');
     const calendarContent = document.getElementById('calendar-content');
 
-    // Элементы для вкладки "Отдел"
+    // Элементы "Отдел"
     const departmentsSelectorLoading = document.getElementById('departments-selector-loading');
     const departmentsSelectorContent = document.getElementById('departments-selector-content');
     const departmentsSelector = document.getElementById('departments-selector');
@@ -342,7 +459,7 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{ label: 'Производительность (%)', data: data.map(d => d.value), backgroundColor: '#1a8cd8' }]
         },
@@ -358,11 +475,11 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-            data: data.map(d => d.pay),
+             data.map(d => d.pay),
             borderColor: '#1a8cd8',
             fill: true,
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
@@ -372,7 +489,7 @@
       });
     }
 
-    // === Личный календарь ===
+    // === ЛИЧНЫЙ КАЛЕНДАРЬ ===
     let calendarAvailableDates = [];
     let calendarMonths = [];
 
@@ -380,13 +497,25 @@
      * Отображение календаря
      */
     async function renderCalendar(availableDates) {
-      calendarAvailableDates = availableDates;
+      // Фильтрация корректных дат
+      const validDates = availableDates.filter(dateStr => {
+        const match = dateStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        return match && match.length === 4;
+      });
 
-      // Извлекаем уникальные месяцы
+      if (validDates.length === 0) {
+        document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+        return;
+      }
+
+      calendarAvailableDates = validDates;
+
+      // Извлечение уникальных месяцев
       const monthSet = new Set();
-      availableDates.forEach(dateStr => {
-        const [d, m, y] = dateStr.split('.');
-        const monthName = new Date(`${y}-${m}-01`).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+      validDates.forEach(dateStr => {
+        const [dd, mm, yy] = dateStr.split('.').map(Number);
+        if (isNaN(dd) || isNaN(mm) || isNaN(yy)) return;
+        const monthName = new Date(yy, mm - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         monthSet.add(monthName);
       });
 
@@ -506,7 +635,7 @@
       }
     });
 
-    // --- Остальные функции без изменений ---
+    // --- ОСТАЛЬНЫЕ ФУНКЦИИ ---
     function loadDepartmentsList(departments) {
       if (!departments || !Array.isArray(departments) || departments.length === 0) {
         departmentsSelectorLoading.innerHTML = '<p>Нет доступных отделов</p>';
