@@ -40,7 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.5.5+ленивый_календарь 🛠)</h4>
+    <h4>(🛠 V.56+единый_запрос 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -237,11 +237,20 @@
         chatId = user.id.toString();
         console.log('chat_id:', chatId);
 
-        // --- ШАГ 1: Загружаем основные данные ---
-        const data = await fetchData(`${API_URL}?chat_id=${chatId}`);
+        // ЕДИНЫЙ ЗАПРОС — все данные сразу, включая availableDates
+        const response = await fetch(`${API_URL}?chat_id=${chatId}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        // Обновляем интерфейс
         updateMainData(data);
         updateDetails(data.details);
         renderCharts(data);
+
+        // --- КАЛЕНДАРЬ ---
+        renderCalendar(data.availableDates || []);
 
         isManager = data.isManager || false;
         if (isManager) {
@@ -249,31 +258,19 @@
           loadDepartmentsList(data.managedDepartments);
         }
 
-        // --- ШАГ 2: ЛЕНИВАЯ ЗАГРУЗКА КАЛЕНДАРЯ ---
-        setTimeout(async () => {
-          try {
-            const response = await fetch(`${API_URL}?chat_id=${chatId}&get_dates=true`);
-            const result = await response.json();
-            if (result.error) throw new Error(result.error);
-
-            renderCalendar(result.availableDates || []);
-            calendarLoading.classList.add('hidden');
-            calendarContent.classList.remove('hidden');
-          } catch (err) {
-            console.warn('❌ Не удалось загрузить календарь:', err.message);
-            document.getElementById('calendar').innerHTML = '<p style="color:#999;text-align:center;">Ошибка загрузки</p>';
-            calendarLoading.classList.add('hidden');
-            calendarContent.classList.remove('hidden');
-          }
-        }, 100);
-
-        // --- Показываем основной контент ---
+        // --- Показываем всё ---
         loading.classList.add('hidden');
         employeeView.classList.remove('hidden');
         mainDataLoading.classList.add('hidden');
         mainDataContent.classList.remove('hidden');
         detailsLoading.classList.add('hidden');
         detailsContent.classList.remove('hidden');
+        calendarLoading.classList.add('hidden');
+        calendarContent.classList.remove('hidden');
+        efficiencyLoading.classList.add('hidden');
+        efficiencyContent.classList.remove('hidden');
+        earningsLoading.classList.add('hidden');
+        earningsContent.classList.remove('hidden');
 
       } catch (err) {
         console.error('Ошибка инициализации:', err);
@@ -334,10 +331,6 @@
     function renderCharts(data) {
       if (data.efficiencyData?.length) createEfficiencyChart(data.efficiencyData);
       if (data.earningsData?.length) createEarningsChart(data.earningsData);
-      efficiencyLoading.classList.add('hidden');
-      efficiencyContent.classList.remove('hidden');
-      earningsLoading.classList.add('hidden');
-      earningsContent.classList.remove('hidden');
     }
 
     function createEfficiencyChart(data) {
@@ -372,7 +365,7 @@
       });
     }
 
-    // === ЛЕНИВЫЙ КАЛЕНДАРЬ ===
+    // === КАЛЕНДАРЬ (встроен в единый запрос) ===
     let calendarAvailableDates = [];
     let calendarMonths = [];
 
