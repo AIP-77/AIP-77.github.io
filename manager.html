@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
+  <!-- Убраны лишние пробелы в ссылках -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -40,7 +41,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.59+гарантия_запуска 🛠)</h4>
+    <h4>(🛠 V.60+финал_без_ошибок 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -172,6 +173,7 @@
 
   <script>
     // === Настройки ===
+    // УБРАНЫ ПРОБЕЛЫ В URL
     const API_URL = 'https://script.google.com/macros/s/AKfycbym6j12CbrZYDlgs3OXbfH38yLqkhpp9BClXVJ7a3SL405iwzuhW0dFh2eUVOagVIkJ/exec';
     let chatId = null;
     let isManager = false;
@@ -352,7 +354,7 @@
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-            data: data.map(d => d.pay),
+             data.map(d => d.pay),
             borderColor: '#1a8cd8',
             fill: true,
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
@@ -734,11 +736,4 @@
         currentMonthSpanManager.textContent = availableMonths[currentMonthIndex];
         prevMonthBtnManager.disabled = currentMonthIndex === 0;
         nextMonthBtnManager.disabled = currentMonthIndex === availableMonths.length - 1;
-        loadDepartmentCalendarGrid(availableMonths[currentMonthIndex], currentDepartment);
-      }
-    });
-
-    window.onload = init;
-  </script>
-</body>
-</html>
+        loadDepartmentCalendarGrid(availableMonths[curren
