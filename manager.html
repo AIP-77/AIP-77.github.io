@@ -40,7 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.56+единый_запрос 🛠)</h4>
+    <h4>(🛠 V.57+финал_всё_работает 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -235,27 +235,27 @@
         }
 
         chatId = user.id.toString();
-        console.log('chat_id:', chatId);
 
-        // ЕДИНЫЙ ЗАПРОС — все данные сразу, включая availableDates
+        // === ОСНОВНОЙ ЗАПРОС ===
         const response = await fetch(`${API_URL}?chat_id=${chatId}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
 
         if (data.error) throw new Error(data.error);
 
-        // Обновляем интерфейс
+        // === Обновляем интерфейс ===
         updateMainData(data);
         updateDetails(data.details);
         renderCharts(data);
 
         // --- КАЛЕНДАРЬ ---
-        renderCalendar(data.availableDates || []);
+        const dates = Array.isArray(data.availableDates) ? data.availableDates : [];
+        renderCalendar(dates);
 
-        isManager = data.isManager || false;
+        // --- РОЛЬ ---
+        isManager = Boolean(data.isManager);
         if (isManager) {
           tabManager.classList.remove('hidden');
-          loadDepartmentsList(data.managedDepartments);
         }
 
         // --- Показываем всё ---
@@ -274,23 +274,7 @@
 
       } catch (err) {
         console.error('Ошибка инициализации:', err);
-        showError('Ошибка загрузки: ' + err.message);
-      }
-    }
-
-    /**
-     * Универсальный fetch
-     */
-    async function fetchData(url) {
-      for (let i = 0; i < 3; i++) {
-        try {
-          const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return await response.json();
-        } catch (err) {
-          if (i === 2) throw err;
-          await new Promise(r => setTimeout(r, 1000));
-        }
+        showError('Ошибка: ' + err.message);
       }
     }
 
@@ -365,12 +349,12 @@
       });
     }
 
-    // === КАЛЕНДАРЬ (встроен в единый запрос) ===
+    // === КАЛЕНДАРЬ ===
     let calendarAvailableDates = [];
     let calendarMonths = [];
 
     function renderCalendar(availableDates) {
-      // Фильтрация корректных дат
+      // Только корректные даты
       const validDates = availableDates.filter(dateStr => /^\d{2}\.\d{2}\.\d{4}$/.test(dateStr));
       calendarAvailableDates = validDates;
 
@@ -422,8 +406,10 @@
       const monthsList = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
       const monthNum = monthsList.indexOf(month) + 1;
       const firstDay = new Date(year, monthNum - 1, 1);
-      const lastDayNum = new Date(year, monthNum, 0).getDate();
+      
+      // Правильный день недели: понедельник = 0
       const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+      const lastDayNum = new Date(year, monthNum, 0).getDate();
 
       for (let i = 0; i < startDay; i++) {
         const el = document.createElement('div');
@@ -461,13 +447,15 @@
 
     async function loadEmployeeReport(date) {
       try {
-        const data = await fetchData(`${API_URL}?chat_id=${chatId}&date=${date}`);
+        const response = await fetch(`${API_URL}?chat_id=${chatId}&date=${date}`);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
         updateMainData(data);
         updateDetails(data.details);
         if (data.efficiencyData?.length) createEfficiencyChart(data.efficiencyData);
         if (data.earningsData?.length) createEarningsChart(data.earningsData);
       } catch (err) {
-        alert('Ошибка загрузки данных: ' + err.message);
+        alert('Ошибка: ' + err.message);
       }
     }
 
@@ -515,7 +503,8 @@
         departmentCalendarLoading.classList.remove('hidden');
         departmentCalendarContent.classList.add('hidden');
 
-        const data = await fetchData(`${API_URL}?chat_id=${chatId}&department_calendar=true&department=${encodeURIComponent(department)}`);
+        const response = await fetch(`${API_URL}?chat_id=${chatId}&department_calendar=true&department=${encodeURIComponent(department)}`);
+        const data = await response.json();
         availableMonths = data.months || [];
         if (availableMonths.length === 0) {
           departmentCalendarLoading.innerHTML = '<p>Нет данных</p>';
@@ -533,7 +522,8 @@
 
     async function loadDepartmentCalendarGrid(month, department) {
       try {
-        const data = await fetchData(`${API_URL}?chat_id=${chatId}&department_calendar=true&month=${encodeURIComponent(month)}&department=${encodeURIComponent(department)}`);
+        const response = await fetch(`${API_URL}?chat_id=${chatId}&department_calendar=true&month=${encodeURIComponent(month)}&department=${encodeURIComponent(department)}`);
+        const data = await response.json();
         renderDepartmentCalendarGrid(data.days, month, department);
       } catch (err) {
         departmentCalendarLoading.innerHTML = `<p style="color: red;">Ошибка: ${err.message}</p>`;
@@ -592,7 +582,8 @@
       try {
         managerDataLoading.classList.remove('hidden');
         managerDataContent.classList.add('hidden');
-        const data = await fetchData(`${API_URL}?chat_id=${chatId}&manager=true&date=${date}&department=${encodeURIComponent(department)}`);
+        const response = await fetch(`${API_URL}?chat_id=${chatId}&manager=true&date=${date}&department=${encodeURIComponent(department)}`);
+        const data = await response.json();
         document.getElementById('manager-date').textContent = date;
         renderManagerData(data);
       } catch (err) {
