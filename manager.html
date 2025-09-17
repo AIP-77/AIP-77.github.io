@@ -40,7 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.57+финал_всё_работает 🛠)</h4>
+    <h4>(🛠 V.58+финал_без_ошибок 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -322,11 +322,24 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-         {
+        data: {
           labels: data.map(d => d.day),
-          datasets: [{ label: 'Производительность (%)',  data.map(d => d.value), backgroundColor: '#1a8cd8' }]
+          datasets: [{
+            label: 'Производительность (%)',
+            data: data.map(d => d.value),
+            backgroundColor: '#1a8cd8'
+          }]
         },
-        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: '%' }
+            }
+          }
+        }
       });
     }
 
@@ -335,17 +348,23 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-             data.map(d => d.pay),
+            data: data.map(d => d.pay),
             borderColor: '#1a8cd8',
             fill: true,
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
           }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'top' } } }
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { mode: 'index', intersect: false }
+          }
+        }
       });
     }
 
