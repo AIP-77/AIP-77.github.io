@@ -40,7 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.71+календарь_рабочий 🛠)</h4>
+    <h4>(🛠 V.72+всё_работает 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -247,16 +247,16 @@
         const data = await fetchData(`${API_URL}?chat_id=${chatId}`);
 
         updateMainData(data);
-        updateDetails(data.details);
+        updateDetails(data.details || []);
         renderCalendar(data.availableDates || []);
 
-        isManager = data.isManager || false;
+        isManager = Boolean(data.isManager);
         if (isManager) {
           tabManager.classList.remove('hidden');
-          loadDepartmentsList(data.managedDepartments);
+          loadDepartmentsList(data.managedDepartments || []);
         }
 
-        // Графики с задержкой
+        // Графики
         setTimeout(() => {
           if (data.efficiencyData?.length) {
             createEfficiencyChart(data.efficiencyData);
@@ -352,10 +352,7 @@
         options: {
           responsive: true,
           scales: {
-            y: {
-              beginAtZero: true,
-              max: 100
-            }
+            y: { beginAtZero: true, max: 100 }
           }
         }
       });
@@ -381,9 +378,7 @@
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: { position: 'top' }
-          }
+          plugins: { legend: { position: 'top' } }
         }
       });
     }
@@ -529,7 +524,7 @@
       }
     });
 
-    // --- Остальные функции без изменений ---
+    // --- Остальные функции ---
     function loadDepartmentsList(departments) {
       if (!departments || !Array.isArray(departments) || departments.length === 0) {
         departmentsSelectorLoading.innerHTML = '<p>Нет доступных отделов</p>';
