@@ -40,8 +40,9 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(Данное приложение находится в разработке и представленая в нем информация носит исключительно инфорационый характер)</h4>
-    <h4>(🛠 V.52 🛠)</h4>
+    <h4>(🛠 V.70+календарь_починен 🛠)</h4>
+    <h4>(Данное приложение находится в разработке и представленая в нем информация носит исключительно информационый характер)</h4>
+
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab hidden">Отдел</div>
@@ -167,7 +168,7 @@
       </div>
     </div>
 
-    <div class="footer">Система малой автоматизации AIP • © 10.2025</div>
+    <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
   </div>
 
   <script>
@@ -188,7 +189,7 @@
 
     // Вкладки
     const tabEmployee = document.getElementById('tab-employee');
-    const tabManager = document.getElementById('tab-manager'); // ✅ Теперь определено
+    const tabManager = document.getElementById('tab-manager');
     const tabInfo = document.getElementById('tab-info');
 
     // Элементы для вкладки "Мой отчёт"
@@ -242,7 +243,6 @@
         }
 
         chatId = user.id.toString();
-        console.log('chat_id:', chatId);
 
         // ЕДИНЫЙ ЗАПРОС — все данные сразу
         const data = await fetchData(`${API_URL}?chat_id=${chatId}`);
@@ -342,9 +342,9 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-        data: {
+         {
           labels: data.map(d => d.day),
-          datasets: [{ label: 'Производительность (%)', data: data.map(d => d.value), backgroundColor: '#1a8cd8' }]
+          datasets: [{ label: 'Производительность (%)',  data.map(d => d.value), backgroundColor: '#1a8cd8' }]
         },
         options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
       });
@@ -358,11 +358,11 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-            data: data.map(d => d.pay),
+             data.map(d => d.pay),
             borderColor: '#1a8cd8',
             fill: true,
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
@@ -380,13 +380,15 @@
      * Отображение календаря
      */
     async function renderCalendar(availableDates) {
-      calendarAvailableDates = availableDates;
+      // Только корректные даты
+      const validDates = availableDates.filter(dateStr => /^\d{2}\.\d{2}\.\d{4}$/.test(dateStr));
+      calendarAvailableDates = validDates;
 
       // Извлекаем уникальные месяцы
       const monthSet = new Set();
-      availableDates.forEach(dateStr => {
+      validDates.forEach(dateStr => {
         const [d, m, y] = dateStr.split('.');
-        const monthName = new Date(`${y}-${m}-01`).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        const monthName = new Date(y, m - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         monthSet.add(monthName);
       });
 
@@ -433,15 +435,19 @@
         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
       const monthNum = monthsList.indexOf(month) + 1;
       const firstDay = new Date(year, monthNum - 1, 1);
-      const lastDayNum = new Date(year, monthNum, 0).getDate();
+      
+      // Правильный день недели: понедельник = 0, воскресенье = 6
       const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+      const lastDayNum = new Date(year, monthNum, 0).getDate();
 
+      // Пустые ячейки перед 1 числом
       for (let i = 0; i < startDay; i++) {
         const el = document.createElement('div');
         el.className = 'day';
         container.appendChild(el);
       }
 
+      // Целевой год и месяц для фильтрации
       const targetYear = parseInt(year, 10);
       const targetMonth = monthNum;
       const datesInMonth = calendarAvailableDates.filter(d => {
@@ -449,6 +455,7 @@
         return parseInt(mm, 10) === targetMonth && parseInt(yy, 10) === targetYear;
       });
 
+      // Дни месяца
       for (let day = 1; day <= lastDayNum; day++) {
         const dateStr = `${day.toString().padStart(2, '0')}.${targetMonth.toString().padStart(2, '0')}.${year}`;
         const el = document.createElement('div');
