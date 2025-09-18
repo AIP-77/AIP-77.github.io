@@ -358,11 +358,11 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-            data: data.map(d => d.value),
+             data.map(d => d.value),
             backgroundColor: '#1a8cd8'
           }]
         },
@@ -380,7 +380,7 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
