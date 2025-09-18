@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
-  <!-- Убраны лишние пробелы в ссылках -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -41,7 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.6.0+финал_без_ошибок 🛠)</h4>
+    <h4>(🛠 V.61+финал_всё_работает 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -173,8 +172,7 @@
 
   <script>
     // === Настройки ===
-    // УБРАНЫ ПРОБЕЛЫ В URL
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwG20KrSgVYdn5XfpeGgrYo3dZBep_TkK169qdJ12aeITzgO-d78taDapGcKK_BhgP17w/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbym6j12CbrZYDlgs3OXbfH38yLqkhpp9BClXVJ7a3SL405iwzuhW0dFh2eUVOagVIkJ/exec';
     let chatId = null;
     let isManager = false;
     let currentDepartment = null;
@@ -218,7 +216,7 @@
     const currentMonthSpanManager = document.getElementById('currentMonthManager');
 
     /**
-     * Инициализация приложения
+     * Инициализация приложения с защитой от зависаний
      */
     async function init() {
       try {
@@ -238,12 +236,48 @@
 
         chatId = user.id.toString();
 
-        // === ОСНОВНОЙ ЗАПРОС ===
-        const response = await fetch(`${API_URL}?chat_id=${chatId}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        // ТАЙМАУТ 15 секунд
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        if (data.error) throw new Error(data.error);
+        let response;
+        try {
+          console.log("📤 Запрос:", `${API_URL}?chat_id=${chatId}`);
+          response = await fetch(`${API_URL}?chat_id=${chatId}`, {
+            method: 'GET',
+            signal: controller.signal,
+            cache: 'no-cache'
+          });
+          clearTimeout(timeoutId);
+        } catch (err) {
+          clearTimeout(timeoutId);
+          console.error('❌ Ошибка запроса:', err);
+          showError('Ошибка соединения. Проверьте интернет.');
+          return;
+        }
+
+        if (!response.ok) {
+          console.error('❌ HTTP ошибка:', response.status);
+          showError(`Ошибка сервера: ${response.status}`);
+          return;
+        }
+
+        let data;
+        try {
+          data = await response.json();
+        } catch (err) {
+          console.error('❌ Ошибка парсинга JSON:', err);
+          showError('Ошибка данных: повреждённый ответ');
+          return;
+        }
+
+        if (data.error) {
+          console.warn('⚠️ Ошибка от сервера:', data.error);
+          showError('Ошибка: ' + data.error);
+          return;
+        }
+
+        console.log("✅ Данные получены:", data);
 
         // === Обновляем интерфейс ===
         updateMainData(data);
@@ -276,7 +310,7 @@
 
       } catch (err) {
         console.error('Ошибка инициализации:', err);
-        showError('Ошибка: ' + err.message);
+        showError('Критическая ошибка: ' + err.message);
       }
     }
 
@@ -324,22 +358,18 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-             data.map(d => d.value),
+            data: data.map(d => d.value),
             backgroundColor: '#1a8cd8'
           }]
         },
         options: {
           responsive: true,
           scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
-              title: { display: true, text: '%' }
-            }
+            y: { beginAtZero: true, max: 100 }
           }
         }
       });
@@ -350,11 +380,11 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-             data.map(d => d.pay),
+            data: data.map(d => d.pay),
             borderColor: '#1a8cd8',
             fill: true,
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
@@ -362,10 +392,7 @@
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: { mode: 'index', intersect: false }
-          }
+          plugins: { legend: { position: 'top' } }
         }
       });
     }
@@ -375,11 +402,9 @@
     let calendarMonths = [];
 
     function renderCalendar(availableDates) {
-      // Только корректные даты
       const validDates = availableDates.filter(dateStr => /^\d{2}\.\d{2}\.\d{4}$/.test(dateStr));
       calendarAvailableDates = validDates;
 
-      // Собираем месяцы
       const monthSet = new Set();
       validDates.forEach(dateStr => {
         const [dd, mm, yy] = dateStr.split('.').map(Number);
@@ -427,8 +452,6 @@
       const monthsList = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
       const monthNum = monthsList.indexOf(month) + 1;
       const firstDay = new Date(year, monthNum - 1, 1);
-      
-      // Правильный день недели: понедельник = 0
       const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
       const lastDayNum = new Date(year, monthNum, 0).getDate();
 
@@ -501,7 +524,7 @@
       }
     });
 
-    // --- Остальное без изменений ---
+    // --- Остальное ---
     function loadDepartmentsList(departments) {
       if (!departments || !Array.isArray(departments) || departments.length === 0) {
         document.getElementById('departments-selector-loading').innerHTML = '<p>Нет доступных отделов</p>';
@@ -736,4 +759,11 @@
         currentMonthSpanManager.textContent = availableMonths[currentMonthIndex];
         prevMonthBtnManager.disabled = currentMonthIndex === 0;
         nextMonthBtnManager.disabled = currentMonthIndex === availableMonths.length - 1;
-        loadDepartmentCalendarGrid(availableMonths[curren
+        loadDepartmentCalendarGrid(availableMonths[currentMonthIndex], currentDepartment);
+      }
+    });
+
+    window.onload = init;
+  </script>
+</body>
+</html>
