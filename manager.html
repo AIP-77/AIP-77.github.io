@@ -40,7 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.61+финал_всё_работает 🛠)</h4>
+    <h4>(🛠 V.5.2+финал 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -171,8 +171,7 @@
   </div>
 
   <script>
-    // === Настройки ===
-    const API_URL = 'https://script.google.com/macros/s/AKfycbym6j12CbrZYDlgs3OXbfH38yLqkhpp9BClXVJ7a3SL405iwzuhW0dFh2eUVOagVIkJ/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwaQsv0Qin-4jrH61KXgBrzevHesDfMq8QZ9O7Zva_BoiJzpJFa8RdJoIOvv7rnBBxt/exec';
     let chatId = null;
     let isManager = false;
     let currentDepartment = null;
@@ -181,15 +180,18 @@
     let efficiencyChart = null;
     let earningsChart = null;
 
-    // === DOM ссылки ===
+    // === DOM элементы ===
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
     const managerView = document.getElementById('manager-view');
 
+    // Вкладки
     const tabEmployee = document.getElementById('tab-employee');
-    const tabManager = document.getElementById('tab-manager');
+    const tabManager = document.getElementById('tab-manager'); // ✅ Теперь определено
+    const tabInfo = document.getElementById('tab-info');
 
+    // Элементы для вкладки "Мой отчёт"
     const mainDataLoading = document.getElementById('main-data-loading');
     const mainDataContent = document.getElementById('main-data-content');
     const detailsLoading = document.getElementById('details-loading');
@@ -201,22 +203,27 @@
     const calendarLoading = document.getElementById('calendar-loading');
     const calendarContent = document.getElementById('calendar-content');
 
+    // Элементы для вкладки "Отдел"
+    const departmentsSelectorLoading = document.getElementById('departments-selector-loading');
+    const departmentsSelectorContent = document.getElementById('departments-selector-content');
     const departmentsSelector = document.getElementById('departments-selector');
     const departmentCalendarLoading = document.getElementById('department-calendar-loading');
     const departmentCalendarContent = document.getElementById('department-calendar-content');
     const managerDataLoading = document.getElementById('manager-data-loading');
     const managerDataContent = document.getElementById('manager-data-content');
 
+    // Календарь сотрудника
     const prevMonthBtn = document.getElementById('prevMonth');
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
 
+    // Календарь отдела
     const prevMonthBtnManager = document.getElementById('prevMonthManager');
     const nextMonthBtnManager = document.getElementById('nextMonthManager');
     const currentMonthSpanManager = document.getElementById('currentMonthManager');
 
     /**
-     * Инициализация приложения с защитой от зависаний
+     * Инициализация приложения
      */
     async function init() {
       try {
@@ -235,66 +242,36 @@
         }
 
         chatId = user.id.toString();
+        console.log('chat_id:', chatId);
 
-        // ТАЙМАУТ 15 секунд
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        // ЕДИНЫЙ ЗАПРОС — все данные сразу
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}`);
 
-        let response;
-        try {
-          console.log("📤 Запрос:", `${API_URL}?chat_id=${chatId}`);
-          response = await fetch(`${API_URL}?chat_id=${chatId}`, {
-            method: 'GET',
-            signal: controller.signal,
-            cache: 'no-cache'
-          });
-          clearTimeout(timeoutId);
-        } catch (err) {
-          clearTimeout(timeoutId);
-          console.error('❌ Ошибка запроса:', err);
-          showError('Ошибка соединения. Проверьте интернет.');
-          return;
-        }
-
-        if (!response.ok) {
-          console.error('❌ HTTP ошибка:', response.status);
-          showError(`Ошибка сервера: ${response.status}`);
-          return;
-        }
-
-        let data;
-        try {
-          data = await response.json();
-        } catch (err) {
-          console.error('❌ Ошибка парсинга JSON:', err);
-          showError('Ошибка данных: повреждённый ответ');
-          return;
-        }
-
-        if (data.error) {
-          console.warn('⚠️ Ошибка от сервера:', data.error);
-          showError('Ошибка: ' + data.error);
-          return;
-        }
-
-        console.log("✅ Данные получены:", data);
-
-        // === Обновляем интерфейс ===
         updateMainData(data);
         updateDetails(data.details);
-        renderCharts(data);
+        renderCalendar(data.availableDates || []);
 
-        // --- КАЛЕНДАРЬ ---
-        const dates = Array.isArray(data.availableDates) ? data.availableDates : [];
-        renderCalendar(dates);
-
-        // --- РОЛЬ ---
-        isManager = Boolean(data.isManager);
+        isManager = data.isManager || false;
         if (isManager) {
           tabManager.classList.remove('hidden');
+          loadDepartmentsList(data.managedDepartments);
         }
 
-        // --- Показываем всё ---
+        // Графики с задержкой
+        setTimeout(() => {
+          if (data.efficiencyData?.length) {
+            createEfficiencyChart(data.efficiencyData);
+            efficiencyLoading.classList.add('hidden');
+            efficiencyContent.classList.remove('hidden');
+          }
+          if (data.earningsData?.length) {
+            createEarningsChart(data.earningsData);
+            earningsLoading.classList.add('hidden');
+            earningsContent.classList.remove('hidden');
+          }
+        }, 300);
+
+        // Скрываем спиннеры
         loading.classList.add('hidden');
         employeeView.classList.remove('hidden');
         mainDataLoading.classList.add('hidden');
@@ -303,14 +280,26 @@
         detailsContent.classList.remove('hidden');
         calendarLoading.classList.add('hidden');
         calendarContent.classList.remove('hidden');
-        efficiencyLoading.classList.add('hidden');
-        efficiencyContent.classList.remove('hidden');
-        earningsLoading.classList.add('hidden');
-        earningsContent.classList.remove('hidden');
 
       } catch (err) {
         console.error('Ошибка инициализации:', err);
-        showError('Критическая ошибка: ' + err.message);
+        showError('Ошибка загрузки данных: ' + err.message);
+      }
+    }
+
+    /**
+     * Универсальный fetch с повторной попыткой
+     */
+    async function fetchData(url) {
+      for (let i = 0; i < 3; i++) {
+        try {
+          const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return await response.json();
+        } catch (err) {
+          if (i === 2) throw err;
+          await new Promise(r => setTimeout(r, 1000));
+        }
       }
     }
 
@@ -328,7 +317,7 @@
     }
 
     /**
-     * Обновление детализации
+     * Обновление детализации задач
      */
     function updateDetails(details) {
       if (!details || !Array.isArray(details)) {
@@ -346,41 +335,30 @@
     }
 
     /**
-     * Графики
+     * Создание графика производительности
      */
-    function renderCharts(data) {
-      if (data.efficiencyData?.length) createEfficiencyChart(data.efficiencyData);
-      if (data.earningsData?.length) createEarningsChart(data.earningsData);
-    }
-
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-         {
+        data: {
           labels: data.map(d => d.day),
-          datasets: [{
-            label: 'Производительность (%)',
-             data.map(d => d.value),
-            backgroundColor: '#1a8cd8'
-          }]
+          datasets: [{ label: 'Производительность (%)', data: data.map(d => d.value), backgroundColor: '#1a8cd8' }]
         },
-        options: {
-          responsive: true,
-          scales: {
-            y: { beginAtZero: true, max: 100 }
-          }
-        }
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
       });
     }
 
+    /**
+     * Создание графика заработка
+     */
     function createEarningsChart(data) {
       const ctx = document.getElementById('earningsChart').getContext('2d');
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
@@ -390,26 +368,25 @@
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
           }]
         },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: 'top' } }
-        }
+        options: { responsive: true, plugins: { legend: { position: 'top' } } }
       });
     }
 
-    // === КАЛЕНДАРЬ ===
+    // === Личный календарь ===
     let calendarAvailableDates = [];
     let calendarMonths = [];
 
-    function renderCalendar(availableDates) {
-      const validDates = availableDates.filter(dateStr => /^\d{2}\.\d{2}\.\d{4}$/.test(dateStr));
-      calendarAvailableDates = validDates;
+    /**
+     * Отображение календаря
+     */
+    async function renderCalendar(availableDates) {
+      calendarAvailableDates = availableDates;
 
+      // Извлекаем уникальные месяцы
       const monthSet = new Set();
-      validDates.forEach(dateStr => {
-        const [dd, mm, yy] = dateStr.split('.').map(Number);
-        if (isNaN(dd) || isNaN(mm) || isNaN(yy)) return;
-        const monthName = new Date(yy, mm - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+      availableDates.forEach(dateStr => {
+        const [d, m, y] = dateStr.split('.');
+        const monthName = new Date(`${y}-${m}-01`).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         monthSet.add(monthName);
       });
 
@@ -432,6 +409,9 @@
       renderCalendarGrid(calendarMonths[currentMonthIndex]);
     }
 
+    /**
+     * Рендер сетки календаря
+     */
     function renderCalendarGrid(monthName) {
       const container = document.getElementById('calendar');
       container.innerHTML = '';
@@ -449,11 +429,12 @@
       });
 
       const [month, year] = monthName.split(' ');
-      const monthsList = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      const monthsList = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
       const monthNum = monthsList.indexOf(month) + 1;
       const firstDay = new Date(year, monthNum - 1, 1);
-      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
       const lastDayNum = new Date(year, monthNum, 0).getDate();
+      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
 
       for (let i = 0; i < startDay; i++) {
         const el = document.createElement('div');
@@ -489,21 +470,22 @@
       }
     }
 
+    /**
+     * Загрузка данных за выбранную дату
+     */
     async function loadEmployeeReport(date) {
       try {
-        const response = await fetch(`${API_URL}?chat_id=${chatId}&date=${date}`);
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}&date=${date}`);
         updateMainData(data);
         updateDetails(data.details);
         if (data.efficiencyData?.length) createEfficiencyChart(data.efficiencyData);
         if (data.earningsData?.length) createEarningsChart(data.earningsData);
       } catch (err) {
-        alert('Ошибка: ' + err.message);
+        alert('Ошибка загрузки данных: ' + err.message);
       }
     }
 
-    // Навигация по месяцам
+    // Навигация по месяцам (личный календарь)
     prevMonthBtn.addEventListener('click', () => {
       if (currentMonthIndex > 0) {
         currentMonthIndex--;
@@ -524,10 +506,10 @@
       }
     });
 
-    // --- Остальное ---
+    // --- Остальные функции без изменений ---
     function loadDepartmentsList(departments) {
       if (!departments || !Array.isArray(departments) || departments.length === 0) {
-        document.getElementById('departments-selector-loading').innerHTML = '<p>Нет доступных отделов</p>';
+        departmentsSelectorLoading.innerHTML = '<p>Нет доступных отделов</p>';
         return;
       }
       departmentsSelector.innerHTML = '<option value="">Выберите отдел</option>';
@@ -537,8 +519,8 @@
         option.textContent = dept;
         departmentsSelector.appendChild(option);
       });
-      document.getElementById('departments-selector-loading').classList.add('hidden');
-      document.getElementById('departments-selector-content').classList.remove('hidden');
+      departmentsSelectorLoading.classList.add('hidden');
+      departmentsSelectorContent.classList.remove('hidden');
     }
 
     async function loadDepartmentCalendar(department) {
@@ -547,8 +529,7 @@
         departmentCalendarLoading.classList.remove('hidden');
         departmentCalendarContent.classList.add('hidden');
 
-        const response = await fetch(`${API_URL}?chat_id=${chatId}&department_calendar=true&department=${encodeURIComponent(department)}`);
-        const data = await response.json();
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}&department_calendar=true&department=${encodeURIComponent(department)}`);
         availableMonths = data.months || [];
         if (availableMonths.length === 0) {
           departmentCalendarLoading.innerHTML = '<p>Нет данных</p>';
@@ -566,8 +547,7 @@
 
     async function loadDepartmentCalendarGrid(month, department) {
       try {
-        const response = await fetch(`${API_URL}?chat_id=${chatId}&department_calendar=true&month=${encodeURIComponent(month)}&department=${encodeURIComponent(department)}`);
-        const data = await response.json();
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}&department_calendar=true&month=${encodeURIComponent(month)}&department=${encodeURIComponent(department)}`);
         renderDepartmentCalendarGrid(data.days, month, department);
       } catch (err) {
         departmentCalendarLoading.innerHTML = `<p style="color: red;">Ошибка: ${err.message}</p>`;
@@ -626,8 +606,7 @@
       try {
         managerDataLoading.classList.remove('hidden');
         managerDataContent.classList.add('hidden');
-        const response = await fetch(`${API_URL}?chat_id=${chatId}&manager=true&date=${date}&department=${encodeURIComponent(department)}`);
-        const data = await response.json();
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}&manager=true&date=${date}&department=${encodeURIComponent(department)}`);
         document.getElementById('manager-date').textContent = date;
         renderManagerData(data);
       } catch (err) {
