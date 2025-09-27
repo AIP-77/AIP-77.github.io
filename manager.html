@@ -400,7 +400,8 @@
       const monthSet = new Set();
       validDates.forEach(dateStr => {
         const [d, m, y] = dateStr.split('.');
-        const monthName = new Date(y, m - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        const monthName = new Date(y, m - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+        .replace(/^\w/, c => c.toUpperCase()); // Первая буква — заглавная
         monthSet.add(monthName);
       });
 
