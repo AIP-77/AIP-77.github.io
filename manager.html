@@ -316,7 +316,7 @@
     }
 
     /**
-     * Обновление детализации задач
+     * Обновление детализации задач — С УЧЁТОМ СЕЗОННОЙ ДОПЛАТЫ
      */
     function updateDetails(details) {
       if (!details || !Array.isArray(details)) {
@@ -328,7 +328,8 @@
         const count = item.count || 0;
         const time = item.time || '00:00:00';
         const pay = item.pay || '0,00 ₽';
-        return `${work} (${count}): ${time}, ${pay}`;
+        const xisBonus = item.xisBonus || '0,00 ₽'; // ← новое поле
+        return `${work} (${count}): ${time}, ${pay}, Сезонная доплата: ${xisBonus}`;
       }).join('\n');
       document.getElementById('details').textContent = detailsText;
     }
@@ -703,7 +704,7 @@
           document.getElementById('efficiency').textContent = '100,38%';
           document.getElementById('pay-day').textContent = 'р. 3 000,00';
           document.getElementById('pay-month').textContent = 'р. 20 000,00';
-          document.getElementById('details').textContent = 'Работа 1 (5): 02:30, 500,00 ₽\nРабота 2 (3): 01:15, 300,00 ₽';
+          document.getElementById('details').textContent = 'Работа 1 (5): 02:30, 500,00 ₽, Сезонная доплата: 10,00 ₽\nРабота 2 (3): 01:15, 300,00 ₽, Сезонная доплата: 5,00 ₽';
           loadDepartmentsList(['Отдел 1', 'Отдел 2']);
         }, 1000);
       } else {
