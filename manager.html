@@ -427,67 +427,83 @@
      * Рендер сетки календаря
      */
     function renderCalendarGrid(monthName) {
-      const container = document.getElementById('calendar');
-      container.innerHTML = '';
+  const container = document.getElementById('calendar');
+  container.innerHTML = '';
 
-      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      dayNames.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        el.style.backgroundColor = '#f0f0f0';
-        el.style.padding = '6px 0';
-        el.style.borderRadius = '6px';
-        el.style.textAlign = 'center';
-        container.appendChild(el);
-      });
+  // Заголовки дней недели
+  const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  dayNames.forEach(day => {
+    const el = document.createElement('div');
+    el.textContent = day;
+    el.style.fontWeight = 'bold';
+    el.style.backgroundColor = '#f0f0f0';
+    el.style.padding = '6px 0';
+    el.style.borderRadius = '6px';
+    el.style.textAlign = 'center';
+    container.appendChild(el);
+  });
 
-      const [month, year] = monthName.split(' ');
-      const monthsList = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-      const monthNum = monthsList.indexOf(month) + 1;
-      const firstDay = new Date(year, monthNum - 1, 1);
-      
-      // Правильный день недели: понедельник = 0, воскресенье = 6
-      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
-      const lastDayNum = new Date(year, monthNum, 0).getDate();
+  // Парсинг месяца и года
+  const parts = monthName.trim().split(' ');
+  if (parts.length < 2) {
+    container.innerHTML = '<p style="grid-column: 1 / -1; text-align:center;color:#e53935;">Ошибка: неверный формат месяца</p>';
+    return;
+  }
+  const month = parts.slice(0, -1).join(' '); // на случай если вдруг "Июль" (но это не нужно, оставим как есть)
+  const year = parts[parts.length - 1];
 
-      // Пустые ячейки перед 1 числом
-      for (let i = 0; i < startDay; i++) {
-        const el = document.createElement('div');
-        el.className = 'day';
-        container.appendChild(el);
-      }
+  const monthsList = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  const monthNum = monthsList.indexOf(month) + 1;
 
-      // Целевой год и месяц для фильтрации
-      const targetYear = parseInt(year, 10);
-      const targetMonth = monthNum;
-      const datesInMonth = calendarAvailableDates.filter(d => {
-        const [dd, mm, yy] = d.split('.');
-        return parseInt(mm, 10) === targetMonth && parseInt(yy, 10) === targetYear;
-      });
+  if (monthNum === 0) {
+    container.innerHTML = `<p style="grid-column: 1 / -1; text-align:center;color:#e53935;">Неизвестный месяц: ${month}</p>`;
+    return;
+  }
 
-      // Дни месяца
-      for (let day = 1; day <= lastDayNum; day++) {
-        const dateStr = `${day.toString().padStart(2, '0')}.${targetMonth.toString().padStart(2, '0')}.${year}`;
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = day;
-        el.style.padding = '8px 0';
-        el.style.borderRadius = '6px';
-        el.style.fontSize = '14px';
-        el.style.cursor = 'pointer';
+  const firstDay = new Date(year, monthNum - 1, 1);
+  const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Пн = 0
+  const lastDayNum = new Date(year, monthNum, 0).getDate();
 
-        if (datesInMonth.includes(dateStr)) {
-          el.classList.add('available');
-          el.title = 'Есть данные';
-          el.addEventListener('click', () => loadEmployeeReport(dateStr));
-        } else {
-          el.style.color = '#ccc';
-        }
-        container.appendChild(el);
-      }
+  // Пустые ячейки
+  for (let i = 0; i < startDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'day';
+    container.appendChild(el);
+  }
+
+  // Фильтрация дат для текущего месяца и года
+  const targetYear = parseInt(year, 10);
+  const targetMonth = monthNum;
+  const datesInMonth = new Set(
+    calendarAvailableDates.filter(d => {
+      if (!/^\d{2}\.\d{2}\.\d{4}$/.test(d)) return false;
+      const [dd, mm, yy] = d.split('.');
+      return parseInt(mm, 10) === targetMonth && parseInt(yy, 10) === targetYear;
+    })
+  );
+
+  // Дни месяца
+  for (let day = 1; day <= lastDayNum; day++) {
+    const dateStr = `${day.toString().padStart(2, '0')}.${targetMonth.toString().padStart(2, '0')}.${year}`;
+    const el = document.createElement('div');
+    el.className = 'day';
+    el.textContent = day;
+    el.style.padding = '8px 0';
+    el.style.borderRadius = '6px';
+    el.style.fontSize = '14px';
+    el.style.cursor = 'pointer';
+
+    if (datesInMonth.has(dateStr)) {
+      el.classList.add('available');
+      el.title = 'Есть данные';
+      el.addEventListener('click', () => loadEmployeeReport(dateStr));
+    } else {
+      el.style.color = '#ccc';
     }
+    container.appendChild(el);
+  }
+}
 
     /**
      * Загрузка данных за выбранную дату
