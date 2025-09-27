@@ -40,8 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(Данное приложение находится в разработке и представленая в нем информация носит исключительно информационый характер)</h4>
-    <h4>(🛠 V.5.2 🛠)</h4>
+    <h4>(🛠 V.72+всё_работает 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -172,7 +171,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbym6j12CbrZYDlgs3OXbfH38yLqkhpp9BClXVJ7a3SL405iwzuhW0dFh2eUVOagVIkJ/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwaQsv0Qin-4jrH61KXgBrzevHesDfMq8QZ9O7Zva_BoiJzpJFa8RdJoIOvv7rnBBxt/exec';
     let chatId = null;
     let isManager = false;
     let currentDepartment = null;
@@ -189,7 +188,7 @@
 
     // Вкладки
     const tabEmployee = document.getElementById('tab-employee');
-    const tabManager = document.getElementById('tab-manager'); // ✅ Теперь определено
+    const tabManager = document.getElementById('tab-manager');
     const tabInfo = document.getElementById('tab-info');
 
     // Элементы для вкладки "Мой отчёт"
@@ -243,22 +242,21 @@
         }
 
         chatId = user.id.toString();
-        console.log('chat_id:', chatId);
 
         // ЕДИНЫЙ ЗАПРОС — все данные сразу
         const data = await fetchData(`${API_URL}?chat_id=${chatId}`);
 
         updateMainData(data);
-        updateDetails(data.details);
+        updateDetails(data.details || []);
         renderCalendar(data.availableDates || []);
 
-        isManager = data.isManager || false;
+        isManager = Boolean(data.isManager);
         if (isManager) {
           tabManager.classList.remove('hidden');
-          loadDepartmentsList(data.managedDepartments);
+          loadDepartmentsList(data.managedDepartments || []);
         }
 
-        // Графики с задержкой
+        // Графики
         setTimeout(() => {
           if (data.efficiencyData?.length) {
             createEfficiencyChart(data.efficiencyData);
@@ -318,7 +316,7 @@
     }
 
     /**
-     * Обновление детализации задач
+     * Обновление детализации задач — С УЧЁТОМ СЕЗОННОЙ ДОПЛАТЫ
      */
     function updateDetails(details) {
       if (!details || !Array.isArray(details)) {
@@ -330,7 +328,8 @@
         const count = item.count || 0;
         const time = item.time || '00:00:00';
         const pay = item.pay || '0,00 ₽';
-        return `${work} (${count}): ${time}, ${pay}`;
+        const xisBonus = item.xisBonus || '0,00 ₽'; // ← новое поле
+        return `${work} (${count}): ${time}, ${pay}, Сезонная доплата: ${xisBonus}`;
       }).join('\n');
       document.getElementById('details').textContent = detailsText;
     }
@@ -345,9 +344,18 @@
         type: 'bar',
         data: {
           labels: data.map(d => d.day),
-          datasets: [{ label: 'Производительность (%)', data: data.map(d => d.value), backgroundColor: '#1a8cd8' }]
+          datasets: [{
+            label: 'Производительность (%)',
+            data: data.map(d => d.value),
+            backgroundColor: '#1a8cd8'
+          }]
         },
-        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          }
+        }
       });
     }
 
@@ -369,7 +377,10 @@
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
           }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'top' } } }
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' } }
+        }
       });
     }
 
@@ -381,13 +392,15 @@
      * Отображение календаря
      */
     async function renderCalendar(availableDates) {
-      calendarAvailableDates = availableDates;
+      // Только корректные даты
+      const validDates = availableDates.filter(dateStr => /^\d{2}\.\d{2}\.\d{4}$/.test(dateStr));
+      calendarAvailableDates = validDates;
 
       // Извлекаем уникальные месяцы
       const monthSet = new Set();
-      availableDates.forEach(dateStr => {
+      validDates.forEach(dateStr => {
         const [d, m, y] = dateStr.split('.');
-        const monthName = new Date(`${y}-${m}-01`).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        const monthName = new Date(y, m - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
         monthSet.add(monthName);
       });
 
@@ -434,15 +447,19 @@
         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
       const monthNum = monthsList.indexOf(month) + 1;
       const firstDay = new Date(year, monthNum - 1, 1);
-      const lastDayNum = new Date(year, monthNum, 0).getDate();
+      
+      // Правильный день недели: понедельник = 0, воскресенье = 6
       const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+      const lastDayNum = new Date(year, monthNum, 0).getDate();
 
+      // Пустые ячейки перед 1 числом
       for (let i = 0; i < startDay; i++) {
         const el = document.createElement('div');
         el.className = 'day';
         container.appendChild(el);
       }
 
+      // Целевой год и месяц для фильтрации
       const targetYear = parseInt(year, 10);
       const targetMonth = monthNum;
       const datesInMonth = calendarAvailableDates.filter(d => {
@@ -450,6 +467,7 @@
         return parseInt(mm, 10) === targetMonth && parseInt(yy, 10) === targetYear;
       });
 
+      // Дни месяца
       for (let day = 1; day <= lastDayNum; day++) {
         const dateStr = `${day.toString().padStart(2, '0')}.${targetMonth.toString().padStart(2, '0')}.${year}`;
         const el = document.createElement('div');
@@ -507,7 +525,7 @@
       }
     });
 
-    // --- Остальные функции без изменений ---
+    // --- Остальные функции ---
     function loadDepartmentsList(departments) {
       if (!departments || !Array.isArray(departments) || departments.length === 0) {
         departmentsSelectorLoading.innerHTML = '<p>Нет доступных отделов</p>';
@@ -686,7 +704,7 @@
           document.getElementById('efficiency').textContent = '100,38%';
           document.getElementById('pay-day').textContent = 'р. 3 000,00';
           document.getElementById('pay-month').textContent = 'р. 20 000,00';
-          document.getElementById('details').textContent = 'Работа 1 (5): 02:30, 500,00 ₽\nРабота 2 (3): 01:15, 300,00 ₽';
+          document.getElementById('details').textContent = 'Работа 1 (5): 02:30, 500,00 ₽, Сезонная доплата: 10,00 ₽\nРабота 2 (3): 01:15, 300,00 ₽, Сезонная доплата: 5,00 ₽';
           loadDepartmentsList(['Отдел 1', 'Отдел 2']);
         }, 1000);
       } else {
