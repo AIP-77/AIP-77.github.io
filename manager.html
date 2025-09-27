@@ -444,21 +444,27 @@
     container.appendChild(el);
   });
 
-  // Парсинг месяца и года
+  // Парсим monthName
   const parts = monthName.trim().split(' ');
   if (parts.length < 2) {
-    container.innerHTML = '<p style="grid-column: 1 / -1; text-align:center;color:#e53935;">Ошибка: неверный формат месяца</p>';
+    container.innerHTML = `<p style="grid-column:1/-1; color:red;">Ошибка: неверный формат месяца "${monthName}"</p>`;
     return;
   }
-  const month = parts.slice(0, -1).join(' '); // на случай если вдруг "Июль" (но это не нужно, оставим как есть)
+
+  let month = parts.slice(0, -1).join(' '); // На случай "Июль", "Сентябрь"
   const year = parts[parts.length - 1];
+
+  // Приводим месяц к стандартному виду: первая буква заглавная, остальные строчные
+  month = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
 
   const monthsList = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
   const monthNum = monthsList.indexOf(month) + 1;
 
   if (monthNum === 0) {
-    container.innerHTML = `<p style="grid-column: 1 / -1; text-align:center;color:#e53935;">Неизвестный месяц: ${month}</p>`;
+    console.error("❌ Не найден месяц:", month, "в списке", monthsList);
+    container.innerHTML = `<p style="grid-column:1/-1; color:red;">Неизвестный месяц: ${month}</p>`;
     return;
   }
 
@@ -466,14 +472,14 @@
   const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Пн = 0
   const lastDayNum = new Date(year, monthNum, 0).getDate();
 
-  // Пустые ячейки
+  // Пустые ячейки перед 1 числом
   for (let i = 0; i < startDay; i++) {
     const el = document.createElement('div');
     el.className = 'day';
     container.appendChild(el);
   }
 
-  // Фильтрация дат для текущего месяца и года
+  // Фильтрация дат по текущему месяцу и году
   const targetYear = parseInt(year, 10);
   const targetMonth = monthNum;
   const datesInMonth = new Set(
