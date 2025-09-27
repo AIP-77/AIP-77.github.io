@@ -451,25 +451,35 @@
     return;
   }
 
-  let month = parts.slice(0, -1).join(' '); // На случай "Июль", "Сентябрь"
-  const year = parts[parts.length - 1];
+  let month = parts.slice(0, -1).join(' ').trim();
+  const year = parts[parts.length - 1].trim();
 
-  // Приводим месяц к стандартному виду: первая буква заглавная, остальные строчные
+  // Нормализация месяца: первая буква заглавная, остальные строчные
   month = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
 
-  const monthsList = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  // Список месяцев
+  const monthsList = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ];
 
-  const monthNum = monthsList.indexOf(month) + 1;
+  // Поиск месяца с нормализацией
+  let monthNum = -1;
+  for (let i = 0; i < monthsList.length; i++) {
+    if (monthsList[i].trim() === month) {
+      monthNum = i + 1;
+      break;
+    }
+  }
 
-  if (monthNum === 0) {
+  if (monthNum === -1) {
     console.error("❌ Не найден месяц:", month, "в списке", monthsList);
     container.innerHTML = `<p style="grid-column:1/-1; color:red;">Неизвестный месяц: ${month}</p>`;
     return;
   }
 
   const firstDay = new Date(year, monthNum - 1, 1);
-  const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Пн = 0
+  const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
   const lastDayNum = new Date(year, monthNum, 0).getDate();
 
   // Пустые ячейки перед 1 числом
@@ -479,7 +489,7 @@
     container.appendChild(el);
   }
 
-  // Фильтрация дат по текущему месяцу и году
+  // Фильтрация дат
   const targetYear = parseInt(year, 10);
   const targetMonth = monthNum;
   const datesInMonth = new Set(
@@ -511,7 +521,6 @@
     container.appendChild(el);
   }
 }
-
     /**
      * Загрузка данных за выбранную дату
      */
