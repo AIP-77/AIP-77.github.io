@@ -495,19 +495,42 @@
     }
 
     /**
-     * Загрузка данных за выбранную дату
-     */
-    async function loadEmployeeReport(date) {
-      try {
-        const data = await fetchData(`${API_URL}?chat_id=${chatId}&date=${date}`);
-        updateMainData(data);
-        updateDetails(data.details);
-        if (data.efficiencyData?.length) createEfficiencyChart(data.efficiencyData);
-        if (data.earningsData?.length) createEarningsChart(data.earningsData);
-      } catch (err) {
-        alert('Ошибка загрузки данных: ' + err.message);
-      }
+ * Загрузка данных за выбранную дату из архива
+ */
+async function loadEmployeeReport(date) {
+  try {
+    // Новый endpoint: передаём chat_id и date
+    const url = `${API_URL}?chat_id=${chatId}&date=${date}`;
+    const data = await fetchData(url);
+
+    // Обновляем данные
+    updateMainData(data);
+    updateDetails(data.details || []);
+
+    // Обновляем графики (если есть данные)
+    if (data.efficiencyData?.length) {
+      createEfficiencyChart(data.efficiencyData);
+      efficiencyLoading.classList.add('hidden');
+      efficiencyContent.classList.remove('hidden');
+    } else {
+      efficiencyContent.classList.add('hidden');
+      efficiencyLoading.innerHTML = '<p>Нет данных за этот день</p>';
     }
+
+    if (data.earningsData?.length) {
+      createEarningsChart(data.earningsData);
+      earningsLoading.classList.add('hidden');
+      earningsContent.classList.remove('hidden');
+    } else {
+      earningsContent.classList.add('hidden');
+      earningsLoading.innerHTML = '<p>Нет данных за этот день</p>';
+    }
+
+  } catch (err) {
+    console.error("Ошибка загрузки отчёта за дату:", err);
+    alert('Не удалось загрузить данные за ' + date + ': ' + (err.message || 'неизвестная ошибка'));
+  }
+}
 
     // Навигация по месяцам (личный календарь)
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
