@@ -173,7 +173,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwaQsv0Qin-4jrH61KXgBrzevHesDfMq8QZ9O7Zva_BoiJzpJFa8RdJoIOvv7rnBBxt/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwG20KrSgVYdn5XfpeGgrYo3dZBep_TkK169qdJ12aeITzgO-d78taDapGcKK_BhgP17w/exec';
     let chatId = null;
     let isManager = false;
     let currentDepartment = null;
@@ -494,20 +494,68 @@
       }
     }
 
-    /**
-     * Загрузка данных за выбранную дату
-     */
-    async function loadEmployeeReport(date) {
-      try {
-        const data = await fetchData(`${API_URL}?chat_id=${chatId}&date=${date}`);
-        updateMainData(data);
-        updateDetails(data.details);
-        if (data.efficiencyData?.length) createEfficiencyChart(data.efficiencyData);
-        if (data.earningsData?.length) createEarningsChart(data.earningsData);
-      } catch (err) {
-        alert('Ошибка загрузки данных: ' + err.message);
-      }
+   /**
+ * Загрузка данных за выбранную дату из архива
+ */
+async function loadEmployeeReport(date) {
+  // 🔹 Показываем спиннеры
+  mainDataLoading.classList.remove('hidden');
+  mainDataContent.classList.add('hidden');
+  detailsLoading.classList.remove('hidden');
+  detailsContent.classList.add('hidden');
+  efficiencyLoading.classList.remove('hidden');
+  efficiencyContent.classList.add('hidden');
+  earningsLoading.classList.remove('hidden');
+  earningsContent.classList.add('hidden');
+
+  try {
+    const url = `${API_URL}?chat_id=${chatId}&date=${date}`;
+    const data = await fetchData(url);
+
+    // Обновляем данные
+    updateMainData(data);
+    updateDetails(data.details || []);
+
+    // График производительности
+    if (data.efficiencyData?.length) {
+      createEfficiencyChart(data.efficiencyData);
+      efficiencyLoading.classList.add('hidden');
+      efficiencyContent.classList.remove('hidden');
+    } else {
+      efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
     }
+
+    // График заработка
+    if (data.earningsData?.length) {
+      createEarningsChart(data.earningsData);
+      earningsLoading.classList.add('hidden');
+      earningsContent.classList.remove('hidden');
+    } else {
+      earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+    }
+
+    // Скрываем спиннеры основного контента
+    mainDataLoading.classList.add('hidden');
+    mainDataContent.classList.remove('hidden');
+    detailsLoading.classList.add('hidden');
+    detailsContent.classList.remove('hidden');
+
+  } catch (err) {
+    console.error("Ошибка загрузки отчёта за дату:", err);
+    
+    // Показываем ошибку в каждом блоке
+    mainDataLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    detailsLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    efficiencyLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    earningsLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    
+    // Убираем контент
+    mainDataContent.classList.add('hidden');
+    detailsContent.classList.add('hidden');
+    efficiencyContent.classList.add('hidden');
+    earningsContent.classList.add('hidden');
+  }
+}
 
     // Навигация по месяцам (личный календарь)
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
