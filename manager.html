@@ -494,12 +494,21 @@
       }
     }
 
-    /**
+   /**
  * Загрузка данных за выбранную дату из архива
  */
 async function loadEmployeeReport(date) {
+  // 🔹 Показываем спиннеры
+  mainDataLoading.classList.remove('hidden');
+  mainDataContent.classList.add('hidden');
+  detailsLoading.classList.remove('hidden');
+  detailsContent.classList.add('hidden');
+  efficiencyLoading.classList.remove('hidden');
+  efficiencyContent.classList.add('hidden');
+  earningsLoading.classList.remove('hidden');
+  earningsContent.classList.add('hidden');
+
   try {
-    // Новый endpoint: передаём chat_id и date
     const url = `${API_URL}?chat_id=${chatId}&date=${date}`;
     const data = await fetchData(url);
 
@@ -507,28 +516,44 @@ async function loadEmployeeReport(date) {
     updateMainData(data);
     updateDetails(data.details || []);
 
-    // Обновляем графики (если есть данные)
+    // График производительности
     if (data.efficiencyData?.length) {
       createEfficiencyChart(data.efficiencyData);
       efficiencyLoading.classList.add('hidden');
       efficiencyContent.classList.remove('hidden');
     } else {
-      efficiencyContent.classList.add('hidden');
-      efficiencyLoading.innerHTML = '<p>Нет данных за этот день</p>';
+      efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
     }
 
+    // График заработка
     if (data.earningsData?.length) {
       createEarningsChart(data.earningsData);
       earningsLoading.classList.add('hidden');
       earningsContent.classList.remove('hidden');
     } else {
-      earningsContent.classList.add('hidden');
-      earningsLoading.innerHTML = '<p>Нет данных за этот день</p>';
+      earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
     }
+
+    // Скрываем спиннеры основного контента
+    mainDataLoading.classList.add('hidden');
+    mainDataContent.classList.remove('hidden');
+    detailsLoading.classList.add('hidden');
+    detailsContent.classList.remove('hidden');
 
   } catch (err) {
     console.error("Ошибка загрузки отчёта за дату:", err);
-    alert('Не удалось загрузить данные за ' + date + ': ' + (err.message || 'неизвестная ошибка'));
+    
+    // Показываем ошибку в каждом блоке
+    mainDataLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    detailsLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    efficiencyLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    earningsLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    
+    // Убираем контент
+    mainDataContent.classList.add('hidden');
+    detailsContent.classList.add('hidden');
+    efficiencyContent.classList.add('hidden');
+    earningsContent.classList.add('hidden');
   }
 }
 
