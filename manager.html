@@ -126,48 +126,50 @@
     </div>
 
     <!-- Вкладка "Отдел" -->
-    <div id="manager-view" class="hidden">
-      <div class="card">
-        <h2>🏢 Выбор отдела</h2>
-        <div id="departments-selector-loading" class="loading">
-          <div class="spinner"></div>
-          <p>Загрузка списка отделов...</p>
-        </div>
-        <div id="departments-selector-content" class="hidden">
-          <select id="departments-selector" class="form-select">
-            <option value="">Выберите отдел</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>📅 Календарь отдела</h2>
-        <div id="department-calendar-loading" class="loading hidden">
-          <div class="spinner"></div>
-          <p>Загрузка календаря...</p>
-        </div>
-        <div id="department-calendar-content" class="hidden">
-          <div class="month-selector">
-            <button id="prevMonthManager">◀</button>
-            <span id="currentMonthManager">Загрузка...</span>
-            <button id="nextMonthManager">▶</button>
-          </div>
-          <div class="calendar" id="manager-calendar"></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>👨‍💼 Управление отделом</h2>
-        <div id="manager-data-loading" class="loading hidden">
-          <div class="spinner"></div>
-          <p>Загрузка данных...</p>
-        </div>
-        <div id="manager-data-content" class="hidden">
-          <p><b>Дата:</b> <span id="manager-date"></span></p>
-          <div id="departments-container"></div>
-        </div>
-      </div>
+<div id="manager-view" class="hidden">
+  <!-- 👨‍💼 Управление отделом (сверху) -->
+  <div class="card">
+    <h2>👨‍💼 Управление отделом</h2>
+    <div id="manager-data-loading" class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка данных...</p>
     </div>
+    <div id="manager-data-content" class="hidden">
+      <div id="departments-container"></div>
+    </div>
+  </div>
+
+  <!-- 🏢 Выбор отдела -->
+  <div class="card">
+    <h2>🏢 Выбор отдела</h2>
+    <div id="departments-selector-loading" class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка списка отделов...</p>
+    </div>
+    <div id="departments-selector-content" class="hidden">
+      <select id="departments-selector" class="form-select">
+        <option value="">Выберите отдел</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 📅 Календарь отдела (изначально скрыт) -->
+  <div class="card" id="department-calendar-card" style="display:none;">
+    <h2>📅 Календарь отдела</h2>
+    <div id="department-calendar-loading" class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка календаря...</p>
+    </div>
+    <div id="department-calendar-content" class="hidden">
+      <div class="month-selector">
+        <button id="prevMonthManager">◀</button>
+        <span id="currentMonthManager">Загрузка...</span>
+        <button id="nextMonthManager">▶</button>
+      </div>
+      <div class="calendar" id="manager-calendar"></div>
+    </div>
+  </div>
+</div>
 
     <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
   </div>
