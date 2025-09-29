@@ -40,7 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.5.4 🛠)</h4>
+    <h4>(🛠 V.9.29 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -77,7 +77,7 @@
 
       <div class="card">
         <h2>📋 Детализация задач</h2>
-          <div id="details-loading" class="loading">
+        <div id="details-loading" class="loading">
           <div class="spinner"></div>
           <p>Загрузка детализации...</p>
         </div>
@@ -314,6 +314,7 @@
       document.getElementById('planned').textContent = data.planned || '—';
       document.getElementById('efficiency').textContent = data.efficiency || '—';
       document.getElementById('pay-day').textContent = data.payDay || '—';
+      document.getElementById('xisBonusDay').textContent = data.xisBonusDay || '—'; // ← новое поле
       document.getElementById('pay-month').textContent = data.payMonth || '—';
     }
 
@@ -388,7 +389,7 @@
 
     // === Личный календарь ===
     let calendarAvailableDates = [];
-    let calendarMonths = [];
+    let calendarMonths = []; // Хранит "ГГГГ-М", например: "2025-9"
 
     /**
      * Отображение календаря
@@ -398,18 +399,19 @@
       const validDates = availableDates.filter(dateStr => /^\d{2}\.\d{2}\.\d{4}$/.test(dateStr));
       calendarAvailableDates = validDates;
 
-      // Извлекаем уникальные месяцы
+      // Извлекаем уникальные месяцы в формате "ГГГГ-М"
       const monthSet = new Set();
       validDates.forEach(dateStr => {
         const [d, m, y] = dateStr.split('.');
-        const monthName = new Date(y, m - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-        monthSet.add(monthName);
+        const monthNum = parseInt(m, 10);
+        monthSet.add(`${y}-${monthNum}`);
       });
 
+      // Сортируем по году и месяцу
       calendarMonths = [...monthSet].sort((a, b) => {
-        const [am, ay] = a.split(' ');
-        const [bm, by] = b.split(' ');
-        return ay !== by ? ay - by : new Date(Date.parse(am + " 1, 2020")).getMonth() - new Date(Date.parse(bm + " 1, 2020")).getMonth();
+        const [y1, m1] = a.split('-').map(Number);
+        const [y2, m2] = b.split('-').map(Number);
+        return y1 !== y2 ? y1 - y2 : m1 - m2;
       });
 
       if (calendarMonths.length === 0) {
@@ -418,20 +420,26 @@
       }
 
       currentMonthIndex = calendarMonths.length - 1;
-      currentMonthSpan.textContent = calendarMonths[currentMonthIndex];
+      const [yearStr, monthStr] = calendarMonths[currentMonthIndex].split('-');
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+      currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
       prevMonthBtn.disabled = currentMonthIndex === 0;
       nextMonthBtn.disabled = currentMonthIndex === calendarMonths.length - 1;
 
-      renderCalendarGrid(calendarMonths[currentMonthIndex]);
+      renderCalendarGrid(year, month);
     }
 
     /**
-     * Рендер сетки календаря
+     * Рендер сетки календаря по году и номеру месяца
      */
-    function renderCalendarGrid(monthName) {
+    function renderCalendarGrid(year, monthNum) {
       const container = document.getElementById('calendar');
       container.innerHTML = '';
 
+      // Заголовки дней недели
       const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
       dayNames.forEach(day => {
         const el = document.createElement('div');
@@ -444,14 +452,8 @@
         container.appendChild(el);
       });
 
-      const [month, year] = monthName.split(' ');
-      const monthsList = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-      const monthNum = monthsList.indexOf(month) + 1;
       const firstDay = new Date(year, monthNum - 1, 1);
-      
-      // Правильный день недели: понедельник = 0, воскресенье = 6
-      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Пн = 0
       const lastDayNum = new Date(year, monthNum, 0).getDate();
 
       // Пустые ячейки перед 1 числом
@@ -461,17 +463,18 @@
         container.appendChild(el);
       }
 
-      // Целевой год и месяц для фильтрации
-      const targetYear = parseInt(year, 10);
-      const targetMonth = monthNum;
-      const datesInMonth = calendarAvailableDates.filter(d => {
-        const [dd, mm, yy] = d.split('.');
-        return parseInt(mm, 10) === targetMonth && parseInt(yy, 10) === targetYear;
-      });
+      // Фильтрация дат для текущего месяца и года
+      const datesInMonth = new Set(
+        calendarAvailableDates.filter(d => {
+          if (!/^\d{2}\.\d{2}\.\d{4}$/.test(d)) return false;
+          const [dd, mm, yy] = d.split('.');
+          return parseInt(mm, 10) === monthNum && parseInt(yy, 10) === year;
+        })
+      );
 
       // Дни месяца
       for (let day = 1; day <= lastDayNum; day++) {
-        const dateStr = `${day.toString().padStart(2, '0')}.${targetMonth.toString().padStart(2, '0')}.${year}`;
+        const dateStr = `${day.toString().padStart(2, '0')}.${monthNum.toString().padStart(2, '0')}.${year}`;
         const el = document.createElement('div');
         el.className = 'day';
         el.textContent = day;
@@ -480,7 +483,7 @@
         el.style.fontSize = '14px';
         el.style.cursor = 'pointer';
 
-        if (datesInMonth.includes(dateStr)) {
+        if (datesInMonth.has(dateStr)) {
           el.classList.add('available');
           el.title = 'Есть данные';
           el.addEventListener('click', () => loadEmployeeReport(dateStr));
@@ -507,23 +510,32 @@
     }
 
     // Навигация по месяцам (личный календарь)
+    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
     prevMonthBtn.addEventListener('click', () => {
       if (currentMonthIndex > 0) {
         currentMonthIndex--;
-        currentMonthSpan.textContent = calendarMonths[currentMonthIndex];
+        const [yearStr, monthStr] = calendarMonths[currentMonthIndex].split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === 0;
         nextMonthBtn.disabled = currentMonthIndex === calendarMonths.length - 1;
-        renderCalendarGrid(calendarMonths[currentMonthIndex]);
+        renderCalendarGrid(year, month);
       }
     });
 
     nextMonthBtn.addEventListener('click', () => {
       if (currentMonthIndex < calendarMonths.length - 1) {
         currentMonthIndex++;
-        currentMonthSpan.textContent = calendarMonths[currentMonthIndex];
+        const [yearStr, monthStr] = calendarMonths[currentMonthIndex].split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === 0;
         nextMonthBtn.disabled = currentMonthIndex === calendarMonths.length - 1;
-        renderCalendarGrid(calendarMonths[currentMonthIndex]);
+        renderCalendarGrid(year, month);
       }
     });
 
@@ -606,7 +618,8 @@
           el.title = 'Есть данные';
           el.addEventListener('click', () => {
             const [monthName, year] = month.split(' ');
-            const monthsList = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+            const monthsList = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+              'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
             const monthNum = monthsList.indexOf(monthName) + 1;
             const dateStr = `${d.date.toString().padStart(2, '0')}.${monthNum.toString().padStart(2, '0')}.${year}`;
             loadManagerDashboard(dateStr, department);
@@ -704,8 +717,9 @@
           document.getElementById('worked').textContent = '08:00';
           document.getElementById('planned').textContent = '09:00';
           document.getElementById('efficiency').textContent = '100,38%';
-          document.getElementById('pay-day').textContent = 'р. 3 000,00';
-          document.getElementById('pay-month').textContent = 'р. 20 000,00';
+          document.getElementById('pay-day').textContent = '3 000,00 ₽';
+          document.getElementById('xisBonusDay').textContent = '15,00 ₽'; // ← добавлено
+          document.getElementById('pay-month').textContent = '20 000,00 ₽';
           document.getElementById('details').textContent = 'Работа 1 (5): 02:30, 500,00 ₽, Сезонная доплата: 10,00 ₽\nРабота 2 (3): 01:15, 300,00 ₽, Сезонная доплата: 5,00 ₽';
           loadDepartmentsList(['Отдел 1', 'Отдел 2']);
         }, 1000);
