@@ -2,12 +2,12 @@
 import fs from 'fs';
 import https from 'https';
 
-const SPREADSHEET_ID = '2PACX-1vT9Yb0T0-z4DZ1gjUhY8N9APplWTYvLFuJjE9f8fr7_PtsvfLASuNk5qCHDGK3F3iTEXWX8Zg7-bAeT';
+const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
 const OUTPUT_PATH = './data.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
-    const url = `https://docs.google.com/spreadsheets/d/e/${SPREADSHEET_ID}/pub?output=csv`;
+    const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv`;
     https.get(url, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
