@@ -41,6 +41,6 @@ jobs:
         //  if ! git diff --quiet && ! git diff --staged --quiet; then
         //    git commit -m "🔄 Обновление data.json из Google Таблицы [$(date +'%Y-%m-%d %H:%M')]"
         //    git push
-        //  else
-         //   echo "Нет изменений в data.json"
-       //   fi
+       else
+          echo "Нет изменений в data.json"
+     fi
