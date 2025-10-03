@@ -2,8 +2,8 @@ name: Update data.json from Google Sheets
 
 on:
   schedule:
-    - cron: '1 1 * * *'
-  workflow_dispatch:
+    - cron: '0 11 * * *'  # каждый день в 01:01 UTC
+  workflow_dispatch:     # можно запустить вручную
 
 jobs:
   update:
@@ -25,10 +25,14 @@ jobs:
       - name: Generate data.json
         run: node scripts/generate-data.mjs
 
-      - name: Force commit and push (for testing)
+      - name: Commit and push if changed
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data.json
-          git commit -m "🧪 Тестовое обновление data.json [$(date +'%Y-%m-%d %H:%M')]"
-          git push
+          if ! git diff --quiet && ! git diff --staged --quiet; then
+            git commit -m "🔄 Обновление data.json из Google Таблицы [$(date +'%Y-%m-%d %H:%M')]"
+            git push
+          else
+            echo "Нет изменений в data.json — коммит не требуется."
+          fi
