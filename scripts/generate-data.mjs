@@ -2,9 +2,7 @@
 import fs from 'fs';
 import https from 'https';
 
-// ✅ Используйте именно этот ID — тот, что начинается с 2PACX-1v...
 const SPREADSHEET_ID = '2PACX-1vT9Yb0T0-z4DZ1gjUhY8N9APplWTYvLFuJjE9f8fr7_PtsvfLASuNk5qCHDGK3F3iTEXWX8Zg7-bAeT';
-
 const OUTPUT_PATH = './data.json';
 
 function fetchSheetAsCSV() {
@@ -18,28 +16,64 @@ function fetchSheetAsCSV() {
   });
 }
 
+function safeJsonParse(str) {
+  try {
+    // Google экранирует кавычки как ""
+    str = str.replace(/""/g, '"');
+    return JSON.parse(str);
+  } catch (e) {
+    console.warn('⚠️ Не удалось распарсить JSON:', str.substring(0, 50));
+    return null;
+  }
+}
+
 function csvToJson(csv) {
-  const lines = csv.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
+  const lines = csv.trim().split(/\r?\n/).filter(line => line.trim() !== '');
+  if (lines.length < 2) return {};
+
+  const headers = lines[0].split('\t').map(h => h.trim()); // ⚠️ Используем \t!
+  const telegramIdIndex = headers.indexOf('telegramId');
+
+  if (telegramIdIndex === -1) {
+    throw new Error('Столбец "telegramId" не найден');
+  }
+
   const result = {};
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim().replace(/^"(.*)"$/, '$1')); // убираем кавычки
-    const row = {};
-    for (let j = 0; j < headers.length; j++) {
-      let value = values[j];
-      // Попытка превратить число в число (но telegram_id оставим строкой!)
-      if (headers[j] !== 'telegram_id' && !isNaN(value) && value !== '') {
-        value = Number(value);
-      }
-      row[headers[j]] = value;
+    const line = lines[i];
+    // Разделяем по табуляции, но учитываем кавычки (простой способ)
+    const values = line.split('\t').map(v => v.trim());
+
+    const telegramId = values[telegramIdIndex];
+    if (!telegramId) continue;
+
+    // Парсим mainData
+    const mainDataStr = values[headers.indexOf('mainData')] || '{}';
+    const mainData = safeJsonParse(mainDataStr);
+
+    if (!mainData) continue;
+
+    // Берём общие поля (role, department) из первой записи
+    if (!result[telegramId]) {
+      result[telegramId] = {
+        role: values[headers.indexOf('role')] || '',
+        department: values[headers.indexOf('department')] || '',
+        records: []
+      };
     }
 
-    const id = String(row.telegram_id);
-    if (id && id !== 'undefined') {
-      const { telegram_id, ...rest } = row; // убираем telegram_id из данных
-      result[id] = rest;
-    }
+    // Добавляем запись по дате
+    result[telegramId].records.push({
+      date: mainData.date || values[headers.indexOf('workDate')] || '',
+      worked: mainData.worked || '',
+      planned: mainData.planned || '',
+      efficiency: mainData.efficiency || '',
+      payDay: mainData.payDay || '',
+      payMonth: mainData.payMonth || '',
+      xisBonusDay: mainData.xisBonusDay || ''
+      // Можно добавить и другие поля из details, efficiencyData и т.д.
+    });
   }
 
   return result;
@@ -49,9 +83,13 @@ async function main() {
   try {
     console.log('Загрузка данных из Google Таблицы...');
     const csv = await fetchSheetAsCSV();
+
+    // 🔍 Отладка: покажем первые 200 символов
+    console.log('CSV (фрагмент):', csv.substring(0, 200));
+
     const json = csvToJson(csv);
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(json, null, 2));
-    console.log(`✅ data.json обновлён. Всего записей: ${Object.keys(json).length}`);
+    console.log(`✅ data.json обновлён. Всего пользователей: ${Object.keys(json).length}`);
   } catch (err) {
     console.error('❌ Ошибка:', err.message);
     process.exit(1);
