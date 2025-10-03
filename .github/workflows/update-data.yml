@@ -2,7 +2,7 @@ name: Update data.json from Google Sheets
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # каждый день в 06:00 UTC (меняйте по желанию)
+    - cron: '1 1 * * *'  # каждый день в 06:00 UTC (меняйте по желанию)
   workflow_dispatch:     # можно запустить вручную в GitHub UI
 
 jobs:
