@@ -42,6 +42,15 @@
     <h1>📊 Персональная панель</h1>
     <h4>(🛠 V.3.10 🛠)</h4>
 
+    <!-- 🔹 НОВОЕ: Выбор месяца -->
+    <div class="card">
+      <label for="month-select">Выберите период:</label>
+      <select id="month-select" class="form-select">
+        <option value="current">Текущий месяц</option>
+        <!-- Архивные месяцы будут добавлены автоматически -->
+      </select>
+    </div>
+
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab hidden">Отдел</div>
@@ -125,34 +134,23 @@
       </div>
     </div>
 
-    <!-- Вкладка "Отдел" -->
-    <div id="manager-view" class="hidden">
-      <div class="card">
-        <h2>👨‍💼 Управление отделом</h2>
-        <p>Функционал временно недоступен в автономном режиме.</p>
-      </div>
-    </div>
-
     <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
   </div>
 
   <script>
     let chatId = null;
     let isManager = false;
-    let allUserData = null;
+    let currentData = null; // данные текущего выбранного месяца
     let currentRecord = null;
     let efficiencyChart = null;
     let earningsChart = null;
+    let availableArchiveMonths = []; // ['2025-09', '2025-08', ...]
 
-    // === DOM элементы ===
+    // DOM
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
-    const managerView = document.getElementById('manager-view');
-
-    const tabEmployee = document.getElementById('tab-employee');
-    const tabManager = document.getElementById('tab-manager');
-    const tabInfo = document.getElementById('tab-info');
+    const monthSelect = document.getElementById('month-select');
 
     const mainDataLoading = document.getElementById('main-data-loading');
     const mainDataContent = document.getElementById('main-data-content');
@@ -170,6 +168,81 @@
     const currentMonthSpan = document.getElementById('currentMonth');
 
     /**
+     * Получить список архивных месяцев
+     */
+    async function loadArchiveMonths() {
+      // Простой способ: попробуем загрузить несколько последних месяцев
+      const now = new Date();
+      const monthsToCheck = [];
+      for (let i = 1; i <= 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        monthsToCheck.push(`${y}-${m}`);
+      }
+
+      const validMonths = [];
+      for (const month of monthsToCheck) {
+        try {
+          const response = await fetch(`archive/${month}.json`, { method: 'HEAD' });
+          if (response.ok) {
+            validMonths.push(month);
+          }
+        } catch (e) {
+          // Файл не существует — пропускаем
+        }
+      }
+      availableArchiveMonths = validMonths;
+      return validMonths;
+    }
+
+    /**
+     * Загрузить данные за указанный период
+     */
+    async function loadPeriodData(period) {
+      let url;
+      if (period === 'current') {
+        url = 'current.json';
+      } else {
+        url = `archive/${period}.json`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Не удалось загрузить ${url}`);
+      return await response.json();
+    }
+
+    /**
+     * Обновить список месяцев в селекте
+     */
+    function updateMonthSelect() {
+      // Сохраняем текущее значение
+      const currentValue = monthSelect.value;
+
+      // Очищаем, кроме "Текущий месяц"
+      while (monthSelect.options.length > 1) {
+        monthSelect.remove(1);
+      }
+
+      // Добавляем архивные месяцы
+      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+      availableArchiveMonths.forEach(month => {
+        const [year, num] = month.split('-');
+        const name = monthNames[parseInt(num, 10) - 1];
+        const option = document.createElement('option');
+        option.value = month;
+        option.textContent = `${name} ${year}`;
+        monthSelect.appendChild(option);
+      });
+
+      // Восстанавливаем значение, если оно ещё доступно
+      if (currentValue === 'current' || availableArchiveMonths.includes(currentValue)) {
+        monthSelect.value = currentValue;
+      }
+    }
+
+    /**
      * Инициализация
      */
     async function init() {
@@ -185,32 +258,53 @@
         if (!user?.id) throw new Error('Пользователь не найден');
         chatId = String(user.id);
 
-        const response = await fetch('current.json');
-        if (!response.ok) throw new Error('Не удалось загрузить current.json');
-        allUserData = await response.json();
+        // Загружаем список архивных месяцев
+        await loadArchiveMonths();
+        updateMonthSelect();
 
-        const userData = allUserData[chatId];
+        // Загружаем данные по умолчанию (текущий месяц)
+        await switchToPeriod('current');
+
+        loading.classList.add('hidden');
+        employeeView.classList.remove('hidden');
+
+      } catch (err) {
+        console.error('Ошибка инициализации:', err);
+        showError('Ошибка: ' + err.message);
+      }
+    }
+
+    /**
+     * Переключиться на другой период
+     */
+    async function switchToPeriod(period) {
+      try {
+        // Показываем общий спиннер
+        loading.classList.remove('hidden');
+        employeeView.classList.add('hidden');
+
+        const allData = await loadPeriodData(period);
+        const userData = allData[chatId];
         if (!userData) {
-          showError('Данные не найдены для вашего аккаунта');
+          showError('Данные не найдены для вашего аккаунта в этом периоде');
           return;
         }
 
-        // Определяем, менеджер ли (адаптируйте под вашу логику)
         isManager = ['менеджер', 'руководитель', 'админ'].includes(userData.role?.toLowerCase());
-
         const records = userData.records || [];
         if (records.length === 0) {
-          showError('Нет записей за текущий период');
+          showError('Нет записей в выбранном периоде');
           return;
         }
 
-        // Сортируем по дате (свежая — первая)
+        // Сортируем по дате
         const sortedRecords = records.sort((a, b) => {
           const [d1, m1, y1] = a.date.split('.').map(Number);
           const [d2, m2, y2] = b.date.split('.').map(Number);
           return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
         });
 
+        currentData = allData;
         currentRecord = sortedRecords[0];
 
         updateMainData(userData, currentRecord);
@@ -222,14 +316,19 @@
             createEfficiencyChart(currentRecord.efficiencyData);
             efficiencyLoading.classList.add('hidden');
             efficiencyContent.classList.remove('hidden');
+          } else {
+            efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
           }
           if (currentRecord.earningsData?.length) {
             createEarningsChart(currentRecord.earningsData);
             earningsLoading.classList.add('hidden');
             earningsContent.classList.remove('hidden');
+          } else {
+            earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
           }
         }, 300);
 
+        // Скрываем общий спиннер
         loading.classList.add('hidden');
         employeeView.classList.remove('hidden');
         mainDataLoading.classList.add('hidden');
@@ -239,16 +338,13 @@
         calendarLoading.classList.add('hidden');
         calendarContent.classList.remove('hidden');
 
-        if (isManager) {
-          tabManager.classList.remove('hidden');
-        }
-
       } catch (err) {
-        console.error('Ошибка инициализации:', err);
-        showError('Ошибка: ' + err.message);
+        console.error('Ошибка загрузки периода:', err);
+        showError('Не удалось загрузить период: ' + err.message);
       }
     }
 
+    // === Остальные функции (без изменений) ===
     function updateMainData(userData, record) {
       document.getElementById('name').textContent = userData.name || '—';
       document.getElementById('date').textContent = record.date || '—';
@@ -281,11 +377,11 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-            data: data.map(d => d.value),
+             data.map(d => d.value),
             backgroundColor: '#1a8cd8'
           }]
         },
@@ -301,11 +397,11 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-            data: data.map(d => d.pay),
+             data.map(d => d.pay),
             borderColor: '#1a8cd8',
             fill: true,
             backgroundColor: 'rgba(26, 140, 216, 0.2)'
@@ -318,7 +414,7 @@
       });
     }
 
-    // === Календарь ===
+    // === Календарь (без изменений) ===
     let calendarRecords = [];
     let calendarMonths = [];
     let currentMonthIndex = 0;
@@ -411,7 +507,7 @@
 
     function loadRecord(record) {
       currentRecord = record;
-      const userData = allUserData[chatId];
+      const userData = currentData[chatId];
       updateMainData(userData, record);
       updateDetails(record.details || []);
 
@@ -436,84 +532,4 @@
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
     prevMonthBtn.addEventListener('click', () => {
-      if (currentMonthIndex > 0) {
-        currentMonthIndex--;
-        const [yearStr, monthStr] = calendarMonths[currentMonthIndex].split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        prevMonthBtn.disabled = currentMonthIndex === 0;
-        nextMonthBtn.disabled = currentMonthIndex === calendarMonths.length - 1;
-        renderCalendarGrid(year, month);
-      }
-    });
-
-    nextMonthBtn.addEventListener('click', () => {
-      if (currentMonthIndex < calendarMonths.length - 1) {
-        currentMonthIndex++;
-        const [yearStr, monthStr] = calendarMonths[currentMonthIndex].split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        prevMonthBtn.disabled = currentMonthIndex === 0;
-        nextMonthBtn.disabled = currentMonthIndex === calendarMonths.length - 1;
-        renderCalendarGrid(year, month);
-      }
-    });
-
-    function enableTestMode() {
-      chatId = '2'; // ID из вашего примера
-      setTimeout(async () => {
-        try {
-          const response = await fetch('current.json');
-          allUserData = await response.json();
-          const userData = allUserData[chatId];
-          if (!userData) {
-            showError('Тестовые данные не найдены');
-            return;
-          }
-          currentRecord = userData.records[0];
-          updateMainData(userData, currentRecord);
-          updateDetails(currentRecord.details || []);
-          renderCalendar(userData.records);
-
-          loading.classList.add('hidden');
-          employeeView.classList.remove('hidden');
-          mainDataLoading.classList.add('hidden');
-          mainDataContent.classList.remove('hidden');
-          detailsLoading.classList.add('hidden');
-          detailsContent.classList.remove('hidden');
-          calendarLoading.classList.add('hidden');
-          calendarContent.classList.remove('hidden');
-        } catch (err) {
-          showError('Ошибка тестового режима: ' + err.message);
-        }
-      }, 1000);
-    }
-
-    function showError(msg) {
-      loading.classList.add('hidden');
-      error.textContent = msg;
-      error.classList.remove('hidden');
-    }
-
-    tabEmployee.addEventListener('click', () => {
-      employeeView.classList.remove('hidden');
-      managerView.classList.add('hidden');
-      tabEmployee.classList.add('active');
-      tabManager.classList.remove('active');
-    });
-
-    tabManager.addEventListener('click', () => {
-      if (isManager) {
-        employeeView.classList.add('hidden');
-        managerView.classList.remove('hidden');
-        tabManager.classList.add('active');
-        tabEmployee.classList.remove('active');
-      }
-    });
-
-    window.onload = init;
-  </script>
-</body>
-</html>
+      if (currentMonthIndex > 0)
