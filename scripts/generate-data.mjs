@@ -55,7 +55,6 @@ function fetchSheetAsCSV() {
 function parseCSV(csv) {
   const lines = csv.trim().split(/\r?\n/);
   const result = [];
-  // Регулярка для CSV с кавычками
   const regex = /("(?:[^"]|"")*"|[^,\r\n]*)(?=\s*,|\s*$)/g;
 
   for (const line of lines) {
@@ -89,13 +88,31 @@ function csvToJson(csv) {
     const telegramId = row[telegramIdIndex]?.trim();
     if (!telegramId) continue;
 
+    // Парсим mainData
     const mainDataStr = row[headers.indexOf('mainData')] || '{}';
     let mainData = {};
     try {
       mainData = JSON.parse(mainDataStr);
     } catch (e) {
+      console.warn(`⚠️ Ошибка парсинга mainData в строке ${i}:`, mainDataStr.substring(0, 50));
       continue;
     }
+
+    // Парсим другие JSON-поля
+    const detailsStr = row[headers.indexOf('details')] || '[]';
+    const efficiencyDataStr = row[headers.indexOf('efficiencyData')] || '[]';
+    const earningsDataStr = row[headers.indexOf('earningsData')] || '[]';
+    const managedDepartmentsStr = row[headers.indexOf('managedDepartments')] || '[]';
+
+    let details = [];
+    let efficiencyData = [];
+    let earningsData = [];
+    let managedDepartments = [];
+
+    try { details = JSON.parse(detailsStr); } catch (e) {}
+    try { efficiencyData = JSON.parse(efficiencyDataStr); } catch (e) {}
+    try { earningsData = JSON.parse(earningsDataStr); } catch (e) {}
+    try { managedDepartments = JSON.parse(managedDepartmentsStr); } catch (e) {}
 
     if (!result[telegramId]) {
       result[telegramId] = {
@@ -106,13 +123,25 @@ function csvToJson(csv) {
     }
 
     result[telegramId].records.push({
-      date: mainData.date || '',
+      date: mainData.date || row[headers.indexOf('workDate')] || '',
       worked: mainData.worked || '',
       planned: mainData.planned || '',
       efficiency: mainData.efficiency || '',
       payDay: mainData.payDay || '',
       payMonth: mainData.payMonth || '',
-      xisBonusDay: mainData.xisBonusDay || ''
+      xisBonusDay: mainData.xisBonusDay || '',
+
+      // Добавляем все остальные поля
+      details: details,
+      efficiencyData: efficiencyData,
+      earningsData: earningsData,
+      managedDepartments: managedDepartments,
+
+      // Можно добавить и raw-данные, если нужно
+      // raw: {
+      //   workDate: row[headers.indexOf('workDate')],
+      //   updateTimestamp: row[headers.indexOf('updateTimestamp')]
+      // }
     });
   }
 
