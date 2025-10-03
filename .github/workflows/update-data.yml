@@ -26,10 +26,11 @@ jobs:
       - name: Generate current.json
         run: |
           node scripts/generate-current.mjs
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add current.json
           if ! git diff --staged --quiet; then
-            git config --global user.name 'github-actions[bot]'
-            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+            git pull --rebase origin main
             git commit -m "🔄 Обновление current.json [$(date +'%Y-%m-%d %H:%M')]"
             git push
           else
