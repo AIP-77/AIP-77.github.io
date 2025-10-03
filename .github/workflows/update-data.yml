@@ -33,6 +33,4 @@ jobs:
     git commit -m "🧪 Тестовое обновление data.json [$(date +'%Y-%m-%d %H:%M')]"
     git push
 
-       else
-          echo "Нет изменений в data.json"
-     fi
+       
