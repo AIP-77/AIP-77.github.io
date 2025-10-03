@@ -2,7 +2,7 @@ name: Update and Archive Monthly Data
 
 on:
   schedule:
-    - cron: '00 15 * * *'
+    - cron: '1 15 * * *'
   workflow_dispatch:
 
 jobs:
@@ -22,11 +22,11 @@ jobs:
         with:
           node-version: '20'
 
-      # 1. Обновляем текущие данные → current.json
+      # 1. Генерируем current.json
       - name: Generate current.json
-        run: node scripts/generate-current.mjs
+        run: node scripts/generate-current.mjs  # ← теперь сохраняет в current.json
 
-      # 2. Архивация (только 1-го числа)
+      # 2. Архивация (1-го числа)
       - name: Archive previous month if needed
         run: |
           DAY=$(date -u +%d)
@@ -44,14 +44,11 @@ jobs:
             echo "Не 1-е число — архивация не требуется."
           fi
 
-      # 3. Опционально: обновить data.json как копию current.json (если Mini App читает data.json)
-      - name: Update data.json (as alias to current.json)
+      # 3. Копируем current.json → data.json (для совместимости с Mini App)
+      - name: Update data.json
         run: |
           cp current.json data.json
           git add data.json
           if ! git diff --quiet -- data.json; then
             git config --global user.name 'github-actions[bot]'
-            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-            git commit -m "🔄 Обновление данных [$(date +'%Y-%m-%d %H:%M')]"
-            git push
-          fi
+            git config --global user
