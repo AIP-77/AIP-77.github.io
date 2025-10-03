@@ -1,5 +1,8 @@
 // scripts/generate-data.mjs
 import fs from 'fs';
+import https from 'https';
+import http from 'http';
+import { URL } from 'url';
 
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
 const OUTPUT_PATH = './data.json';
@@ -13,11 +16,13 @@ function fetchSheetAsCSV() {
         return reject(new Error('Слишком много редиректов'));
       }
 
-      const mod = url.startsWith('https') ? require('https') : require('http');
       const parsedUrl = new URL(url);
+      const isHttps = parsedUrl.protocol === 'https:';
+      const lib = isHttps ? https : http;
+
       const options = {
         hostname: parsedUrl.hostname,
-        port: parsedUrl.port,
+        port: parsedUrl.port || (isHttps ? 443 : 80),
         path: parsedUrl.pathname + parsedUrl.search,
         method: 'GET',
         headers: {
@@ -25,7 +30,7 @@ function fetchSheetAsCSV() {
         }
       };
 
-      const req = mod.request(options, (res) => {
+      const req = lib.request(options, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           const nextUrl = new URL(res.headers.location, url).href;
           followRedirects(nextUrl, redirectCount + 1);
@@ -46,10 +51,11 @@ function fetchSheetAsCSV() {
   });
 }
 
-// --- Парсинг CSV (с запятыми и кавычками) ---
+// --- Парсинг CSV ---
 function parseCSV(csv) {
   const lines = csv.trim().split(/\r?\n/);
   const result = [];
+  // Регулярка для CSV с кавычками
   const regex = /("(?:[^"]|"")*"|[^,\r\n]*)(?=\s*,|\s*$)/g;
 
   for (const line of lines) {
@@ -113,7 +119,7 @@ function csvToJson(csv) {
   return result;
 }
 
-// --- Основной запуск ---
+// --- Запуск ---
 async function main() {
   try {
     console.log('Загрузка данных из Google Таблицы...');
