@@ -5,7 +5,7 @@ import http from 'http';
 import { URL } from 'url';
 
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
-const OUTPUT_PATH = './data.json';
+const OUTPUT_PATH = './current.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
@@ -157,7 +157,7 @@ async function main() {
 
     const json = csvToJson(csv);
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(json, null, 2));
-    console.log(`✅ data.json обновлён. Всего пользователей: ${Object.keys(json).length}`);
+    console.log(`✅ current.json обновлён. Всего пользователей: ${Object.keys(json).length}`);
   } catch (err) {
     console.error('❌ Ошибка:', err.message);
     process.exit(1);
