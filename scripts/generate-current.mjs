@@ -1,4 +1,4 @@
-// scripts/generate-data.mjs
+// scripts/generate-current.mjs
 import fs from 'fs';
 import https from 'https';
 import http from 'http';
@@ -51,7 +51,7 @@ function fetchSheetAsCSV() {
   });
 }
 
-// --- Парсинг CSV ---
+// --- Парсинг CSV с поддержкой кавычек ---
 function parseCSV(csv) {
   const lines = csv.trim().split(/\r?\n/);
   const result = [];
@@ -98,30 +98,29 @@ function csvToJson(csv) {
       continue;
     }
 
-    // Парсим другие JSON-поля
+    // Парсим остальные JSON-поля
     const detailsStr = row[headers.indexOf('details')] || '[]';
     const efficiencyDataStr = row[headers.indexOf('efficiencyData')] || '[]';
     const earningsDataStr = row[headers.indexOf('earningsData')] || '[]';
     const managedDepartmentsStr = row[headers.indexOf('managedDepartments')] || '[]';
 
-    let details = [];
-    let efficiencyData = [];
-    let earningsData = [];
-    let managedDepartments = [];
-
+    let details = [], efficiencyData = [], earningsData = [], managedDepartments = [];
     try { details = JSON.parse(detailsStr); } catch (e) {}
     try { efficiencyData = JSON.parse(efficiencyDataStr); } catch (e) {}
     try { earningsData = JSON.parse(earningsDataStr); } catch (e) {}
     try { managedDepartments = JSON.parse(managedDepartmentsStr); } catch (e) {}
 
+    // Инициализируем пользователя, если его ещё нет
     if (!result[telegramId]) {
       result[telegramId] = {
+        name: mainData.name || '', // ← имя на уровне пользователя
         role: row[headers.indexOf('role')] || '',
         department: row[headers.indexOf('department')] || '',
         records: []
       };
     }
 
+    // Добавляем запись по дате
     result[telegramId].records.push({
       date: mainData.date || row[headers.indexOf('workDate')] || '',
       worked: mainData.worked || '',
@@ -130,25 +129,17 @@ function csvToJson(csv) {
       payDay: mainData.payDay || '',
       payMonth: mainData.payMonth || '',
       xisBonusDay: mainData.xisBonusDay || '',
-
-      // Добавляем все остальные поля
       details: details,
       efficiencyData: efficiencyData,
       earningsData: earningsData,
-      managedDepartments: managedDepartments,
-
-      // Можно добавить и raw-данные, если нужно
-      // raw: {
-      //   workDate: row[headers.indexOf('workDate')],
-      //   updateTimestamp: row[headers.indexOf('updateTimestamp')]
-      // }
+      managedDepartments: managedDepartments
     });
   }
 
   return result;
 }
 
-// --- Запуск ---
+// --- Основной запуск ---
 async function main() {
   try {
     console.log('Загрузка данных из Google Таблицы...');
@@ -157,7 +148,7 @@ async function main() {
 
     const json = csvToJson(csv);
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(json, null, 2));
-    console.log(`✅ current.json обновлён. Всего пользователей: ${Object.keys(json).length}`);
+    console.log(`✅ ${OUTPUT_PATH} обновлён. Всего пользователей: ${Object.keys(json).length}`);
   } catch (err) {
     console.error('❌ Ошибка:', err.message);
     process.exit(1);
