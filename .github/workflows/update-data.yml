@@ -2,7 +2,7 @@ name: Update and Archive Monthly Data
 
 on:
   schedule:
-    - cron: '30 17 * * *'
+    - cron: '00 18 * * *'
   workflow_dispatch:
 
 jobs:
