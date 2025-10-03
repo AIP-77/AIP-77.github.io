@@ -2,7 +2,7 @@
 import fs from 'fs';
 import https from 'https';
 
-const SPREADSHEET_ID = '1ILKzRKKisMVBq6Hmw3QZdWYP8pYP8oPSXVWZ6vxBKYo'; // ← замените на ваш ID!
+const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4'; // ← замените на ваш ID!
 const OUTPUT_PATH = './data.json';
 
 function fetchSheetAsCSV() {
