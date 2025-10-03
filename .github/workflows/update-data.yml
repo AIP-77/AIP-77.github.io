@@ -9,7 +9,7 @@ jobs:
   update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # ← обязательно! Даёт право пушить
+      contents: write
 
     steps:
       - name: Checkout
@@ -25,12 +25,10 @@ jobs:
       - name: Generate data.json
         run: node scripts/generate-data.mjs
 
-        - name: Force commit and push (for testing)
-  run: |
-    git config --global user.name 'github-actions[bot]'
-    git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-    git add data.json
-    git commit -m "🧪 Тестовое обновление data.json [$(date +'%Y-%m-%d %H:%M')]"
-    git push
-
-       
+      - name: Force commit and push (for testing)
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data.json
+          git commit -m "🧪 Тестовое обновление data.json [$(date +'%Y-%m-%d %H:%M')]"
+          git push
