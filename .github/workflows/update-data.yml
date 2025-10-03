@@ -1,9 +1,9 @@
-name: Update data.json from Google Sheets
+name: Update and Archive Monthly Data
 
 on:
   schedule:
-    - cron: '0 14 * * *'  # каждый день в 01:01 UTC
-  workflow_dispatch:     # можно запустить вручную
+    - cron: '30 14 * * *'  # каждый день в 01:01 UTC
+  workflow_dispatch:
 
 jobs:
   update:
@@ -22,17 +22,37 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Generate data.json
-        run: node scripts/generate-data.mjs
+      # 1. Обновляем текущие данные
+      - name: Generate current.json
+        run: node scripts/generate-current.mjs
 
-      - name: Commit and push if changed
+      # 2. Проверяем, нужно ли архивировать (если сегодня 1-е число)
+      - name: Archive previous month if needed
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data.json
-          if ! git diff --quiet && ! git diff --staged --quiet; then
-            git commit -m "🔄 Обновление data.json из Google Таблицы [$(date +'%Y-%m-%d %H:%M')]"
+          DAY=$(date -u +%d)
+          if [ "$DAY" = "01" ]; then
+            echo "Сегодня 1-е число — архивируем прошлый месяц..."
+            PREV_MONTH=$(date -u -d "yesterday" +%Y-%m)
+            mkdir -p archive
+            cp current.json archive/${PREV_MONTH}.json
+            git add archive/${PREV_MONTH}.json
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+            git commit -m "📦 Архив: ${PREV_MONTH}.json"
             git push
           else
-            echo "Нет изменений в data.json — коммит не требуется."
+            echo "Не 1-е число — архивация не требуется."
+          fi
+
+      # 3. Обновляем основной data.json (если нужно)
+      - name: Update data.json (optional)
+        run: |
+          # Например, data.json = { current: ..., archive: [...] }
+          node scripts/build-main-data.mjs
+          git add data.json
+          if ! git diff --quiet -- data.json; then
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+            git commit -m "🔄 Обновление текущих данных"
+            git push
           fi
