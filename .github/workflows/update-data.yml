@@ -2,7 +2,7 @@ name: Update and Archive Monthly Data
 
 on:
   schedule:
-    - cron: '30 18 * * *'
+    - cron: '00 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -24,17 +24,22 @@ jobs:
 
       # 1. Генерируем current.json
       - name: Generate current.json
+        run: node scripts/generate-current.mjs
+
+      - name: Generate calendar-cache.json
+        run: node scripts/generate-calendar-cache.mjs
+
+      - name: Commit and push
         run: |
-          node scripts/generate-current.mjs
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add current.json
-          if ! git diff --staged --quiet; then
-            git pull --rebase origin main
-            git commit -m "🔄 Обновление current.json [$(date +'%Y-%m-%d %H:%M')]"
+          git add current.json calendar-cache.json
+          if ! git diff --quiet -- current.json calendar-cache.json; then
+            git pull --rebase origin main  # чтобы избежать конфликта
+            git commit -m "🔄 Обновление данных [$(date +'%Y-%m-%d %H:%M')]"
             git push
           else
-            echo "current.json не изменился"
+            echo "Нет изменений"
           fi
 
       # 2. Архивация (1-го числа)
