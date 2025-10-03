@@ -2,31 +2,37 @@ name: Update data.json from Google Sheets
 
 on:
   schedule:
-    - cron: '1 1 * * *'  # каждый день в 06:00 UTC (меняйте по желанию)
-  workflow_dispatch:     # можно запустить вручную в GitHub UI
+    - cron: '1 1 * * *'
+  workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # ← обязательно! Даёт право пушить
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies (if needed)
-        run: |
-          # В нашем случае зависимости не нужны — чистый JS
-
       - name: Generate data.json
         run: node scripts/generate-data.mjs
 
       - name: Commit and push if changed
         run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add data.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "🔄 Обновление data.json из Google Таблицы" && git push)
+          if ! git diff --quiet && ! git diff --staged --quiet; then
+            git commit -m "🔄 Обновление data.json из Google Таблицы [$(date +'%Y-%m-%d %H:%M')]"
+            git push
+          else
+            echo "Нет изменений в data.json"
+          fi
