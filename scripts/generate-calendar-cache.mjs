@@ -4,15 +4,12 @@ import https from 'https';
 import http from 'http';
 import { URL } from 'url';
 
-// ID таблицы и листа "Кэш календаря"
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
 const OUTPUT_PATH = './calendar-cache.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
-    // Экспорт конкретного листа: добавьте gid=...
-    // Найдите GID листа в URL таблицы: ...#gid=123456789
-    const GID = '1089459860'; // ← ЗАМЕНИТЕ на GID вашего листа "Кэш календаря"
+    const GID = '1089459860'; // ← ЗАМЕНИТЕ на реальный GID вашего листа "Кэш календаря"
     const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}`;
 
     function followRedirects(url, redirectCount = 0) {
@@ -77,14 +74,12 @@ function csvToCalendarCache(csv) {
     const telegramId = row[telegramIdIndex]?.trim();
     if (!telegramId) continue;
 
-    result[telegramId] = {};
+    result[String(telegramId)] = {}; // ✅ Ключ всегда строка
 
-    // Обрабатываем каждый месяц (все столбцы после ФИО)
     for (let j = 2; j < headers.length; j++) {
       const monthHeader = headers[j];
       if (!monthHeader || monthHeader === 'ФИО') continue;
 
-      // Пример: "Сентябрь 2025" → "2025-09"
       const match = monthHeader.match(/(\w+)\s+(\d{4})/);
       if (!match) continue;
 
@@ -98,7 +93,7 @@ function csvToCalendarCache(csv) {
       try {
         const dates = JSON.parse(datesStr);
         if (Array.isArray(dates)) {
-          result[telegramId][key] = dates;
+          result[String(telegramId)][key] = dates;
         }
       } catch (e) {
         console.warn(`Ошибка парсинга дат для ${telegramId} в ${monthHeader}:`, datesStr);
@@ -121,7 +116,7 @@ async function main() {
     console.log('Генерация calendar-cache.json...');
     const csv = await fetchSheetAsCSV();
     const json = csvToCalendarCache(csv);
-    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(json, null, 2));
+    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(json, null, 2), 'utf8');
     console.log(`✅ ${OUTPUT_PATH} создан. Пользователей: ${Object.keys(json).length}`);
   } catch (err) {
     console.error('❌ Ошибка:', err.message);
