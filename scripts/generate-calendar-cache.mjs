@@ -9,7 +9,7 @@ const OUTPUT_PATH = './calendar-cache.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
-    const GID = '1089459860'; // ← ЗАМЕНИТЕ на реальный GID вашего листа "Кэш календаря"
+    const GID = '0'; // ← ЗАМЕНИТЕ на реальный GID вашего листа "Кэш календаря"
     const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}`;
 
     function followRedirects(url, redirectCount = 0) {
@@ -43,19 +43,28 @@ function fetchSheetAsCSV() {
   });
 }
 
+// Простой парсер CSV
 function parseCSV(csv) {
   const lines = csv.trim().split(/\r?\n/);
   const result = [];
-  const regex = /("(?:[^"]|"")*"|[^,\r\n]*)(?=\s*,|\s*$)/g;
-  for (const line of lines) {
-    const matches = [...line.matchAll(regex)].map(m => m[1]);
-    const parsed = matches.map(field => {
-      if (field.startsWith('"') && field.endsWith('"')) {
-        return field.slice(1, -1).replace(/""/g, '"');
+  for (let line of lines) {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (let char of line) {
+      if (char === '"' && !inQuotes) {
+        inQuotes = true;
+      } else if (char === '"' && inQuotes) {
+        inQuotes = false;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current);
+        current = '';
+      } else {
+        current += char;
       }
-      return field;
-    });
-    result.push(parsed);
+    }
+    values.push(current);
+    result.push(values);
   }
   return result;
 }
@@ -68,7 +77,7 @@ function csvToCalendarCache(csv) {
   }
 
   const headers = parsed[0].map(h => h.trim());
-  console.log('✅ Заголовки:', headers); // ← теперь будет видно
+  console.log('✅ Заголовки:', headers);
 
   const telegramIdIndex = headers.indexOf('Telegram ID');
   if (telegramIdIndex === -1) {
@@ -87,7 +96,6 @@ function csvToCalendarCache(csv) {
 
     result[String(telegramId)] = {};
 
-    // Обрабатываем каждый месяц
     for (let j = 2; j < headers.length; j++) {
       const monthHeader = headers[j];
       if (!monthHeader || monthHeader === 'ФИО') continue;
@@ -124,6 +132,7 @@ function csvToCalendarCache(csv) {
   console.log(`✅ Всего пользователей в кэше: ${Object.keys(result).length}`);
   return result;
 }
+
 function getMonthNumber(name) {
   const months = {
     'Январь': 1, 'Февраль': 2, 'Март': 3, 'Апрель': 4, 'Май': 5, 'Июнь': 6,
