@@ -8,10 +8,9 @@ const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
 const GID = '0'; // ← ЗАМЕНИТЕ на реальный GID вашего листа с данными!
 const OUTPUT_PATH = './current.json';
 
-function fetchSheetAsCSV() {
+function fetchSheetAsTSV() {
   return new Promise((resolve, reject) => {
-    // 🔥 Убран пробел + добавлен GID + кэш-бастер
-    const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}&t=${Date.now()}`;
+    const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=tsv&gid=${GID}&t=${Date.now()}`;
 
     function followRedirects(url, redirectCount = 0) {
       if (redirectCount > 5) {
@@ -53,36 +52,27 @@ function fetchSheetAsCSV() {
   });
 }
 
-// --- Парсинг CSV ---
-function parseCSV(csv) {
-  const lines = csv.trim().split(/\r?\n/);
+// --- Парсинг TSV ---
+function parseTSV(tsv) {
+  const lines = tsv.trim().split(/\r?\n/);
   const result = [];
-  const regex = /("(?:[^"]|"")*"|[^,\r\n]*)(?=\s*,|\s*$)/g;
-
   for (const line of lines) {
-    const matches = [...line.matchAll(regex)].map(m => m[1]);
-    const parsed = matches.map(field => {
-      if (field.startsWith('"') && field.endsWith('"')) {
-        return field.slice(1, -1).replace(/""/g, '"');
-      }
-      return field;
-    });
-    result.push(parsed);
+    const values = line.split('\t');
+    result.push(values);
   }
   return result;
 }
 
-function csvToJson(csv) {
-  const parsed = parseCSV(csv);
+function csvToJson(tsv) {
+  const parsed = parseTSV(tsv);
   if (parsed.length < 2) return {};
 
   const headers = parsed[0].map(h => h.trim());
-  // 🔥 Исправлено: "telegramId" → "Telegram ID" (с пробелом и заглавными)
   const telegramIdIndex = headers.indexOf('telegramId');
 
   if (telegramIdIndex === -1) {
     console.error('Заголовки:', headers);
-    throw new Error('Столбец "Telegram ID" не найден');
+    throw new Error('Столбец "telegramId" не найден');
   }
 
   const result = {};
@@ -141,10 +131,10 @@ function csvToJson(csv) {
 async function main() {
   try {
     console.log('Загрузка данных из Google Таблицы...');
-    const csv = await fetchSheetAsCSV();
-    console.log('CSV (фрагмент):', csv.substring(0, 200));
+    const tsv = await fetchSheetAsTSV();
+    console.log('TSV (фрагмент):', tsv.substring(0, 200));
 
-    const json = csvToJson(csv);
+    const json = csvToJson(tsv);
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(json, null, 2));
     console.log(`✅ ${OUTPUT_PATH} обновлён. Всего пользователей: ${Object.keys(json).length}`);
   } catch (err) {
