@@ -5,26 +5,32 @@ import http from 'http';
 import { URL } from 'url';
 
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
+const GID = '1089459860'; // ← ЗАМЕНИТЕ на реальный GID вашего листа "Кэш календаря"!
 const OUTPUT_PATH = './calendar-cache.json';
 
-function fetchSheetAsCSV() {
+function fetchSheetAsTSV() {
   return new Promise((resolve, reject) => {
-    const GID = '1089459860'; // ← ОБЯЗАТЕЛЬНО замените!
-    // 🔥 Добавлен кэш-бастер
-    const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}&t=${Date.now()}`;
+    const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=tsv&gid=${GID}&t=${Date.now()}`;
 
     function followRedirects(url, redirectCount = 0) {
-      if (redirectCount > 5) return reject(new Error('Слишком много редиректов'));
+      if (redirectCount > 5) {
+        return reject(new Error('Слишком много редиректов'));
+      }
+
       const parsedUrl = new URL(url);
       const isHttps = parsedUrl.protocol === 'https:';
       const lib = isHttps ? https : http;
+
       const options = {
         hostname: parsedUrl.hostname,
         port: parsedUrl.port || (isHttps ? 443 : 80),
         path: parsedUrl.pathname + parsedUrl.search,
         method: 'GET',
-        headers: { 'User-Agent': 'Mozilla/5.0 (GitHub Actions)' }
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (GitHub Actions)'
+        }
       };
+
       const req = lib.request(options, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           const nextUrl = new URL(res.headers.location, url).href;
@@ -37,34 +43,21 @@ function fetchSheetAsCSV() {
           reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
         }
       });
+
       req.on('error', reject);
       req.end();
     }
+
     followRedirects(originalUrl);
   });
 }
 
-// Простой парсер CSV
-function parseCSV(csv) {
-  const lines = csv.trim().split(/\r?\n/);
+// --- Парсинг TSV ---
+function parseTSV(tsv) {
+  const lines = tsv.trim().split(/\r?\n/);
   const result = [];
-  for (let line of lines) {
-    const values = [];
-    let current = '';
-    let inQuotes = false;
-    for (let char of line) {
-      if (char === '"' && !inQuotes) {
-        inQuotes = true;
-      } else if (char === '"' && inQuotes) {
-        inQuotes = false;
-      } else if (char === ',' && !inQuotes) {
-        values.push(current);
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    values.push(current);
+  for (const line of lines) {
+    const values = line.split('\t');
     result.push(values);
   }
   return result;
@@ -90,10 +83,10 @@ function getMonthKey(monthHeader) {
   return map[clean] || null;
 }
 
-function csvToCalendarCache(csv) {
-  const parsed = parseCSV(csv);
+function csvToCalendarCache(tsv) {
+  const parsed = parseTSV(tsv);
   if (parsed.length < 2) {
-    console.log('⚠️ CSV пуст или содержит меньше 2 строк');
+    console.log('⚠️ TSV пуст или содержит меньше 2 строк');
     return {};
   }
 
@@ -129,9 +122,11 @@ function csvToCalendarCache(csv) {
 
       let datesStr = row[j] || '[]';
 
-      // 🔥 Исправление: удаляем лишние кавычки
-      if (datesStr.startsWith('"') && datesStr.endsWith('"')) {
-        datesStr = datesStr.slice(1, -1).replace(/""/g, '"');
+      // 🔥 Исправление: если строка не начинается с '[', добавим квадратные скобки
+      if (!datesStr.startsWith('[')) {
+        // Предполагаем, что это массив без кавычек
+        const datesArray = datesStr.split(',').map(d => d.trim()).filter(d => d);
+        datesStr = `[${datesArray.map(d => `"${d}"`).join(',')}]`;
       }
 
       try {
@@ -154,8 +149,8 @@ function csvToCalendarCache(csv) {
 async function main() {
   try {
     console.log('Генерация calendar-cache.json...');
-    const csv = await fetchSheetAsCSV();
-    const json = csvToCalendarCache(csv);
+    const tsv = await fetchSheetAsTSV();
+    const json = csvToCalendarCache(tsv);
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(json, null, 2), 'utf8');
     console.log(`✅ ${OUTPUT_PATH} создан. Пользователей: ${Object.keys(json).length}`);
   } catch (err) {
