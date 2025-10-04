@@ -78,7 +78,7 @@ function csvToJson(csv) {
 
   const headers = parsed[0].map(h => h.trim());
   // 🔥 Исправлено: "telegramId" → "Telegram ID" (с пробелом и заглавными)
-  const telegramIdIndex = headers.indexOf('Telegram ID');
+  const telegramIdIndex = headers.indexOf('telegramId');
 
   if (telegramIdIndex === -1) {
     console.error('Заголовки:', headers);
