@@ -9,7 +9,7 @@ const OUTPUT_PATH = './calendar-cache.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
-    const GID = '0'; // ← ЗАМЕНИТЕ на реальный GID вашего листа "Кэш календаря"
+    const GID = '1089459860'; // ← ЗАМЕНИТЕ на реальный GID вашего листа "Кэш календаря"
     const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}`;
 
     function followRedirects(url, redirectCount = 0) {
