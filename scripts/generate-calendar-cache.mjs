@@ -76,7 +76,8 @@ function csvToCalendarCache(csv) {
     return {};
   }
 
-  const headers = parsed[0].map(h => h.trim());
+  // Заменяем неразрывные пробелы на обычные
+  const headers = parsed[0].map(h => h.trim().replace(/\u00A0/g, ' '));
   console.log('✅ Заголовки:', headers);
 
   const telegramIdIndex = headers.indexOf('Telegram ID');
@@ -100,7 +101,8 @@ function csvToCalendarCache(csv) {
       const monthHeader = headers[j];
       if (!monthHeader || monthHeader === 'ФИО') continue;
 
-      const match = monthHeader.match(/(\w+)\s+(\d{4})/);
+      // Улучшенная регулярка с поддержкой неразрывного пробела
+      const match = monthHeader.match(/(\w+)[\s\u00A0]+(\d{4})/);
       if (!match) {
         console.warn(`⚠️ Не удалось распознать месяц из "${monthHeader}"`);
         continue;
