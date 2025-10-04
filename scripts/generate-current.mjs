@@ -5,12 +5,13 @@ import http from 'http';
 import { URL } from 'url';
 
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
+const GID = '0'; // ← ваш реальный GID!
 const OUTPUT_PATH = './current.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
    
-  const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&t=${Date.now()}`;
+  const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}&t=${Date.now()}`;
 
     function followRedirects(url, redirectCount = 0) {
       if (redirectCount > 5) {
