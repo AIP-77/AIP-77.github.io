@@ -9,7 +9,8 @@ const OUTPUT_PATH = './current.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
-    const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv`;
+   
+  const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&t=${Date.now()}`;
 
     function followRedirects(url, redirectCount = 0) {
       if (redirectCount > 5) {
