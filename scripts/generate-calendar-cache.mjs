@@ -127,7 +127,13 @@ function csvToCalendarCache(csv) {
         continue;
       }
 
-      const datesStr = row[j] || '[]';
+      let datesStr = row[j] || '[]';
+
+      // 🔥 Исправление: удаляем лишние кавычки
+      if (datesStr.startsWith('"') && datesStr.endsWith('"')) {
+        datesStr = datesStr.slice(1, -1).replace(/""/g, '"');
+      }
+
       try {
         const dates = JSON.parse(datesStr);
         if (Array.isArray(dates)) {
