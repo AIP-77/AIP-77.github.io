@@ -9,8 +9,9 @@ const OUTPUT_PATH = './calendar-cache.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
-    const GID = '1089459860'; // ← ЗАМЕНИТЕ на реальный GID вашего листа "Кэш календаря"
-    const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}`;
+    const GID = '1089459860'; // ← ОБЯЗАТЕЛЬНО замените!
+    // 🔥 Добавлен кэш-бастер
+    const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}&t=${Date.now()}`;
 
     function followRedirects(url, redirectCount = 0) {
       if (redirectCount > 5) return reject(new Error('Слишком много редиректов'));
@@ -69,6 +70,26 @@ function parseCSV(csv) {
   return result;
 }
 
+// 🔥 Упрощённое сопоставление месяцев
+function getMonthKey(monthHeader) {
+  const clean = monthHeader.trim().replace(/\u00A0/g, ' ');
+  const map = {
+    'Январь 2025': '2025-01',
+    'Февраль 2025': '2025-02',
+    'Март 2025': '2025-03',
+    'Апрель 2025': '2025-04',
+    'Май 2025': '2025-05',
+    'Июнь 2025': '2025-06',
+    'Июль 2025': '2025-07',
+    'Август 2025': '2025-08',
+    'Сентябрь 2025': '2025-09',
+    'Октябрь 2025': '2025-10',
+    'Ноябрь 2025': '2025-11',
+    'Декабрь 2025': '2025-12'
+  };
+  return map[clean] || null;
+}
+
 function csvToCalendarCache(csv) {
   const parsed = parseCSV(csv);
   if (parsed.length < 2) {
@@ -76,8 +97,7 @@ function csvToCalendarCache(csv) {
     return {};
   }
 
-  // Заменяем неразрывные пробелы на обычные
-  const headers = parsed[0].map(h => h.trim().replace(/\u00A0/g, ' '));
+  const headers = parsed[0].map(h => h.trim());
   console.log('✅ Заголовки:', headers);
 
   const telegramIdIndex = headers.indexOf('Telegram ID');
@@ -101,22 +121,12 @@ function csvToCalendarCache(csv) {
       const monthHeader = headers[j];
       if (!monthHeader || monthHeader === 'ФИО') continue;
 
-      // Улучшенная регулярка с поддержкой неразрывного пробела
-      const match = monthHeader.match(/(\w+)[\s\u00A0]+(\d{4})/);
-      if (!match) {
-        console.warn(`⚠️ Не удалось распознать месяц из "${monthHeader}"`);
+      const key = getMonthKey(monthHeader);
+      if (!key) {
+        console.warn(`⚠️ Неизвестный месяц: "${monthHeader}"`);
         continue;
       }
 
-      const monthName = match[1];
-      const year = match[2];
-      const monthNum = getMonthNumber(monthName);
-      if (monthNum === null) {
-        console.warn(`⚠️ Неизвестный месяц: "${monthName}"`);
-        continue;
-      }
-
-      const key = `${year}-${String(monthNum).padStart(2, '0')}`;
       const datesStr = row[j] || '[]';
       try {
         const dates = JSON.parse(datesStr);
@@ -133,14 +143,6 @@ function csvToCalendarCache(csv) {
 
   console.log(`✅ Всего пользователей в кэше: ${Object.keys(result).length}`);
   return result;
-}
-
-function getMonthNumber(name) {
-  const months = {
-    'Январь': 1, 'Февраль': 2, 'Март': 3, 'Апрель': 4, 'Май': 5, 'Июнь': 6,
-    'Июль': 7, 'Август': 8, 'Сентябрь': 9, 'Октябрь': 10, 'Ноябрь': 11, 'Декабрь': 12
-  };
-  return months[name] || null;
 }
 
 async function main() {
