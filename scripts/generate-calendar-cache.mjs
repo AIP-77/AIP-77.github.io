@@ -62,31 +62,49 @@ function parseCSV(csv) {
 
 function csvToCalendarCache(csv) {
   const parsed = parseCSV(csv);
-  if (parsed.length < 2) return {};
+  if (parsed.length < 2) {
+    console.log('⚠️ CSV пуст или содержит меньше 2 строк');
+    return {};
+  }
 
   const headers = parsed[0].map(h => h.trim());
+  console.log('✅ Заголовки:', headers); // ← теперь будет видно
+
   const telegramIdIndex = headers.indexOf('Telegram ID');
-  if (telegramIdIndex === -1) throw new Error('Столбец "Telegram ID" не найден');
+  if (telegramIdIndex === -1) {
+    console.error('❌ Столбец "Telegram ID" не найден. Доступные заголовки:', headers);
+    return {};
+  }
 
   const result = {};
   for (let i = 1; i < parsed.length; i++) {
     const row = parsed[i];
     const telegramId = row[telegramIdIndex]?.trim();
-    if (!telegramId) continue;
+    if (!telegramId) {
+      console.warn(`⚠️ Пустой Telegram ID в строке ${i}`);
+      continue;
+    }
 
-    result[String(telegramId)] = {}; // ✅ Ключ всегда строка
+    result[String(telegramId)] = {};
 
+    // Обрабатываем каждый месяц
     for (let j = 2; j < headers.length; j++) {
       const monthHeader = headers[j];
       if (!monthHeader || monthHeader === 'ФИО') continue;
 
       const match = monthHeader.match(/(\w+)\s+(\d{4})/);
-      if (!match) continue;
+      if (!match) {
+        console.warn(`⚠️ Не удалось распознать месяц из "${monthHeader}"`);
+        continue;
+      }
 
       const monthName = match[1];
       const year = match[2];
       const monthNum = getMonthNumber(monthName);
-      if (monthNum === null) continue;
+      if (monthNum === null) {
+        console.warn(`⚠️ Неизвестный месяц: "${monthName}"`);
+        continue;
+      }
 
       const key = `${year}-${String(monthNum).padStart(2, '0')}`;
       const datesStr = row[j] || '[]';
@@ -94,15 +112,18 @@ function csvToCalendarCache(csv) {
         const dates = JSON.parse(datesStr);
         if (Array.isArray(dates)) {
           result[String(telegramId)][key] = dates;
+        } else {
+          console.warn(`⚠️ Не массив: ${datesStr}`);
         }
       } catch (e) {
-        console.warn(`Ошибка парсинга дат для ${telegramId} в ${monthHeader}:`, datesStr);
+        console.warn(`⚠️ Ошибка парсинга дат для ${telegramId} в ${monthHeader}:`, datesStr.substring(0, 50));
       }
     }
   }
+
+  console.log(`✅ Всего пользователей в кэше: ${Object.keys(result).length}`);
   return result;
 }
-
 function getMonthNumber(name) {
   const months = {
     'Январь': 1, 'Февраль': 2, 'Март': 3, 'Апрель': 4, 'Май': 5, 'Июнь': 6,
