@@ -5,13 +5,13 @@ import http from 'http';
 import { URL } from 'url';
 
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
-const GID = '0'; // ← ваш реальный GID!
+const GID = '0'; // ← ЗАМЕНИТЕ на реальный GID вашего листа с данными!
 const OUTPUT_PATH = './current.json';
 
 function fetchSheetAsCSV() {
   return new Promise((resolve, reject) => {
-   
-  const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}&t=${Date.now()}`;
+    // 🔥 Убран пробел + добавлен GID + кэш-бастер
+    const originalUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${GID}&t=${Date.now()}`;
 
     function followRedirects(url, redirectCount = 0) {
       if (redirectCount > 5) {
@@ -53,7 +53,7 @@ function fetchSheetAsCSV() {
   });
 }
 
-// --- Парсинг CSV с поддержкой кавычек ---
+// --- Парсинг CSV ---
 function parseCSV(csv) {
   const lines = csv.trim().split(/\r?\n/);
   const result = [];
@@ -77,11 +77,12 @@ function csvToJson(csv) {
   if (parsed.length < 2) return {};
 
   const headers = parsed[0].map(h => h.trim());
-  const telegramIdIndex = headers.indexOf('telegramId');
+  // 🔥 Исправлено: "telegramId" → "Telegram ID" (с пробелом и заглавными)
+  const telegramIdIndex = headers.indexOf('Telegram ID');
 
   if (telegramIdIndex === -1) {
     console.error('Заголовки:', headers);
-    throw new Error('Столбец "telegramId" не найден');
+    throw new Error('Столбец "Telegram ID" не найден');
   }
 
   const result = {};
@@ -90,7 +91,6 @@ function csvToJson(csv) {
     const telegramId = row[telegramIdIndex]?.trim();
     if (!telegramId) continue;
 
-    // Парсим mainData
     const mainDataStr = row[headers.indexOf('mainData')] || '{}';
     let mainData = {};
     try {
@@ -100,7 +100,6 @@ function csvToJson(csv) {
       continue;
     }
 
-    // Парсим остальные JSON-поля
     const detailsStr = row[headers.indexOf('details')] || '[]';
     const efficiencyDataStr = row[headers.indexOf('efficiencyData')] || '[]';
     const earningsDataStr = row[headers.indexOf('earningsData')] || '[]';
@@ -112,17 +111,15 @@ function csvToJson(csv) {
     try { earningsData = JSON.parse(earningsDataStr); } catch (e) {}
     try { managedDepartments = JSON.parse(managedDepartmentsStr); } catch (e) {}
 
-    // Инициализируем пользователя, если его ещё нет
     if (!result[telegramId]) {
       result[telegramId] = {
-        name: mainData.name || '', // ← имя на уровне пользователя
+        name: mainData.name || '',
         role: row[headers.indexOf('role')] || '',
         department: row[headers.indexOf('department')] || '',
         records: []
       };
     }
 
-    // Добавляем запись по дате
     result[telegramId].records.push({
       date: mainData.date || row[headers.indexOf('workDate')] || '',
       worked: mainData.worked || '',
@@ -141,7 +138,6 @@ function csvToJson(csv) {
   return result;
 }
 
-// --- Основной запуск ---
 async function main() {
   try {
     console.log('Загрузка данных из Google Таблицы...');
