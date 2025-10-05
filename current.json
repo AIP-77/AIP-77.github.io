@@ -6061,6 +6061,27 @@
       }
     ]
   },
+   {
+        "date": "04.10.2025",
+        "worked": "01:02",
+        "planned": "00:00",
+        "efficiency": "0,00%",
+        "payDay": "346,05 ₽",
+        "payMonth": "346,05 ₽",
+        "xisBonusDay": "0,00 ₽",
+        "details": [
+          {
+            "work": "Стикеровка Шины",
+            "count": 1005,
+            "time": "01:02:00",
+            "pay": "346,05 ₽",
+            "xisBonus": "0,00 ₽"
+          }
+        ],
+        "efficiencyData": [],
+        "earningsData": [],
+        "managedDepartments": []
+      },
   "1853469400": {
     "name": "Капралов Максим Александрович",
     "role": "руководитель",
