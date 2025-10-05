@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Персональная панель</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -33,14 +33,14 @@
     .day:hover { background: #e0e0e0; }
     .footer { text-align: center; margin-top: 30px; color: #888; font-size: 13px; }
     .month-selector { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
-    .month-selector button { background: #1a8cd8; color: white; border: none; padding: 8px 12px; border-radius: 6px; }
+    .month-selector button { background: #1a8cd8; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
     .month-selector span { font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.5 🛠)</h4>
+    <h4>(🛠 V.10.5-1 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -58,7 +58,7 @@
     <div id="employee-view" class="hidden">
       <div class="card">
         <h2>👷‍♂️ Персональный отчет</h2>
-        <h4>(🛠 Приложение находится в разработке представленая тут информация носит информационный характер 🛠)</h4>
+        <h4>(🛠 Приложение находится в разработке. Представленная информация носит информационный характер 🛠)</h4>
         <div id="main-data-loading" class="loading">
           <div class="spinner"></div>
           <p>Загрузка основных данных...</p>
@@ -93,7 +93,7 @@
           <p>Загрузка графика...</p>
         </div>
         <div id="efficiency-content" class="hidden">
-          <canvas id="efficiencyChart"></canvas>
+          <canvas id="efficiencyChart" height="100"></canvas>
         </div>
       </div>
 
@@ -104,7 +104,7 @@
           <p>Загрузка графика...</p>
         </div>
         <div id="earnings-content" class="hidden">
-          <canvas id="earningsChart"></canvas>
+          <canvas id="earningsChart" height="100"></canvas>
         </div>
       </div>
 
@@ -170,7 +170,6 @@
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
 
-    // === Календарь из кэша ===
     let availableMonths = [];
     let currentMonthIndex = 0;
 
@@ -190,7 +189,6 @@
         if (!user?.id) throw new Error('Пользователь не найден');
         chatId = String(user.id);
 
-        // Загружаем основные данные
         const response = await fetch('current.json');
         if (!response.ok) throw new Error('Не удалось загрузить current.json');
         allUserData = await response.json();
@@ -208,7 +206,6 @@
           return;
         }
 
-        // Сортируем по дате (свежая — первая)
         const sortedRecords = records.sort((a, b) => {
           const [d1, m1, y1] = a.date.split('.').map(Number);
           const [d2, m2, y2] = b.date.split('.').map(Number);
@@ -220,23 +217,38 @@
         updateMainData(userData, currentRecord);
         updateDetails(currentRecord.details || []);
 
-        // Загружаем кэш календаря
         const cacheResponse = await fetch('calendar-cache.json');
         if (!cacheResponse.ok) throw new Error('Не удалось загрузить calendar-cache.json');
         calendarCache = await cacheResponse.json();
 
         renderCalendarFromCache(chatId);
 
+        // Отложенный запуск графиков с обработкой ошибок
         setTimeout(() => {
-          if (currentRecord.efficiencyData?.length) {
-            createEfficiencyChart(currentRecord.efficiencyData);
-            efficiencyLoading.classList.add('hidden');
-            efficiencyContent.classList.remove('hidden');
+          try {
+            if (currentRecord.efficiencyData?.length) {
+              createEfficiencyChart(currentRecord.efficiencyData);
+              efficiencyLoading.classList.add('hidden');
+              efficiencyContent.classList.remove('hidden');
+            } else {
+              efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+            }
+          } catch (err) {
+            console.error('Ошибка графика эффективности:', err);
+            efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
           }
-          if (currentRecord.earningsData?.length) {
-            createEarningsChart(currentRecord.earningsData);
-            earningsLoading.classList.add('hidden');
-            earningsContent.classList.remove('hidden');
+
+          try {
+            if (currentRecord.earningsData?.length) {
+              createEarningsChart(currentRecord.earningsData);
+              earningsLoading.classList.add('hidden');
+              earningsContent.classList.remove('hidden');
+            } else {
+              earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+            }
+          } catch (err) {
+            console.error('Ошибка графика заработка:', err);
+            earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
           }
         }, 300);
 
@@ -291,17 +303,23 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-             data.map(d => d.value),
+            data: data.map(d => d.value),
             backgroundColor: '#1a8cd8'
           }]
         },
         options: {
           responsive: true,
-          scales: { y: { beginAtZero: true, max: 100 } }
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          }
         }
       });
     }
@@ -311,24 +329,29 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-         {
+        data: {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-             data.map(d => d.pay),
+            data: data.map(d => d.pay),
             borderColor: '#1a8cd8',
+            backgroundColor: 'rgba(26, 140, 216, 0.2)',
             fill: true,
-            backgroundColor: 'rgba(26, 140, 216, 0.2)'
+            tension: 0.3
           }]
         },
         options: {
           responsive: true,
-          plugins: { legend: { position: 'top' } }
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top'
+            }
+          }
         }
       });
     }
 
-    // === Календарь из кэша ===
     function renderCalendarFromCache(telegramId) {
       const userData = calendarCache[telegramId];
       if (!userData) {
@@ -336,7 +359,6 @@
         return;
       }
 
-      // Собираем все месяцы
       availableMonths = Object.keys(userData).sort((a, b) => {
         const [y1, m1] = a.split('-').map(Number);
         const [y2, m2] = b.split('-').map(Number);
@@ -381,7 +403,6 @@
       const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
       const lastDayNum = new Date(year, monthNum, 0).getDate();
 
-      // Преобразуем ["01.09.2025", ...] → Set("01")
       const availableDays = new Set();
       if (datesArray && Array.isArray(datesArray)) {
         datesArray.forEach(dateStr => {
@@ -416,7 +437,6 @@
       }
     }
 
-    // 🔹 НОВАЯ ФУНКЦИЯ: загрузка данных по дате
     async function loadRecordByDate(year, month, day) {
       const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
       const monthKey = `${year}-${String(month).padStart(2, '0')}`;
@@ -424,13 +444,11 @@
       let data;
       let userData;
 
-      // Определяем, текущий ли месяц
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1;
 
       if (year === currentYear && month === currentMonth) {
-        // Текущий месяц — берём из current.json
         userData = allUserData[chatId];
         data = userData.records.find(r => r.date === dateStr);
         if (!data) {
@@ -438,14 +456,13 @@
           return;
         }
       } else {
-        // Архивный месяц — загружаем из archive/ГГГГ-ММ.json
         try {
           const response = await fetch(`archive/${monthKey}.json`);
-          if (!response.ok) throw new Error(`Не удалось загрузить архив ${monthKey}`);
+          if (!response.ok) throw new Error(`Архив ${monthKey} не найден`);
           const archiveData = await response.json();
           userData = archiveData[chatId];
           if (!userData) {
-            showNotification(`Данные пользователя не найдены в архиве ${monthKey}`);
+            showNotification(`Пользователь не найден в архиве ${monthKey}`);
             return;
           }
           data = userData.records.find(r => r.date === dateStr);
@@ -454,34 +471,43 @@
             return;
           }
         } catch (err) {
-          showNotification(`Ошибка загрузки архива: ${err.message}`);
+          console.error('Ошибка загрузки архива:', err);
+          showNotification(`Ошибка: ${err.message}`);
           return;
         }
       }
 
-      // Обновляем интерфейс
       currentRecord = data;
       updateMainData(userData, data);
       updateDetails(data.details || []);
 
-      if (data.efficiencyData?.length) {
-        createEfficiencyChart(data.efficiencyData);
-        efficiencyLoading.classList.add('hidden');
-        efficiencyContent.classList.remove('hidden');
-      } else {
-        efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+      try {
+        if (data.efficiencyData?.length) {
+          createEfficiencyChart(data.efficiencyData);
+          efficiencyLoading.classList.add('hidden');
+          efficiencyContent.classList.remove('hidden');
+        } else {
+          efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+        }
+      } catch (err) {
+        console.error('Ошибка графика эффективности:', err);
+        efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
       }
 
-      if (data.earningsData?.length) {
-        createEarningsChart(data.earningsData);
-        earningsLoading.classList.add('hidden');
-        earningsContent.classList.remove('hidden');
-      } else {
-        earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+      try {
+        if (data.earningsData?.length) {
+          createEarningsChart(data.earningsData);
+          earningsLoading.classList.add('hidden');
+          earningsContent.classList.remove('hidden');
+        } else {
+          earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+        }
+      } catch (err) {
+        console.error('Ошибка графика заработка:', err);
+        earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
       }
 
-      // Показываем уведомление
-      showNotification(`Данные за ${dateStr} доступны в полном отчёте`);
+      showNotification(`Данные за ${dateStr} загружены`);
     }
 
     function showNotification(message) {
@@ -518,7 +544,6 @@
       }, 5000);
     }
 
-    // Обновите обработчики стрелок
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
