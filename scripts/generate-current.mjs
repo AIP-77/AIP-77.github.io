@@ -102,7 +102,7 @@ function csvToJson(tsv) {
     }
    }
    const latestDate = allDates.length ? allDates.sort().pop() : 'нет данных';
-console.log('📅 Последняя дата в данных:', latestDate);
+// console.log('📅 Последняя дата в данных:', latestDate);
 
     let details = [], efficiencyData = [], earningsData = [], managedDepartments = [];
     try { details = JSON.parse(detailsStr); } catch (e) {}
