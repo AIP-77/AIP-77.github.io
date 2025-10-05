@@ -94,6 +94,15 @@ function csvToJson(tsv) {
     const efficiencyDataStr = row[headers.indexOf('efficiencyData')] || '[]';
     const earningsDataStr = row[headers.indexOf('earningsData')] || '[]';
     const managedDepartmentsStr = row[headers.indexOf('managedDepartments')] || '[]';
+    // В функции csvToJson, после обработки всех строк:
+   const allDates = [];
+   for (const userId in result) {
+     for (const record of result[userId].records) {
+    if (record.date) allDates.push(record.date);
+    }
+   }
+   const latestDate = allDates.length ? allDates.sort().pop() : 'нет данных';
+console.log('📅 Последняя дата в данных:', latestDate);
 
     let details = [], efficiencyData = [], earningsData = [], managedDepartments = [];
     try { details = JSON.parse(detailsStr); } catch (e) {}
