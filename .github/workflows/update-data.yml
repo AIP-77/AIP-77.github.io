@@ -2,7 +2,7 @@ name: Update data.json from Google Sheets
 
 on:
   schedule:
-    - cron: '30 17 * * *'
+    - cron: '0 1,5,9,13,17 * * *'  # 6:00, 10:00, 14:00, 18:00, 22:00 по ЕКБ
   workflow_dispatch:
 
 jobs:
