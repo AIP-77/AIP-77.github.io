@@ -1,11 +1,41 @@
-- name: Commit and push
-  run: |
-    git config --global user.name 'github-actions[bot]'
-    git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-    git add current.json calendar-cache.json
-    if ! git diff --staged --quiet; then
-      git commit -m "🔄 Обновление данных [$(date +'%Y-%m-%d %H:%M')]"
-      git push
-    else
-      echo "Нет staged изменений"
-    fi
+name: Update data.json from Google Sheets
+
+on:
+  schedule:
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate current.json
+        run: node scripts/generate-current.mjs
+
+      - name: Generate calendar-cache.json
+        run: node scripts/generate-calendar-cache.mjs
+
+      - name: Commit and push
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add current.json calendar-cache.json
+          if ! git diff --staged --quiet; then
+            git commit -m "🔄 Обновление данных [$(date +'%Y-%m-%d %H:%M')]"
+            git push
+          else
+            echo "Нет staged изменений"
+          fi
