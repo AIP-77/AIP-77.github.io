@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Персональная панель</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f2f5;
+      color: #1c1e21;
+      min-height: 100vh;
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1, h2, h3 { margin: 0 0 8px 0; color: #1a8cd8; }
+    .tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid #ddd; }
+    .tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: #666; }
+    .tab.active { color: #1a8cd8; border-bottom: 2px solid #1a8cd8; }
+    .loading { text-align: center; padding: 20px; color: #666; font-size: 16px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top: 4px solid #1a8cd8; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .error { color: #e53935; text-align: center; padding: 20px; background: #ffebee; border-radius: 8px; margin: 16px 0; }
+    .hidden { display: none !important; }
+    .form-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; margin-top: 10px; font-size: 16px; }
+    .calendar { display: grid; gap: 4px; margin: 10px 0; grid-template-columns: repeat(7, 1fr); }
+    .day { text-align: center; padding: 6px 0; font-size: 12px; border-radius: 4px; color: #333; cursor: pointer; }
+    .day.available { background: #1a8cd8; color: white; font-weight: bold; }
+    .day:hover { background: #e0e0e0; }
+    .footer { text-align: center; margin-top: 30px; color: #888; font-size: 13px; }
+    .month-selector { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+    .month-selector button { background: #1a8cd8; color: white; border: none; padding: 8px 12px; border-radius: 6px; }
+    .month-selector span { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Персональная панель</h1>
+    <h4>(🛠 V.9.29 🛠)</h4>
+
+    <div class="tabs">
+      <div id="tab-employee" class="tab active">Мой отчёт</div>
+      <div id="tab-manager" class="tab hidden">Отдел</div>
+      <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка данных...</p>
+    </div>
+    <div id="error" class="error hidden"></div>
+
+    <!-- Вкладка "Мой отчёт" -->
+    <div id="employee-view" class="hidden">
+      <div class="card">
+        <h2>👷‍♂️ Персональный отчет</h2>
+        <h4>(🛠 Приложение находится в разработке представленая тут информация носит информационный характер 🛠)</h4>
+        <div id="main-data-loading" class="loading">
+          <div class="spinner"></div>
+          <p>Загрузка основных данных...</p>
+        </div>
+        <div id="main-data-content" class="hidden">
+          <p><span class="label">Сотрудник:</span> <span id="name">—</span></p>
+          <p><span class="label">Дата:</span> <span id="date">—</span></p>
+          <p><span class="label">Отработано:</span> <span id="worked">—</span></p>
+          <p><span class="label">Рабочее время:</span> <span id="planned">—</span></p>
+          <p><span class="label">Производительность:</span> <span id="efficiency">—</span></p>
+          <p><span class="label">Заработано за день:</span> <span id="pay-day">—</span></p>
+          <p><span class="label">Из них сезонная доплата:</span> <span id="xisBonusDay">—</span></p>
+          <p><span class="label">Заработано за месяц:</span> <span id="pay-month">—</span></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📋 Детализация задач</h2>
+        <div id="details-loading" class="loading">
+          <div class="spinner"></div>
+          <p>Загрузка детализации...</p>
+        </div>
+        <div id="details-content" class="hidden">
+          <pre id="details">Загрузка...</pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📈 Производительность</h3>
+        <div id="efficiency-loading" class="loading">
+          <div class="spinner"></div>
+          <p>Загрузка графика...</p>
+        </div>
+        <div id="efficiency-content" class="hidden">
+          <canvas id="efficiencyChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>💰 Заработок</h3>
+        <div id="earnings-loading" class="loading">
+          <div class="spinner"></div>
+          <p>Загрузка графика...</p>
+        </div>
+        <div id="earnings-content" class="hidden">
+          <canvas id="earningsChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📅 Календарь посещаемости</h2>
+        <div id="calendar-loading" class="loading">
+          <div class="spinner"></div>
+          <p>Загрузка календаря...</p>
+        </div>
+        <div id="calendar-content" class="hidden">
+          <div class="month-selector">
+            <button id="prevMonth">◀</button>
+            <span id="currentMonth">Загрузка...</span>
+            <button id="nextMonth">▶</button>
+          </div>
+          <div class="calendar" id="calendar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладка "Отдел" -->
+    <div id="manager-view" class="hidden">
+      <div class="card">
+        <h2>🏢 Выбор отдела</h2>
+        <div id="departments-selector-loading" class="loading">
+          <div class="spinner"></div>
+          <p>Загрузка списка отделов...</p>
+        </div>
+        <div id="departments-selector-content" class="hidden">
+          <select id="departments-selector" class="form-select">
+            <option value="">Выберите отдел</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📅 Календарь отдела</h2>
+        <div id="department-calendar-loading" class="loading hidden">
+          <div class="spinner"></div>
+          <p>Загрузка календаря...</p>
+        </div>
+        <div id="department-calendar-content" class="hidden">
+          <div class="month-selector">
+            <button id="prevMonthManager">◀</button>
+            <span id="currentMonthManager">Загрузка...</span>
+            <button id="nextMonthManager">▶</button>
+          </div>
+          <div class="calendar" id="manager-calendar"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>👨‍💼 Управление отделом</h2>
+        <div id="manager-data-loading" class="loading hidden">
+          <div class="spinner"></div>
+          <p>Загрузка данных...</p>
+        </div>
+        <div id="manager-data-content" class="hidden">
+          <p><b>Дата:</b> <span id="manager-date"></span></p>
+          <div id="departments-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
+  </div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwaQsv0Qin-4jrH61KXgBrzevHesDfMq8QZ9O7Zva_BoiJzpJFa8RdJoIOvv7rnBBxt/exec';
+    let chatId = null;
+    let isManager = false;
+    let currentDepartment = null;
+    let availableMonths = [];
+    let currentMonthIndex = 0;
+    let efficiencyChart = null;
+    let earningsChart = null;
+
+    // === DOM элементы ===
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const employeeView = document.getElementById('employee-view');
+    const managerView = document.getElementById('manager-view');
+
+    // Вкладки
+    const tabEmployee = document.getElementById('tab-employee');
+    const tabManager = document.getElementById('tab-manager');
+    const tabInfo = document.getElementById('tab-info');
+
+    // Элементы для вкладки "Мой отчёт"
+    const mainDataLoading = document.getElementById('main-data-loading');
+    const mainDataContent = document.getElementById('main-data-content');
+    const detailsLoading = document.getElementById('details-loading');
+    const detailsContent = document.getElementById('details-content');
+    const efficiencyLoading = document.getElementById('efficiency-loading');
+    const efficiencyContent = document.getElementById('efficiency-content');
+    const earningsLoading = document.getElementById('earnings-loading');
+    const earningsContent = document.getElementById('earnings-content');
+    const calendarLoading = document.getElementById('calendar-loading');
+    const calendarContent = document.getElementById('calendar-content');
+
+    // Элементы для вкладки "Отдел"
+    const departmentsSelectorLoading = document.getElementById('departments-selector-loading');
+    const departmentsSelectorContent = document.getElementById('departments-selector-content');
+    const departmentsSelector = document.getElementById('departments-selector');
+    const departmentCalendarLoading = document.getElementById('department-calendar-loading');
+    const departmentCalendarContent = document.getElementById('department-calendar-content');
+    const managerDataLoading = document.getElementById('manager-data-loading');
+    const managerDataContent = document.getElementById('manager-data-content');
+
+    // Календарь сотрудника
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    const currentMonthSpan = document.getElementById('currentMonth');
+
+    // Календарь отдела
+    const prevMonthBtnManager = document.getElementById('prevMonthManager');
+    const nextMonthBtnManager = document.getElementById('nextMonthManager');
+    const currentMonthSpanManager = document.getElementById('currentMonthManager');
+
+    /**
+     * Инициализация приложения
+     */
+    async function init() {
+      try {
+        if (!window.Telegram || !Telegram.WebApp) {
+          enableTestMode();
+          return;
+        }
+
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        const user = Telegram.WebApp.initDataUnsafe.user;
+
+        if (!user || !user.id) {
+          showError('Не удалось получить пользователя');
+          return;
+        }
+
+        chatId = user.id.toString();
+
+        // ЕДИНЫЙ ЗАПРОС — все данные сразу
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}`);
+
+        updateMainData(data);
+        updateDetails(data.details || []);
+        renderCalendar(data.availableDates || []);
+
+        isManager = Boolean(data.isManager);
+        if (isManager) {
+          tabManager.classList.remove('hidden');
+          loadDepartmentsList(data.managedDepartments || []);
+        }
+
+        // Графики
+        setTimeout(() => {
+          if (data.efficiencyData?.length) {
+            createEfficiencyChart(data.efficiencyData);
+            efficiencyLoading.classList.add('hidden');
+            efficiencyContent.classList.remove('hidden');
+          }
+          if (data.earningsData?.length) {
+            createEarningsChart(data.earningsData);
+            earningsLoading.classList.add('hidden');
+            earningsContent.classList.remove('hidden');
+          }
+        }, 300);
+
+        // Скрываем спиннеры
+        loading.classList.add('hidden');
+        employeeView.classList.remove('hidden');
+        mainDataLoading.classList.add('hidden');
+        mainDataContent.classList.remove('hidden');
+        detailsLoading.classList.add('hidden');
+        detailsContent.classList.remove('hidden');
+        calendarLoading.classList.add('hidden');
+        calendarContent.classList.remove('hidden');
+
+      } catch (err) {
+        console.error('Ошибка инициализации:', err);
+        showError('Ошибка загрузки данных: ' + err.message);
+      }
+    }
+
+    /**
+     * Универсальный fetch с повторной попыткой
+     */
+    async function fetchData(url) {
+      for (let i = 0; i < 3; i++) {
+        try {
+          const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return await response.json();
+        } catch (err) {
+          if (i === 2) throw err;
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    }
+
+    /**
+     * Обновление основных данных
+     */
+    function updateMainData(data) {
+      document.getElementById('name').textContent = data.name || '—';
+      document.getElementById('date').textContent = data.date || '—';
+      document.getElementById('worked').textContent = data.worked || '—';
+      document.getElementById('planned').textContent = data.planned || '—';
+      document.getElementById('efficiency').textContent = data.efficiency || '—';
+      document.getElementById('pay-day').textContent = data.payDay || '—';
+      document.getElementById('xisBonusDay').textContent = data.xisBonusDay || '—'; // ← новое поле
+      document.getElementById('pay-month').textContent = data.payMonth || '—';
+    }
+
+    /**
+     * Обновление детализации задач — С УЧЁТОМ СЕЗОННОЙ ДОПЛАТЫ
+     */
+    function updateDetails(details) {
+      if (!details || !Array.isArray(details)) {
+        document.getElementById('details').textContent = 'Нет данных';
+        return;
+      }
+      const detailsText = details.map(item => {
+        const work = item.work || '—';
+        const count = item.count || 0;
+        const time = item.time || '00:00:00';
+        const pay = item.pay || '0,00 ₽';
+        const xisBonus = item.xisBonus || '0,00 ₽'; // ← новое поле
+        return `${work} (${count}): ${time}, ${pay}, Сезонная доплата: ${xisBonus}`;
+      }).join('\n');
+      document.getElementById('details').textContent = detailsText;
+    }
+
+    /**
+     * Создание графика производительности
+     */
+    function createEfficiencyChart(data) {
+      const ctx = document.getElementById('efficiencyChart').getContext('2d');
+      if (efficiencyChart) efficiencyChart.destroy();
+      efficiencyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.day),
+          datasets: [{
+            label: 'Производительность (%)',
+            data: data.map(d => d.value),
+            backgroundColor: '#1a8cd8'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          }
+        }
+      });
+    }
+
+    /**
+     * Создание графика заработка
+     */
+    function createEarningsChart(data) {
+      const ctx = document.getElementById('earningsChart').getContext('2d');
+      if (earningsChart) earningsChart.destroy();
+      earningsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(d => d.day),
+          datasets: [{
+            label: 'Заработок (р.)',
+            data: data.map(d => d.pay),
+            borderColor: '#1a8cd8',
+            fill: true,
+            backgroundColor: 'rgba(26, 140, 216, 0.2)'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' } }
+        }
+      });
+    }
+
+    // === Личный календарь ===
+    let calendarAvailableDates = [];
+    let calendarMonths = []; // Хранит "ГГГГ-М", например: "2025-9"
+
+    /**
+     * Отображение календаря
+     */
+    async function renderCalendar(availableDates) {
+      // Только корректные даты
+      const validDates = availableDates.filter(dateStr => /^\d{2}\.\d{2}\.\d{4}$/.test(dateStr));
+      calendarAvailableDates = validDates;
+
+      // Извлекаем уникальные месяцы в формате "ГГГГ-М"
+      const monthSet = new Set();
+      validDates.forEach(dateStr => {
+        const [d, m, y] = dateStr.split('.');
+        const monthNum = parseInt(m, 10);
+        monthSet.add(`${y}-${monthNum}`);
+      });
+
+      // Сортируем по году и месяцу
+      calendarMonths = [...monthSet].sort((a, b) => {
+        const [y1, m1] = a.split('-').map(Number);
+        const [y2, m2] = b.split('-').map(Number);
+        return y1 !== y2 ? y1 - y2 : m1 - m2;
+      });
+
+      if (calendarMonths.length === 0) {
+        document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+        return;
+      }
+
+      currentMonthIndex = calendarMonths.length - 1;
+      const [yearStr, monthStr] = calendarMonths[currentMonthIndex].split('-');
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+      currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+      prevMonthBtn.disabled = currentMonthIndex === 0;
+      nextMonthBtn.disabled = currentMonthIndex === calendarMonths.length - 1;
+
+      renderCalendarGrid(year, month);
+    }
+
+    /**
+     * Рендер сетки календаря по году и номеру месяца
+     */
+    function renderCalendarGrid(year, monthNum) {
+      const container = document.getElementById('calendar');
+      container.innerHTML = '';
+
+      // Заголовки дней недели
+      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      dayNames.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        el.style.backgroundColor = '#f0f0f0';
+        el.style.padding = '6px 0';
+        el.style.borderRadius = '6px';
+        el.style.textAlign = 'center';
+        container.appendChild(el);
+      });
+
+      const firstDay = new Date(year, monthNum - 1, 1);
+      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Пн = 0
+      const lastDayNum = new Date(year, monthNum, 0).getDate();
+
+      // Пустые ячейки перед 1 числом
+      for (let i = 0; i < startDay; i++) {
+        const el = document.createElement('div');
+        el.className = 'day';
+        container.appendChild(el);
+      }
+
+      // Фильтрация дат для текущего месяца и года
+      const datesInMonth = new Set(
+        calendarAvailableDates.filter(d => {
+          if (!/^\d{2}\.\d{2}\.\d{4}$/.test(d)) return false;
+          const [dd, mm, yy] = d.split('.');
+          return parseInt(mm, 10) === monthNum && parseInt(yy, 10) === year;
+        })
+      );
+
+      // Дни месяца
+      for (let day = 1; day <= lastDayNum; day++) {
+        const dateStr = `${day.toString().padStart(2, '0')}.${monthNum.toString().padStart(2, '0')}.${year}`;
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = day;
+        el.style.padding = '8px 0';
+        el.style.borderRadius = '6px';
+        el.style.fontSize = '14px';
+        el.style.cursor = 'pointer';
+
+        if (datesInMonth.has(dateStr)) {
+          el.classList.add('available');
+          el.title = 'Есть данные';
+          el.addEventListener('click', () => loadEmployeeReport(dateStr));
+        } else {
+          el.style.color = '#ccc';
+        }
+        container.appendChild(el);
+      }
+    }
+
+   /**
+ * Загрузка данных за выбранную дату из архива
+ */
+async function loadEmployeeReport(date) {
+  // 🔹 Показываем спиннеры
+  mainDataLoading.classList.remove('hidden');
+  mainDataContent.classList.add('hidden');
+  detailsLoading.classList.remove('hidden');
+  detailsContent.classList.add('hidden');
+  efficiencyLoading.classList.remove('hidden');
+  efficiencyContent.classList.add('hidden');
+  earningsLoading.classList.remove('hidden');
+  earningsContent.classList.add('hidden');
+
+  try {
+    const url = `${API_URL}?chat_id=${chatId}&date=${date}`;
+    const data = await fetchData(url);
+
+    // Обновляем данные
+    updateMainData(data);
+    updateDetails(data.details || []);
+
+    // График производительности
+    if (data.efficiencyData?.length) {
+      createEfficiencyChart(data.efficiencyData);
+      efficiencyLoading.classList.add('hidden');
+      efficiencyContent.classList.remove('hidden');
+    } else {
+      efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+    }
+
+    // График заработка
+    if (data.earningsData?.length) {
+      createEarningsChart(data.earningsData);
+      earningsLoading.classList.add('hidden');
+      earningsContent.classList.remove('hidden');
+    } else {
+      earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+    }
+
+    // Скрываем спиннеры основного контента
+    mainDataLoading.classList.add('hidden');
+    mainDataContent.classList.remove('hidden');
+    detailsLoading.classList.add('hidden');
+    detailsContent.classList.remove('hidden');
+
+  } catch (err) {
+    console.error("Ошибка загрузки отчёта за дату:", err);
+    
+    // Показываем ошибку в каждом блоке
+    mainDataLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    detailsLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    efficiencyLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    earningsLoading.innerHTML = '<p style="color:red;">Ошибка загрузки</p>';
+    
+    // Убираем контент
+    mainDataContent.classList.add('hidden');
+    detailsContent.classList.add('hidden');
+    efficiencyContent.classList.add('hidden');
+    earningsContent.classList.add('hidden');
+  }
+}
+
+    // Навигация по месяцам (личный календарь)
+    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+    prevMonthBtn.addEventListener('click', () => {
+      if (currentMonthIndex > 0) {
+        currentMonthIndex--;
+        const [yearStr, monthStr] = calendarMonths[currentMonthIndex].split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+        prevMonthBtn.disabled = currentMonthIndex === 0;
+        nextMonthBtn.disabled = currentMonthIndex === calendarMonths.length - 1;
+        renderCalendarGrid(year, month);
+      }
+    });
+
+    nextMonthBtn.addEventListener('click', () => {
+      if (currentMonthIndex < calendarMonths.length - 1) {
+        currentMonthIndex++;
+        const [yearStr, monthStr] = calendarMonths[currentMonthIndex].split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+        prevMonthBtn.disabled = currentMonthIndex === 0;
+        nextMonthBtn.disabled = currentMonthIndex === calendarMonths.length - 1;
+        renderCalendarGrid(year, month);
+      }
+    });
+
+    // --- Остальные функции ---
+    function loadDepartmentsList(departments) {
+      if (!departments || !Array.isArray(departments) || departments.length === 0) {
+        departmentsSelectorLoading.innerHTML = '<p>Нет доступных отделов</p>';
+        return;
+      }
+      departmentsSelector.innerHTML = '<option value="">Выберите отдел</option>';
+      departments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept;
+        option.textContent = dept;
+        departmentsSelector.appendChild(option);
+      });
+      departmentsSelectorLoading.classList.add('hidden');
+      departmentsSelectorContent.classList.remove('hidden');
+    }
+
+    async function loadDepartmentCalendar(department) {
+      try {
+        currentDepartment = department;
+        departmentCalendarLoading.classList.remove('hidden');
+        departmentCalendarContent.classList.add('hidden');
+
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}&department_calendar=true&department=${encodeURIComponent(department)}`);
+        availableMonths = data.months || [];
+        if (availableMonths.length === 0) {
+          departmentCalendarLoading.innerHTML = '<p>Нет данных</p>';
+          return;
+        }
+        currentMonthIndex = availableMonths.length - 1;
+        currentMonthSpanManager.textContent = availableMonths[currentMonthIndex];
+        prevMonthBtnManager.disabled = currentMonthIndex === 0;
+        nextMonthBtnManager.disabled = currentMonthIndex === availableMonths.length - 1;
+        await loadDepartmentCalendarGrid(availableMonths[currentMonthIndex], department);
+      } catch (err) {
+        departmentCalendarLoading.innerHTML = `<p style="color: red;">Ошибка: ${err.message}</p>`;
+      }
+    }
+
+    async function loadDepartmentCalendarGrid(month, department) {
+      try {
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}&department_calendar=true&month=${encodeURIComponent(month)}&department=${encodeURIComponent(department)}`);
+        renderDepartmentCalendarGrid(data.days, month, department);
+      } catch (err) {
+        departmentCalendarLoading.innerHTML = `<p style="color: red;">Ошибка: ${err.message}</p>`;
+      }
+    }
+
+    function renderDepartmentCalendarGrid(days, month, department) {
+      const container = document.getElementById('manager-calendar');
+      container.innerHTML = '';
+      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      dayNames.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        el.style.backgroundColor = '#f0f0f0';
+        el.style.padding = '6px 0';
+        el.style.borderRadius = '6px';
+        el.style.textAlign = 'center';
+        container.appendChild(el);
+      });
+      days.forEach(d => {
+        const el = document.createElement('div');
+        el.className = d.date ? 'day' : 'day empty';
+        if (d.hasData) {
+          el.classList.add('available');
+          el.style.backgroundColor = '#1a8cd8';
+          el.style.color = 'white';
+          el.style.fontWeight = 'bold';
+          el.style.width = '30px';
+          el.style.height = '30px';
+          el.style.margin = '0 auto';
+          el.style.display = 'flex';
+          el.style.alignItems = 'center';
+          el.style.justifyContent = 'center';
+          el.title = 'Есть данные';
+          el.addEventListener('click', () => {
+            const [monthName, year] = month.split(' ');
+            const monthsList = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+              'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            const monthNum = monthsList.indexOf(monthName) + 1;
+            const dateStr = `${d.date.toString().padStart(2, '0')}.${monthNum.toString().padStart(2, '0')}.${year}`;
+            loadManagerDashboard(dateStr, department);
+          });
+        } else if (!d.date) {
+          el.style.background = 'transparent';
+        } else {
+          el.style.color = '#ccc';
+        }
+        el.textContent = d.date;
+        container.appendChild(el);
+      });
+      departmentCalendarLoading.classList.add('hidden');
+      departmentCalendarContent.classList.remove('hidden');
+    }
+
+    async function loadManagerDashboard(date, department) {
+      try {
+        managerDataLoading.classList.remove('hidden');
+        managerDataContent.classList.add('hidden');
+        const data = await fetchData(`${API_URL}?chat_id=${chatId}&manager=true&date=${date}&department=${encodeURIComponent(department)}`);
+        document.getElementById('manager-date').textContent = date;
+        renderManagerData(data);
+      } catch (err) {
+        managerDataLoading.innerHTML = `<p style="color: red;">Ошибка: ${err.message}</p>`;
+      }
+    }
+
+    function renderManagerData(data) {
+      const container = document.getElementById('departments-container');
+      container.innerHTML = '';
+      if (!data.departments || data.departments.length === 0) {
+        managerDataLoading.innerHTML = '<p>Нет данных</p>';
+        return;
+      }
+      data.departments.forEach(dept => {
+        const avgEfficiency = dept.avgEfficiency || "0%";
+        const numericEfficiency = parseFloat(avgEfficiency.replace(',', '.')) || 0;
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <h3>📋 ${dept.name}</h3>
+          <p><b>Сотрудников:</b> ${dept.total || 0}</p>
+          <p><b>Присутствует:</b> ${dept.present || 0}</p>
+          <p><b>Отсутствует:</b> ${dept.absent || 0}</p>
+          <p><b>Средняя эффективность:</b> <span style="color: ${numericEfficiency > 80 ? 'green' : 'orange'};">${avgEfficiency}</span></p>
+          <p><b>Общий заработок:</b> ${dept.totalPay || "р. 0,00"}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Сотрудник</th>
+                <th>Статус</th>
+                <th>Отработано</th>
+                <th>Эффективность</th>
+                <th>Заработок</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dept.employees ? dept.employees.map(emp => {
+                const worked = emp.worked || "00:00";
+                const efficiency = emp.efficiency || "0%";
+                const pay = emp.pay || "р. 0,00";
+                const status = emp.status || "отсутствует";
+                return `
+                  <tr>
+                    <td>${emp.name || '—'}</td>
+                    <td><span style="color: ${status === 'работает' ? 'green' : 'red'};">${status}</span></td>
+                    <td>${worked}</td>
+                    <td>${efficiency}</td>
+                    <td>${pay}</td>
+                  </tr>
+                `;
+              }).join('') : ''}
+            </tbody>
+          </table>
+        `;
+        container.appendChild(card);
+      });
+      managerDataLoading.classList.add('hidden');
+      managerDataContent.classList.remove('hidden');
+    }
+
+    function enableTestMode() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const testChatId = urlParams.get('test');
+      if (testChatId) {
+        chatId = testChatId;
+        isManager = true;
+        setTimeout(() => {
+          loading.classList.add('hidden');
+          employeeView.classList.remove('hidden');
+          tabManager.classList.remove('hidden');
+          document.getElementById('name').textContent = 'Титов Д.Н.';
+          document.getElementById('date').textContent = '12.09.2025';
+          document.getElementById('worked').textContent = '08:00';
+          document.getElementById('planned').textContent = '09:00';
+          document.getElementById('efficiency').textContent = '100,38%';
+          document.getElementById('pay-day').textContent = '3 000,00 ₽';
+          document.getElementById('xisBonusDay').textContent = '15,00 ₽'; // ← добавлено
+          document.getElementById('pay-month').textContent = '20 000,00 ₽';
+          document.getElementById('details').textContent = 'Работа 1 (5): 02:30, 500,00 ₽, Сезонная доплата: 10,00 ₽\nРабота 2 (3): 01:15, 300,00 ₽, Сезонная доплата: 5,00 ₽';
+          loadDepartmentsList(['Отдел 1', 'Отдел 2']);
+        }, 1000);
+      } else {
+        showError('⚠️ Откройте через Telegram или добавьте ?test=12345');
+      }
+    }
+
+    function showError(msg) {
+      loading.classList.add('hidden');
+      error.textContent = msg;
+      error.classList.remove('hidden');
+    }
+
+    // Вкладки
+    tabEmployee.addEventListener('click', () => {
+      employeeView.classList.remove('hidden');
+      managerView.classList.add('hidden');
+      tabEmployee.classList.add('active');
+      tabManager.classList.remove('active');
+    });
+
+    tabManager.addEventListener('click', () => {
+      if (isManager) {
+        employeeView.classList.add('hidden');
+        managerView.classList.remove('hidden');
+        tabManager.classList.add('active');
+        tabEmployee.classList.remove('active');
+      }
+    });
+
+    // Выбор отдела
+    departmentsSelector.addEventListener('change', (e) => {
+      if (e.target.value) loadDepartmentCalendar(e.target.value);
+    });
+
+    // Навигация по месяцам (менеджер)
+    prevMonthBtnManager.addEventListener('click', () => {
+      if (currentMonthIndex > 0) {
+        currentMonthIndex--;
+        currentMonthSpanManager.textContent = availableMonths[currentMonthIndex];
+        prevMonthBtnManager.disabled = currentMonthIndex === 0;
+        nextMonthBtnManager.disabled = currentMonthIndex === availableMonths.length - 1;
+        loadDepartmentCalendarGrid(availableMonths[currentMonthIndex], currentDepartment);
+      }
+    });
+
+    nextMonthBtnManager.addEventListener('click', () => {
+      if (currentMonthIndex < availableMonths.length - 1) {
+        currentMonthIndex++;
+        currentMonthSpanManager.textContent = availableMonths[currentMonthIndex];
+        prevMonthBtnManager.disabled = currentMonthIndex === 0;
+        nextMonthBtnManager.disabled = currentMonthIndex === availableMonths.length - 1;
+        loadDepartmentCalendarGrid(availableMonths[currentMonthIndex], currentDepartment);
+      }
+    });
+
+    window.onload = init;
+  </script>
+</body>
+</html>
