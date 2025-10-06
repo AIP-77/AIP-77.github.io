@@ -40,7 +40,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.6 🛠)</h4>
+    <h4>(🛠 V.10.6-1 🛠)</h4>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -203,7 +203,15 @@ async function init() {
       // Сразу рендерим интерфейс
       updateMainData(allUserData[chatId], currentRecord);
       updateDetails(currentRecord.details || []);
-      renderCalendarFromCache(chatId);
+      
+      // Обязательно проверяем, что calendarCache существует
+      if (calendarCache) {
+        renderCalendarFromCache(chatId);
+        calendarLoading.classList.add('hidden');
+        calendarContent.classList.remove('hidden');
+      } else {
+        calendarLoading.innerHTML = '<p style="text-align:center;color:#999;">Календарь недоступен</p>';
+      }
 
       // Показываем UI
       loading.classList.add('hidden');
@@ -212,14 +220,11 @@ async function init() {
       mainDataContent.classList.remove('hidden');
       detailsLoading.classList.add('hidden');
       detailsContent.classList.remove('hidden');
-      calendarLoading.classList.add('hidden');
-      calendarContent.classList.remove('hidden');
 
       if (isManager) {
         tabManager.classList.remove('hidden');
       }
 
-      // Графики — с задержкой
       renderCharts(currentRecord);
     }
 
@@ -234,10 +239,10 @@ async function init() {
           isManager: fresh.isManager
         }, 10 * 60 * 1000); // 10 минут
 
-        // Обновляем интерфейс, только если данные изменились
+        // Обновляем интерфейс, только если данные изменились ИЛИ кэша не было
         const shouldUpdate = !cached ||
-          fresh.currentRecord.date !== currentRecord.date ||
-          fresh.currentRecord.worked !== currentRecord.worked;
+          fresh.currentRecord.date !== (currentRecord?.date || '') ||
+          fresh.currentRecord.worked !== (currentRecord?.worked || '');
 
         if (shouldUpdate) {
           // Обновляем глобальные переменные
@@ -249,7 +254,21 @@ async function init() {
           // Обновляем UI
           updateMainData(allUserData[chatId], currentRecord);
           updateDetails(currentRecord.details || []);
-          renderCalendarFromCache(chatId);
+          
+          if (calendarCache) {
+            renderCalendarFromCache(chatId);
+            calendarLoading.classList.add('hidden');
+            calendarContent.classList.remove('hidden');
+          } else {
+            calendarLoading.innerHTML = '<p style="text-align:center;color:#999;">Календарь недоступен</p>';
+          }
+
+          loading.classList.add('hidden');
+          employeeView.classList.remove('hidden');
+          mainDataLoading.classList.add('hidden');
+          mainDataContent.classList.remove('hidden');
+          detailsLoading.classList.add('hidden');
+          detailsContent.classList.remove('hidden');
 
           if (isManager) {
             tabManager.classList.remove('hidden');
@@ -263,17 +282,22 @@ async function init() {
       .catch(err => {
         console.warn('Не удалось загрузить свежие данные:', err);
         if (!cached) {
+          // Если кэша не было — показываем ошибку и скрываем спиннер
+          loading.classList.add('hidden');
           showError('Ошибка загрузки данных: ' + err.message);
         }
-        // Если кэш есть — оставляем его
+        // Если кэш был — оставляем его (UI уже показан)
       });
+
+    // 🔹 3. Критически важно: если кэша нет — мы всё равно должны показать UI после загрузки
+    // Это уже делается в .then() выше, но на случай ошибки — обрабатываем в .catch()
 
   } catch (err) {
     console.error('Ошибка инициализации:', err);
+    loading.classList.add('hidden');
     showError('Ошибка: ' + err.message);
   }
 }
-
     function updateMainData(userData, record) {
       document.getElementById('name').textContent = userData.name || '—';
       document.getElementById('date').textContent = record.date || '—';
