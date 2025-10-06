@@ -155,7 +155,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.6-2 🛠)</h4>
+    <h4>(🛠 V.10.6-3(Админ) 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -163,6 +163,7 @@
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab hidden">Отдел</div>
       <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
+      <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
     </div>
 
     <div id="loading" class="loading">
@@ -254,28 +255,44 @@
       </div>
     </div>
 
+    <!-- Вкладка "Админка" -->
+    <div id="admin-view" class="hidden">
+      <div class="card">
+        <h2>👨‍💻 Режим администратора</h2>
+        <label for="userSelector">Выберите сотрудника:</label>
+        <select id="userSelector" style="width:100%; padding:8px; margin:10px 0; border-radius:6px; border:1px solid #ccc;">
+          <option value="">— Выберите —</option>
+        </select>
+        <p id="admin-hint" class="last-update">Выбранный пользователь будет отображаться в основной вкладке.</p>
+      </div>
+    </div>
+
     <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
   </div>
 
   <script>
     let chatId = null;
     let isManager = false;
+    let isAdmin = false;
     let allUserData = null;
     let currentRecord = null;
     let efficiencyChart = null;
     let earningsChart = null;
     let calendarCache = null;
+    let currentViewUserId = null; // ID пользователя, за которого смотрит админ
 
     // DOM
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
     const managerView = document.getElementById('manager-view');
+    const adminView = document.getElementById('admin-view');
     const banner = document.getElementById('banner');
 
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
     const tabInfo = document.getElementById('tab-info');
+    const tabAdmin = document.getElementById('tab-admin');
 
     const mainDataLoading = document.getElementById('main-data-loading');
     const mainDataContent = document.getElementById('main-data-content');
@@ -292,6 +309,7 @@
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
     const refreshBtn = document.getElementById('refreshBtn');
+    const userSelector = document.getElementById('userSelector');
 
     let availableMonths = [];
     let currentMonthIndex = 0;
@@ -306,7 +324,7 @@
 
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
-        applyTelegramTheme(); // Применяем тему Telegram
+        applyTelegramTheme();
 
         const user = Telegram.WebApp.initDataUnsafe.user;
         if (!user?.id) throw new Error('Пользователь не найден');
@@ -315,7 +333,6 @@
         const cached = getFromCache('currentData');
         if (cached) {
           restoreFromCache(cached);
-          renderUI();
         }
 
         fetchFreshData()
@@ -324,7 +341,8 @@
               allUserData: fresh.allUserData,
               currentRecord: fresh.currentRecord,
               calendarCache: fresh.calendarCache,
-              isManager: fresh.isManager
+              isManager: fresh.isManager,
+              isAdmin: fresh.isAdmin
             }, 10 * 60 * 1000);
 
             const shouldUpdate = !cached ||
@@ -336,6 +354,7 @@
               currentRecord = fresh.currentRecord;
               calendarCache = fresh.calendarCache;
               isManager = fresh.isManager;
+              isAdmin = fresh.isAdmin;
               renderUI();
               showBanner('Данные обновлены', 'success', 3000);
             }
@@ -373,33 +392,80 @@
       currentRecord = cached.currentRecord;
       calendarCache = cached.calendarCache;
       isManager = cached.isManager;
+      isAdmin = cached.isAdmin;
     }
 
     function renderUI() {
+      // Заполняем список пользователей для админа
+      if (isAdmin && allUserData) {
+        const select = userSelector;
+        select.innerHTML = '<option value="">— Выберите —</option>';
+        Object.entries(allUserData).forEach(([id, data]) => {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = `${data.name || 'Без имени'} (${id})`;
+          select.appendChild(opt);
+        });
+      }
+
+      // Показываем вкладки
+      if (isManager) {
+        tabManager.classList.remove('hidden');
+      }
+      if (isAdmin) {
+        tabAdmin.classList.remove('hidden');
+        tabManager.classList.remove('hidden'); // админ = руководитель
+      }
+
+      // Отображаем данные
+      renderEmployeeViewForUser(chatId);
+
+      loading.classList.add('hidden');
+      employeeView.classList.remove('hidden');
+    }
+
+    function renderEmployeeViewForUser(userId) {
+      const userData = allUserData[userId];
+      if (!userData || !userData.records?.length) {
+        showError('Нет данных для выбранного пользователя');
+        return;
+      }
+
+      const records = userData.records || [];
+      const sortedRecords = records.sort((a, b) => {
+        const [d1, m1, y1] = a.date.split('.').map(Number);
+        const [d2, m2, y2] = b.date.split('.').map(Number);
+        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+      });
+      const record = sortedRecords[0];
+
+      // Сохраняем оригинальный chatId для будущих запросов
+      const originalChatId = chatId;
+      chatId = userId; // временно подменяем для календаря
+
       updateLastUpdate();
-      updateMainData(allUserData[chatId], currentRecord);
-      updateDetails(currentRecord.details || []);
-      
-      if (calendarCache) {
-        renderCalendarFromCache(chatId);
+      updateMainData(userData, record);
+      updateDetails(record.details || []);
+
+      // Календарь
+      if (calendarCache && calendarCache[userId]) {
         calendarLoading.classList.add('hidden');
         calendarContent.classList.remove('hidden');
+        renderCalendarFromCache(userId);
       } else {
         calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Календарь недоступен</p>';
       }
 
-      loading.classList.add('hidden');
-      employeeView.classList.remove('hidden');
+      renderCharts(record);
+
+      // Восстанавливаем оригинальный chatId
+      chatId = originalChatId;
+
+      // Показываем контент
       mainDataLoading.classList.add('hidden');
       mainDataContent.classList.remove('hidden');
       detailsLoading.classList.add('hidden');
       detailsContent.classList.remove('hidden');
-
-      if (isManager) {
-        tabManager.classList.remove('hidden');
-      }
-
-      renderCharts(currentRecord);
     }
 
     function updateLastUpdate() {
@@ -408,7 +474,6 @@
       document.getElementById('last-update').textContent = `Последнее обновление: ${timeStr}`;
     }
 
-    // === ОСНОВНЫЕ ФУНКЦИИ ===
     function updateMainData(userData, record) {
       document.getElementById('name').textContent = userData.name || '—';
       document.getElementById('date').textContent = record.date || '—';
@@ -490,7 +555,6 @@
       });
     }
 
-    // === КАЛЕНДАРЬ ===
     function renderCalendarFromCache(telegramId) {
       const userData = calendarCache[telegramId];
       if (!userData) {
@@ -576,9 +640,7 @@
       }
     }
 
-    // === ЗАГРУЗКА ПО ДАТЕ ===
     async function loadRecordByDate(year, month, day) {
-      // Плавное скрытие
       mainDataContent.classList.add('fade', 'hidden');
       detailsContent.classList.add('fade', 'hidden');
       efficiencyContent.classList.add('fade', 'hidden');
@@ -587,6 +649,7 @@
 
       const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
       const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      const actualUserId = currentViewUserId || chatId;
 
       let data;
       let userData;
@@ -596,7 +659,7 @@
       const currentMonth = now.getMonth() + 1;
 
       if (year === currentYear && month === currentMonth) {
-        userData = allUserData[chatId];
+        userData = allUserData[actualUserId];
         data = userData.records.find(r => r.date === dateStr);
         if (!data) {
           showBanner(`Данные за ${dateStr} не найдены`, 'error');
@@ -607,7 +670,7 @@
           const response = await fetch(`archive/${monthKey}.json`);
           if (!response.ok) throw new Error(`Архив ${monthKey} не найден`);
           const archiveData = await response.json();
-          userData = archiveData[chatId];
+          userData = archiveData[actualUserId];
           if (!userData) {
             showBanner(`Пользователь не найден в архиве ${monthKey}`, 'error');
             return;
@@ -654,7 +717,6 @@
         earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
       }
 
-      // Плавное появление
       mainDataContent.classList.remove('hidden');
       detailsContent.classList.remove('hidden');
       setTimeout(() => {
@@ -668,7 +730,6 @@
       showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
     }
 
-    // === БАННЕРЫ ===
     function showBanner(message, type = 'info', duration = 5000) {
       banner.textContent = message;
       banner.className = `banner show ${type}`;
@@ -679,7 +740,6 @@
       }
     }
 
-    // === ОБНОВЛЕНИЕ ВРУЧНУЮ ===
     refreshBtn.addEventListener('click', async () => {
       refreshBtn.disabled = true;
       refreshBtn.textContent = 'Обновление...';
@@ -690,8 +750,9 @@
         currentRecord = fresh.currentRecord;
         calendarCache = fresh.calendarCache;
         isManager = fresh.isManager;
+        isAdmin = fresh.isAdmin;
 
-        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager }, 10 * 60 * 1000);
+        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager, isAdmin }, 10 * 60 * 1000);
         renderUI();
         showBanner('Данные обновлены вручную', 'success', 3000);
       } catch (err) {
@@ -702,7 +763,6 @@
       }
     });
 
-    // === НАВИГАЦИЯ ПО КАЛЕНДАРЮ ===
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
@@ -715,7 +775,8 @@
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
         nextMonthBtn.disabled = currentMonthIndex === 0;
-        renderCalendarGridFromCache(year, month, calendarCache[chatId][availableMonths[currentMonthIndex]]);
+        const actualUserId = currentViewUserId || chatId;
+        renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
       }
     });
 
@@ -728,11 +789,23 @@
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
         nextMonthBtn.disabled = currentMonthIndex === 0;
-        renderCalendarGridFromCache(year, month, calendarCache[chatId][availableMonths[currentMonthIndex]]);
+        const actualUserId = currentViewUserId || chatId;
+        renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
       }
     });
 
-    // === ТЕСТОВЫЙ РЕЖИМ ===
+    userSelector.addEventListener('change', function () {
+      const selectedId = this.value;
+      if (!selectedId) {
+        currentViewUserId = null;
+        showBanner('Режим просмотра отключён', 'info', 2000);
+      } else {
+        currentViewUserId = selectedId;
+        showBanner(`Переключено на: ${allUserData[selectedId]?.name || '—'}`, 'success', 2000);
+      }
+      renderEmployeeViewForUser(currentViewUserId || chatId);
+    });
+
     function enableTestMode() {
       chatId = '2';
       setTimeout(async () => {
@@ -758,24 +831,37 @@
       error.classList.remove('hidden');
     }
 
-    // === ВКЛАДКИ ===
     tabEmployee.addEventListener('click', () => {
       employeeView.classList.remove('hidden');
       managerView.classList.add('hidden');
+      adminView.classList.add('hidden');
       tabEmployee.classList.add('active');
       tabManager.classList.remove('active');
+      tabAdmin.classList.remove('active');
     });
 
     tabManager.addEventListener('click', () => {
       if (isManager) {
         employeeView.classList.add('hidden');
         managerView.classList.remove('hidden');
+        adminView.classList.add('hidden');
         tabManager.classList.add('active');
         tabEmployee.classList.remove('active');
+        tabAdmin.classList.remove('active');
       }
     });
 
-    // === КЭШИРОВАНИЕ ===
+    tabAdmin.addEventListener('click', () => {
+      if (isAdmin) {
+        employeeView.classList.add('hidden');
+        managerView.classList.add('hidden');
+        adminView.classList.remove('hidden');
+        tabAdmin.classList.add('active');
+        tabEmployee.classList.remove('active');
+        tabManager.classList.remove('active');
+      }
+    });
+
     function saveToCache(key, data, maxAgeMs) {
       const item = {
         data,
@@ -805,7 +891,6 @@
       }
     }
 
-    // === ЗАГРУЗКА СВЕЖИХ ДАННЫХ ===
     async function fetchFreshData() {
       const currentRes = await fetch('current.json');
       if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
@@ -814,7 +899,10 @@
       const userData = allUserData[chatId];
       if (!userData) throw new Error('Данные не найдены для вашего аккаунта');
 
-      const isManager = ['менеджер', 'руководитель', 'админ'].includes(userData.role?.toLowerCase());
+      const userRole = userData.role?.toLowerCase() || '';
+      const isManager = ['менеджер', 'руководитель', 'админ'].includes(userRole);
+      const isAdmin = userRole === 'админ';
+
       const records = userData.records || [];
       if (records.length === 0) throw new Error('Нет записей');
 
@@ -830,10 +918,9 @@
       if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
       const calendarCache = await cacheRes.json();
 
-      return { allUserData, currentRecord, calendarCache, isManager };
+      return { allUserData, currentRecord, calendarCache, isManager, isAdmin };
     }
 
-    // === РЕНДЕР ГРАФИКОВ ===
     function renderCharts(record) {
       setTimeout(() => {
         try {
