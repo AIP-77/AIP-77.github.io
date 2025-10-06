@@ -7,40 +7,157 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
+    :root {
+      --tg-bg-color: #f0f2f5;
+      --tg-text-color: #1c1e21;
+      --tg-hint-color: #999;
+      --tg-link-color: #1a8cd8;
+      --tg-button-color: #1a8cd8;
+      --tg-button-text-color: #ffffff;
+      --card-bg: #ffffff;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
       padding: 20px;
-      background: #f0f2f5;
-      color: #1c1e21;
+      background: var(--tg-bg-color);
+      color: var(--tg-text-color);
       min-height: 100vh;
     }
     .container { max-width: 600px; margin: 0 auto; }
-    .card { background: white; border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    h1, h2, h3 { margin: 0 0 8px 0; color: #1a8cd8; }
-    .tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid #ddd; }
-    .tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: #666; }
-    .tab.active { color: #1a8cd8; border-bottom: 2px solid #1a8cd8; }
-    .loading { text-align: center; padding: 20px; color: #666; font-size: 16px; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top: 4px solid #1a8cd8; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .error { color: #e53935; text-align: center; padding: 20px; background: #ffebee; border-radius: 8px; margin: 16px 0; }
+    .card { 
+      background: var(--card-bg); 
+      border-radius: 12px; 
+      padding: 18px; 
+      margin-bottom: 14px; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+    }
+    h1, h2, h3 { margin: 0 0 8px 0; color: var(--tg-link-color); }
+    .tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid var(--tg-hint-color); }
+    .tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: var(--tg-hint-color); }
+    .tab.active { color: var(--tg-link-color); border-bottom: 2px solid var(--tg-link-color); }
+    .loading { text-align: center; padding: 20px; color: var(--tg-hint-color); font-size: 16px; }
+    .spinner { 
+      width: 40px; 
+      height: 40px; 
+      border: 4px solid #e0e0e0; 
+      border-top: 4px solid var(--tg-link-color); 
+      border-radius: 50%; 
+      animation: spin 1s linear infinite; 
+      margin: 20px auto; 
+    }
+    @keyframes spin { 
+      0% { transform: rotate(0deg); } 
+      100% { transform: rotate(360deg); } 
+    }
+    .error { 
+      color: #e53935; 
+      text-align: center; 
+      padding: 20px; 
+      background: #ffebee; 
+      border-radius: 8px; 
+      margin: 16px 0; 
+    }
     .hidden { display: none !important; }
-    .form-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd; margin-top: 10px; font-size: 16px; }
-    .calendar { display: grid; gap: 4px; margin: 10px 0; grid-template-columns: repeat(7, 1fr); }
-    .day { text-align: center; padding: 6px 0; font-size: 12px; border-radius: 4px; color: #333; cursor: pointer; }
-    .day.available { background: #1a8cd8; color: white; font-weight: bold; }
-    .day:hover { background: #e0e0e0; }
-    .footer { text-align: center; margin-top: 30px; color: #888; font-size: 13px; }
-    .month-selector { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
-    .month-selector button { background: #1a8cd8; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+    .calendar { 
+      display: grid; 
+      gap: 4px; 
+      margin: 10px 0; 
+      grid-template-columns: repeat(7, 1fr); 
+    }
+    .day { 
+      text-align: center; 
+      padding: 6px 0; 
+      font-size: 12px; 
+      border-radius: 4px; 
+      color: var(--tg-text-color); 
+      cursor: pointer; 
+    }
+    .day.available { 
+      background: var(--tg-link-color); 
+      color: var(--tg-button-text-color); 
+      font-weight: bold; 
+    }
+    .day:hover { 
+      background: #e0e0e0; 
+    }
+    .footer { 
+      text-align: center; 
+      margin-top: 30px; 
+      color: var(--tg-hint-color); 
+      font-size: 13px; 
+    }
+    .month-selector { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin: 10px 0; 
+    }
+    .month-selector button { 
+      background: var(--tg-button-color); 
+      color: var(--tg-button-text-color); 
+      border: none; 
+      padding: 8px 12px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+    }
     .month-selector span { font-weight: bold; }
+
+    /* === UX УЛУЧШЕНИЯ === */
+    .banner {
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 500;
+      display: none;
+    }
+    .banner.show {
+      display: block;
+    }
+    .banner.info { background: #e3f2fd; color: #1565c0; }
+    .banner.error { background: #ffebee; color: #c62828; }
+    .banner.success { background: #e8f5e9; color: #2e7d32; }
+
+    .last-update {
+      font-size: 13px;
+      color: var(--tg-hint-color);
+      margin-top: 8px;
+    }
+
+    .refresh-btn {
+      background: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 10px;
+      display: inline-block;
+    }
+    .refresh-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Плавные переходы */
+    .fade {
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+    .fade.hidden {
+      opacity: 0;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.6-1 🛠)</h4>
+    <h4>(🛠 V.10.6-2 🛠)</h4>
+
+    <div id="banner" class="banner"></div>
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -59,11 +176,14 @@
       <div class="card">
         <h2>👷‍♂️ Персональный отчет</h2>
         <h4>(🛠 Приложение находится в разработке. Представленная информация носит информационный характер 🛠)</h4>
+        <p id="last-update" class="last-update">Последнее обновление: —</p>
+        <button id="refreshBtn" class="refresh-btn">🔄 Обновить данные</button>
+        
         <div id="main-data-loading" class="loading">
           <div class="spinner"></div>
           <p>Загрузка основных данных...</p>
         </div>
-        <div id="main-data-content" class="hidden">
+        <div id="main-data-content" class="hidden fade">
           <p><span class="label">Сотрудник:</span> <span id="name">—</span></p>
           <p><span class="label">Дата:</span> <span id="date">—</span></p>
           <p><span class="label">Отработано:</span> <span id="worked">—</span></p>
@@ -81,12 +201,12 @@
           <div class="spinner"></div>
           <p>Загрузка детализации...</p>
         </div>
-        <div id="details-content" class="hidden">
+        <div id="details-content" class="hidden fade">
           <pre id="details">Загрузка...</pre>
         </div>
       </div>
       
-       <div class="card">
+      <div class="card">
         <h2>📅 Календарь посещаемости</h2>
         <div id="calendar-loading" class="loading">
           <div class="spinner"></div>
@@ -108,7 +228,7 @@
           <div class="spinner"></div>
           <p>Загрузка графика...</p>
         </div>
-        <div id="efficiency-content" class="hidden">
+        <div id="efficiency-content" class="hidden fade">
           <canvas id="efficiencyChart" height="100"></canvas>
         </div>
       </div>
@@ -119,12 +239,10 @@
           <div class="spinner"></div>
           <p>Загрузка графика...</p>
         </div>
-        <div id="earnings-content" class="hidden">
+        <div id="earnings-content" class="hidden fade">
           <canvas id="earningsChart" height="100"></canvas>
         </div>
       </div>
-
-     
     </div>
 
     <!-- Вкладка "Отдел" -->
@@ -152,6 +270,7 @@
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
     const managerView = document.getElementById('manager-view');
+    const banner = document.getElementById('banner');
 
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
@@ -171,49 +290,103 @@
     const prevMonthBtn = document.getElementById('prevMonth');
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
+    const refreshBtn = document.getElementById('refreshBtn');
 
     let availableMonths = [];
     let currentMonthIndex = 0;
 
-/**
- * Инициализация с кэшированием
- */
-async function init() {
-  try {
-    if (!window.Telegram?.WebApp) {
-      enableTestMode();
-      return;
+    // === ИНИЦИАЛИЗАЦИЯ ===
+    async function init() {
+      try {
+        if (!window.Telegram?.WebApp) {
+          enableTestMode();
+          return;
+        }
+
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        applyTelegramTheme(); // Применяем тему Telegram
+
+        const user = Telegram.WebApp.initDataUnsafe.user;
+        if (!user?.id) throw new Error('Пользователь не найден');
+        chatId = String(user.id);
+
+        const cached = getFromCache('currentData');
+        if (cached) {
+          restoreFromCache(cached);
+          renderUI();
+        }
+
+        fetchFreshData()
+          .then(fresh => {
+            saveToCache('currentData', {
+              allUserData: fresh.allUserData,
+              currentRecord: fresh.currentRecord,
+              calendarCache: fresh.calendarCache,
+              isManager: fresh.isManager
+            }, 10 * 60 * 1000);
+
+            const shouldUpdate = !cached ||
+              fresh.currentRecord.date !== (currentRecord?.date || '') ||
+              fresh.currentRecord.worked !== (currentRecord?.worked || '');
+
+            if (shouldUpdate) {
+              allUserData = fresh.allUserData;
+              currentRecord = fresh.currentRecord;
+              calendarCache = fresh.calendarCache;
+              isManager = fresh.isManager;
+              renderUI();
+              showBanner('Данные обновлены', 'success', 3000);
+            }
+          })
+          .catch(err => {
+            console.warn('Не удалось загрузить свежие данные:', err);
+            if (!cached) {
+              loading.classList.add('hidden');
+              showError('Ошибка загрузки данных: ' + err.message);
+            }
+          });
+
+      } catch (err) {
+        console.error('Ошибка инициализации:', err);
+        loading.classList.add('hidden');
+        showError('Ошибка: ' + err.message);
+      }
     }
 
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-    const user = Telegram.WebApp.initDataUnsafe.user;
-    if (!user?.id) throw new Error('Пользователь не найден');
-    chatId = String(user.id);
+    function applyTelegramTheme() {
+      if (!window.Telegram?.WebApp) return;
+      const theme = Telegram.WebApp.themeParams;
+      const root = document.documentElement;
+      root.style.setProperty('--tg-bg-color', theme.bg_color || '#f0f2f5');
+      root.style.setProperty('--tg-text-color', theme.text_color || '#1c1e21');
+      root.style.setProperty('--tg-hint-color', theme.hint_color || '#999999');
+      root.style.setProperty('--tg-link-color', theme.link_color || '#1a8cd8');
+      root.style.setProperty('--tg-button-color', theme.button_color || '#1a8cd8');
+      root.style.setProperty('--tg-button-text-color', theme.button_text_color || '#ffffff');
+      root.style.setProperty('--card-bg', theme.bg_color && parseInt(theme.bg_color.replace('#', ''), 16) < 0xffffff/2 ? '#333' : '#ffffff');
+    }
 
-    // 🔹 1. Попробовать загрузить из кэша
-    const cached = getFromCache('currentData');
-    if (cached) {
-      // Восстанавливаем все глобальные состояния
+    function restoreFromCache(cached) {
       allUserData = cached.allUserData;
       currentRecord = cached.currentRecord;
       calendarCache = cached.calendarCache;
       isManager = cached.isManager;
+    }
 
-      // Сразу рендерим интерфейс
+    function renderUI() {
+      updateLastUpdate();
       updateMainData(allUserData[chatId], currentRecord);
       updateDetails(currentRecord.details || []);
       
-      // Обязательно проверяем, что calendarCache существует
       if (calendarCache) {
         renderCalendarFromCache(chatId);
         calendarLoading.classList.add('hidden');
         calendarContent.classList.remove('hidden');
       } else {
-        calendarLoading.innerHTML = '<p style="text-align:center;color:#999;">Календарь недоступен</p>';
+        calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Календарь недоступен</p>';
       }
 
-      // Показываем UI
       loading.classList.add('hidden');
       employeeView.classList.remove('hidden');
       mainDataLoading.classList.add('hidden');
@@ -228,76 +401,13 @@ async function init() {
       renderCharts(currentRecord);
     }
 
-    // 🔹 2. В фоне — загружаем свежие данные
-    fetchFreshData()
-      .then(fresh => {
-        // Сохраняем в кэш
-        saveToCache('currentData', {
-          allUserData: fresh.allUserData,
-          currentRecord: fresh.currentRecord,
-          calendarCache: fresh.calendarCache,
-          isManager: fresh.isManager
-        }, 10 * 60 * 1000); // 10 минут
+    function updateLastUpdate() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('last-update').textContent = `Последнее обновление: ${timeStr}`;
+    }
 
-        // Обновляем интерфейс, только если данные изменились ИЛИ кэша не было
-        const shouldUpdate = !cached ||
-          fresh.currentRecord.date !== (currentRecord?.date || '') ||
-          fresh.currentRecord.worked !== (currentRecord?.worked || '');
-
-        if (shouldUpdate) {
-          // Обновляем глобальные переменные
-          allUserData = fresh.allUserData;
-          currentRecord = fresh.currentRecord;
-          calendarCache = fresh.calendarCache;
-          isManager = fresh.isManager;
-
-          // Обновляем UI
-          updateMainData(allUserData[chatId], currentRecord);
-          updateDetails(currentRecord.details || []);
-          
-          if (calendarCache) {
-            renderCalendarFromCache(chatId);
-            calendarLoading.classList.add('hidden');
-            calendarContent.classList.remove('hidden');
-          } else {
-            calendarLoading.innerHTML = '<p style="text-align:center;color:#999;">Календарь недоступен</p>';
-          }
-
-          loading.classList.add('hidden');
-          employeeView.classList.remove('hidden');
-          mainDataLoading.classList.add('hidden');
-          mainDataContent.classList.remove('hidden');
-          detailsLoading.classList.add('hidden');
-          detailsContent.classList.remove('hidden');
-
-          if (isManager) {
-            tabManager.classList.remove('hidden');
-          } else {
-            tabManager.classList.add('hidden');
-          }
-
-          renderCharts(currentRecord);
-        }
-      })
-      .catch(err => {
-        console.warn('Не удалось загрузить свежие данные:', err);
-        if (!cached) {
-          // Если кэша не было — показываем ошибку и скрываем спиннер
-          loading.classList.add('hidden');
-          showError('Ошибка загрузки данных: ' + err.message);
-        }
-        // Если кэш был — оставляем его (UI уже показан)
-      });
-
-    // 🔹 3. Критически важно: если кэша нет — мы всё равно должны показать UI после загрузки
-    // Это уже делается в .then() выше, но на случай ошибки — обрабатываем в .catch()
-
-  } catch (err) {
-    console.error('Ошибка инициализации:', err);
-    loading.classList.add('hidden');
-    showError('Ошибка: ' + err.message);
-  }
-}
+    // === ОСНОВНЫЕ ФУНКЦИИ ===
     function updateMainData(userData, record) {
       document.getElementById('name').textContent = userData.name || '—';
       document.getElementById('date').textContent = record.date || '—';
@@ -335,7 +445,7 @@ async function init() {
           datasets: [{
             label: 'Производительность (%)',
             data: data.map(d => d.value),
-            backgroundColor: '#1a8cd8'
+            backgroundColor: 'var(--tg-link-color)'
           }]
         },
         options: {
@@ -361,7 +471,7 @@ async function init() {
           datasets: [{
             label: 'Заработок (р.)',
             data: data.map(d => d.pay),
-            borderColor: '#1a8cd8',
+            borderColor: 'var(--tg-link-color)',
             backgroundColor: 'rgba(26, 140, 216, 0.2)',
             fill: true,
             tension: 0.3
@@ -379,10 +489,11 @@ async function init() {
       });
     }
 
+    // === КАЛЕНДАРЬ ===
     function renderCalendarFromCache(telegramId) {
       const userData = calendarCache[telegramId];
       if (!userData) {
-        document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+        document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         return;
       }
 
@@ -393,7 +504,7 @@ async function init() {
       });
 
       if (availableMonths.length === 0) {
-        document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+        document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         return;
       }
 
@@ -464,7 +575,15 @@ async function init() {
       }
     }
 
+    // === ЗАГРУЗКА ПО ДАТЕ ===
     async function loadRecordByDate(year, month, day) {
+      // Плавное скрытие
+      mainDataContent.classList.add('fade', 'hidden');
+      detailsContent.classList.add('fade', 'hidden');
+      efficiencyContent.classList.add('fade', 'hidden');
+      earningsContent.classList.add('fade', 'hidden');
+      await new Promise(r => setTimeout(r, 300));
+
       const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
       const monthKey = `${year}-${String(month).padStart(2, '0')}`;
 
@@ -479,7 +598,7 @@ async function init() {
         userData = allUserData[chatId];
         data = userData.records.find(r => r.date === dateStr);
         if (!data) {
-          showNotification(`Данные за ${dateStr} не найдены`);
+          showBanner(`Данные за ${dateStr} не найдены`, 'error');
           return;
         }
       } else {
@@ -489,17 +608,17 @@ async function init() {
           const archiveData = await response.json();
           userData = archiveData[chatId];
           if (!userData) {
-            showNotification(`Пользователь не найден в архиве ${monthKey}`);
+            showBanner(`Пользователь не найден в архиве ${monthKey}`, 'error');
             return;
           }
           data = userData.records.find(r => r.date === dateStr);
           if (!data) {
-            showNotification(`Данные за ${dateStr} не найдены в архиве`);
+            showBanner(`Данные за ${dateStr} не найдены в архиве`, 'error');
             return;
           }
         } catch (err) {
           console.error('Ошибка загрузки архива:', err);
-          showNotification(`Ошибка: ${err.message}`);
+          showBanner(`Ошибка: ${err.message}`, 'error');
           return;
         }
       }
@@ -514,7 +633,7 @@ async function init() {
           efficiencyLoading.classList.add('hidden');
           efficiencyContent.classList.remove('hidden');
         } else {
-          efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+          efficiencyLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         }
       } catch (err) {
         console.error('Ошибка графика эффективности:', err);
@@ -527,50 +646,62 @@ async function init() {
           earningsLoading.classList.add('hidden');
           earningsContent.classList.remove('hidden');
         } else {
-          earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+          earningsLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         }
       } catch (err) {
         console.error('Ошибка графика заработка:', err);
         earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
       }
 
-      showNotification(`Данные за ${dateStr} загружены`);
-    }
-
-    function showNotification(message) {
-      const notification = document.createElement('div');
-      notification.style.position = 'fixed';
-      notification.style.top = '20px';
-      notification.style.left = '50%';
-      notification.style.transform = 'translateX(-50%)';
-      notification.style.background = 'white';
-      notification.style.padding = '15px 20px';
-      notification.style.border = '1px solid #ddd';
-      notification.style.borderRadius = '8px';
-      notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-      notification.style.zIndex = '1000';
-      notification.style.maxWidth = '90%';
-      notification.style.textAlign = 'center';
-      notification.style.fontSize = '16px';
-      notification.innerHTML = `
-        <div style="margin-bottom: 10px;">${message}</div>
-        <button style="background: #333; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
-          Закрыть
-        </button>
-      `;
-      document.body.appendChild(notification);
-
-      notification.querySelector('button').addEventListener('click', () => {
-        document.body.removeChild(notification);
-      });
-
+      // Плавное появление
+      mainDataContent.classList.remove('hidden');
+      detailsContent.classList.remove('hidden');
       setTimeout(() => {
-        if (document.body.contains(notification)) {
-          document.body.removeChild(notification);
-        }
-      }, 5000);
+        mainDataContent.classList.remove('fade');
+        detailsContent.classList.remove('fade');
+        efficiencyContent.classList.remove('fade');
+        earningsContent.classList.remove('fade');
+      }, 50);
+
+      updateLastUpdate();
+      showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
     }
 
+    // === БАННЕРЫ ===
+    function showBanner(message, type = 'info', duration = 5000) {
+      banner.textContent = message;
+      banner.className = `banner show ${type}`;
+      if (duration > 0) {
+        setTimeout(() => {
+          banner.classList.remove('show');
+        }, duration);
+      }
+    }
+
+    // === ОБНОВЛЕНИЕ ВРУЧНУЮ ===
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = 'Обновление...';
+
+      try {
+        const fresh = await fetchFreshData();
+        allUserData = fresh.allUserData;
+        currentRecord = fresh.currentRecord;
+        calendarCache = fresh.calendarCache;
+        isManager = fresh.isManager;
+
+        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager }, 10 * 60 * 1000);
+        renderUI();
+        showBanner('Данные обновлены вручную', 'success', 3000);
+      } catch (err) {
+        showBanner('Ошибка обновления: ' + err.message, 'error', 5000);
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = '🔄 Обновить данные';
+      }
+    });
+
+    // === НАВИГАЦИЯ ПО КАЛЕНДАРЮ ===
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
@@ -600,6 +731,7 @@ async function init() {
       }
     });
 
+    // === ТЕСТОВЫЙ РЕЖИМ ===
     function enableTestMode() {
       chatId = '2';
       setTimeout(async () => {
@@ -612,18 +744,7 @@ async function init() {
             return;
           }
           currentRecord = userData.records[0];
-          updateMainData(userData, currentRecord);
-          updateDetails(currentRecord.details || []);
-          renderCalendarFromCache(chatId);
-
-          loading.classList.add('hidden');
-          employeeView.classList.remove('hidden');
-          mainDataLoading.classList.add('hidden');
-          mainDataContent.classList.remove('hidden');
-          detailsLoading.classList.add('hidden');
-          detailsContent.classList.remove('hidden');
-          calendarLoading.classList.add('hidden');
-          calendarContent.classList.remove('hidden');
+          renderUI();
         } catch (err) {
           showError('Ошибка тестового режима: ' + err.message);
         }
@@ -636,6 +757,7 @@ async function init() {
       error.classList.remove('hidden');
     }
 
+    // === ВКЛАДКИ ===
     tabEmployee.addEventListener('click', () => {
       employeeView.classList.remove('hidden');
       managerView.classList.add('hidden');
@@ -651,96 +773,95 @@ async function init() {
         tabEmployee.classList.remove('active');
       }
     });
-  // === КЭШИРОВАНИЕ ===
-function saveToCache(key, data, maxAgeMs) {
-  const item = {
-    data,
-    timestamp: Date.now(),
-    maxAge: maxAgeMs
-  };
-  try {
-    localStorage.setItem(`miniapp_${key}`, JSON.stringify(item));
-  } catch (e) {
-    console.warn('Не удалось сохранить в localStorage:', e);
-  }
-}
 
-function getFromCache(key) {
-  try {
-    const itemStr = localStorage.getItem(`miniapp_${key}`);
-    if (!itemStr) return null;
-    const item = JSON.parse(itemStr);
-    if (Date.now() - item.timestamp > item.maxAge) {
-      localStorage.removeItem(`miniapp_${key}`);
-      return null;
-    }
-    return item.data;
-  } catch (e) {
-    console.warn('Ошибка чтения кэша:', e);
-    return null;
-  }
-}
-
-// === ЗАГРУЗКА СВЕЖИХ ДАННЫХ ===
-async function fetchFreshData() {
-  const currentRes = await fetch('current.json');
-  if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
-  const allUserData = await currentRes.json();
-
-  const userData = allUserData[chatId];
-  if (!userData) throw new Error('Данные не найдены для вашего аккаунта');
-
-  const isManager = ['менеджер', 'руководитель', 'админ'].includes(userData.role?.toLowerCase());
-  const records = userData.records || [];
-  if (records.length === 0) throw new Error('Нет записей');
-
-  const sortedRecords = records.sort((a, b) => {
-    const [d1, m1, y1] = a.date.split('.').map(Number);
-    const [d2, m2, y2] = b.date.split('.').map(Number);
-    return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-  });
-
-  const currentRecord = sortedRecords[0];
-
-  const cacheRes = await fetch('calendar-cache.json');
-  if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
-  const calendarCache = await cacheRes.json();
-
-  return { allUserData, currentRecord, calendarCache, isManager };
-}
-
-// === РЕНДЕР ГРАФИКОВ ===
-function renderCharts(record) {
-  setTimeout(() => {
-    // Эффективность
-    try {
-      if (record.efficiencyData?.length) {
-        createEfficiencyChart(record.efficiencyData);
-        efficiencyLoading.classList.add('hidden');
-        efficiencyContent.classList.remove('hidden');
-      } else {
-        efficiencyLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+    // === КЭШИРОВАНИЕ ===
+    function saveToCache(key, data, maxAgeMs) {
+      const item = {
+        data,
+        timestamp: Date.now(),
+        maxAge: maxAgeMs
+      };
+      try {
+        localStorage.setItem(`miniapp_${key}`, JSON.stringify(item));
+      } catch (e) {
+        console.warn('Не удалось сохранить в localStorage:', e);
       }
-    } catch (err) {
-      console.error('Ошибка графика эффективности:', err);
-      efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
     }
 
-    // Заработок
-    try {
-      if (record.earningsData?.length) {
-        createEarningsChart(record.earningsData);
-        earningsLoading.classList.add('hidden');
-        earningsContent.classList.remove('hidden');
-      } else {
-        earningsLoading.innerHTML = '<p style="text-align:center;color:#999;">Нет данных</p>';
+    function getFromCache(key) {
+      try {
+        const itemStr = localStorage.getItem(`miniapp_${key}`);
+        if (!itemStr) return null;
+        const item = JSON.parse(itemStr);
+        if (Date.now() - item.timestamp > item.maxAge) {
+          localStorage.removeItem(`miniapp_${key}`);
+          return null;
+        }
+        return item.data;
+      } catch (e) {
+        console.warn('Ошибка чтения кэша:', e);
+        return null;
       }
-    } catch (err) {
-      console.error('Ошибка графика заработка:', err);
-      earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
     }
-  }, 300);
-}  
+
+    // === ЗАГРУЗКА СВЕЖИХ ДАННЫХ ===
+    async function fetchFreshData() {
+      const currentRes = await fetch('current.json');
+      if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
+      const allUserData = await currentRes.json();
+
+      const userData = allUserData[chatId];
+      if (!userData) throw new Error('Данные не найдены для вашего аккаунта');
+
+      const isManager = ['менеджер', 'руководитель', 'админ'].includes(userData.role?.toLowerCase());
+      const records = userData.records || [];
+      if (records.length === 0) throw new Error('Нет записей');
+
+      const sortedRecords = records.sort((a, b) => {
+        const [d1, m1, y1] = a.date.split('.').map(Number);
+        const [d2, m2, y2] = b.date.split('.').map(Number);
+        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+      });
+
+      const currentRecord = sortedRecords[0];
+
+      const cacheRes = await fetch('calendar-cache.json');
+      if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
+      const calendarCache = await cacheRes.json();
+
+      return { allUserData, currentRecord, calendarCache, isManager };
+    }
+
+    // === РЕНДЕР ГРАФИКОВ ===
+    function renderCharts(record) {
+      setTimeout(() => {
+        try {
+          if (record.efficiencyData?.length) {
+            createEfficiencyChart(record.efficiencyData);
+            efficiencyLoading.classList.add('hidden');
+            efficiencyContent.classList.remove('hidden');
+          } else {
+            efficiencyLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+          }
+        } catch (err) {
+          console.error('Ошибка графика эффективности:', err);
+          efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
+        }
+
+        try {
+          if (record.earningsData?.length) {
+            createEarningsChart(record.earningsData);
+            earningsLoading.classList.add('hidden');
+            earningsContent.classList.remove('hidden');
+          } else {
+            earningsLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+          }
+        } catch (err) {
+          console.error('Ошибка графика заработка:', err);
+          earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
+        }
+      }, 300);
+    }  
 
     window.onload = init;
   </script>
