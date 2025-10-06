@@ -155,7 +155,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.6-3(Админ) 🛠)</h4>
+    <h4>(🛠 V.10.6-Адин 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -333,23 +333,27 @@
         const cached = getFromCache('currentData');
         if (cached) {
           restoreFromCache(cached);
+          // После восстановления — сразу рендерим
+          renderUI();
         }
 
         fetchFreshData()
           .then(fresh => {
+            // Сохраняем currentViewUserId в кэш!
             saveToCache('currentData', {
               allUserData: fresh.allUserData,
               currentRecord: fresh.currentRecord,
               calendarCache: fresh.calendarCache,
               isManager: fresh.isManager,
-              isAdmin: fresh.isAdmin
+              isAdmin: fresh.isAdmin,
+              currentViewUserId: currentViewUserId // ← сохраняем выбор админа
             }, 10 * 60 * 1000);
 
             const shouldUpdate = !cached ||
               fresh.currentRecord.date !== (currentRecord?.date || '') ||
               fresh.currentRecord.worked !== (currentRecord?.worked || '');
 
-            if (shouldUpdate) {
+            if (shouldUpdate || !cached) {
               allUserData = fresh.allUserData;
               currentRecord = fresh.currentRecord;
               calendarCache = fresh.calendarCache;
@@ -393,9 +397,16 @@
       calendarCache = cached.calendarCache;
       isManager = cached.isManager;
       isAdmin = cached.isAdmin;
+      currentViewUserId = cached.currentViewUserId || null; // ← восстанавливаем выбор
     }
 
     function renderUI() {
+      if (!allUserData) {
+        showError('Нет данных пользователей');
+        loading.classList.add('hidden');
+        return;
+      }
+
       // Заполняем список пользователей для админа
       if (isAdmin && allUserData) {
         const select = userSelector;
@@ -406,6 +417,10 @@
           opt.textContent = `${data.name || 'Без имени'} (${id})`;
           select.appendChild(opt);
         });
+        // Восстанавливаем выбор в селекте
+        if (currentViewUserId && allUserData[currentViewUserId]) {
+          userSelector.value = currentViewUserId;
+        }
       }
 
       // Показываем вкладки
@@ -417,13 +432,15 @@
         tabManager.classList.remove('hidden'); // админ = руководитель
       }
 
-      // Отображаем данные
-      renderEmployeeViewForUser(chatId);
+      // Отображаем данные для выбранного или текущего пользователя
+      const viewUserId = currentViewUserId || chatId;
+      renderEmployeeViewForUser(viewUserId);
 
       loading.classList.add('hidden');
       employeeView.classList.remove('hidden');
     }
 
+    // 🔥 Безопасная функция: НЕ меняет chatId!
     function renderEmployeeViewForUser(userId) {
       const userData = allUserData[userId];
       if (!userData || !userData.records?.length) {
@@ -438,10 +455,6 @@
         return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
       });
       const record = sortedRecords[0];
-
-      // Сохраняем оригинальный chatId для будущих запросов
-      const originalChatId = chatId;
-      chatId = userId; // временно подменяем для календаря
 
       updateLastUpdate();
       updateMainData(userData, record);
@@ -458,10 +471,6 @@
 
       renderCharts(record);
 
-      // Восстанавливаем оригинальный chatId
-      chatId = originalChatId;
-
-      // Показываем контент
       mainDataLoading.classList.add('hidden');
       mainDataContent.classList.remove('hidden');
       detailsLoading.classList.add('hidden');
@@ -752,7 +761,7 @@
         isManager = fresh.isManager;
         isAdmin = fresh.isAdmin;
 
-        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager, isAdmin }, 10 * 60 * 1000);
+        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager, isAdmin, currentViewUserId }, 10 * 60 * 1000);
         renderUI();
         showBanner('Данные обновлены вручную', 'success', 3000);
       } catch (err) {
@@ -796,14 +805,17 @@
 
     userSelector.addEventListener('change', function () {
       const selectedId = this.value;
+      currentViewUserId = selectedId || null;
       if (!selectedId) {
-        currentViewUserId = null;
         showBanner('Режим просмотра отключён', 'info', 2000);
       } else {
-        currentViewUserId = selectedId;
         showBanner(`Переключено на: ${allUserData[selectedId]?.name || '—'}`, 'success', 2000);
       }
       renderEmployeeViewForUser(currentViewUserId || chatId);
+      // Сохраняем выбор в кэш немедленно
+      saveToCache('currentData', {
+        allUserData, currentRecord, calendarCache, isManager, isAdmin, currentViewUserId
+      }, 10 * 60 * 1000);
     });
 
     function enableTestMode() {
