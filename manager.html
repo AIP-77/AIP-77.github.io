@@ -157,7 +157,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-1935 🛠)</h4>
+    <h4>(🛠 V.10.7-1940 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -526,8 +526,13 @@
 
       // Вид руководителя
       if (isManager && Array.isArray(managedDepartments)) {
-        renderManagerView();
-      }
+  try {
+    renderManagerView();
+  } catch (err) {
+    console.error('Ошибка в renderManagerView:', err);
+    // Не прерываем работу основного интерфейса
+  }
+}
 
       loading.classList.add('hidden');
       employeeView.classList.remove('hidden');
@@ -612,31 +617,29 @@
     deptDataContent.classList.add('hidden');
     departmentSelector.classList.add('hidden');
     departmentReport.classList.remove('hidden');
-    renderDepartmentCalendar(departmentName); // календарь может быть пустым — ок
+    renderDepartmentCalendar(departmentName);
     return;
   }
 
-  // Находим последнюю дату по всем записям отдела
+  // Находим последнюю дату
   let latestDate = null;
-  employeesInDept.forEach(emp => {
+  for (const emp of employeesInDept) {
     if (emp.records?.length) {
       const lastRec = emp.records[0];
       if (!latestDate || lastRec.date > latestDate) {
         latestDate = lastRec.date;
       }
     }
-  });
+  }
 
-  if (!latestDate) {
+  if (latestDate) {
+    renderDepartmentReportForDate(departmentName, latestDate);
+  } else {
     deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет данных за период</p>';
     deptDataLoading.classList.remove('hidden');
     deptDataContent.classList.add('hidden');
-  } else {
-    // Загружаем отчёт за последнюю дату
-    renderDepartmentReportForDate(departmentName, latestDate);
   }
 
-  // Показываем отчёт и календарь
   departmentSelector.classList.add('hidden');
   departmentReport.classList.remove('hidden');
   renderDepartmentCalendar(departmentName);
