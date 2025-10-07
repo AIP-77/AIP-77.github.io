@@ -150,7 +150,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-2333 🛠)</h4>
+    <h4>(🛠 V.10.7-2355 🛠)</h4>
     <div id="banner" class="banner"></div>
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -418,45 +418,74 @@
       allUserData = cached.allUserData;
       currentRecord = cached.currentRecord;
       calendarCache = cached.calendarCache;
-      isManager = cached.isManager;
-      isAdmin = cached.isAdmin;
-      managedDepartments = cached.managedDepartments || [];
+      isManager = !!cached.isManager; // Приводим к boolean
+      isAdmin = !!cached.isAdmin; // Приводим к boolean
+      currentViewUserId = cached.currentViewUserId || null;
+      managedDepartments = Array.isArray(cached.managedDepartments) ? cached.managedDepartments : [];
       currentManagerDepartment = cached.currentManagerDepartment || null;
     }
 
     function renderUI() {
-      if (!allUserData) {
-        showError('Нет данных пользователей');
-        loading.classList.add('hidden');
-        return;
-      }
+  if (!allUserData) {
+    showError('Нет данных пользователей');
+    loading.classList.add('hidden');
+    return;
+  }
 
-      // Показываем вкладки
-      if (isManager) {
-        tabManager.classList.remove('hidden');
-      }
-      if (isAdmin) {
-        tabAdmin.classList.remove('hidden');
-        tabManager.classList.remove('hidden');
-      }
+  // === 1. Показываем вкладки ===
+  if (isManager) {
+    tabManager.classList.remove('hidden');
+  }
+  if (isAdmin) {
+    tabAdmin.classList.remove('hidden');
+    // Админ = руководитель → показываем и "Отдел"
+    tabManager.classList.remove('hidden');
+  }
 
-      // Рендерим основной вид
-      renderEmployeeViewForUser(chatId);
-
-      // Откладываем рендеринг "Отдела", чтобы не блокировать UI
-      if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
-        setTimeout(() => {
-          try {
-            renderManagerView();
-          } catch (err) {
-            console.error('Ошибка в renderManagerView:', err);
-          }
-        }, 100);
-      }
-
-      loading.classList.add('hidden');
-      employeeView.classList.remove('hidden');
+  // === 2. Заполняем список в админке (если нужно) ===
+  if (isAdmin && allUserData) {
+    const select = userSelector;
+    select.innerHTML = '<option value="">— Выберите —</option>';
+    const usersArray = Object.entries(allUserData)
+      .map(([id, data]) => ({ id, data }))
+      .sort((a, b) => {
+        const nameA = (a.data.name || '').trim().toLowerCase();
+        const nameB = (b.data.name || '').trim().toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+      });
+    usersArray.forEach(({ id, data }) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = `${data.name || 'Без имени'} (${id})`;
+      select.appendChild(opt);
+    });
+    if (currentViewUserId && allUserData[currentViewUserId]) {
+      userSelector.value = currentViewUserId;
     }
+  }
+
+  // === 3. Рендерим ОСНОВНОЙ ВИД ("Мой отчёт") ===
+  const viewUserId = currentViewUserId || chatId;
+  renderEmployeeViewForUser(viewUserId);
+
+  // === 4. Скрываем спиннер и показываем основной вид ===
+  loading.classList.add('hidden');
+  employeeView.classList.remove('hidden');
+
+  // === 5. Откладываем рендеринг "Отдела", чтобы не блокировать UI ===
+  if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
+    setTimeout(() => {
+      try {
+        renderManagerView();
+      } catch (err) {
+        console.error('Ошибка в renderManagerView:', err);
+        // Не ломаем основной интерфейс
+      }
+    }, 100);
+  }
+}
 
     function renderEmployeeViewForUser(userId) {
       const userData = allUserData[userId];
@@ -494,34 +523,34 @@
     }
 
     function renderManagerView() {
-      if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
-        departmentSelector.classList.add('hidden');
-        departmentReport.classList.add('hidden');
-        return;
-      }
+  // Проверяем, есть ли отделы
+  if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
+    departmentSelector.classList.add('hidden');
+    departmentReport.classList.add('hidden');
+    return;
+  }
 
-      if (managedDepartments.length === 1) {
-        currentManagerDepartment = managedDepartments[0];
-        departmentSelector.classList.add('hidden');
-        renderDepartmentReport(currentManagerDepartment);
-      } else {
-        departmentSelector.classList.remove('hidden');
-        departmentReport.classList.add('hidden');
+  // Если у админа несколько отделов, но ни один не выбран — показываем селект
+  if (isAdmin && managedDepartments.length > 1 && !currentManagerDepartment) {
+    departmentSelector.classList.remove('hidden');
+    departmentReport.classList.add('hidden');
+    return;
+  }
 
-        departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
-        managedDepartments.forEach(dept => {
-          const opt = document.createElement('option');
-          opt.value = dept;
-          opt.textContent = dept;
-          departmentSelect.appendChild(opt);
-        });
-
-        if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
-          departmentSelect.value = currentManagerDepartment;
-          renderDepartmentReport(currentManagerDepartment);
-        }
-      }
-    }
+  // Если 1 отдел или отдел уже выбран
+  if (managedDepartments.length === 1) {
+    currentManagerDepartment = managedDepartments[0];
+    departmentSelector.classList.add('hidden');
+    renderDepartmentReport(currentManagerDepartment);
+  } else if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
+    departmentSelector.classList.add('hidden');
+    renderDepartmentReport(currentManagerDepartment);
+  } else {
+    // Если отдел не выбран, но их >1 — показываем селект
+    departmentSelector.classList.remove('hidden');
+    departmentReport.classList.add('hidden');
+  }
+}
 
     function renderDepartmentReport(departmentName) {
       currentManagerDepartment = departmentName;
