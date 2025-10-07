@@ -150,7 +150,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-2355 🛠)</h4>
+    <h4>(🛠 V.10.8-0010 )</h4>
     <div id="banner" class="banner"></div>
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -292,6 +292,7 @@
     let efficiencyChart = null;
     let earningsChart = null;
     let calendarCache = null;
+    let currentViewUserId = null; // Удалено: не используется
     let managedDepartments = [];
     let currentManagerDepartment = null;
 
@@ -304,6 +305,7 @@
 
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
+    const tabInfo = document.getElementById('tab-info');
     const tabAdmin = document.getElementById('tab-admin');
 
     const mainDataLoading = document.getElementById('main-data-loading');
@@ -418,74 +420,45 @@
       allUserData = cached.allUserData;
       currentRecord = cached.currentRecord;
       calendarCache = cached.calendarCache;
-      isManager = !!cached.isManager; // Приводим к boolean
-      isAdmin = !!cached.isAdmin; // Приводим к boolean
-      currentViewUserId = cached.currentViewUserId || null;
+      isManager = !!cached.isManager;
+      isAdmin = !!cached.isAdmin;
       managedDepartments = Array.isArray(cached.managedDepartments) ? cached.managedDepartments : [];
       currentManagerDepartment = cached.currentManagerDepartment || null;
     }
 
     function renderUI() {
-  if (!allUserData) {
-    showError('Нет данных пользователей');
-    loading.classList.add('hidden');
-    return;
-  }
-
-  // === 1. Показываем вкладки ===
-  if (isManager) {
-    tabManager.classList.remove('hidden');
-  }
-  if (isAdmin) {
-    tabAdmin.classList.remove('hidden');
-    // Админ = руководитель → показываем и "Отдел"
-    tabManager.classList.remove('hidden');
-  }
-
-  // === 2. Заполняем список в админке (если нужно) ===
-  if (isAdmin && allUserData) {
-    const select = userSelector;
-    select.innerHTML = '<option value="">— Выберите —</option>';
-    const usersArray = Object.entries(allUserData)
-      .map(([id, data]) => ({ id, data }))
-      .sort((a, b) => {
-        const nameA = (a.data.name || '').trim().toLowerCase();
-        const nameB = (b.data.name || '').trim().toLowerCase();
-        if (nameA < nameB) return -1;
-        if (nameA > nameB) return 1;
-        return 0;
-      });
-    usersArray.forEach(({ id, data }) => {
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = `${data.name || 'Без имени'} (${id})`;
-      select.appendChild(opt);
-    });
-    if (currentViewUserId && allUserData[currentViewUserId]) {
-      userSelector.value = currentViewUserId;
-    }
-  }
-
-  // === 3. Рендерим ОСНОВНОЙ ВИД ("Мой отчёт") ===
-  const viewUserId = currentViewUserId || chatId;
-  renderEmployeeViewForUser(viewUserId);
-
-  // === 4. Скрываем спиннер и показываем основной вид ===
-  loading.classList.add('hidden');
-  employeeView.classList.remove('hidden');
-
-  // === 5. Откладываем рендеринг "Отдела", чтобы не блокировать UI ===
-  if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
-    setTimeout(() => {
-      try {
-        renderManagerView();
-      } catch (err) {
-        console.error('Ошибка в renderManagerView:', err);
-        // Не ломаем основной интерфейс
+      if (!allUserData) {
+        showError('Нет данных пользователей');
+        loading.classList.add('hidden');
+        return;
       }
-    }, 100);
-  }
-}
+
+      // Показываем вкладки
+      if (isManager) {
+        tabManager.classList.remove('hidden');
+      }
+      if (isAdmin) {
+        tabAdmin.classList.remove('hidden');
+        tabManager.classList.remove('hidden');
+      }
+
+      // Рендерим основной вид
+      renderEmployeeViewForUser(chatId);
+
+      // Откладываем рендеринг "Отдела", чтобы не блокировать UI
+      if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
+        setTimeout(() => {
+          try {
+            renderManagerView();
+          } catch (err) {
+            console.error('Ошибка в renderManagerView:', err);
+          }
+        }, 100);
+      }
+
+      loading.classList.add('hidden');
+      employeeView.classList.remove('hidden');
+    }
 
     function renderEmployeeViewForUser(userId) {
       const userData = allUserData[userId];
@@ -523,34 +496,34 @@
     }
 
     function renderManagerView() {
-  // Проверяем, есть ли отделы
-  if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
-    departmentSelector.classList.add('hidden');
-    departmentReport.classList.add('hidden');
-    return;
-  }
+      if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
+        departmentSelector.classList.add('hidden');
+        departmentReport.classList.add('hidden');
+        return;
+      }
 
-  // Если у админа несколько отделов, но ни один не выбран — показываем селект
-  if (isAdmin && managedDepartments.length > 1 && !currentManagerDepartment) {
-    departmentSelector.classList.remove('hidden');
-    departmentReport.classList.add('hidden');
-    return;
-  }
+      if (managedDepartments.length === 1) {
+        currentManagerDepartment = managedDepartments[0];
+        departmentSelector.classList.add('hidden');
+        renderDepartmentReport(currentManagerDepartment);
+      } else {
+        departmentSelector.classList.remove('hidden');
+        departmentReport.classList.add('hidden');
 
-  // Если 1 отдел или отдел уже выбран
-  if (managedDepartments.length === 1) {
-    currentManagerDepartment = managedDepartments[0];
-    departmentSelector.classList.add('hidden');
-    renderDepartmentReport(currentManagerDepartment);
-  } else if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
-    departmentSelector.classList.add('hidden');
-    renderDepartmentReport(currentManagerDepartment);
-  } else {
-    // Если отдел не выбран, но их >1 — показываем селект
-    departmentSelector.classList.remove('hidden');
-    departmentReport.classList.add('hidden');
-  }
-}
+        departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
+        managedDepartments.forEach(dept => {
+          const opt = document.createElement('option');
+          opt.value = dept;
+          opt.textContent = dept;
+          departmentSelect.appendChild(opt);
+        });
+
+        if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
+          departmentSelect.value = currentManagerDepartment;
+          renderDepartmentReport(currentManagerDepartment);
+        }
+      }
+    }
 
     function renderDepartmentReport(departmentName) {
       currentManagerDepartment = departmentName;
@@ -795,40 +768,7 @@
       renderDepartmentReportForDate(currentManagerDepartment, dateStr);
     }
 
-    // ... остальные функции (updateMainData, createEfficiencyChart, fetchFreshData и т.д.) ...
-    // Они идентичны вашему текущему файлу и не влияют на админку.
-
-    // Обработчики вкладок
-    tabEmployee.addEventListener('click', () => {
-      employeeView.classList.remove('hidden');
-      managerView.classList.add('hidden');
-      tabEmployee.classList.add('active');
-      tabManager.classList.remove('active');
-      tabAdmin.classList.remove('active');
-    });
-
-    tabManager.addEventListener('click', () => {
-      if (isManager) {
-        employeeView.classList.add('hidden');
-        managerView.classList.remove('hidden');
-        tabManager.classList.add('active');
-        tabEmployee.classList.remove('active');
-        tabAdmin.classList.remove('active');
-      }
-    });
-
-    tabAdmin.addEventListener('click', () => {
-      if (isAdmin) {
-        window.location.href = 'admin.html';
-      }
-    });
-
-    changeDepartmentBtn.addEventListener('click', () => {
-      departmentReport.classList.add('hidden');
-      departmentSelector.classList.remove('hidden');
-    });
-
-    // Вспомогательные функции (saveToCache, getFromCache, showError и т.д.)
+    // === ОСТАЛЬНЫЕ ФУНКЦИИ ===
     function saveToCache(key, data, maxAgeMs) {
       const item = { data, timestamp: Date.now(), maxAge: maxAgeMs };
       try { localStorage.setItem(`miniapp_${key}`, JSON.stringify(item)); } catch (e) {}
@@ -890,7 +830,7 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
@@ -910,11 +850,11 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-            data: data.map(d => d.pay),
+             data.map(d => d.pay),
             borderColor: 'var(--tg-link-color)',
             backgroundColor: 'rgba(26, 140, 216, 0.2)',
             fill: true,
@@ -1110,8 +1050,7 @@
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
         nextMonthBtn.disabled = currentMonthIndex === 0;
-        const actualUserId = chatId;
-        renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
+        renderCalendarGridFromCache(year, month, calendarCache[chatId][availableMonths[currentMonthIndex]]);
       }
     });
     nextMonthBtn.addEventListener('click', () => {
@@ -1123,8 +1062,7 @@
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
         nextMonthBtn.disabled = currentMonthIndex === 0;
-        const actualUserId = chatId;
-        renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
+        renderCalendarGridFromCache(year, month, calendarCache[chatId][availableMonths[currentMonthIndex]]);
       }
     });
     deptPrevMonthBtn.addEventListener('click', () => {
@@ -1185,6 +1123,31 @@
           allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments, currentManagerDepartment: dept
         }, 10 * 60 * 1000);
       }
+    });
+    tabEmployee.addEventListener('click', () => {
+      employeeView.classList.remove('hidden');
+      managerView.classList.add('hidden');
+      tabEmployee.classList.add('active');
+      tabManager.classList.remove('active');
+      tabAdmin.classList.remove('active');
+    });
+    tabManager.addEventListener('click', () => {
+      if (isManager) {
+        employeeView.classList.add('hidden');
+        managerView.classList.remove('hidden');
+        tabManager.classList.add('active');
+        tabEmployee.classList.remove('active');
+        tabAdmin.classList.remove('active');
+      }
+    });
+    tabAdmin.addEventListener('click', () => {
+      if (isAdmin) {
+        window.location.href = 'admin.html';
+      }
+    });
+    changeDepartmentBtn.addEventListener('click', () => {
+      departmentReport.classList.add('hidden');
+      departmentSelector.classList.remove('hidden');
     });
     async function fetchFreshData() {
       const currentRes = await fetch('current.json');
