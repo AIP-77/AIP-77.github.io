@@ -157,7 +157,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-1815 🛠)</h4>
+    <h4>(🛠 V.10.7-1920 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -525,7 +525,7 @@
       renderEmployeeViewForUser(viewUserId);
 
       // Вид руководителя
-      if (isManager) {
+      if (isManager && Array.isArray(managedDepartments)) {
         renderManagerView();
       }
 
@@ -578,7 +578,7 @@
       if (managedDepartments.length === 1) {
         currentManagerDepartment = managedDepartments[0];
         departmentSelector.classList.add('hidden');
-        (currentManagerDepartment);
+        renderDepartmentReport(currentManagerDepartment); // ← ДОБАВЛЕНО!
       } else {
         departmentSelector.classList.remove('hidden');
         departmentReport.classList.add('hidden');
