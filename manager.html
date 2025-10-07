@@ -157,7 +157,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-2210 🛠)</h4>
+    <h4>(🛠 V.10.7-2154 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -498,14 +498,12 @@
         if (nameA > nameB) return 1;
         return 0;
       });
-
     usersArray.forEach(({ id, data }) => {
       const opt = document.createElement('option');
       opt.value = id;
       opt.textContent = `${data.name || 'Без имени'} (${id})`;
       select.appendChild(opt);
     });
-
     if (currentViewUserId && allUserData[currentViewUserId]) {
       userSelector.value = currentViewUserId;
     }
@@ -525,14 +523,14 @@
   renderEmployeeViewForUser(viewUserId);
 
   // Откладываем рендеринг вкладки "Отдел", чтобы не блокировать UI
-  if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
+  if (isManager && Array.isArray(managedDepartments)) {
     setTimeout(() => {
       try {
         renderManagerView();
       } catch (err) {
         console.error('Ошибка в renderManagerView:', err);
       }
-    }, 100);
+    }, 100); // 100 мс — достаточно для отрисовки основного вида
   }
 
   loading.classList.add('hidden');
@@ -584,7 +582,7 @@
   if (managedDepartments.length === 1) {
     currentManagerDepartment = managedDepartments[0];
     departmentSelector.classList.add('hidden');
-    renderDepartmentReport(currentManagerDepartment); // ← Правильный вызов!
+    renderDepartmentReport(currentManagerDepartment);
   } else {
     departmentSelector.classList.remove('hidden');
     departmentReport.classList.add('hidden');
@@ -622,7 +620,7 @@
     return;
   }
 
-  // Находим последнюю дату
+  // Находим последнюю дату по всем записям отдела
   let latestDate = null;
   for (const emp of employeesInDept) {
     if (emp.records?.length) {
