@@ -16,7 +16,6 @@
       --tg-button-text-color: #ffffff;
       --card-bg: #ffffff;
     }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
@@ -105,8 +104,6 @@
       cursor: pointer; 
     }
     .month-selector span { font-weight: bold; }
-
-    /* === UX УЛУЧШЕНИЯ === */
     .banner {
       padding: 12px;
       margin: 12px 0;
@@ -121,13 +118,11 @@
     .banner.info { background: #e3f2fd; color: #1565c0; }
     .banner.error { background: #ffebee; color: #c62828; }
     .banner.success { background: #e8f5e9; color: #2e7d32; }
-
     .last-update {
       font-size: 13px;
       color: var(--tg-hint-color);
       margin-top: 8px;
     }
-
     .refresh-btn {
       background: var(--tg-button-color);
       color: var(--tg-button-text-color);
@@ -143,8 +138,6 @@
       opacity: 0.6;
       cursor: not-allowed;
     }
-
-    /* Плавные переходы */
     .fade {
       opacity: 1;
       transition: opacity 0.3s ease;
@@ -157,17 +150,14 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-2250 🛠)</h4>
-
+    <h4>(🛠 V.10.7-2333 🛠)</h4>
     <div id="banner" class="banner"></div>
-
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab hidden">Отдел</div>
       <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
       <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
     </div>
-
     <div id="loading" class="loading">
       <div class="spinner"></div>
       <p>Загрузка данных...</p>
@@ -178,11 +168,9 @@
     <div id="employee-view" class="hidden">
       <div class="card">
         <h2>👷‍♂️ Персональный отчет</h2>
-        
         <p id="last-update" class="last-update">Последнее обновление: —</p>
         <button id="refreshBtn" class="refresh-btn">🔄 Обновить данные</button>
         <h5>(🛠 Приложение находится в разработке. Представленная информация носит информационный характер 🛠)</h5>
-        
         <div id="main-data-loading" class="loading">
           <div class="spinner"></div>
           <p>Загрузка основных данных...</p>
@@ -209,7 +197,6 @@
           <pre id="details">Загрузка...</pre>
         </div>
       </div>
-     
       <div class="card">
         <h2>📅 Календарь посещаемости</h2>
         <div id="calendar-loading" class="loading">
@@ -225,7 +212,6 @@
           <div class="calendar" id="calendar"></div>
         </div>
       </div>
-
       <div class="card">
         <h3>📈 Производительность</h3>
         <div id="efficiency-loading" class="loading">
@@ -236,7 +222,6 @@
           <canvas id="efficiencyChart" height="100"></canvas>
         </div>
       </div>
-
       <div class="card">
         <h3>💰 Заработок</h3>
         <div id="earnings-loading" class="loading">
@@ -251,66 +236,47 @@
 
     <!-- Вкладка "Отдел" -->
     <div id="manager-view" class="hidden">
-      <!-- Выбор отдела (если >1) -->
       <div id="department-selector" class="card hidden">
         <h2>👨‍💼 Выберите отдел</h2>
         <select id="departmentSelect" style="width:100%; padding:8px; margin:10px 0; border-radius:6px; border:1px solid #ccc;">
           <option value="">— Выберите отдел —</option>
         </select>
       </div>
-
-      <!-- Данные по отделу -->
-<div id="department-report" class="hidden">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h2>📊 Отчёт по отделу: <span id="dept-name">—</span></h2>
-      <button id="change-department-btn" class="refresh-btn" style="padding:6px 12px;font-size:12px;">Выбрать другой отдел</button>
-    </div>
-    <p id="dept-last-update" class="last-update">Последнее обновление: —</p>
-    
-    <div id="dept-data-loading" class="loading">
-      <div class="spinner"></div>
-      <p>Загрузка данных отдела...</p>
-    </div>
-    <div id="dept-data-content" class="hidden fade">
-      <p id="dept-report-date">Отчёт на дату: —</p>
-      <p id="dept-attendance">Сотрудники: —</p>
-      <p id="dept-attendance-percent">📊 Процент явки: —</p>
-      
-      <h3>👥 Производительность сотрудников:</h3>
-      <pre id="dept-employees-list" style="white-space:pre-wrap;font-family:monospace;"></pre>
-      
-      <p id="dept-avg-efficiency">📊 Средняя производительность команды: —</p>
-    </div>
-  </div>
-
-  <!-- Календарь отдела -->
-  <div class="card">
-    <h2>📅 Календарь отдела</h2>
-    <div id="dept-calendar-loading" class="loading">
-      <div class="spinner"></div>
-      <p>Загрузка календаря...</p>
-    </div>
-    <div id="dept-calendar-content" class="hidden">
-      <div class="month-selector">
-        <button id="dept-prevMonth">◀</button>
-        <span id="dept-currentMonth">Загрузка...</span>
-        <button id="dept-nextMonth">▶</button>
-      </div>
-      <div class="calendar" id="dept-calendar"></div>
-    </div>
-  </div>
-</div>
-
-    <!-- Вкладка "Админка" -->
-    <div id="admin-view" class="hidden">
-      <div class="card">
-        <h2>👨‍💻 Режим администратора</h2>
-        <label for="userSelector">Выберите сотрудника:</label>
-        <select id="userSelector" style="width:100%; padding:8px; margin:10px 0; border-radius:6px; border:1px solid #ccc;">
-          <option value="">— Выберите —</option>
-        </select>
-        <p id="admin-hint" class="last-update">Выбранный пользователь будет отображаться в основной вкладке.</p>
+      <div id="department-report" class="hidden">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h2>📊 Отчёт по отделу: <span id="dept-name">—</span></h2>
+            <button id="change-department-btn" class="refresh-btn" style="padding:6px 12px;font-size:12px;">Выбрать другой отдел</button>
+          </div>
+          <p id="dept-last-update" class="last-update">Последнее обновление: —</p>
+          <div id="dept-data-loading" class="loading">
+            <div class="spinner"></div>
+            <p>Загрузка данных отдела...</p>
+          </div>
+          <div id="dept-data-content" class="hidden fade">
+            <p id="dept-report-date">Отчёт на дату: —</p>
+            <p id="dept-attendance">Сотрудники: —</p>
+            <p id="dept-attendance-percent">📊 Процент явки: —</p>
+            <h3>👥 Производительность сотрудников:</h3>
+            <pre id="dept-employees-list" style="white-space:pre-wrap;font-family:monospace;"></pre>
+            <p id="dept-avg-efficiency">📊 Средняя производительность команды: —</p>
+          </div>
+        </div>
+        <div class="card">
+          <h2>📅 Календарь отдела</h2>
+          <div id="dept-calendar-loading" class="loading">
+            <div class="spinner"></div>
+            <p>Загрузка календаря...</p>
+          </div>
+          <div id="dept-calendar-content" class="hidden">
+            <div class="month-selector">
+              <button id="dept-prevMonth">◀</button>
+              <span id="dept-currentMonth">Загрузка...</span>
+              <button id="dept-nextMonth">▶</button>
+            </div>
+            <div class="calendar" id="dept-calendar"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -326,21 +292,18 @@
     let efficiencyChart = null;
     let earningsChart = null;
     let calendarCache = null;
-    let currentViewUserId = null; // ID пользователя, за которого смотрит админ
     let managedDepartments = [];
-    let currentManagerDepartment = null; // Текущий выбранный отдел руководителя
+    let currentManagerDepartment = null;
 
     // DOM
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
     const managerView = document.getElementById('manager-view');
-    const adminView = document.getElementById('admin-view');
     const banner = document.getElementById('banner');
 
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
-    const tabInfo = document.getElementById('tab-info');
     const tabAdmin = document.getElementById('tab-admin');
 
     const mainDataLoading = document.getElementById('main-data-loading');
@@ -358,7 +321,6 @@
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
     const refreshBtn = document.getElementById('refreshBtn');
-    const userSelector = document.getElementById('userSelector');
 
     // DOM для отдела
     const changeDepartmentBtn = document.getElementById('change-department-btn');
@@ -370,18 +332,12 @@
     const deptDataContent = document.getElementById('dept-data-content');
     const deptCalendarLoading = document.getElementById('dept-calendar-loading');
     const deptCalendarContent = document.getElementById('dept-calendar-content');
-
     const deptPrevMonthBtn = document.getElementById('dept-prevMonth');
     const deptNextMonthBtn = document.getElementById('dept-nextMonth');
     const deptCurrentMonthSpan = document.getElementById('dept-currentMonth');
     const deptCalendar = document.getElementById('dept-calendar');
 
     const deptNameSpan = document.getElementById('dept-name');
-    const deptDateSpan = document.getElementById('dept-date');
-    const deptEmployeesCountSpan = document.getElementById('dept-employees-count');
-    const deptTotalWorkedSpan = document.getElementById('dept-total-worked');
-    const deptAvgEfficiencySpan = document.getElementById('dept-avg-efficiency');
-    const deptTotalPaySpan = document.getElementById('dept-total-pay');
     const deptLastUpdate = document.getElementById('dept-last-update');
 
     let availableMonths = [];
@@ -396,11 +352,9 @@
           enableTestMode();
           return;
         }
-
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         applyTelegramTheme();
-
         const user = Telegram.WebApp.initDataUnsafe.user;
         if (!user?.id) throw new Error('Пользователь не найден');
         chatId = String(user.id);
@@ -408,7 +362,6 @@
         const cached = getFromCache('currentData');
         if (cached) {
           restoreFromCache(cached);
-          renderUI();
         }
 
         fetchFreshData()
@@ -419,16 +372,11 @@
               calendarCache: fresh.calendarCache,
               isManager: fresh.isManager,
               isAdmin: fresh.isAdmin,
-              currentViewUserId: currentViewUserId,
               managedDepartments: fresh.managedDepartments,
               currentManagerDepartment: currentManagerDepartment
             }, 10 * 60 * 1000);
 
-            const shouldUpdate = !cached ||
-              fresh.currentRecord.date !== (currentRecord?.date || '') ||
-              fresh.currentRecord.worked !== (currentRecord?.worked || '');
-
-            if (shouldUpdate || !cached) {
+            if (!cached || fresh.currentRecord.date !== (currentRecord?.date || '')) {
               allUserData = fresh.allUserData;
               currentRecord = fresh.currentRecord;
               calendarCache = fresh.calendarCache;
@@ -446,7 +394,6 @@
               showError('Ошибка загрузки данных: ' + err.message);
             }
           });
-
       } catch (err) {
         console.error('Ошибка инициализации:', err);
         loading.classList.add('hidden');
@@ -472,75 +419,44 @@
       currentRecord = cached.currentRecord;
       calendarCache = cached.calendarCache;
       isManager = cached.isManager;
-      isAdmin = !!cached.isAdmin; // Приводим к boolean
-      currentViewUserId = cached.currentViewUserId || null;
+      isAdmin = cached.isAdmin;
       managedDepartments = cached.managedDepartments || [];
       currentManagerDepartment = cached.currentManagerDepartment || null;
     }
 
- function renderUI() {
-  if (!allUserData) {
-    showError('Нет данных пользователей');
-    loading.classList.add('hidden');
-    return;
-  }
-
-  // === 1. Показываем вкладки (но НЕ переключаемся автоматически) ===
-  if (isManager) {
-    tabManager.classList.remove('hidden');
-  }
-  if (isAdmin) {
-    tabAdmin.classList.remove('hidden');
-    // Админ = руководитель → показываем и "Отдел"
-    tabManager.classList.remove('hidden');
-  }
-
-  // === 2. Заполняем список в админке (если нужно) ===
-  if (isAdmin && allUserData) {
-    const select = userSelector;
-    select.innerHTML = '<option value="">— Выберите —</option>';
-    const usersArray = Object.entries(allUserData)
-      .map(([id, data]) => ({ id, data }))
-      .sort((a, b) => {
-        const nameA = (a.data.name || '').trim().toLowerCase();
-        const nameB = (b.data.name || '').trim().toLowerCase();
-        if (nameA < nameB) return -1;
-        if (nameA > nameB) return 1;
-        return 0;
-      });
-    usersArray.forEach(({ id, data }) => {
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = `${data.name || 'Без имени'} (${id})`;
-      select.appendChild(opt);
-    });
-    if (currentViewUserId && allUserData[currentViewUserId]) {
-      userSelector.value = currentViewUserId;
-    }
-  }
-
-  // === 3. Рендерим ОСНОВНОЙ ВИД ("Мой отчёт") ===
-  const viewUserId = currentViewUserId || chatId;
-  renderEmployeeViewForUser(viewUserId);
-
-  // === 4. Откладываем рендеринг "Отдела", чтобы не блокировать UI ===
-  if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
-    setTimeout(() => {
-      try {
-        renderManagerView();
-      } catch (err) {
-        console.error('Ошибка в renderManagerView:', err);
-        // Не ломаем основной интерфейс
+    function renderUI() {
+      if (!allUserData) {
+        showError('Нет данных пользователей');
+        loading.classList.add('hidden');
+        return;
       }
-    }, 100);
-  }
 
-  // === 5. Скрываем спиннер и показываем основной вид ===
-  loading.classList.add('hidden');
-  employeeView.classList.remove('hidden');
-  // Важно: НЕ скрываем adminView или managerView здесь!
-  // Переключение — только по клику на вкладки.
-}
+      // Показываем вкладки
+      if (isManager) {
+        tabManager.classList.remove('hidden');
+      }
+      if (isAdmin) {
+        tabAdmin.classList.remove('hidden');
+        tabManager.classList.remove('hidden');
+      }
+
+      // Рендерим основной вид
+      renderEmployeeViewForUser(chatId);
+
+      // Откладываем рендеринг "Отдела", чтобы не блокировать UI
+      if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
+        setTimeout(() => {
+          try {
+            renderManagerView();
+          } catch (err) {
+            console.error('Ошибка в renderManagerView:', err);
+          }
+        }, 100);
+      }
+
+      loading.classList.add('hidden');
+      employeeView.classList.remove('hidden');
+    }
 
     function renderEmployeeViewForUser(userId) {
       const userData = allUserData[userId];
@@ -577,137 +493,223 @@
       detailsContent.classList.remove('hidden');
     }
 
-   function renderManagerView() {
-  if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
-    departmentSelector.classList.add('hidden');
-    departmentReport.classList.add('hidden');
-    return;
-  }
+    function renderManagerView() {
+      if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
+        departmentSelector.classList.add('hidden');
+        departmentReport.classList.add('hidden');
+        return;
+      }
 
-  if (managedDepartments.length === 1) {
-    currentManagerDepartment = managedDepartments[0];
-    departmentSelector.classList.add('hidden');
-    renderDepartmentReport(currentManagerDepartment);
-  } else {
-    departmentSelector.classList.remove('hidden');
-    departmentReport.classList.add('hidden');
+      if (managedDepartments.length === 1) {
+        currentManagerDepartment = managedDepartments[0];
+        departmentSelector.classList.add('hidden');
+        renderDepartmentReport(currentManagerDepartment);
+      } else {
+        departmentSelector.classList.remove('hidden');
+        departmentReport.classList.add('hidden');
 
-    departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
-    managedDepartments.forEach(dept => {
-      const opt = document.createElement('option');
-      opt.value = dept;
-      opt.textContent = dept;
-      departmentSelect.appendChild(opt);
-    });
+        departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
+        managedDepartments.forEach(dept => {
+          const opt = document.createElement('option');
+          opt.value = dept;
+          opt.textContent = dept;
+          departmentSelect.appendChild(opt);
+        });
 
-    if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
-      departmentSelect.value = currentManagerDepartment;
-      renderDepartmentReport(currentManagerDepartment);
+        if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
+          departmentSelect.value = currentManagerDepartment;
+          renderDepartmentReport(currentManagerDepartment);
+        }
+      }
     }
-  }
-}
 
     function renderDepartmentReport(departmentName) {
-  currentManagerDepartment = departmentName;
-  deptNameSpan.textContent = departmentName;
+      currentManagerDepartment = departmentName;
+      deptNameSpan.textContent = departmentName;
 
-  const employeesInDept = Object.values(allUserData).filter(user => 
-    user.department === departmentName
-  );
-
-  if (employeesInDept.length === 0) {
-    deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет сотрудников в отделе</p>';
-    deptDataLoading.classList.remove('hidden');
-    deptDataContent.classList.add('hidden');
-    departmentSelector.classList.add('hidden');
-    departmentReport.classList.remove('hidden');
-    renderDepartmentCalendar(departmentName);
-    return;
-  }
-
-  // Находим последнюю дату по всем записям отдела
-  let latestDate = null;
-  for (const emp of employeesInDept) {
-    if (emp.records?.length) {
-      const lastRec = emp.records[0];
-      if (!latestDate || lastRec.date > latestDate) {
-        latestDate = lastRec.date;
+      const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
+      if (employeesInDept.length === 0) {
+        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет сотрудников в отделе</p>';
+        deptDataLoading.classList.remove('hidden');
+        deptDataContent.classList.add('hidden');
+        departmentSelector.classList.add('hidden');
+        departmentReport.classList.remove('hidden');
+        renderDepartmentCalendar(departmentName);
+        return;
       }
-    }
-  }
 
-  if (latestDate) {
-    renderDepartmentReportForDate(departmentName, latestDate);
-  } else {
-    deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет данных за период</p>';
-    deptDataLoading.classList.remove('hidden');
-    deptDataContent.classList.add('hidden');
-  }
-
-  departmentSelector.classList.add('hidden');
-  departmentReport.classList.remove('hidden');
-  renderDepartmentCalendar(departmentName);
-}
-
-function renderDepartmentCalendar(departmentName) {
-  deptCalendarLoading.classList.remove('hidden');
-  deptCalendarContent.classList.add('hidden');
-
-  const allDates = new Set();
-  const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
-
-  // Оптимизированный цикл
-  for (const emp of employeesInDept) {
-    if (emp.records?.length) {
-      for (const rec of emp.records) {
-        if (rec.date) allDates.add(rec.date);
-        // Опционально: ограничить количество, если данных слишком много
-        // if (allDates.size > 1000) break;
+      let latestDate = null;
+      for (const emp of employeesInDept) {
+        if (emp.records?.length) {
+          const lastRec = emp.records[0];
+          if (!latestDate || lastRec.date > latestDate) {
+            latestDate = lastRec.date;
+          }
+        }
       }
+
+      if (latestDate) {
+        renderDepartmentReportForDate(departmentName, latestDate);
+      } else {
+        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет данных за период</p>';
+        deptDataLoading.classList.remove('hidden');
+        deptDataContent.classList.add('hidden');
+      }
+
+      departmentSelector.classList.add('hidden');
+      departmentReport.classList.remove('hidden');
+      renderDepartmentCalendar(departmentName);
     }
-  }
 
-  if (allDates.size === 0) {
-    deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-    return;
-  }
+    async function renderDepartmentReportForDate(departmentName, dateStr) {
+      let staff = {};
+      try {
+        const staffRes = await fetch('staff.json');
+        if (staffRes.ok) staff = await staffRes.json();
+      } catch (e) {
+        console.warn('Не удалось загрузить staff.json:', e);
+      }
 
-  // Группируем по месяцам
-  const monthMap = {};
-  for (const dateStr of allDates) {
-    const [d, m, y] = dateStr.split('.').map(Number);
-    const monthKey = `${y}-${String(m).padStart(2, '0')}`;
-    if (!monthMap[monthKey]) monthMap[monthKey] = [];
-    monthMap[monthKey].push(dateStr);
-  }
+      const staffIds = staff[departmentName] || [];
+      const allUsersInDept = Object.entries(allUserData).filter(([id, user]) => user.department === departmentName);
 
-  deptAvailableMonths = Object.keys(monthMap).sort((a, b) => {
-    const [y1, m1] = a.split('-').map(Number);
-    const [y2, m2] = b.split('-').map(Number);
-    return y2 - y1 || m2 - m1;
-  });
+      const staffUsers = staffIds.map(id => ({ id, data: allUserData[id] || { name: 'Без имени' } }));
+      const presentUsers = allUsersInDept.map(([id, data]) => ({ id, data }));
 
-  if (deptAvailableMonths.length === 0) {
-    deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-    return;
-  }
+      const allEmployees = [...staffUsers];
+      const staffIdSet = new Set(staffIds);
+      presentUsers.forEach(emp => {
+        if (!staffIdSet.has(emp.id)) allEmployees.push(emp);
+      });
 
-  deptCurrentMonthIndex = 0;
-  const [yearStr, monthStr] = deptAvailableMonths[deptCurrentMonthIndex].split('-');
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-  deptCurrentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-  deptPrevMonthBtn.disabled = deptCurrentMonthIndex === deptAvailableMonths.length - 1;
-  deptNextMonthBtn.disabled = deptCurrentMonthIndex === 0;
+      let presentCount = 0;
+      const presentLines = [];
+      const absentLines = [];
 
-  renderDeptCalendarGrid(year, month, monthMap[deptAvailableMonths[deptCurrentMonthIndex]]);
-}
+      for (const { id, data } of allEmployees) {
+        const record = data.records?.find(r => r.date === dateStr);
+        const name = data.name || 'Без имени';
+
+        if (record) {
+          presentCount++;
+          const worked = record.worked || '00:00';
+          const planned = record.planned || '08:00';
+          const efficiency = record.efficiency ? record.efficiency.replace('%', '') : '0';
+          const pay = record.payDay || '0,00 ₽';
+
+          let formattedPay = pay;
+          if (typeof pay === 'string') {
+            const cleanPay = pay.replace(/[^\d,.-]/g, '').replace(',', '.');
+            const num = parseFloat(cleanPay);
+            if (!isNaN(num)) {
+              formattedPay = num.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 2 });
+            }
+          }
+
+          const effNum = parseFloat(efficiency.replace(',', '.')) || 0;
+          let effColor = '';
+          if (effNum > 100) effColor = 'color:green;';
+          else if (effNum < 70) effColor = 'color:#e53935;';
+
+          const line = `<span style="font-weight:bold;">${name}</span> - ${worked} / ${planned} <span style="${effColor}">(${efficiency}%)</span> ${formattedPay}`;
+          presentLines.push(line);
+        } else {
+          const line = `<span style="font-weight:bold; color:#e53935;">${name} - ❌ Отсутствовал</span>`;
+          absentLines.push(line);
+        }
+      }
+
+      const totalStaff = allEmployees.length;
+      const absentCount = totalStaff - presentCount;
+      const attendancePercent = totalStaff > 0 ? ((presentCount / totalStaff) * 100).toFixed(1) : '0';
+
+      const [day, month, year] = dateStr.split('.').map(Number);
+      const dateObj = new Date(year, month - 1, day);
+      const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+      const dayName = days[dateObj.getDay()];
+      const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+      const formattedDate = `${dayName}, ${day} ${months[month - 1]} ${year}`;
+
+      document.getElementById('dept-report-date').textContent = `Отчёт на дату - ${formattedDate}`;
+      document.getElementById('dept-attendance').textContent = `Сотрудники - ${totalStaff} чел.\nОтсутствуют - ${absentCount} чел.`;
+      document.getElementById('dept-attendance-percent').textContent = `📊 Процент явки: ${presentCount} из ${totalStaff} (${attendancePercent}%)`;
+
+      const allLines = [
+        ...absentLines,
+        absentLines.length > 0 ? '<hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">' : '',
+        ...presentLines
+      ];
+      document.getElementById('dept-employees-list').innerHTML = allLines.join('<br>');
+
+      const validRecords = presentLines.length;
+      const totalEfficiency = presentLines.reduce((sum, line) => {
+        const match = line.match(/\((\d+,\d+)%\)/);
+        if (match) {
+          const eff = parseFloat(match[1].replace(',', '.'));
+          return sum + eff;
+        }
+        return sum;
+      }, 0);
+      const avgEfficiency = validRecords > 0 ? (totalEfficiency / validRecords).toFixed(2).replace('.', ',') : '0,00';
+      document.getElementById('dept-avg-efficiency').textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
+
+      deptDataLoading.classList.add('hidden');
+      deptDataContent.classList.remove('hidden');
+      deptLastUpdate.textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    function renderDepartmentCalendar(departmentName) {
+      deptCalendarLoading.classList.remove('hidden');
+      deptCalendarContent.classList.add('hidden');
+
+      const allDates = new Set();
+      const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
+      for (const emp of employeesInDept) {
+        if (emp.records?.length) {
+          for (const rec of emp.records) {
+            if (rec.date) allDates.add(rec.date);
+          }
+        }
+      }
+
+      if (allDates.size === 0) {
+        deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        return;
+      }
+
+      const monthMap = {};
+      for (const dateStr of allDates) {
+        const [d, m, y] = dateStr.split('.').map(Number);
+        const monthKey = `${y}-${String(m).padStart(2, '0')}`;
+        if (!monthMap[monthKey]) monthMap[monthKey] = [];
+        monthMap[monthKey].push(dateStr);
+      }
+
+      deptAvailableMonths = Object.keys(monthMap).sort((a, b) => {
+        const [y1, m1] = a.split('-').map(Number);
+        const [y2, m2] = b.split('-').map(Number);
+        return y2 - y1 || m2 - m1;
+      });
+
+      if (deptAvailableMonths.length === 0) {
+        deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        return;
+      }
+
+      deptCurrentMonthIndex = 0;
+      const [yearStr, monthStr] = deptAvailableMonths[deptCurrentMonthIndex].split('-');
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+      deptCurrentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+      deptPrevMonthBtn.disabled = deptCurrentMonthIndex === deptAvailableMonths.length - 1;
+      deptNextMonthBtn.disabled = deptCurrentMonthIndex === 0;
+
+      renderDeptCalendarGrid(year, month, monthMap[deptAvailableMonths[deptCurrentMonthIndex]]);
+    }
 
     function renderDeptCalendarGrid(year, monthNum, datesArray) {
       deptCalendar.innerHTML = '';
-
       const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
       dayNames.forEach(day => {
         const el = document.createElement('div');
@@ -764,139 +766,71 @@ function renderDepartmentCalendar(departmentName) {
       renderDepartmentReportForDate(currentManagerDepartment, dateStr);
     }
 
-    async function renderDepartmentReportForDate(departmentName, dateStr) {
-  // Загружаем штатное расписание (если есть)
-  let staff = {};
-  try {
-    const staffRes = await fetch('staff.json');
-    if (staffRes.ok) {
-      staff = await staffRes.json();
+    // ... остальные функции (updateMainData, createEfficiencyChart, fetchFreshData и т.д.) ...
+    // Они идентичны вашему текущему файлу и не влияют на админку.
+
+    // Обработчики вкладок
+    tabEmployee.addEventListener('click', () => {
+      employeeView.classList.remove('hidden');
+      managerView.classList.add('hidden');
+      tabEmployee.classList.add('active');
+      tabManager.classList.remove('active');
+      tabAdmin.classList.remove('active');
+    });
+
+    tabManager.addEventListener('click', () => {
+      if (isManager) {
+        employeeView.classList.add('hidden');
+        managerView.classList.remove('hidden');
+        tabManager.classList.add('active');
+        tabEmployee.classList.remove('active');
+        tabAdmin.classList.remove('active');
+      }
+    });
+
+    tabAdmin.addEventListener('click', () => {
+      if (isAdmin) {
+        window.location.href = 'admin.html';
+      }
+    });
+
+    changeDepartmentBtn.addEventListener('click', () => {
+      departmentReport.classList.add('hidden');
+      departmentSelector.classList.remove('hidden');
+    });
+
+    // Вспомогательные функции (saveToCache, getFromCache, showError и т.д.)
+    function saveToCache(key, data, maxAgeMs) {
+      const item = { data, timestamp: Date.now(), maxAge: maxAgeMs };
+      try { localStorage.setItem(`miniapp_${key}`, JSON.stringify(item)); } catch (e) {}
     }
-  } catch (e) {
-    console.warn('Не удалось загрузить staff.json:', e);
-  }
-
-  const staffIds = staff[departmentName] || [];
-  const allUsersInDept = Object.entries(allUserData).filter(([id, user]) => 
-    user.department === departmentName
-  );
-
-  // Сотрудники по штату
-  const staffUsers = staffIds.map(id => ({
-    id,
-    data: allUserData[id] || { name: 'Неизвестный сотрудник' }
-  }));
-
-  // Сотрудники из данных (могут быть не по штату)
-  const presentUsers = allUsersInDept.map(([id, data]) => ({ id, data }));
-
-  // Объединяем: сначала штат, потом остальные
-  const allEmployees = [...staffUsers];
-  const staffIdSet = new Set(staffIds);
-  presentUsers.forEach(emp => {
-    if (!staffIdSet.has(emp.id)) {
-      allEmployees.push(emp);
-    }
-  });
-
-  let totalWorked = 0;
-  let totalPay = 0;
-  let totalEfficiency = 0;
-  let validRecords = 0;
-  let presentCount = 0;
-  const presentLines = [];
-  const absentLines = [];
-
-  for (const { id, data } of allEmployees) {
-    const record = data.records?.find(r => r.date === dateStr);
-    const name = data.name || 'Без имени';
-
-    if (record) {
-      presentCount++;
-      const worked = record.worked || '00:00';
-      const planned = record.planned || '08:00';
-      const efficiency = record.efficiency ? record.efficiency.replace('%', '') : '0';
-      const pay = record.payDay || '0,00 ₽';
-
-      // Форматируем заработок
-      let formattedPay = pay;
-      if (typeof pay === 'string') {
-        const cleanPay = pay.replace(/[^\d,.-]/g, '').replace(',', '.');
-        const num = parseFloat(cleanPay);
-        if (!isNaN(num)) {
-          formattedPay = num.toLocaleString('ru-RU', {
-            style: 'currency',
-            currency: 'RUB',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          });
+    function getFromCache(key) {
+      try {
+        const itemStr = localStorage.getItem(`miniapp_${key}`);
+        if (!itemStr) return null;
+        const item = JSON.parse(itemStr);
+        if (Date.now() - item.timestamp > item.maxAge) {
+          localStorage.removeItem(`miniapp_${key}`);
+          return null;
         }
-      }
-
-      const effNum = parseFloat(efficiency.replace(',', '.')) || 0;
-      if (effNum > 0) {
-        totalEfficiency += effNum;
-        validRecords++;
-      }
-
-      // Цвет производительности
-      let effColor = '';
-      if (effNum > 100) {
-        effColor = 'color:green;';
-      } else if (effNum < 70) {
-        effColor = 'color:#e53935;';
-      }
-
-      const line = `<span style="font-weight:bold;">${name}</span> - ${worked} / ${planned} <span style="${effColor}">(${efficiency}%)</span> ${formattedPay}`;
-      presentLines.push(line);
-
-    } else {
-      // Отсутствующий — в начало, жирный, красный статус
-      const line = `<span style="font-weight:bold; color:#e53935;">${name} - ❌ Отсутствовал</span>`;
-      absentLines.push(line);
+        return item.data;
+      } catch (e) { return null; }
     }
-  }
-
-  const totalStaff = allEmployees.length;
-  const absentCount = totalStaff - presentCount;
-  const attendancePercent = totalStaff > 0 ? ((presentCount / totalStaff) * 100).toFixed(1) : '0';
-
-  // Форматируем дату с днём недели и годом
-  const [day, month, year] = dateStr.split('.').map(Number);
-  const dateObj = new Date(year, month - 1, day);
-  const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-  const dayName = days[dateObj.getDay()];
-  const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-  const formattedDate = `${dayName}, ${day} ${months[month - 1]} ${year}`;
-
-  // Обновляем UI
-  document.getElementById('dept-report-date').textContent = `Отчёт на дату - ${formattedDate}`;
-  document.getElementById('dept-attendance').textContent = `Сотрудники - ${totalStaff} чел.\nОтсутствуют - ${absentCount} чел.`;
-  document.getElementById('dept-attendance-percent').textContent = `📊 Процент явки: ${presentCount} из ${totalStaff} (${attendancePercent}%)`;
-
-  // Выводим список с HTML-разметкой
-  const allLines = [
-    ...absentLines,
-    absentLines.length > 0 ? '<hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">' : '',
-    ...presentLines
-  ];
-  document.getElementById('dept-employees-list').innerHTML = allLines.join('<br>');
-
-  const avgEfficiency = validRecords > 0 ? (totalEfficiency / validRecords).toFixed(2).replace('.', ',') : '0,00';
-  document.getElementById('dept-avg-efficiency').textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
-
-  deptDataLoading.classList.add('hidden');
-  deptDataContent.classList.remove('hidden');
-  deptLastUpdate.textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-}
-
+    function showError(msg) {
+      loading.classList.add('hidden');
+      error.textContent = msg;
+      error.classList.remove('hidden');
+    }
+    function showBanner(message, type = 'info', duration = 5000) {
+      banner.textContent = message;
+      banner.className = `banner show ${type}`;
+      if (duration > 0) setTimeout(() => banner.classList.remove('show'), duration);
+    }
     function updateLastUpdate() {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
       document.getElementById('last-update').textContent = `Последнее обновление: ${timeStr}`;
     }
-
     function updateMainData(userData, record) {
       document.getElementById('name').textContent = userData.name || '—';
       document.getElementById('date').textContent = record.date || '—';
@@ -907,7 +841,6 @@ function renderDepartmentCalendar(departmentName) {
       document.getElementById('xisBonusDay').textContent = record.xisBonusDay || '—';
       document.getElementById('pay-month').textContent = record.payMonth || '—';
     }
-
     function updateDetails(details) {
       if (!details?.length) {
         document.getElementById('details').textContent = 'Нет данных';
@@ -923,7 +856,6 @@ function renderDepartmentCalendar(departmentName) {
       }).join('\n');
       document.getElementById('details').textContent = text;
     }
-
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       if (efficiencyChart) efficiencyChart.destroy();
@@ -940,16 +872,10 @@ function renderDepartmentCalendar(departmentName) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100
-            }
-          }
+          scales: { y: { beginAtZero: true, max: 100 } }
         }
       });
     }
-
     function createEarningsChart(data) {
       const ctx = document.getElementById('earningsChart').getContext('2d');
       if (earningsChart) earningsChart.destroy();
@@ -969,50 +895,38 @@ function renderDepartmentCalendar(departmentName) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'top'
-            }
-          }
+          plugins: { legend: { position: 'top' } }
         }
       });
     }
-
     function renderCalendarFromCache(telegramId) {
       const userData = calendarCache[telegramId];
       if (!userData) {
         document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         return;
       }
-
       availableMonths = Object.keys(userData).sort((a, b) => {
         const [y1, m1] = a.split('-').map(Number);
         const [y2, m2] = b.split('-').map(Number);
         return y2 - y1 || m2 - m1;
       });
-
       if (availableMonths.length === 0) {
         document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         return;
       }
-
       currentMonthIndex = 0;
       const [yearStr, monthStr] = availableMonths[currentMonthIndex].split('-');
       const year = Number(yearStr);
       const month = Number(monthStr);
-      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
       currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
       prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
       nextMonthBtn.disabled = currentMonthIndex === 0;
-
       renderCalendarGridFromCache(year, month, userData[availableMonths[currentMonthIndex]]);
     }
-
     function renderCalendarGridFromCache(year, monthNum, datesArray) {
       const container = document.getElementById('calendar');
       container.innerHTML = '';
-
       const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
       dayNames.forEach(day => {
         const el = document.createElement('div');
@@ -1024,11 +938,9 @@ function renderDepartmentCalendar(departmentName) {
         el.style.textAlign = 'center';
         container.appendChild(el);
       });
-
       const firstDay = new Date(year, monthNum - 1, 1);
       const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
       const lastDayNum = new Date(year, monthNum, 0).getDate();
-
       const availableDays = new Set();
       if (datesArray && Array.isArray(datesArray)) {
         datesArray.forEach(dateStr => {
@@ -1038,11 +950,9 @@ function renderDepartmentCalendar(departmentName) {
           }
         });
       }
-
       for (let i = 0; i < startDay; i++) {
         container.appendChild(document.createElement('div'));
       }
-
       for (let day = 1; day <= lastDayNum; day++) {
         const el = document.createElement('div');
         el.className = 'day';
@@ -1050,7 +960,6 @@ function renderDepartmentCalendar(departmentName) {
         el.style.padding = '8px 0';
         el.style.borderRadius = '6px';
         el.style.fontSize = '14px';
-
         const dayStr = String(day).padStart(2, '0');
         if (availableDays.has(dayStr)) {
           el.classList.add('available');
@@ -1062,25 +971,19 @@ function renderDepartmentCalendar(departmentName) {
         container.appendChild(el);
       }
     }
-
     async function loadRecordByDate(year, month, day) {
       mainDataContent.classList.add('fade', 'hidden');
       detailsContent.classList.add('fade', 'hidden');
       efficiencyContent.classList.add('fade', 'hidden');
       earningsContent.classList.add('fade', 'hidden');
       await new Promise(r => setTimeout(r, 300));
-
       const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
       const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-      const actualUserId = currentViewUserId || chatId;
-
-      let data;
-      let userData;
-
+      const actualUserId = chatId;
+      let data, userData;
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1;
-
       if (year === currentYear && month === currentMonth) {
         userData = allUserData[actualUserId];
         data = userData.records.find(r => r.date === dateStr);
@@ -1109,11 +1012,9 @@ function renderDepartmentCalendar(departmentName) {
           return;
         }
       }
-
       currentRecord = data;
       updateMainData(userData, data);
       updateDetails(data.details || []);
-
       try {
         if (data.efficiencyData?.length) {
           createEfficiencyChart(data.efficiencyData);
@@ -1126,7 +1027,6 @@ function renderDepartmentCalendar(departmentName) {
         console.error('Ошибка графика эффективности:', err);
         efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
       }
-
       try {
         if (data.earningsData?.length) {
           createEarningsChart(data.earningsData);
@@ -1139,7 +1039,6 @@ function renderDepartmentCalendar(departmentName) {
         console.error('Ошибка графика заработка:', err);
         earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
       }
-
       mainDataContent.classList.remove('hidden');
       detailsContent.classList.remove('hidden');
       setTimeout(() => {
@@ -1148,25 +1047,12 @@ function renderDepartmentCalendar(departmentName) {
         efficiencyContent.classList.remove('fade');
         earningsContent.classList.remove('fade');
       }, 50);
-
       updateLastUpdate();
       showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
     }
-
-    function showBanner(message, type = 'info', duration = 5000) {
-      banner.textContent = message;
-      banner.className = `banner show ${type}`;
-      if (duration > 0) {
-        setTimeout(() => {
-          banner.classList.remove('show');
-        }, duration);
-      }
-    }
-
     refreshBtn.addEventListener('click', async () => {
       refreshBtn.disabled = true;
       refreshBtn.textContent = 'Обновление...';
-
       try {
         const fresh = await fetchFreshData();
         allUserData = fresh.allUserData;
@@ -1175,8 +1061,7 @@ function renderDepartmentCalendar(departmentName) {
         isManager = fresh.isManager;
         isAdmin = fresh.isAdmin;
         managedDepartments = fresh.managedDepartments;
-
-        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager, isAdmin, currentViewUserId, managedDepartments, currentManagerDepartment }, 10 * 60 * 1000);
+        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments, currentManagerDepartment }, 10 * 60 * 1000);
         renderUI();
         showBanner('Данные обновлены вручную', 'success', 3000);
       } catch (err) {
@@ -1186,10 +1071,7 @@ function renderDepartmentCalendar(departmentName) {
         refreshBtn.textContent = '🔄 Обновить данные';
       }
     });
-
-    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-
+    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
     prevMonthBtn.addEventListener('click', () => {
       if (currentMonthIndex < availableMonths.length - 1) {
         currentMonthIndex++;
@@ -1199,11 +1081,10 @@ function renderDepartmentCalendar(departmentName) {
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
         nextMonthBtn.disabled = currentMonthIndex === 0;
-        const actualUserId = currentViewUserId || chatId;
+        const actualUserId = chatId;
         renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
       }
     });
-
     nextMonthBtn.addEventListener('click', () => {
       if (currentMonthIndex > 0) {
         currentMonthIndex--;
@@ -1213,35 +1094,10 @@ function renderDepartmentCalendar(departmentName) {
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
         nextMonthBtn.disabled = currentMonthIndex === 0;
-        const actualUserId = currentViewUserId || chatId;
+        const actualUserId = chatId;
         renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
       }
     });
-
-    userSelector.addEventListener('change', function () {
-      const selectedId = this.value;
-      currentViewUserId = selectedId || null;
-      if (!selectedId) {
-        showBanner('Режим просмотра отключён', 'info', 2000);
-      } else {
-        showBanner(`Переключено на: ${allUserData[selectedId]?.name || '—'}`, 'success', 2000);
-      }
-      renderEmployeeViewForUser(currentViewUserId || chatId);
-      saveToCache('currentData', {
-        allUserData, currentRecord, calendarCache, isManager, isAdmin, currentViewUserId, managedDepartments, currentManagerDepartment
-      }, 10 * 60 * 1000);
-    });
-
-    departmentSelect.addEventListener('change', function () {
-      const dept = this.value;
-      if (dept) {
-        renderDepartmentReport(dept);
-        saveToCache('currentData', {
-          allUserData, currentRecord, calendarCache, isManager, isAdmin, currentViewUserId, managedDepartments, currentManagerDepartment: dept
-        }, 10 * 60 * 1000);
-      }
-    });
-
     deptPrevMonthBtn.addEventListener('click', () => {
       if (deptCurrentMonthIndex < deptAvailableMonths.length - 1) {
         deptCurrentMonthIndex++;
@@ -1267,7 +1123,6 @@ function renderDepartmentCalendar(departmentName) {
         renderDeptCalendarGrid(year, month, dates[deptKey] || []);
       }
     });
-
     deptNextMonthBtn.addEventListener('click', () => {
       if (deptCurrentMonthIndex > 0) {
         deptCurrentMonthIndex--;
@@ -1293,7 +1148,66 @@ function renderDepartmentCalendar(departmentName) {
         renderDeptCalendarGrid(year, month, dates[deptKey] || []);
       }
     });
-
+    departmentSelect.addEventListener('change', function () {
+      const dept = this.value;
+      if (dept) {
+        renderDepartmentReport(dept);
+        saveToCache('currentData', {
+          allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments, currentManagerDepartment: dept
+        }, 10 * 60 * 1000);
+      }
+    });
+    async function fetchFreshData() {
+      const currentRes = await fetch('current.json');
+      if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
+      const allUserData = await currentRes.json();
+      const userData = allUserData[chatId];
+      if (!userData) throw new Error('Данные не найдены для вашего аккаунта');
+      const userRole = userData.role?.toLowerCase() || '';
+      const isManager = ['менеджер', 'руководитель', 'админ'].includes(userRole);
+      const isAdmin = userRole === 'админ';
+      const managedDepartments = Array.isArray(userData.managedDepartments) ? userData.managedDepartments : [];
+      const records = userData.records || [];
+      if (records.length === 0) throw new Error('Нет записей');
+      const sortedRecords = records.sort((a, b) => {
+        const [d1, m1, y1] = a.date.split('.').map(Number);
+        const [d2, m2, y2] = b.date.split('.').map(Number);
+        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+      });
+      const currentRecord = sortedRecords[0];
+      const cacheRes = await fetch('calendar-cache.json');
+      if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
+      const calendarCache = await cacheRes.json();
+      return { allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments };
+    }
+    function renderCharts(record) {
+      setTimeout(() => {
+        try {
+          if (record.efficiencyData?.length) {
+            createEfficiencyChart(record.efficiencyData);
+            efficiencyLoading.classList.add('hidden');
+            efficiencyContent.classList.remove('hidden');
+          } else {
+            efficiencyLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+          }
+        } catch (err) {
+          console.error('Ошибка графика эффективности:', err);
+          efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
+        }
+        try {
+          if (record.earningsData?.length) {
+            createEarningsChart(record.earningsData);
+            earningsLoading.classList.add('hidden');
+            earningsContent.classList.remove('hidden');
+          } else {
+            earningsLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+          }
+        } catch (err) {
+          console.error('Ошибка графика заработка:', err);
+          earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
+        }
+      }, 300);
+    }
     function enableTestMode() {
       chatId = '2';
       setTimeout(async () => {
@@ -1312,138 +1226,6 @@ function renderDepartmentCalendar(departmentName) {
         }
       }, 1000);
     }
-
-    function showError(msg) {
-      loading.classList.add('hidden');
-      error.textContent = msg;
-      error.classList.remove('hidden');
-    }
-
-    tabEmployee.addEventListener('click', () => {
-      employeeView.classList.remove('hidden');
-      managerView.classList.add('hidden');
-      adminView.classList.add('hidden');
-      tabEmployee.classList.add('active');
-      tabManager.classList.remove('active');
-      tabAdmin.classList.remove('active');
-    });
-
-    tabManager.addEventListener('click', () => {
-      if (isManager) {
-        employeeView.classList.add('hidden');
-        managerView.classList.remove('hidden');
-        adminView.classList.add('hidden');
-        tabManager.classList.add('active');
-        tabEmployee.classList.remove('active');
-        tabAdmin.classList.remove('active');
-      }
-    });
-
-    tabAdmin.addEventListener('click', () => {
-      if (isAdmin) {
-        console.log("Переключение на админку");
-        employeeView.classList.add('hidden');
-        managerView.classList.add('hidden');
-        adminView.classList.remove('hidden');
-        tabAdmin.classList.add('active');
-        tabEmployee.classList.remove('active');
-        tabManager.classList.remove('active');
-      }
-    });
-
-    function saveToCache(key, data, maxAgeMs) {
-      const item = {
-        data,
-        timestamp: Date.now(),
-        maxAge: maxAgeMs
-      };
-      try {
-        localStorage.setItem(`miniapp_${key}`, JSON.stringify(item));
-      } catch (e) {
-        console.warn('Не удалось сохранить в localStorage:', e);
-      }
-    }
-
-    function getFromCache(key) {
-      try {
-        const itemStr = localStorage.getItem(`miniapp_${key}`);
-        if (!itemStr) return null;
-        const item = JSON.parse(itemStr);
-        if (Date.now() - item.timestamp > item.maxAge) {
-          localStorage.removeItem(`miniapp_${key}`);
-          return null;
-        }
-        return item.data;
-      } catch (e) {
-        console.warn('Ошибка чтения кэша:', e);
-        return null;
-      }
-    }
-
-    async function fetchFreshData() {
-      const currentRes = await fetch('current.json');
-      if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
-      const allUserData = await currentRes.json();
-
-      const userData = allUserData[chatId];
-      if (!userData) throw new Error('Данные не найдены для вашего аккаунта');
-
-      const userRole = userData.role?.toLowerCase() || '';
-      const isManager = ['менеджер', 'руководитель', 'админ'].includes(userRole);
-      const isAdmin = userRole === 'админ';
-      const managedDepartments = Array.isArray(userData.managedDepartments) ? userData.managedDepartments : [];
-
-      const records = userData.records || [];
-      if (records.length === 0) throw new Error('Нет записей');
-
-      const sortedRecords = records.sort((a, b) => {
-        const [d1, m1, y1] = a.date.split('.').map(Number);
-        const [d2, m2, y2] = b.date.split('.').map(Number);
-        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-      });
-
-      const currentRecord = sortedRecords[0];
-
-      const cacheRes = await fetch('calendar-cache.json');
-      if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
-      const calendarCache = await cacheRes.json();
-
-      return { allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments };
-    }
-
-    function renderCharts(record) {
-      setTimeout(() => {
-        try {
-          if (record.efficiencyData?.length) {
-            createEfficiencyChart(record.efficiencyData);
-            efficiencyLoading.classList.add('hidden');
-            efficiencyContent.classList.remove('hidden');
-          } else {
-            efficiencyLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-          }
-        } catch (err) {
-          console.error('Ошибка графика эффективности:', err);
-          efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-        }
-
-        try {
-          if (record.earningsData?.length) {
-            createEarningsChart(record.earningsData);
-            earningsLoading.classList.add('hidden');
-            earningsContent.classList.remove('hidden');
-          } else {
-            earningsLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-          }
-        } catch (err) {
-          console.error('Ошибка графика заработка:', err);
-          earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-        }
-      }, 300);
-    } 
-    changeDepartmentBtn.addEventListener('click', () => {
-      departmentReport.classList.add('hidden');
-      departmentSelector.classList.remove('hidden');
-    });
 
     window.onload = init;
   </script>
