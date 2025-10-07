@@ -157,7 +157,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-1736 🛠)</h4>
+    <h4>(🛠 V.10.7-1750 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -578,7 +578,7 @@
       if (managedDepartments.length === 1) {
         currentManagerDepartment = managedDepartments[0];
         departmentSelector.classList.add('hidden');
-        renderDepartmentReport(currentManagerDepartment);
+        (currentManagerDepartment);
       } else {
         departmentSelector.classList.remove('hidden');
         departmentReport.classList.add('hidden');
@@ -599,52 +599,48 @@
     }
 
     function renderDepartmentReport(departmentName) {
-      currentManagerDepartment = departmentName;
-      deptNameSpan.textContent = departmentName;
+  currentManagerDepartment = departmentName;
+  deptNameSpan.textContent = departmentName;
 
-      const employeesInDept = Object.values(allUserData).filter(user => 
-        user.department === departmentName
-      );
+  const employeesInDept = Object.values(allUserData).filter(user => 
+    user.department === departmentName
+  );
 
-      if (employeesInDept.length === 0) {
-        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет сотрудников в отделе</p>';
-        deptDataLoading.classList.remove('hidden');
-        deptDataContent.classList.add('hidden');
-        return;
-      }
-
-      let latestDate = null;
-      employeesInDept.forEach(emp => {
-        if (emp.records?.length) {
-          const lastRec = emp.records[0];
-          if (!latestDate || lastRec.date > latestDate) {
-            latestDate = lastRec.date;
-          }
-        }
-      });
-
-      if (!latestDate) {
-       // Получаем последнюю дату (как раньше)
-let latestDate = null;
-const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
-employeesInDept.forEach(emp => {
-  if (emp.records?.length) {
-    const lastRec = emp.records[0];
-    if (!latestDate || lastRec.date > latestDate) {
-      latestDate = lastRec.date;
-    }
+  if (employeesInDept.length === 0) {
+    deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет сотрудников в отделе</p>';
+    deptDataLoading.classList.remove('hidden');
+    deptDataContent.classList.add('hidden');
+    departmentSelector.classList.add('hidden');
+    departmentReport.classList.remove('hidden');
+    renderDepartmentCalendar(departmentName); // календарь может быть пустым — ок
+    return;
   }
-});
 
-if (latestDate) {
-  renderDepartmentReportForDate(departmentName, latestDate);
-} else {
-  deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет данных за период</p>';
-  deptDataLoading.classList.remove('hidden');
-  deptDataContent.classList.add('hidden');
-}
-      renderDepartmentCalendar(departmentName);
+  // Находим последнюю дату по всем записям отдела
+  let latestDate = null;
+  employeesInDept.forEach(emp => {
+    if (emp.records?.length) {
+      const lastRec = emp.records[0];
+      if (!latestDate || lastRec.date > latestDate) {
+        latestDate = lastRec.date;
+      }
     }
+  });
+
+  if (!latestDate) {
+    deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет данных за период</p>';
+    deptDataLoading.classList.remove('hidden');
+    deptDataContent.classList.add('hidden');
+  } else {
+    // Загружаем отчёт за последнюю дату
+    renderDepartmentReportForDate(departmentName, latestDate);
+  }
+
+  // Показываем отчёт и календарь
+  departmentSelector.classList.add('hidden');
+  departmentReport.classList.remove('hidden');
+  renderDepartmentCalendar(departmentName);
+}
 
     function renderDepartmentCalendar(departmentName) {
       deptCalendarLoading.classList.remove('hidden');
