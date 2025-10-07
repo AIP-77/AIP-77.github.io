@@ -150,7 +150,10 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.8-0010 )</h4>
+    
+    <h4>(🛠 V.10.8-0015 )</h4>
+    <button id="clearCacheBtn" class="refresh-btn" style="margin-top: 10px;">🗑 Очистить кэш и перезапустить</button>
+    
     <div id="banner" class="banner"></div>
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
@@ -323,7 +326,8 @@
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
     const refreshBtn = document.getElementById('refreshBtn');
-
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    
     // DOM для отдела
     const changeDepartmentBtn = document.getElementById('change-department-btn');
     const departmentSelector = document.getElementById('department-selector');
@@ -1218,6 +1222,15 @@
         }
       }, 1000);
     }
+    clearCacheBtn.addEventListener('click', () => {
+  if (confirm('Вы уверены, что хотите очистить кэш? Это удалит все локальные данные.')) {
+    localStorage.removeItem('miniapp_currentData');
+    showBanner('Кэш очищен', 'success', 2000);
+    setTimeout(() => {
+      location.reload();
+    }, 1500);
+  }
+});
 
     window.onload = init;
   </script>
