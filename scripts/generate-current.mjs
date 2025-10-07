@@ -94,31 +94,30 @@ function csvToJson(tsv) {
     const efficiencyDataStr = row[headers.indexOf('efficiencyData')] || '[]';
     const earningsDataStr = row[headers.indexOf('earningsData')] || '[]';
     const managedDepartmentsStr = row[headers.indexOf('managedDepartments')] || '[]';
-    // В функции csvToJson, после обработки всех строк:
-   const allDates = [];
-   for (const userId in result) {
-     for (const record of result[userId].records) {
-    if (record.date) allDates.push(record.date);
-    }
-   }
-   const latestDate = allDates.length ? allDates.sort().pop() : 'нет данных';
-// console.log('📅 Последняя дата в данных:', latestDate);
 
     let details = [], efficiencyData = [], earningsData = [], managedDepartments = [];
-    try { details = JSON.parse(detailsStr); } catch (e) {}
-    try { efficiencyData = JSON.parse(efficiencyDataStr); } catch (e) {}
-    try { earningsData = JSON.parse(earningsDataStr); } catch (e) {}
-    try { managedDepartments = JSON.parse(managedDepartmentsStr); } catch (e) {}
+    try { details = JSON.parse(detailsStr); } catch (e) { console.warn(`⚠️ details parse error in row ${i}`); }
+    try { efficiencyData = JSON.parse(efficiencyDataStr); } catch (e) { console.warn(`⚠️ efficiencyData parse error in row ${i}`); }
+    try { earningsData = JSON.parse(earningsDataStr); } catch (e) { console.warn(`⚠️ earningsData parse error in row ${i}`); }
+    try { managedDepartments = JSON.parse(managedDepartmentsStr); } catch (e) { console.warn(`⚠️ managedDepartments parse error in row ${i}`); }
 
+    // Инициализируем пользователя, если ещё не создан
     if (!result[telegramId]) {
       result[telegramId] = {
         name: mainData.name || '',
         role: row[headers.indexOf('role')] || '',
         department: row[headers.indexOf('department')] || '',
+        managedDepartments: [], // ← Будет заполнено ниже
         records: []
       };
     }
 
+    // Сохраняем managedDepartments на уровне пользователя (только если ещё не задан и не пустой)
+    if (Array.isArray(managedDepartments) && managedDepartments.length > 0 && result[telegramId].managedDepartments.length === 0) {
+      result[telegramId].managedDepartments = managedDepartments;
+    }
+
+    // Добавляем запись БЕЗ managedDepartments
     result[telegramId].records.push({
       date: mainData.date || row[headers.indexOf('workDate')] || '',
       worked: mainData.worked || '',
@@ -129,8 +128,8 @@ function csvToJson(tsv) {
       xisBonusDay: mainData.xisBonusDay || '',
       details: details,
       efficiencyData: efficiencyData,
-      earningsData: earningsData,
-      managedDepartments: managedDepartments
+      earningsData: earningsData
+      // managedDepartments НЕ включаем сюда!
     });
   }
 
