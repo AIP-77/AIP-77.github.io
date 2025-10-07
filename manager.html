@@ -157,7 +157,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-1940 🛠)</h4>
+    <h4>(🛠 V.10.7-2140 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -478,65 +478,70 @@
       currentManagerDepartment = cached.currentManagerDepartment || null;
     }
 
-    function renderUI() {
-      if (!allUserData) {
-        showError('Нет данных пользователей');
-        loading.classList.add('hidden');
-        return;
+ function renderUI() {
+  if (!allUserData) {
+    showError('Нет данных пользователей');
+    loading.classList.add('hidden');
+    return;
+  }
+
+  // Заполняем список пользователей для админа
+  if (isAdmin && allUserData) {
+    const select = userSelector;
+    select.innerHTML = '<option value="">— Выберите —</option>';
+    
+    // Преобразуем объект в массив и сортируем по имени
+    const usersArray = Object.entries(allUserData)
+      .map(([id, data]) => ({ id, data }))
+      .sort((a, b) => {
+        const nameA = (a.data.name || '').trim().toLowerCase();
+        const nameB = (b.data.name || '').trim().toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+      });
+
+    usersArray.forEach(({ id, data }) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = `${data.name || 'Без имени'} (${id})`;
+      select.appendChild(opt);
+    });
+    
+    // Восстанавливаем выбор в селекте
+    if (currentViewUserId && allUserData[currentViewUserId]) {
+      userSelector.value = currentViewUserId;
+    }
+  }
+
+  // Показываем вкладки
+  if (isManager) {
+    tabManager.classList.remove('hidden');
+  }
+  if (isAdmin) {
+    tabAdmin.classList.remove('hidden');
+    tabManager.classList.remove('hidden'); // админ = руководитель
+  }
+
+  // Отображаем данные для выбранного или текущего пользователя
+  const viewUserId = currentViewUserId || chatId;
+  renderEmployeeViewForUser(viewUserId);
+
+  // Скрываем спиннер и показываем основную вкладку
+  loading.classList.add('hidden');
+  employeeView.classList.remove('hidden');
+
+  // Откладываем рендеринг вкладки "Отдел", чтобы не блокировать UI
+  if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
+    setTimeout(() => {
+      try {
+        renderManagerView();
+      } catch (err) {
+        console.error('Ошибка в renderManagerView:', err);
       }
-
-      // Админка
-      if (isAdmin && allUserData) {
-        const select = userSelector;
-        select.innerHTML = '<option value="">— Выберите —</option>';
-        const usersArray = Object.entries(allUserData)
-          .map(([id, data]) => ({ id, data }))
-          .sort((a, b) => {
-            const nameA = (a.data.name || '').trim().toLowerCase();
-            const nameB = (b.data.name || '').trim().toLowerCase();
-            if (nameA < nameB) return -1;
-            if (nameA > nameB) return 1;
-            return 0;
-          });
-
-        usersArray.forEach(({ id, data }) => {
-          const opt = document.createElement('option');
-          opt.value = id;
-          opt.textContent = `${data.name || 'Без имени'} (${id})`;
-          select.appendChild(opt);
-        });
-
-        if (currentViewUserId && allUserData[currentViewUserId]) {
-          userSelector.value = currentViewUserId;
-        }
-      }
-
-      // Вкладки
-      if (isManager) {
-        tabManager.classList.remove('hidden');
-      }
-      if (isAdmin) {
-        tabAdmin.classList.remove('hidden');
-        tabManager.classList.remove('hidden');
-      }
-
-      // Основной вид
-      const viewUserId = currentViewUserId || chatId;
-      renderEmployeeViewForUser(viewUserId);
-
-      // Вид руководителя
-      if (isManager && Array.isArray(managedDepartments)) {
-  try {
-    renderManagerView();
-  } catch (err) {
-    console.error('Ошибка в renderManagerView:', err);
-    // Не прерываем работу основного интерфейса
+    }, 100); // 100 мс — достаточно для отображения основного вида
   }
 }
-
-      loading.classList.add('hidden');
-      employeeView.classList.remove('hidden');
-    }
 
     function renderEmployeeViewForUser(userId) {
       const userData = allUserData[userId];
@@ -573,35 +578,35 @@
       detailsContent.classList.remove('hidden');
     }
 
-    function renderManagerView() {
-      if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
-        departmentSelector.classList.add('hidden');
-        departmentReport.classList.add('hidden');
-        return;
-      }
+   function renderManagerView() {
+  if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
+    departmentSelector.classList.add('hidden');
+    departmentReport.classList.add('hidden');
+    return;
+  }
 
-      if (managedDepartments.length === 1) {
-        currentManagerDepartment = managedDepartments[0];
-        departmentSelector.classList.add('hidden');
-        renderDepartmentReport(currentManagerDepartment); // ← ДОБАВЛЕНО!
-      } else {
-        departmentSelector.classList.remove('hidden');
-        departmentReport.classList.add('hidden');
+  if (managedDepartments.length === 1) {
+    currentManagerDepartment = managedDepartments[0];
+    departmentSelector.classList.add('hidden');
+    renderDepartmentReport(currentManagerDepartment);
+  } else {
+    departmentSelector.classList.remove('hidden');
+    departmentReport.classList.add('hidden');
 
-        departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
-        managedDepartments.forEach(dept => {
-          const opt = document.createElement('option');
-          opt.value = dept;
-          opt.textContent = dept;
-          departmentSelect.appendChild(opt);
-        });
+    departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
+    managedDepartments.forEach(dept => {
+      const opt = document.createElement('option');
+      opt.value = dept;
+      opt.textContent = dept;
+      departmentSelect.appendChild(opt);
+    });
 
-        if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
-          departmentSelect.value = currentManagerDepartment;
-          renderDepartmentReport(currentManagerDepartment);
-        }
-      }
+    if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
+      departmentSelect.value = currentManagerDepartment;
+      renderDepartmentReport(currentManagerDepartment);
     }
+  }
+}
 
     function renderDepartmentReport(departmentName) {
   currentManagerDepartment = departmentName;
@@ -645,57 +650,61 @@
   renderDepartmentCalendar(departmentName);
 }
 
-    function renderDepartmentCalendar(departmentName) {
-      deptCalendarLoading.classList.remove('hidden');
-      deptCalendarContent.classList.add('hidden');
+function renderDepartmentCalendar(departmentName) {
+  deptCalendarLoading.classList.remove('hidden');
+  deptCalendarContent.classList.add('hidden');
 
-      const allDates = new Set();
-      const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
+  const allDates = new Set();
+  const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
 
-      employeesInDept.forEach(emp => {
-        if (emp.records?.length) {
-          emp.records.forEach(rec => {
-            if (rec.date) allDates.add(rec.date);
-          });
-        }
-      });
-
-      if (allDates.size === 0) {
-        deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        return;
+  // Оптимизированный цикл
+  for (const emp of employeesInDept) {
+    if (emp.records?.length) {
+      for (const rec of emp.records) {
+        if (rec.date) allDates.add(rec.date);
+        // Опционально: ограничить количество, если данных слишком много
+        // if (allDates.size > 1000) break;
       }
-
-      const monthMap = {};
-      allDates.forEach(dateStr => {
-        const [d, m, y] = dateStr.split('.').map(Number);
-        const monthKey = `${y}-${String(m).padStart(2, '0')}`;
-        if (!monthMap[monthKey]) monthMap[monthKey] = [];
-        monthMap[monthKey].push(dateStr);
-      });
-
-      deptAvailableMonths = Object.keys(monthMap).sort((a, b) => {
-        const [y1, m1] = a.split('-').map(Number);
-        const [y2, m2] = b.split('-').map(Number);
-        return y2 - y1 || m2 - m1;
-      });
-
-      if (deptAvailableMonths.length === 0) {
-        deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        return;
-      }
-
-      deptCurrentMonthIndex = 0;
-      const [yearStr, monthStr] = deptAvailableMonths[deptCurrentMonthIndex].split('-');
-      const year = Number(yearStr);
-      const month = Number(monthStr);
-      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-      deptCurrentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-      deptPrevMonthBtn.disabled = deptCurrentMonthIndex === deptAvailableMonths.length - 1;
-      deptNextMonthBtn.disabled = deptCurrentMonthIndex === 0;
-
-      renderDeptCalendarGrid(year, month, monthMap[deptAvailableMonths[deptCurrentMonthIndex]]);
     }
+  }
+
+  if (allDates.size === 0) {
+    deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+    return;
+  }
+
+  // Группируем по месяцам
+  const monthMap = {};
+  for (const dateStr of allDates) {
+    const [d, m, y] = dateStr.split('.').map(Number);
+    const monthKey = `${y}-${String(m).padStart(2, '0')}`;
+    if (!monthMap[monthKey]) monthMap[monthKey] = [];
+    monthMap[monthKey].push(dateStr);
+  }
+
+  deptAvailableMonths = Object.keys(monthMap).sort((a, b) => {
+    const [y1, m1] = a.split('-').map(Number);
+    const [y2, m2] = b.split('-').map(Number);
+    return y2 - y1 || m2 - m1;
+  });
+
+  if (deptAvailableMonths.length === 0) {
+    deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+    return;
+  }
+
+  deptCurrentMonthIndex = 0;
+  const [yearStr, monthStr] = deptAvailableMonths[deptCurrentMonthIndex].split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  deptCurrentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+  deptPrevMonthBtn.disabled = deptCurrentMonthIndex === deptAvailableMonths.length - 1;
+  deptNextMonthBtn.disabled = deptCurrentMonthIndex === 0;
+
+  renderDeptCalendarGrid(year, month, monthMap[deptAvailableMonths[deptCurrentMonthIndex]]);
+}
 
     function renderDeptCalendarGrid(year, monthNum, datesArray) {
       deptCalendar.innerHTML = '';
