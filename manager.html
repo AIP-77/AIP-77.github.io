@@ -157,7 +157,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-1440 🛠)</h4>
+    <h4>(🛠 V.10.7-1736 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -260,42 +260,47 @@
       </div>
 
       <!-- Данные по отделу -->
-      <div id="department-report" class="hidden">
-        <div class="card">
-          <h2>📊 Отчёт по отделу: <span id="dept-name">—</span></h2>
-          <p id="dept-last-update" class="last-update">Последнее обновление: —</p>
-          
-          <div id="dept-data-loading" class="loading">
-            <div class="spinner"></div>
-            <p>Загрузка данных отдела...</p>
-          </div>
-          <div id="dept-data-content" class="hidden fade">
-            <p><strong>Дата:</strong> <span id="dept-date">—</span></p>
-            <p><strong>Сотрудников:</strong> <span id="dept-employees-count">—</span></p>
-            <p><strong>Отработано всего:</strong> <span id="dept-total-worked">—</span></p>
-            <p><strong>Средняя производительность:</strong> <span id="dept-avg-efficiency">—</span></p>
-            <p><strong>Общий заработок за день:</strong> <span id="dept-total-pay">—</span></p>
-          </div>
-        </div>
-
-        <!-- Календарь отдела -->
-        <div class="card">
-          <h2>📅 Календарь отдела</h2>
-          <div id="dept-calendar-loading" class="loading">
-            <div class="spinner"></div>
-            <p>Загрузка календаря...</p>
-          </div>
-          <div id="dept-calendar-content" class="hidden">
-            <div class="month-selector">
-              <button id="dept-prevMonth">◀</button>
-              <span id="dept-currentMonth">Загрузка...</span>
-              <button id="dept-nextMonth">▶</button>
-            </div>
-            <div class="calendar" id="dept-calendar"></div>
-          </div>
-        </div>
-      </div>
+<div id="department-report" class="hidden">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>📊 Отчёт по отделу: <span id="dept-name">—</span></h2>
+      <button id="change-department-btn" class="refresh-btn" style="padding:6px 12px;font-size:12px;">Выбрать другой отдел</button>
     </div>
+    <p id="dept-last-update" class="last-update">Последнее обновление: —</p>
+    
+    <div id="dept-data-loading" class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка данных отдела...</p>
+    </div>
+    <div id="dept-data-content" class="hidden fade">
+      <p id="dept-report-date">Отчёт на дату: —</p>
+      <p id="dept-attendance">Сотрудники: —</p>
+      <p id="dept-attendance-percent">📊 Процент явки: —</p>
+      
+      <h3>👥 Производительность сотрудников:</h3>
+      <pre id="dept-employees-list" style="white-space:pre-wrap;font-family:monospace;"></pre>
+      
+      <p id="dept-avg-efficiency">📊 Средняя производительность команды: —</p>
+    </div>
+  </div>
+
+  <!-- Календарь отдела -->
+  <div class="card">
+    <h2>📅 Календарь отдела</h2>
+    <div id="dept-calendar-loading" class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка календаря...</p>
+    </div>
+    <div id="dept-calendar-content" class="hidden">
+      <div class="month-selector">
+        <button id="dept-prevMonth">◀</button>
+        <span id="dept-currentMonth">Загрузка...</span>
+        <button id="dept-nextMonth">▶</button>
+      </div>
+      <div class="calendar" id="dept-calendar"></div>
+    </div>
+  </div>
+</div>
 
     <!-- Вкладка "Админка" -->
     <div id="admin-view" class="hidden">
@@ -356,6 +361,7 @@
     const userSelector = document.getElementById('userSelector');
 
     // DOM для отдела
+    const changeDepartmentBtn = document.getElementById('change-department-btn');
     const departmentSelector = document.getElementById('department-selector');
     const departmentReport = document.getElementById('department-report');
     const departmentSelect = document.getElementById('departmentSelect');
@@ -618,45 +624,25 @@
       });
 
       if (!latestDate) {
-        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет данных за сегодня</p>';
-        deptDataLoading.classList.remove('hidden');
-        deptDataContent.classList.add('hidden');
-        return;
-      }
+       // Получаем последнюю дату (как раньше)
+let latestDate = null;
+const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
+employeesInDept.forEach(emp => {
+  if (emp.records?.length) {
+    const lastRec = emp.records[0];
+    if (!latestDate || lastRec.date > latestDate) {
+      latestDate = lastRec.date;
+    }
+  }
+});
 
-      let totalWorked = 0;
-      let totalPay = 0;
-      let totalEfficiency = 0;
-      let validRecords = 0;
-
-      employeesInDept.forEach(emp => {
-        const record = emp.records.find(r => r.date === latestDate);
-        if (record) {
-          totalWorked += parseFloat(record.worked) || 0;
-          totalPay += parseFloat(record.payDay?.replace(/\s|₽/g, '').replace(',', '.')) || 0;
-          const eff = parseFloat(record.efficiency) || 0;
-          if (eff > 0) {
-            totalEfficiency += eff;
-            validRecords++;
-          }
-        }
-      });
-
-      const avgEfficiency = validRecords > 0 ? (totalEfficiency / validRecords).toFixed(1) + '%' : '—';
-
-      deptDateSpan.textContent = latestDate;
-      deptEmployeesCountSpan.textContent = employeesInDept.length;
-      deptTotalWorkedSpan.textContent = totalWorked.toFixed(1) + ' ч';
-      deptAvgEfficiencySpan.textContent = avgEfficiency;
-      deptTotalPaySpan.textContent = totalPay.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' });
-
-      deptDataLoading.classList.add('hidden');
-      deptDataContent.classList.remove('hidden');
-      deptLastUpdate.textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-
-      departmentSelector.classList.add('hidden');
-      departmentReport.classList.remove('hidden');
-
+if (latestDate) {
+  renderDepartmentReportForDate(departmentName, latestDate);
+} else {
+  deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет данных за период</p>';
+  deptDataLoading.classList.remove('hidden');
+  deptDataContent.classList.add('hidden');
+}
       renderDepartmentCalendar(departmentName);
     }
 
@@ -771,45 +757,97 @@
       renderDepartmentReportForDate(currentManagerDepartment, dateStr);
     }
 
-    function renderDepartmentReportForDate(departmentName, dateStr) {
-      const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
+    async function renderDepartmentReportForDate(departmentName, dateStr) {
+  // Загружаем штатное расписание
+  let staff = {};
+  try {
+    const staffRes = await fetch('staff.json');
+    if (staffRes.ok) {
+      staff = await staffRes.json();
+    }
+  } catch (e) {
+    console.warn('Не удалось загрузить staff.json:', e);
+  }
 
-      let totalWorked = 0;
-      let totalPay = 0;
-      let totalEfficiency = 0;
-      let validRecords = 0;
-      let hasData = false;
+  const staffIds = staff[departmentName] || [];
+  const allUsersInDept = Object.entries(allUserData).filter(([id, user]) => 
+    user.department === departmentName
+  );
 
-      employeesInDept.forEach(emp => {
-        const record = emp.records.find(r => r.date === dateStr);
-        if (record) {
-          hasData = true;
-          totalWorked += parseFloat(record.worked) || 0;
-          totalPay += parseFloat(record.payDay?.replace(/\s|₽/g, '').replace(',', '.')) || 0;
-          const eff = parseFloat(record.efficiency) || 0;
-          if (eff > 0) {
-            totalEfficiency += eff;
-            validRecords++;
-          }
-        }
-      });
+  // Сотрудники по штату
+  const staffUsers = staffIds.map(id => ({
+    id,
+    data: allUserData[id] || { name: 'Неизвестный сотрудник' }
+  }));
 
-      if (!hasData) {
-        showBanner(`Нет данных по отделу за ${dateStr}`, 'error');
-        return;
+  // Сотрудники, которые есть в системе (могут быть не по штату)
+  const presentUsers = allUsersInDept.map(([id, data]) => ({ id, data }));
+
+  // Объединяем: сначала штат, потом остальные
+  const allEmployees = [...staffUsers];
+  const staffIdSet = new Set(staffIds);
+  presentUsers.forEach(emp => {
+    if (!staffIdSet.has(emp.id)) {
+      allEmployees.push(emp);
+    }
+  });
+
+  let totalWorked = 0;
+  let totalPay = 0;
+  let totalEfficiency = 0;
+  let validRecords = 0;
+  let presentCount = 0;
+  let employeeLines = [];
+
+  for (const { id, data } of allEmployees) {
+    const record = data.records?.find(r => r.date === dateStr);
+    const name = data.name || 'Без имени';
+
+    if (record) {
+      presentCount++;
+      const worked = record.worked || '00:00';
+      const planned = record.planned || '08:00';
+      const efficiency = record.efficiency ? record.efficiency.replace('%', '') : '0';
+      const pay = record.payDay || '0,00 ₽';
+
+      const effNum = parseFloat(efficiency.replace(',', '.')) || 0;
+      if (effNum > 0) {
+        totalEfficiency += effNum;
+        validRecords++;
       }
 
-      const avgEfficiency = validRecords > 0 ? (totalEfficiency / validRecords).toFixed(1) + '%' : '—';
-
-      deptDateSpan.textContent = dateStr;
-      deptEmployeesCountSpan.textContent = employeesInDept.length;
-      deptTotalWorkedSpan.textContent = totalWorked.toFixed(1) + ' ч';
-      deptAvgEfficiencySpan.textContent = avgEfficiency;
-      deptTotalPaySpan.textContent = totalPay.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' });
-
-      deptLastUpdate.textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-      showBanner(`Данные по отделу за ${dateStr} загружены`, 'success', 3000);
+      employeeLines.push(`${name} - ${worked} / ${planned} (${efficiency}%) ${pay}`);
+    } else {
+      employeeLines.push(`${name} - ❌ Отсутствовал`);
     }
+  }
+
+  const totalStaff = allEmployees.length;
+  const absentCount = totalStaff - presentCount;
+  const attendancePercent = totalStaff > 0 ? ((presentCount / totalStaff) * 100).toFixed(1) : '0';
+
+  // Форматируем дату с днём недели
+  const [day, month, year] = dateStr.split('.').map(Number);
+  const dateObj = new Date(year, month - 1, day);
+  const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const dayName = days[dateObj.getDay()];
+  const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  const formattedDate = `${dayName}, ${day} ${months[month - 1]}`;
+
+  // Обновляем UI
+  document.getElementById('dept-report-date').textContent = `Отчёт на дату - ${formattedDate}`;
+  document.getElementById('dept-attendance').textContent = `Сотрудники - ${totalStaff} чел.\nОтсутствуют - ${absentCount} чел.`;
+  document.getElementById('dept-attendance-percent').textContent = `📊 Процент явки: ${presentCount} из ${totalStaff} (${attendancePercent}%)`;
+  document.getElementById('dept-employees-list').textContent = employeeLines.join('\n');
+  
+  const avgEfficiency = validRecords > 0 ? (totalEfficiency / validRecords).toFixed(2) : '0,00';
+  document.getElementById('dept-avg-efficiency').textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
+
+  deptDataLoading.classList.add('hidden');
+  deptDataContent.classList.remove('hidden');
+  deptLastUpdate.textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+}
 
     function updateLastUpdate() {
       const now = new Date();
@@ -1358,7 +1396,11 @@
           earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
         }
       }, 300);
-    }  
+    } 
+    changeDepartmentBtn.addEventListener('click', () => {
+      departmentReport.classList.add('hidden');
+      departmentSelector.classList.remove('hidden');
+    });
 
     window.onload = init;
   </script>
