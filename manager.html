@@ -157,7 +157,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-1750 🛠)</h4>
+    <h4>(🛠 V.10.7-1815 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -754,7 +754,7 @@
     }
 
     async function renderDepartmentReportForDate(departmentName, dateStr) {
-  // Загружаем штатное расписание
+  // Загружаем штатное расписание (если есть)
   let staff = {};
   try {
     const staffRes = await fetch('staff.json');
@@ -776,7 +776,7 @@
     data: allUserData[id] || { name: 'Неизвестный сотрудник' }
   }));
 
-  // Сотрудники, которые есть в системе (могут быть не по штату)
+  // Сотрудники из данных (могут быть не по штату)
   const presentUsers = allUsersInDept.map(([id, data]) => ({ id, data }));
 
   // Объединяем: сначала штат, потом остальные
@@ -793,7 +793,8 @@
   let totalEfficiency = 0;
   let validRecords = 0;
   let presentCount = 0;
-  let employeeLines = [];
+  const presentLines = [];
+  const absentLines = [];
 
   for (const { id, data } of allEmployees) {
     const record = data.records?.find(r => r.date === dateStr);
@@ -806,15 +807,42 @@
       const efficiency = record.efficiency ? record.efficiency.replace('%', '') : '0';
       const pay = record.payDay || '0,00 ₽';
 
+      // Форматируем заработок
+      let formattedPay = pay;
+      if (typeof pay === 'string') {
+        const cleanPay = pay.replace(/[^\d,.-]/g, '').replace(',', '.');
+        const num = parseFloat(cleanPay);
+        if (!isNaN(num)) {
+          formattedPay = num.toLocaleString('ru-RU', {
+            style: 'currency',
+            currency: 'RUB',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+        }
+      }
+
       const effNum = parseFloat(efficiency.replace(',', '.')) || 0;
       if (effNum > 0) {
         totalEfficiency += effNum;
         validRecords++;
       }
 
-      employeeLines.push(`${name} - ${worked} / ${planned} (${efficiency}%) ${pay}`);
+      // Цвет производительности
+      let effColor = '';
+      if (effNum > 100) {
+        effColor = 'color:green;';
+      } else if (effNum < 70) {
+        effColor = 'color:#e53935;';
+      }
+
+      const line = `<span style="font-weight:bold;">${name}</span> - ${worked} / ${planned} <span style="${effColor}">(${efficiency}%)</span> ${formattedPay}`;
+      presentLines.push(line);
+
     } else {
-      employeeLines.push(`${name} - ❌ Отсутствовал`);
+      // Отсутствующий — в начало, жирный, красный статус
+      const line = `<span style="font-weight:bold; color:#e53935;">${name} - ❌ Отсутствовал</span>`;
+      absentLines.push(line);
     }
   }
 
@@ -822,22 +850,29 @@
   const absentCount = totalStaff - presentCount;
   const attendancePercent = totalStaff > 0 ? ((presentCount / totalStaff) * 100).toFixed(1) : '0';
 
-  // Форматируем дату с днём недели
+  // Форматируем дату с днём недели и годом
   const [day, month, year] = dateStr.split('.').map(Number);
   const dateObj = new Date(year, month - 1, day);
   const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   const dayName = days[dateObj.getDay()];
   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
     'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-  const formattedDate = `${dayName}, ${day} ${months[month - 1]}`;
+  const formattedDate = `${dayName}, ${day} ${months[month - 1]} ${year}`;
 
   // Обновляем UI
   document.getElementById('dept-report-date').textContent = `Отчёт на дату - ${formattedDate}`;
   document.getElementById('dept-attendance').textContent = `Сотрудники - ${totalStaff} чел.\nОтсутствуют - ${absentCount} чел.`;
   document.getElementById('dept-attendance-percent').textContent = `📊 Процент явки: ${presentCount} из ${totalStaff} (${attendancePercent}%)`;
-  document.getElementById('dept-employees-list').textContent = employeeLines.join('\n');
-  
-  const avgEfficiency = validRecords > 0 ? (totalEfficiency / validRecords).toFixed(2) : '0,00';
+
+  // Выводим список с HTML-разметкой
+  const allLines = [
+    ...absentLines,
+    absentLines.length > 0 ? '<hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">' : '',
+    ...presentLines
+  ];
+  document.getElementById('dept-employees-list').innerHTML = allLines.join('<br>');
+
+  const avgEfficiency = validRecords > 0 ? (totalEfficiency / validRecords).toFixed(2).replace('.', ',') : '0,00';
   document.getElementById('dept-avg-efficiency').textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
 
   deptDataLoading.classList.add('hidden');
