@@ -157,7 +157,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.7-1920 🛠)</h4>
+    <h4>(🛠 V.10.7-1935 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -1330,6 +1330,7 @@
 
     tabAdmin.addEventListener('click', () => {
       if (isAdmin) {
+        console.log("Переключение на админку");
         employeeView.classList.add('hidden');
         managerView.classList.add('hidden');
         adminView.classList.remove('hidden');
