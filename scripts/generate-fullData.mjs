@@ -5,7 +5,7 @@ import http from 'http';
 import { URL } from 'url';
 
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
-const GID_FULL = '987654321'; // ← ЗАМЕНИТЕ на GID листа "Полные данные"
+const GID_FULL = '1589998035'; // ← ЗАМЕНИТЕ на GID листа "Полные данные"
 const OUTPUT_PATH = './fullData.json';
 
 // (Функции fetchSheetAsTSV и parseTSV — те же, что выше. Можно вынести в отдельный модуль, но для простоты дублируем)
