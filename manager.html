@@ -145,22 +145,42 @@
     .fade.hidden {
       opacity: 0;
     }
+    /* Кнопка очистки кэша */
+    .clear-cache-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 10px 0;
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
+    .clear-cache-btn:hover {
+      background: #c82333;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    
-    <h4>(🛠 V.10.8-0015 )</h4>
-    <button id="clearCacheBtn" class="refresh-btn" style="margin-top: 10px;">🗑 Очистить кэш и перезапустить</button>
-    
+    <h4>(🛠 V.10.8-0015 🛠)</h4>
+
+    <!-- Кнопка очистки кэша -->
+    <button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
+
     <div id="banner" class="banner"></div>
+
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab hidden">Отдел</div>
       <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
       <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
     </div>
+
     <div id="loading" class="loading">
       <div class="spinner"></div>
       <p>Загрузка данных...</p>
@@ -295,7 +315,7 @@
     let efficiencyChart = null;
     let earningsChart = null;
     let calendarCache = null;
-    let currentViewUserId = null; // Удалено: не используется
+    let currentViewUserId = null;
     let managedDepartments = [];
     let currentManagerDepartment = null;
 
@@ -326,8 +346,7 @@
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
     const refreshBtn = document.getElementById('refreshBtn');
-    const clearCacheBtn = document.getElementById('clearCacheBtn');
-    
+
     // DOM для отдела
     const changeDepartmentBtn = document.getElementById('change-department-btn');
     const departmentSelector = document.getElementById('department-selector');
@@ -351,6 +370,9 @@
     let deptAvailableMonths = [];
     let deptCurrentMonthIndex = 0;
 
+    // Кнопка очистки кэша
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+
     // === ИНИЦИАЛИЗАЦИЯ ===
     async function init() {
       try {
@@ -358,9 +380,11 @@
           enableTestMode();
           return;
         }
+
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         applyTelegramTheme();
+
         const user = Telegram.WebApp.initDataUnsafe.user;
         if (!user?.id) throw new Error('Пользователь не найден');
         chatId = String(user.id);
@@ -382,7 +406,7 @@
               currentManagerDepartment: currentManagerDepartment
             }, 10 * 60 * 1000);
 
-            if (!cached || fresh.currentRecord.date !== (currentRecord?.date || '')) {
+            if (!cached || fresh.currentRecord.date !== (currentRecord?.date || '') || fresh.currentRecord.worked !== (currentRecord?.worked || '')) {
               allUserData = fresh.allUserData;
               currentRecord = fresh.currentRecord;
               calendarCache = fresh.calendarCache;
@@ -400,6 +424,7 @@
               showError('Ошибка загрузки данных: ' + err.message);
             }
           });
+
       } catch (err) {
         console.error('Ошибка инициализации:', err);
         loading.classList.add('hidden');
@@ -426,6 +451,7 @@
       calendarCache = cached.calendarCache;
       isManager = !!cached.isManager;
       isAdmin = !!cached.isAdmin;
+      currentViewUserId = cached.currentViewUserId || null;
       managedDepartments = Array.isArray(cached.managedDepartments) ? cached.managedDepartments : [];
       currentManagerDepartment = cached.currentManagerDepartment || null;
     }
@@ -838,7 +864,7 @@
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-            data: data.map(d => d.value),
+             data.map(d => d.value),
             backgroundColor: 'var(--tg-link-color)'
           }]
         },
@@ -1034,7 +1060,7 @@
         isManager = fresh.isManager;
         isAdmin = fresh.isAdmin;
         managedDepartments = fresh.managedDepartments;
-        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments, currentManagerDepartment }, 10 * 60 * 1000);
+        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager, isAdmin, currentViewUserId, managedDepartments, currentManagerDepartment }, 10 * 60 * 1000);
         renderUI();
         showBanner('Данные обновлены вручную', 'success', 3000);
       } catch (err) {
@@ -1153,6 +1179,18 @@
       departmentReport.classList.add('hidden');
       departmentSelector.classList.remove('hidden');
     });
+
+    // Кнопка "Очистить кэш"
+    clearCacheBtn.addEventListener('click', () => {
+      if (confirm('Вы уверены, что хотите очистить кэш? Это удалит все локальные данные.')) {
+        localStorage.removeItem('miniapp_currentData');
+        showBanner('Кэш очищен', 'success', 2000);
+        setTimeout(() => {
+          location.reload();
+        }, 1500);
+      }
+    });
+
     async function fetchFreshData() {
       const currentRes = await fetch('current.json');
       if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
@@ -1222,15 +1260,6 @@
         }
       }, 1000);
     }
-    clearCacheBtn.addEventListener('click', () => {
-  if (confirm('Вы уверены, что хотите очистить кэш? Это удалит все локальные данные.')) {
-    localStorage.removeItem('miniapp_currentData');
-    showBanner('Кэш очищен', 'success', 2000);
-    setTimeout(() => {
-      location.reload();
-    }, 1500);
-  }
-});
 
     window.onload = init;
   </script>
