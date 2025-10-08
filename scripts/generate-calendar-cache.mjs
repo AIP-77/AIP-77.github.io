@@ -99,6 +99,9 @@ function csvToCalendarCache(tsv) {
     return {};
   }
 
+  // 🔹 Список служебных колонок, которые НЕ являются месяцами
+  const EXCLUDED_HEADERS = new Set(['ФИО', 'Источник', 'Отметка времени']);
+
   const result = {};
   for (let i = 1; i < parsed.length; i++) {
     const row = parsed[i];
@@ -110,12 +113,18 @@ function csvToCalendarCache(tsv) {
 
     result[String(telegramId)] = {};
 
-    for (let j = 2; j < headers.length; j++) {
+    for (let j = 0; j < headers.length; j++) {
       const monthHeader = headers[j];
-      if (!monthHeader || monthHeader === 'ФИО') continue;
+      if (!monthHeader) continue;
+
+      // 🔹 Пропускаем служебные колонки
+      if (EXCLUDED_HEADERS.has(monthHeader)) {
+        continue;
+      }
 
       const key = getMonthKey(monthHeader);
       if (!key) {
+        // 🔸 Теперь это будет редкость — только если появится НОВЫЙ неизвестный месяц
         console.warn(`⚠️ Неизвестный месяц: "${monthHeader}"`);
         continue;
       }
@@ -124,7 +133,6 @@ function csvToCalendarCache(tsv) {
 
       // 🔥 Исправление: если строка не начинается с '[', добавим квадратные скобки
       if (!datesStr.startsWith('[')) {
-        // Предполагаем, что это массив без кавычек
         const datesArray = datesStr.split(',').map(d => d.trim()).filter(d => d);
         datesStr = `[${datesArray.map(d => `"${d}"`).join(',')}]`;
       }
