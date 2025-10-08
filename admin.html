@@ -166,7 +166,7 @@
 <body>
   <div class="container">
     <button class="back-btn" onclick="window.location.href='index.html'">← Назад к отчётам</button>
-    <h1>👨‍💻 Панель администратора</h1>
+    <h1>👨‍💻 Админка</h1>
     <div id="banner" class="banner"></div>
 
     <div class="card">
@@ -177,7 +177,7 @@
       <p id="admin-hint" class="last-update">Выбранный пользователь будет отображаться ниже.</p>
     </div>
 
-    <!-- Основной отчёт (клон "Мой отчёт") -->
+    <!-- Основной отчёт -->
     <div id="employee-view" class="hidden">
       <div class="card">
         <h2>👷‍♂️ Персональный отчет</h2>
@@ -256,10 +256,10 @@
   </div>
 
   <script>
-    let chatId = null; // ID админа
+    let chatId = null;
     let allUserData = null;
     let calendarCache = null;
-    let currentViewUserId = null; // ID выбранного сотрудника
+    let currentViewUserId = null;
     let currentRecord = null;
     let efficiencyChart = null;
     let earningsChart = null;
@@ -316,7 +316,9 @@
         if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
         calendarCache = await cacheRes.json();
 
+        // Заполняем селект
         fillUserSelector();
+
         loading.classList.add('hidden');
 
       } catch (err) {
@@ -340,9 +342,19 @@
     }
 
     function fillUserSelector() {
+      // Проверяем, загружены ли данные
+      if (!allUserData) {
+        console.warn('Данные allUserData не загружены!');
+        userSelector.innerHTML = '<option value="">— Данные не загружены —</option>';
+        return;
+      }
+
       userSelector.innerHTML = '<option value="">— Выберите —</option>';
+
+      // Получаем всех пользователей
       const usersArray = Object.entries(allUserData)
         .map(([id, data]) => ({ id, data }))
+        .filter(([id, data]) => data && data.name) // Фильтруем, чтобы не было undefined
         .sort((a, b) => {
           const nameA = (a.data.name || '').trim().toLowerCase();
           const nameB = (b.data.name || '').trim().toLowerCase();
@@ -351,12 +363,22 @@
           return 0;
         });
 
+      // Если нет сотрудников — показываем сообщение
+      if (usersArray.length === 0) {
+        userSelector.innerHTML = '<option value="">— Нет сотрудников —</option>';
+        console.warn('В current.json нет ни одного сотрудника.');
+        return;
+      }
+
+      // Заполняем селект
       usersArray.forEach(({ id, data }) => {
         const opt = document.createElement('option');
         opt.value = id;
-        opt.textContent = `${data.name || 'Без имени'} (${id})`;
+        opt.textContent = `${data.name} (${id})`;
         userSelector.appendChild(opt);
       });
+
+      console.log(`Загружено ${usersArray.length} сотрудников.`);
     }
 
     userSelector.addEventListener('change', function () {
@@ -691,8 +713,8 @@
       refreshBtn.textContent = 'Обновление...';
 
       try {
-         // Перезагружаем данные
-        const currentRes = await fetch('current.json?' + new Date().getTime()); // Чтобы обойти кэш
+        // Перезагружаем данные
+        const currentRes = await fetch('current.json?' + new Date().getTime());
         if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
         allUserData = await currentRes.json();
 
