@@ -57,6 +57,51 @@
       margin: 16px 0; 
     }
     .hidden { display: none !important; }
+    .calendar { 
+      display: grid; 
+      gap: 4px; 
+      margin: 10px 0; 
+      grid-template-columns: repeat(7, 1fr); 
+    }
+    .day { 
+      text-align: center; 
+      padding: 6px; 
+      font-size: 14px; 
+      border-radius: 4px; 
+      color: var(--tg-text-color); 
+      cursor: pointer; 
+    }
+    .day.available { 
+      background: var(--tg-link-color); 
+      color: var(--tg-button-text-color); 
+      font-weight: bold; 
+    }
+    .day:hover { 
+      background: #e0e0e0; 
+    }
+    .footer { 
+      text-align: center; 
+      margin-top: 30px; 
+      color: var(--tg-hint-color); 
+      font-size: 13px; 
+    }
+    .month-selector { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin: 10px 0; 
+    }
+    .month-selector button { 
+      background: var(--tg-button-color); 
+      color: var(--tg-button-text-color); 
+      border: none; 
+      padding: 8px 12px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+    }
+    .month-selector span { font-weight: bold; }
+
+    /* === UX УЛУЧШЕНИЯ === */
     .banner {
       padding: 12px;
       margin: 12px 0;
@@ -71,11 +116,13 @@
     .banner.info { background: #e3f2fd; color: #1565c0; }
     .banner.error { background: #ffebee; color: #c62828; }
     .banner.success { background: #e8f5e9; color: #2e7d32; }
+
     .last-update {
       font-size: 13px;
       color: var(--tg-hint-color);
       margin-top: 8px;
     }
+
     .refresh-btn {
       background: var(--tg-button-color);
       color: var(--tg-button-text-color);
@@ -87,6 +134,12 @@
       margin-top: 10px;
       display: inline-block;
     }
+    .refresh-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Плавные переходы */
     .fade {
       opacity: 1;
       transition: opacity 0.3s ease;
@@ -126,6 +179,7 @@
       <div class="card">
         <h2>👷‍♂️ Персональный отчет</h2>
         <p id="last-update" class="last-update">Последнее обновление: —</p>
+        <button id="refreshBtn" class="refresh-btn">🔄 Обновить данные</button>
         <div id="main-data-loading" class="loading">
           <div class="spinner"></div>
           <p>Загрузка основных данных...</p>
@@ -219,6 +273,7 @@
     const prevMonthBtn = document.getElementById('prevMonth');
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
+    const refreshBtn = document.getElementById('refreshBtn');
 
     async function init() {
       try {
@@ -329,16 +384,12 @@
       employeeView.classList.remove('hidden');
     }
 
-    // ... (все остальные функции: updateMainData, createEfficiencyChart, renderCalendarFromCache и т.д.)
-    // Они идентичны вашему index.html и могут быть скопированы оттуда.
-
-    // Для краткости здесь приведены только ключевые — в реальном файле скопируйте их из index.html
-
     function updateLastUpdate() {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
       document.getElementById('last-update').textContent = `Последнее обновление: ${timeStr}`;
     }
+
     function updateMainData(userData, record) {
       document.getElementById('name').textContent = userData.name || '—';
       document.getElementById('date').textContent = record.date || '—';
@@ -349,6 +400,7 @@
       document.getElementById('xisBonusDay').textContent = record.xisBonusDay || '—';
       document.getElementById('pay-month').textContent = record.payMonth || '—';
     }
+
     function updateDetails(details) {
       if (!details?.length) {
         document.getElementById('details').textContent = 'Нет данных';
@@ -364,6 +416,7 @@
       }).join('\n');
       document.getElementById('details').textContent = text;
     }
+
     function createEfficiencyChart(data) {
       const ctx = document.getElementById('efficiencyChart').getContext('2d');
       if (efficiencyChart) efficiencyChart.destroy();
@@ -380,10 +433,16 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales: { y: { beginAtZero: true, max: 100 } }
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          }
         }
       });
     }
+
     function createEarningsChart(data) {
       const ctx = document.getElementById('earningsChart').getContext('2d');
       if (earningsChart) earningsChart.destroy();
@@ -403,25 +462,33 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'top' } }
+          plugins: {
+            legend: {
+              position: 'top'
+            }
+          }
         }
       });
     }
+
     function renderCalendarFromCache(telegramId) {
       const userData = calendarCache[telegramId];
       if (!userData) {
         document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         return;
       }
+
       availableMonths = Object.keys(userData).sort((a, b) => {
         const [y1, m1] = a.split('-').map(Number);
         const [y2, m2] = b.split('-').map(Number);
         return y2 - y1 || m2 - m1;
       });
+
       if (availableMonths.length === 0) {
         document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         return;
       }
+
       currentMonthIndex = 0;
       const [yearStr, monthStr] = availableMonths[currentMonthIndex].split('-');
       const year = Number(yearStr);
@@ -430,197 +497,40 @@
       currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
       prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
       nextMonthBtn.disabled = currentMonthIndex === 0;
+
       renderCalendarGridFromCache(year, month, userData[availableMonths[currentMonthIndex]]);
     }
+
     function renderCalendarGridFromCache(year, monthNum, datesArray) {
       const container = document.getElementById('calendar');
       container.innerHTML = '';
+
+      // Заголовок с днями недели
+      const headerRow = document.createElement('div');
+      headerRow.style.display = 'grid';
+      headerRow.style.gridTemplateColumns = 'repeat(7, 1fr)';
+      headerRow.style.gap = '4px';
+      headerRow.style.padding = '8px 0';
+      headerRow.style.backgroundColor = '#f0f0f0';
+      headerRow.style.borderBottom = '1px solid #ddd';
+
       const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
       dayNames.forEach(day => {
         const el = document.createElement('div');
         el.textContent = day;
         el.style.fontWeight = 'bold';
-        el.style.backgroundColor = '#f0f0f0';
-        el.style.padding = '6px 0';
-        el.style.borderRadius = '6px';
         el.style.textAlign = 'center';
-        container.appendChild(el);
+        el.style.padding = '6px';
+        headerRow.appendChild(el);
       });
+      container.appendChild(headerRow);
+
+      // Основная сетка
       const firstDay = new Date(year, monthNum - 1, 1);
-      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Пн = 1, Вс = 0 → если первый день — воскресенье, то startDay = 6
       const lastDayNum = new Date(year, monthNum, 0).getDate();
+
       const availableDays = new Set();
       if (datesArray && Array.isArray(datesArray)) {
         datesArray.forEach(dateStr => {
-          if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
-            const day = dateStr.split('.')[0];
-            availableDays.add(day);
-          }
-        });
-      }
-      for (let i = 0; i < startDay; i++) {
-        container.appendChild(document.createElement('div'));
-      }
-      for (let day = 1; day <= lastDayNum; day++) {
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = day;
-        el.style.padding = '8px 0';
-        el.style.borderRadius = '6px';
-        el.style.fontSize = '14px';
-        const dayStr = String(day).padStart(2, '0');
-        if (availableDays.has(dayStr)) {
-          el.classList.add('available');
-          el.title = 'Есть данные';
-          el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
-        } else {
-          el.style.color = '#ccc';
-        }
-        container.appendChild(el);
-      }
-    }
-    async function loadRecordByDate(year, month, day) {
-      mainDataContent.classList.add('fade', 'hidden');
-      detailsContent.classList.add('fade', 'hidden');
-      efficiencyContent.classList.add('fade', 'hidden');
-      earningsContent.classList.add('fade', 'hidden');
-      await new Promise(r => setTimeout(r, 300));
-      const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
-      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-      const actualUserId = currentViewUserId;
-      let data, userData;
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      if (year === currentYear && month === currentMonth) {
-        userData = allUserData[actualUserId];
-        data = userData.records.find(r => r.date === dateStr);
-        if (!data) {
-          showBanner(`Данные за ${dateStr} не найдены`, 'error');
-          return;
-        }
-      } else {
-        try {
-          const response = await fetch(`archive/${monthKey}.json`);
-          if (!response.ok) throw new Error(`Архив ${monthKey} не найден`);
-          const archiveData = await response.json();
-          userData = archiveData[actualUserId];
-          if (!userData) {
-            showBanner(`Пользователь не найден в архиве ${monthKey}`, 'error');
-            return;
-          }
-          data = userData.records.find(r => r.date === dateStr);
-          if (!data) {
-            showBanner(`Данные за ${dateStr} не найдены в архиве`, 'error');
-            return;
-          }
-        } catch (err) {
-          console.error('Ошибка загрузки архива:', err);
-          showBanner(`Ошибка: ${err.message}`, 'error');
-          return;
-        }
-      }
-      const record = data;
-      updateMainData(userData, record);
-      updateDetails(record.details || []);
-      try {
-        if (record.efficiencyData?.length) {
-          createEfficiencyChart(record.efficiencyData);
-          efficiencyLoading.classList.add('hidden');
-          efficiencyContent.classList.remove('hidden');
-        } else {
-          efficiencyLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        }
-      } catch (err) {
-        console.error('Ошибка графика эффективности:', err);
-        efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-      }
-      try {
-        if (record.earningsData?.length) {
-          createEarningsChart(record.earningsData);
-          earningsLoading.classList.add('hidden');
-          earningsContent.classList.remove('hidden');
-        } else {
-          earningsLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        }
-      } catch (err) {
-        console.error('Ошибка графика заработка:', err);
-        earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-      }
-      mainDataContent.classList.remove('hidden');
-      detailsContent.classList.remove('hidden');
-      setTimeout(() => {
-        mainDataContent.classList.remove('fade');
-        detailsContent.classList.remove('fade');
-        efficiencyContent.classList.remove('fade');
-        earningsContent.classList.remove('fade');
-      }, 50);
-      updateLastUpdate();
-      showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
-    }
-    function showBanner(message, type = 'info', duration = 5000) {
-      banner.textContent = message;
-      banner.className = `banner show ${type}`;
-      if (duration > 0) setTimeout(() => banner.classList.remove('show'), duration);
-    }
-    function showError(msg) {
-      document.body.innerHTML = `<div class="error">${msg}</div>`;
-    }
-    function renderCharts(record) {
-      setTimeout(() => {
-        try {
-          if (record.efficiencyData?.length) {
-            createEfficiencyChart(record.efficiencyData);
-            efficiencyLoading.classList.add('hidden');
-            efficiencyContent.classList.remove('hidden');
-          } else {
-            efficiencyLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-          }
-        } catch (err) {
-          console.error('Ошибка графика эффективности:', err);
-          efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-        }
-        try {
-          if (record.earningsData?.length) {
-            createEarningsChart(record.earningsData);
-            earningsLoading.classList.add('hidden');
-            earningsContent.classList.remove('hidden');
-          } else {
-            earningsLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-          }
-        } catch (err) {
-          console.error('Ошибка графика заработка:', err);
-          earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-        }
-      }, 300);
-    }
-    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-    prevMonthBtn.addEventListener('click', () => {
-      if (currentMonthIndex < availableMonths.length - 1) {
-        currentMonthIndex++;
-        const [yearStr, monthStr] = availableMonths[currentMonthIndex].split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
-        nextMonthBtn.disabled = currentMonthIndex === 0;
-        renderCalendarGridFromCache(year, month, calendarCache[currentViewUserId][availableMonths[currentMonthIndex]]);
-      }
-    });
-    nextMonthBtn.addEventListener('click', () => {
-      if (currentMonthIndex > 0) {
-        currentMonthIndex--;
-        const [yearStr, monthStr] = availableMonths[currentMonthIndex].split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
-        nextMonthBtn.disabled = currentMonthIndex === 0;
-        renderCalendarGridFromCache(year, month, calendarCache[currentViewUserId][availableMonths[currentMonthIndex]]);
-      }
-    });
-
-    window.onload = init;
-  </script>
-</body>
-</html>
+          if (/^\d{2}\.\d{2}\.\d{4
