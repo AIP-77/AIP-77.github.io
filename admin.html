@@ -165,9 +165,18 @@
 </head>
 <body>
   <div class="container">
+
+    <!-- Добавленные обязательные элементы -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка данных...</p>
+    </div>
+    <div id="error" class="error hidden"></div>
+    <!-- Конец добавленных обязательных элементов -->
+
     <button class="back-btn" onclick="window.location.href='index.html'">← Назад к отчётам</button>
     <h2>👨‍💻 Панель администратора</h2>
-    <h3>V.10.08-1801</h3>
+    <h3>V.10.08-2130</h3>
     <div id="banner" class="banner"></div>
 
     <div class="card">
@@ -253,7 +262,7 @@
       </div>
     </div>
 
-    <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
+    <div class="footer">Система малой автоматизации AIP • © 10.2025</div>
   </div>
 
   <script>
@@ -268,9 +277,10 @@
     let currentMonthIndex = 0;
 
     // DOM
+    // Теперь эти элементы будут найдены
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
-    const employeeView = document.getElementById('employee-view'); // ✅ Убедитесь, что этот элемент существует в HTML
+    const employeeView = document.getElementById('employee-view');
     const banner = document.getElementById('banner');
 
     const mainDataLoading = document.getElementById('main-data-loading');
@@ -320,11 +330,14 @@
         // Заполняем селект
         fillUserSelector();
 
+        // Скрываем спиннер загрузки после инициализации
         loading.classList.add('hidden');
 
       } catch (err) {
         console.error('Ошибка инициализации админки:', err);
+        // Скрываем спиннер загрузки
         loading.classList.add('hidden');
+        // Показываем сообщение об ошибке
         showError('Ошибка: ' + err.message);
       }
     }
@@ -355,7 +368,7 @@
       // Получаем всех пользователей
       const usersArray = Object.entries(allUserData)
         .map(([id, data]) => ({ id, data }))
-        .filter(([id, data]) => data && data.name) // Фильтруем, чтобы не было undefined
+        .filter(userObj => userObj.data && userObj.data.name) // Фильтруем объекты
         .sort((a, b) => {
           const nameA = (a.data.name || '').trim().toLowerCase();
           const nameB = (b.data.name || '').trim().toLowerCase();
@@ -367,7 +380,8 @@
       // Если нет сотрудников — показываем сообщение
       if (usersArray.length === 0) {
         userSelector.innerHTML = '<option value="">— Нет сотрудников —</option>';
-        console.warn('В current.json нет ни одного сотрудника.');
+        console.warn('В current.json нет ни одного сотрудника с именем.');
+        showBanner('Нет сотрудников для отображения.', 'info');
         return;
       }
 
@@ -379,7 +393,8 @@
         userSelector.appendChild(opt);
       });
 
-      console.log(`Загружено ${usersArray.length} сотрудников.`);
+      console.log(`Загружено и отображено ${usersArray.length} сотрудников.`);
+      showBanner(`Загружено ${usersArray.length} сотрудников.`, 'success', 2000);
     }
 
     userSelector.addEventListener('change', function () {
@@ -470,11 +485,11 @@
       if (efficiencyChart) efficiencyChart.destroy();
       efficiencyChart = new Chart(ctx, {
         type: 'bar',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Производительность (%)',
-            data: data.map(d => d.value),
+             data.map(d => d.value),
             backgroundColor: 'var(--tg-link-color)'
           }]
         },
@@ -496,11 +511,11 @@
       if (earningsChart) earningsChart.destroy();
       earningsChart = new Chart(ctx, {
         type: 'line',
-        data: {
+         {
           labels: data.map(d => d.day),
           datasets: [{
             label: 'Заработок (р.)',
-            data: data.map(d => d.pay),
+             data.map(d => d.pay),
             borderColor: 'var(--tg-link-color)',
             backgroundColor: 'rgba(26, 140, 216, 0.2)',
             fill: true,
@@ -605,20 +620,16 @@
     }
 
     async function loadRecordByDate(year, month, day) {
+      // Начинаем анимацию скрытия
       mainDataContent.classList.add('fade', 'hidden');
       detailsContent.classList.add('fade', 'hidden');
       efficiencyContent.classList.add('fade', 'hidden');
       earningsContent.classList.add('fade', 'hidden');
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 300)); // Ждем окончания анимации
 
       const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
       const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-      const actualUserId = currentViewUserId; // Используем выбранного пользователя
-
-      if (!actualUserId) {
-        showBanner('Не выбран сотрудник', 'error');
-        return;
-      }
+      const actualUserId = currentViewUserId;
 
       let data;
       let userData;
@@ -628,6 +639,7 @@
       const currentMonth = now.getMonth() + 1;
 
       if (year === currentYear && month === currentMonth) {
+        // Данные за текущий месяц из основного файла
         userData = allUserData[actualUserId];
         data = userData.records.find(r => r.date === dateStr);
         if (!data) {
@@ -635,6 +647,7 @@
           return;
         }
       } else {
+        // Данные за прошлые месяцы из архива
         try {
           const response = await fetch(`archive/${monthKey}.json`);
           if (!response.ok) throw new Error(`Архив ${monthKey} не найден`);
@@ -686,6 +699,7 @@
         earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
       }
 
+      // Показываем данные с анимацией
       mainDataContent.classList.remove('hidden');
       detailsContent.classList.remove('hidden');
       setTimeout(() => {
@@ -714,21 +728,11 @@
       refreshBtn.textContent = 'Обновление...';
 
       try {
-        // Перезагружаем данные
-        const currentRes = await fetch('current.json?' + new Date().getTime());
-        if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
-        allUserData = await currentRes.json();
-
-        const cacheRes = await fetch('calendar-cache.json?' + new Date().getTime());
-        if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
-        calendarCache = await cacheRes.json();
-
-        fillUserSelector();
-
-        // Если пользователь выбран, обновляем его данные
-        if (currentViewUserId && allUserData[currentViewUserId]) {
-            renderEmployeeViewForUser(currentViewUserId);
-        }
+        const fresh = await fetchFreshData();
+        allUserData = fresh.allUserData;
+        calendarCache = fresh.calendarCache;
+        saveToCache('currentData', { allUserData, calendarCache, currentViewUserId }, 10 * 60 * 1000);
+        renderUI();
         showBanner('Данные обновлены вручную', 'success', 3000);
       } catch (err) {
         showBanner('Ошибка обновления: ' + err.message, 'error', 5000);
@@ -751,9 +755,7 @@
         prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
         nextMonthBtn.disabled = currentMonthIndex === 0;
         const actualUserId = currentViewUserId;
-        if (actualUserId && calendarCache[actualUserId]) {
-            renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
-        }
+        renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
       }
     });
 
@@ -767,14 +769,14 @@
         prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
         nextMonthBtn.disabled = currentMonthIndex === 0;
         const actualUserId = currentViewUserId;
-        if (actualUserId && calendarCache[actualUserId]) {
-            renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
-        }
+        renderCalendarGridFromCache(year, month, calendarCache[actualUserId][availableMonths[currentMonthIndex]]);
       }
     });
 
     function showError(msg) {
-      loading.classList.add('hidden');
+      // Скрываем спиннер загрузки, если он есть
+      if (loading) loading.classList.add('hidden');
+      // Показываем сообщение об ошибке
       error.textContent = msg;
       error.classList.remove('hidden');
     }
@@ -807,6 +809,84 @@
           earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
         }
       }, 300);
+    }
+
+    async function fetchFreshData() {
+      const currentRes = await fetch('current.json');
+      if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
+      const allUserData = await currentRes.json();
+
+      const cacheRes = await fetch('calendar-cache.json');
+      if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
+      const calendarCache = await cacheRes.json();
+
+      return { allUserData, calendarCache };
+    }
+
+    function saveToCache(key, data, maxAgeMs) {
+      const item = {
+        data,
+        timestamp: Date.now(),
+        maxAge: maxAgeMs
+      };
+      try {
+        localStorage.setItem(`miniapp_${key}`, JSON.stringify(item));
+      } catch (e) {
+        console.warn('Не удалось сохранить в localStorage:', e);
+      }
+    }
+
+    function getFromCache(key) {
+      try {
+        const itemStr = localStorage.getItem(`miniapp_${key}`);
+        if (!itemStr) return null;
+        const item = JSON.parse(itemStr);
+        if (Date.now() - item.timestamp > item.maxAge) {
+          localStorage.removeItem(`miniapp_${key}`);
+          return null;
+        }
+        return item.data;
+      } catch (e) {
+        console.warn('Ошибка чтения кэша:', e);
+        return null;
+      }
+    }
+
+    function renderUI() {
+      if (!allUserData) {
+        showError('Нет данных пользователей');
+        return;
+      }
+
+      // Заполняем список пользователей для админа
+      const select = userSelector;
+      select.innerHTML = '<option value="">— Выберите —</option>';
+      const usersArray = Object.entries(allUserData)
+        .map(([id, data]) => ({ id, data }))
+        .sort((a, b) => {
+          const nameA = (a.data.name || '').trim().toLowerCase();
+          const nameB = (b.data.name || '').trim().toLowerCase();
+          if (nameA < nameB) return -1;
+          if (nameA > nameB) return 1;
+          return 0;
+        });
+      usersArray.forEach(({ id, data }) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `${data.name || 'Без имени'} (${id})`;
+        select.appendChild(opt);
+      });
+      if (currentViewUserId && allUserData[currentViewUserId]) {
+        userSelector.value = currentViewUserId;
+      }
+
+      // Отображаем данные для выбранного или текущего пользователя
+      const viewUserId = currentViewUserId || chatId;
+      renderEmployeeViewForUser(viewUserId);
+
+      // Скрываем спиннер загрузки
+      loading.classList.add('hidden');
+      employeeView.classList.remove('hidden');
     }
 
     window.onload = init;
