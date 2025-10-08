@@ -2,7 +2,7 @@ name: Update data.json from Google Sheets
 
 on:
   schedule:
-    - cron: '0 5,7,9,11,17 * * *'  # 10:00, 12:00, 14:00, 16:00, 22:00 по ЕКБ
+    - cron: '0 5,7,9,11,17 * * *'  # 10:00, 12:00, 14:00, 16:00, 22:00 по ЕКБ (UTC+5)
   workflow_dispatch:
 
 jobs:
@@ -28,24 +28,34 @@ jobs:
       - name: Generate calendar-cache.json
         run: node scripts/generate-calendar-cache.mjs
 
+      - name: Generate staff.json
+        run: node scripts/generate-staff.mjs
+
+      - name: Generate fullData.json
+        run: node scripts/generate-fullData.mjs
+
       - name: Commit and push
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # 🔹 Сохраняем изменения
-          git stash push -u
+          # 🔹 Сохраняем возможные локальные изменения (маловероятно, но на всякий)
+          git stash push -u || true
           
-          # Делаем pull
+          # Получаем свежие изменения из main
           git pull --rebase origin main
 
-          # Восстанавливаем изменения
-          git stash pop
-           # Добавляем и коммитим
-          git add current.json calendar-cache.json
+          # Восстанавливаем изменения (если были)
+          git stash pop || true
+
+          # Добавляем все 4 JSON-файла
+          git add current.json calendar-cache.json staff.json fullData.json
+
+          # Проверяем, есть ли staged изменения
           if ! git diff --staged --quiet; then
             git commit -m "🔄 Обновление данных [$(date +'%Y-%m-%d %H:%M')]"
             git push
+            echo "✅ Изменения успешно отправлены"
           else
-            echo "Нет staged изменений"
+            echo "ℹ️ Нет изменений в JSON-файлах — коммит не требуется"
           fi
