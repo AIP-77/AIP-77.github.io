@@ -167,7 +167,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.8-0928 🛠)</h4>
+    <h4>(🛠 V.10.8-0942 🛠)</h4>
 
     <!-- Кнопка очистки кэша -->
     <button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
@@ -855,26 +855,33 @@ async function init() {
       }).join('\n');
       document.getElementById('details').textContent = text;
     }
-    function createEfficiencyChart(data) {
-      const ctx = document.getElementById('efficiencyChart').getContext('2d');
-      if (efficiencyChart) efficiencyChart.destroy();
-      efficiencyChart = new Chart(ctx, {
-        type: 'bar',
-         {
-          labels: data.map(d => d.day),
-          datasets: [{
-            label: 'Производительность (%)',
-             data.map(d => d.value),
-            backgroundColor: 'var(--tg-link-color)'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: { y: { beginAtZero: true, max: 100 } }
+
+  function createEfficiencyChart(data) {
+    const ctx = document.getElementById('efficiencyChart').getContext('2d');
+    if (efficiencyChart) efficiencyChart.destroy();
+    efficiencyChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.day),
+        datasets: [{
+          label: 'Производительность (%)',
+          data: data.map(d => d.value),
+          backgroundColor: 'var(--tg-link-color)'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100
+          }
         }
-      });
-    }
+      }
+    });
+  }
+
     function createEarningsChart(data) {
       const ctx = document.getElementById('earningsChart').getContext('2d');
       if (earningsChart) earningsChart.destroy();
