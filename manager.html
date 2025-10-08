@@ -167,7 +167,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.8-0840 🛠)</h4>
+    <h4>(🛠 V.10.8-0928 🛠)</h4>
 
     <!-- Кнопка очистки кэша -->
     <button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
@@ -374,63 +374,63 @@
     const clearCacheBtn = document.getElementById('clearCacheBtn');
 
     // === ИНИЦИАЛИЗАЦИЯ ===
-    async function init() {
-      try {
-        if (!window.Telegram?.WebApp) {
-          enableTestMode();
-          return;
-        }
-
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-        applyTelegramTheme();
-
-        const user = Telegram.WebApp.initDataUnsafe.user;
-        if (!user?.id) throw new Error('Пользователь не найден');
-        chatId = String(user.id);
-
-        const cached = getFromCache('currentData');
-        if (cached) {
-          restoreFromCache(cached);
-        }
-
-        fetchFreshData()
-          .then(fresh => {
-            saveToCache('currentData', {
-              allUserData: fresh.allUserData,
-              currentRecord: fresh.currentRecord,
-              calendarCache: fresh.calendarCache,
-              isManager: fresh.isManager,
-              isAdmin: fresh.isAdmin,
-              managedDepartments: fresh.managedDepartments,
-              currentManagerDepartment: currentManagerDepartment
-            }, 10 * 60 * 1000);
-
-            if (!cached || fresh.currentRecord.date !== (currentRecord?.date || '') || fresh.currentRecord.worked !== (currentRecord?.worked || '')) {
-              allUserData = fresh.allUserData;
-              currentRecord = fresh.currentRecord;
-              calendarCache = fresh.calendarCache;
-              isManager = fresh.isManager;
-              isAdmin = fresh.isAdmin;
-              managedDepartments = fresh.managedDepartments;
-              renderUI();
-              showBanner('Данные обновлены', 'success', 3000);
-            }
-          })
-          .catch(err => {
-            console.warn('Не удалось загрузить свежие данные:', err);
-            if (!cached) {
-              loading.classList.add('hidden');
-              showError('Ошибка загрузки данных: ' + err.message);
-            }
-          });
-
-      } catch (err) {
-        console.error('Ошибка инициализации:', err);
-        loading.classList.add('hidden');
-        showError('Ошибка: ' + err.message);
-      }
+async function init() {
+  try {
+    if (!window.Telegram?.WebApp) {
+      enableTestMode();
+      return;
     }
+
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+    applyTelegramTheme();
+
+    const user = Telegram.WebApp.initDataUnsafe.user;
+    if (!user?.id) throw new Error('Пользователь не найден');
+    chatId = String(user.id);
+
+    const cached = getFromCache('currentData');
+    if (cached) {
+      restoreFromCache(cached);
+    }
+
+    fetchFreshData()
+      .then(fresh => {
+        saveToCache('currentData', {
+          allUserData: fresh.allUserData,
+          currentRecord: fresh.currentRecord,
+          calendarCache: fresh.calendarCache,
+          isManager: fresh.isManager,
+          isAdmin: fresh.isAdmin,
+          managedDepartments: fresh.managedDepartments,
+          currentManagerDepartment: currentManagerDepartment
+        }, 10 * 60 * 1000);
+
+        if (!cached || fresh.currentRecord.date !== (currentRecord?.date || '') || fresh.currentRecord.worked !== (currentRecord?.worked || '')) {
+          allUserData = fresh.allUserData;
+          currentRecord = fresh.currentRecord;
+          calendarCache = fresh.calendarCache;
+          isManager = fresh.isManager;
+          isAdmin = fresh.isAdmin;
+          managedDepartments = fresh.managedDepartments;
+          renderUI();
+          showBanner('Данные обновлены', 'success', 3000);
+        }
+      })
+      .catch(err => {
+        console.warn('Не удалось загрузить свежие данные:', err);
+        if (!cached) {
+          loading.classList.add('hidden');
+          showError('Ошибка загрузки данных: ' + err.message);
+        }
+      });
+
+  } catch (err) {
+    console.error('Ошибка инициализации:', err);
+    loading.classList.add('hidden');
+    showError('Ошибка: ' + err.message);
+  }
+}
 
     function applyTelegramTheme() {
       if (!window.Telegram?.WebApp) return;
@@ -1192,28 +1192,39 @@
     });
 
     async function fetchFreshData() {
-      const currentRes = await fetch('current.json');
-      if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
-      const allUserData = await currentRes.json();
-      const userData = allUserData[chatId];
-      if (!userData) throw new Error('Данные не найдены для вашего аккаунта');
-      const userRole = userData.role?.toLowerCase() || '';
-      const isManager = ['менеджер', 'руководитель', 'админ'].includes(userRole);
-      const isAdmin = userRole === 'админ';
-      const managedDepartments = Array.isArray(userData.managedDepartments) ? userData.managedDepartments : [];
-      const records = userData.records || [];
-      if (records.length === 0) throw new Error('Нет записей');
-      const sortedRecords = records.sort((a, b) => {
-        const [d1, m1, y1] = a.date.split('.').map(Number);
-        const [d2, m2, y2] = b.date.split('.').map(Number);
-        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-      });
-      const currentRecord = sortedRecords[0];
+  try {
+    const currentRes = await fetch('current.json');
+    if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
+    const allUserData = await currentRes.json();
+    const userData = allUserData[chatId];
+    if (!userData) throw new Error('Данные не найдены для вашего аккаунта');
+    const userRole = userData.role?.toLowerCase() || '';
+    const isManager = ['менеджер', 'руководитель', 'админ'].includes(userRole);
+    const isAdmin = userRole === 'админ';
+    const managedDepartments = Array.isArray(userData.managedDepartments) ? userData.managedDepartments : [];
+    const records = userData.records || [];
+    if (records.length === 0) throw new Error('Нет записей');
+    const sortedRecords = records.sort((a, b) => {
+      const [d1, m1, y1] = a.date.split('.').map(Number);
+      const [d2, m2, y2] = b.date.split('.').map(Number);
+      return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+    });
+    const currentRecord = sortedRecords[0];
+    let calendarCache = {};
+    try {
       const cacheRes = await fetch('calendar-cache.json');
-      if (!cacheRes.ok) throw new Error('Не удалось загрузить calendar-cache.json');
-      const calendarCache = await cacheRes.json();
-      return { allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments };
+      if (cacheRes.ok) {
+        calendarCache = await cacheRes.json();
+      }
+    } catch (err) {
+      console.warn('Ошибка загрузки calendar-cache.json:', err);
     }
+    return { allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments };
+  } catch (err) {
+    console.error('Ошибка загрузки данных:', err);
+    throw new Error(`Ошибка загрузки данных: ${err.message}`);
+  }
+}
     function renderCharts(record) {
       setTimeout(() => {
         try {
@@ -1260,6 +1271,16 @@
         }
       }, 1000);
     }
+    // Глобальный обработчик ошибок
+window.addEventListener('unhandledrejection', event => {
+  console.error('Необработанный промис:', event.reason);
+  showError(`Ошибка: ${event.reason || 'Неизвестная ошибка'}`);
+});
+
+window.addEventListener('error', event => {
+  console.error('Глобальная ошибка:', event.message);
+  showError(`Ошибка: ${event.message}`);
+});
 
     window.onload = init;
   </script>
