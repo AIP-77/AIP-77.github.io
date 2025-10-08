@@ -883,28 +883,33 @@ async function init() {
   }
 
     function createEarningsChart(data) {
-      const ctx = document.getElementById('earningsChart').getContext('2d');
-      if (earningsChart) earningsChart.destroy();
-      earningsChart = new Chart(ctx, {
-        type: 'line',
-         {
-          labels: data.map(d => d.day),
-          datasets: [{
-            label: 'Заработок (р.)',
-             data.map(d => d.pay),
-            borderColor: 'var(--tg-link-color)',
-            backgroundColor: 'rgba(26, 140, 216, 0.2)',
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'top' } }
+  const ctx = document.getElementById('earningsChart').getContext('2d');
+  if (earningsChart) earningsChart.destroy();
+  earningsChart = new Chart(ctx, {
+    type: 'line',
+    data: {  // ✅ Объект data
+      labels: data.map(d => d.day),
+      datasets: [{
+        label: 'Заработок (р.)',
+        data: data.map(d => d.pay),
+        borderColor: 'var(--tg-link-color)',
+        backgroundColor: 'rgba(26, 140, 216, 0.2)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top'
         }
-      });
+      }
     }
+  });
+}
+    
     function renderCalendarFromCache(telegramId) {
       const userData = calendarCache[telegramId];
       if (!userData) {
