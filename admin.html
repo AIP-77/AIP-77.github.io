@@ -176,7 +176,7 @@
 
     <button class="back-btn" onclick="window.location.href='index.html'">← Назад к отчётам</button>
     <h2>👨‍💻 Панель администратора</h2>
-    <h3>V.10.08-2130</h3>
+    <h3>V.10.08-2140</h3>
     <div id="banner" class="banner"></div>
 
     <div class="card">
@@ -481,58 +481,58 @@
     }
 
     function createEfficiencyChart(data) {
-      const ctx = document.getElementById('efficiencyChart').getContext('2d');
-      if (efficiencyChart) efficiencyChart.destroy();
-      efficiencyChart = new Chart(ctx, {
-        type: 'bar',
-         {
-          labels: data.map(d => d.day),
-          datasets: [{
-            label: 'Производительность (%)',
-             data.map(d => d.value),
-            backgroundColor: 'var(--tg-link-color)'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100
-            }
-          }
+  const ctx = document.getElementById('efficiencyChart').getContext('2d');
+  if (efficiencyChart) efficiencyChart.destroy();
+  efficiencyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {  // ✅ Обязательное поле "data"
+      labels: data.map(d => d.day),
+      datasets: [{
+        label: 'Производительность (%)',
+        data: data.map(d => d.value), // ✅ Добавлено "data:"
+        backgroundColor: 'var(--tg-link-color)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100
         }
-      });
+      }
     }
+  });
+}
 
     function createEarningsChart(data) {
-      const ctx = document.getElementById('earningsChart').getContext('2d');
-      if (earningsChart) earningsChart.destroy();
-      earningsChart = new Chart(ctx, {
-        type: 'line',
-         {
-          labels: data.map(d => d.day),
-          datasets: [{
-            label: 'Заработок (р.)',
-             data.map(d => d.pay),
-            borderColor: 'var(--tg-link-color)',
-            backgroundColor: 'rgba(26, 140, 216, 0.2)',
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'top'
-            }
-          }
+  const ctx = document.getElementById('earningsChart').getContext('2d');
+  if (earningsChart) earningsChart.destroy();
+  earningsChart = new Chart(ctx, {
+    type: 'line',
+    data: {  // ✅ Обязательное поле "data"
+      labels: data.map(d => d.day),
+      datasets: [{
+        label: 'Заработок (р.)',
+        data: data.map(d => d.pay), // ✅ Добавлено "data:"
+        borderColor: 'var(--tg-link-color)',
+        backgroundColor: 'rgba(26, 140, 216, 0.2)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top'
         }
-      });
+      }
     }
+  });
+}
 
     function renderCalendarFromCache(telegramId) {
       const userData = calendarCache[telegramId];
