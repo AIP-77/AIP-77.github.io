@@ -887,7 +887,7 @@ async function init() {
   if (earningsChart) earningsChart.destroy();
   earningsChart = new Chart(ctx, {
     type: 'line',
-    data: {  // ✅ Объект data
+    data: {
       labels: data.map(d => d.day),
       datasets: [{
         label: 'Заработок (р.)',
