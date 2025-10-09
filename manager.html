@@ -188,7 +188,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.09-2330 <span>🕒</span></div>
+    <div class="version">v 10.09-2350 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -490,13 +490,12 @@ function renderReport() {
   let totalTimeSec = 0;
   let totalTasks = 0;
   let totalAmount = 0;
-  const uniqueResponsibles = new Set();
+  const uniqueResponsibles = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
 
   responsibleRecords.forEach(r => {
     totalUnits += parseInt(r['Количество единиц']) || 0;
     totalTimeSec += parseTime(r['Рабочее время']);
     totalTasks++;
-    uniqueResponsibles.add(r['Сотрудник']);
   });
 
   allRecords.forEach(r => {
@@ -513,7 +512,7 @@ function renderReport() {
       <span class="toggle-icon">▼</span>
       <strong>Итог за день</strong>
       <div class="report-item">Всего задач: ${totalTasks}</div>
-      <div class="report-item">Количество бригад: ${uniqueResponsibles.size}</div>
+      <div class="report-item">Количество бригад: ${uniqueResponsibles.length}</div>
       <div class="report-item">Всего единиц: ${totalUnits}</div>
       <div class="report-item">Общая сумма: р.${totalAmount.toFixed(2)}</div>
       <div class="report-item">Общее время: ${formatTime(totalTimeSec)}</div>
@@ -532,31 +531,10 @@ function renderReport() {
     if (!hourlyGroups[key]) {
       hourlyGroups[key] = {
         hours: key,
-        responsibleCount: 0,
-        responsibleUnits: 0,
-        responsibleTimeSec: 0,
-        totalAmount: 0,
-        rawEmployees: []
+        rawRecords: []
       };
     }
-
-    const group = hourlyGroups[key];
-    group.totalAmount += parseCurrency(r['Расчетная сумма']);
-    group.rawEmployees.push({
-      name: r['Сотрудник'],
-      position: r['Должность'],
-      units: parseInt(r['Количество единиц']) || 0,
-      amount: parseCurrency(r['Расчетная сумма']),
-      timeSec: parseTime(r['Рабочее время']),
-      delivery: r['Поставка'],
-      taskStart: r['Начало задачи']
-    });
-
-    if (isResponsible(r['Должность'])) {
-      group.responsibleCount++;
-      group.responsibleUnits += parseInt(r['Количество единиц']) || 0;
-      group.responsibleTimeSec += parseTime(r['Рабочее время']);
-    }
+    hourlyGroups[key].rawRecords.push(r);
   });
 
   const sortedHours = Object.keys(hourlyGroups).sort();
@@ -566,87 +544,102 @@ function renderReport() {
   sortedHours.forEach(hourKey => {
     const g = hourlyGroups[hourKey];
 
-    // Группируем ответственных
-    const responsiblesMap = {};
-    g.rawEmployees.forEach(emp => {
-      if (isResponsible(emp.position)) {
-        const key = `${emp.name}|${emp.delivery}|${emp.taskStart}`;
-        if (!responsiblesMap[key]) {
-          responsiblesMap[key] = {
-            name: emp.name,
-            delivery: emp.delivery,
-            taskStart: emp.taskStart,
-            units: 0,
-            amount: 0,
-            timeSec: 0,
-            helpers: []
-          };
-        }
-        responsiblesMap[key].units += emp.units;
-        responsiblesMap[key].amount += emp.amount;
-        responsiblesMap[key].timeSec += emp.timeSec;
-      }
-    });
+    // Собираем все записи за этот час
+    const hourRecords = g.rawRecords;
 
-    // Собираем помощников к каждой задаче
-    g.rawEmployees.forEach(emp => {
-      if (!isResponsible(emp.position)) {
-        const taskKey = `${emp.delivery}|${emp.taskStart}`;
-        // Найдём соответствующую задачу у ответственного
-        Object.values(responsiblesMap).forEach(task => {
-          if (task.delivery === emp.delivery && task.taskStart === emp.taskStart) {
-            task.helpers.push({
-              name: emp.name,
-              units: emp.units,
-              amount: emp.amount,
-              timeSec: emp.timeSec
-            });
-          }
-        });
-      }
-    });
+    // Находим ответственных в этом часу
+    const responsiblesInHour = [...new Set(
+      hourRecords
+        .filter(r => isResponsible(r['Должность']))
+        .map(r => r['Сотрудник'])
+    )];
 
-    const brigadeCount = new Set(Object.values(responsiblesMap).map(t => t.name)).size;
-    const hourNormative = calculateNormative(g.responsibleUnits, g.responsibleTimeSec);
+    // Общие итоги по часу
+    const hourResponsibleRecords = hourRecords.filter(r => isResponsible(r['Должность']));
+    let hourUnits = 0, hourTimeSec = 0, hourTasks = 0, hourAmount = 0;
+    hourResponsibleRecords.forEach(r => {
+      hourUnits += parseInt(r['Количество единиц']) || 0;
+      hourTimeSec += parseTime(r['Рабочее время']);
+      hourTasks++;
+    });
+    hourRecords.forEach(r => {
+      hourAmount += parseCurrency(r['Расчетная сумма']);
+    });
+    const hourNormative = calculateNormative(hourUnits, hourTimeSec);
 
     html += `
       <div class="hour-group" data-hour="${hourKey}" data-date="${selectedDate}">
         <span class="toggle-icon">▶</span>
         <strong>Часовой интервал: ${hourKey}</strong>
-        <div class="report-item">Количество задач: ${g.responsibleCount}</div>
-        <div class="report-item">Количество бригад: ${brigadeCount}</div>
-        <div class="report-item">Единиц: ${g.responsibleUnits}</div>
-        <div class="report-item">Сумма: р.${g.totalAmount.toFixed(2)}</div>
-        <div class="report-item">Время: ${formatTime(g.responsibleTimeSec)}</div>
+        <div class="report-item">Количество задач: ${hourTasks}</div>
+        <div class="report-item">Количество бригад: ${responsiblesInHour.length}</div>
+        <div class="report-item">Единиц: ${hourUnits}</div>
+        <div class="report-item">Сумма: р.${hourAmount.toFixed(2)}</div>
+        <div class="report-item">Время: ${formatTime(hourTimeSec)}</div>
         <div class="report-item">Норматив: ${hourNormative > 0 ? hourNormative.toFixed(1) : '0.0'} шт/час</div>
       </div>
 
       <div id="detail-${selectedDate}-${hourKey}" class="detail-group hidden">
     `;
 
-    // Сортируем задачи по времени начала
-    const tasks = Object.values(responsiblesMap).sort((a, b) => 
-      a.taskStart.localeCompare(b.taskStart)
-    );
+    // Для каждой бригады (ответственного)
+    responsiblesInHour.forEach((respName, idx) => {
+      const brigadeRecords = hourRecords.filter(r => r['Сотрудник'] === respName);
 
-    tasks.forEach((task, idx) => {
+      // Группируем по поставкам
+      const deliveries = {};
+      brigadeRecords.forEach(r => {
+        const key = r['Поставка'] || 'Без поставки';
+        if (!deliveries[key]) {
+          deliveries[key] = {
+            responsible: null,
+            helpers: []
+          };
+        }
+        if (isResponsible(r['Должность'])) {
+          deliveries[key].responsible = r;
+        } else {
+          deliveries[key].helpers.push(r);
+        }
+      });
+
       html += `
-        <div class="task-group" style="margin: 10px 0; padding: 8px; background: #e3f2fd; border-radius: 4px;">
-          <div><strong>Задача ${idx + 1}</strong> (Поставка: ${task.delivery || '—'})</div>
-          <div>Ответственный: ${task.name}</div>
-          <div>Ед.: ${task.units}, Сумма: р.${task.amount.toFixed(2)}, Время: ${formatTime(task.timeSec)}</div>
+        <div style="margin: 12px 0; padding: 10px; background: #bbdefb; border-radius: 6px;">
+          <strong>Бригада ${idx + 1}: ${respName}</strong>
       `;
 
-      if (task.helpers.length > 0) {
-        html += `<div style="margin-top:6px;"><strong>Помощники:</strong></div>`;
-        task.helpers.forEach(helper => {
-          html += `
-            <div style="margin-left:15px; font-size:14px;">
-              • ${helper.name} — ед.: ${helper.units}, сумма: р.${helper.amount.toFixed(2)}, время: ${formatTime(helper.timeSec)}
-            </div>
-          `;
-        });
-      }
+      // Сортируем поставки
+      const sortedDeliveries = Object.keys(deliveries).sort();
+      sortedDeliveries.forEach(delivery => {
+        const task = deliveries[delivery];
+        const resp = task.responsible;
+
+        if (!resp) return; // Без ответственного — пропускаем
+
+        html += `
+          <div style="margin: 10px 0; padding: 8px; background: #e3f2fd; border-radius: 4px;">
+            <div><strong>Поставка: ${delivery}</strong></div>
+            <div>Ед.: ${resp['Количество единиц'] || 0}, 
+                 Сумма: р.${parseCurrency(resp['Расчетная сумма']).toFixed(2)}, 
+                 Время: ${resp['Рабочее время'] || '00:00:00'}</div>
+        `;
+
+        if (task.helpers.length > 0) {
+          html += `<div style="margin-top:6px;"><strong>Помощники:</strong></div>`;
+          task.helpers.forEach(helper => {
+            html += `
+              <div style="margin-left:15px; font-size:14px;">
+                • ${helper['Сотрудник']} — 
+                  ед.: ${helper['Количество единиц'] || 0}, 
+                  сумма: р.${parseCurrency(helper['Расчетная сумма']).toFixed(2)}, 
+                  время: ${helper['Рабочее время'] || '00:00:00'}
+              </div>
+            `;
+          });
+        }
+
+        html += `</div>`;
+      });
 
       html += `</div>`;
     });
@@ -690,6 +683,9 @@ function renderReport() {
   });
 }
 
+
+
+    
     // === АВТООБНОВЛЕНИЕ ===
     function startAutoReload() {
       if (autoReloadTimer) clearInterval(autoReloadTimer);
