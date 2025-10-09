@@ -188,7 +188,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.10-0018 <span>🕒</span></div>
+    <div class="version">v 10.10-0024 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -586,43 +586,51 @@ function renderReport() {
     responsiblesInHour.forEach((respName, idx) => {
       const brigadeRecords = hourRecords.filter(r => r['Сотрудник'] === respName);
 
-      // Группируем по поставкам
-      const deliveries = {};
-      brigadeRecords.forEach(r => {
-        const key = r['Поставка'] || 'Без поставки';
-        if (!deliveries[key]) {
-          deliveries[key] = {
+      // Создаем структуру: { [поставка + начало]: { responsible, helpers } }
+      const tasksMap = {};
+
+      // Сначала обрабатываем всех сотрудников (и ответственных, и помощников)
+      hourRecords.forEach(r => {
+        const taskKey = `${r['Поставка'] || 'Без поставки'}|${r['Начало задачи'] || 'Без времени'}`;
+        if (!tasksMap[taskKey]) {
+          tasksMap[taskKey] = {
             responsible: null,
             helpers: []
           };
         }
         if (isResponsible(r['Должность'])) {
-          deliveries[key].responsible = r;
+          tasksMap[taskKey].responsible = r;
         } else {
-          deliveries[key].helpers.push(r);
+          tasksMap[taskKey].helpers.push(r);
         }
       });
+
+      // Фильтруем задачи, где есть ответственный с нужным именем
+      const filteredTasks = Object.values(tasksMap).filter(task => 
+        task.responsible && task.responsible['Сотрудник'] === respName
+      );
 
       html += `
         <div style="margin: 12px 0; padding: 10px; background: #bbdefb; border-radius: 6px;">
           <strong>Бригада ${idx + 1}: ${respName}</strong>
       `;
 
-      // Сортируем поставки
-      const sortedDeliveries = Object.keys(deliveries).sort();
-      sortedDeliveries.forEach(delivery => {
-        const task = deliveries[delivery];
+      // Сортируем задачи по времени начала
+      filteredTasks.sort((a, b) => {
+        const timeA = a.responsible['Начало задачи'] || '';
+        const timeB = b.responsible['Начало задачи'] || '';
+        return timeA.localeCompare(timeB);
+      });
+
+      filteredTasks.forEach(task => {
         const resp = task.responsible;
-
-        if (!resp) return; // Без ответственного — пропускаем
-
         const units = parseInt(resp['Количество единиц']) || 0;
         const amount = parseCurrency(resp['Расчетная сумма']);
         const time = resp['Рабочее время'] || '00:00:00';
 
         html += `
           <div style="margin: 8px 0; padding: 8px; background: #ffffff; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-            <div><strong>Поставка:</strong> ${delivery}</div>
+            <div><strong>Поставка:</strong> ${resp['Поставка'] || '—'}</div>
             <div>Ед.: <strong>${units}</strong>, 
                  Время: ${time}, 
                  Сумма: р.${amount.toFixed(2)}</div>
@@ -685,7 +693,6 @@ function renderReport() {
     }
   });
 }
-
 
     
     // === АВТООБНОВЛЕНИЕ ===
