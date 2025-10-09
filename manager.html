@@ -167,7 +167,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.8-1007 🛠)</h4>
+    <h4>(🛠 V.10.9-1211 🛠)</h4>
 
 
     <div id="banner" class="banner"></div>
@@ -176,7 +176,7 @@
       <div id="tab-employee" class="tab active">Мой отчёт</div>
       <div id="tab-manager" class="tab hidden">Отдел</div>
       <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
-      <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
+      <div id="tab-admin" class="tab hidden">👨‍💻 TEST</div>
     </div>
 
     <div id="loading" class="loading">
@@ -1185,7 +1185,7 @@ async function init() {
     });
     tabAdmin.addEventListener('click', () => {
       if (isAdmin) {
-        window.location.href = 'admin.html';
+        window.location.href = 'statistics.html';
       }
     });
     changeDepartmentBtn.addEventListener('click', () => {
