@@ -188,7 +188,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.10-0012 <span>🕒</span></div>
+    <div class="version">v 10.10-0018 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -616,23 +616,26 @@ function renderReport() {
 
         if (!resp) return; // Без ответственного — пропускаем
 
+        const units = parseInt(resp['Количество единиц']) || 0;
+        const amount = parseCurrency(resp['Расчетная сумма']);
+        const time = resp['Рабочее время'] || '00:00:00';
+
         html += `
-          <div style="margin: 10px 0; padding: 8px; background: #e3f2fd; border-radius: 4px;">
-            <div><strong>Поставка: ${delivery}</strong></div>
-            <div>Ед.: ${resp['Количество единиц'] || 0}, 
-                 Сумма: р.${parseCurrency(resp['Расчетная сумма']).toFixed(2)}, 
-                 Время: ${resp['Рабочее время'] || '00:00:00'}</div>
+          <div style="margin: 8px 0; padding: 8px; background: #ffffff; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <div><strong>Поставка:</strong> ${delivery}</div>
+            <div>Ед.: <strong>${units}</strong>, 
+                 Время: ${time}, 
+                 Сумма: р.${amount.toFixed(2)}</div>
         `;
 
         if (task.helpers.length > 0) {
-          html += `<div style="margin-top:6px;"><strong>Помощники:</strong></div>`;
+          html += `<div style="margin-top:6px; font-size:14px;"><strong>Помощники:</strong></div>`;
           task.helpers.forEach(helper => {
+            const helperAmount = parseCurrency(helper['Расчетная сумма']);
             html += `
               <div style="margin-left:15px; font-size:14px;">
                 • ${helper['Сотрудник']} — 
-                  ед.: ${helper['Количество единиц'] || 0}, 
-                  сумма: р.${parseCurrency(helper['Расчетная сумма']).toFixed(2)}, 
-                  время: ${helper['Рабочее время'] || '00:00:00'}
+                  <span style="font-weight:bold;">р.${helperAmount.toFixed(2)}</span>
               </div>
             `;
           });
