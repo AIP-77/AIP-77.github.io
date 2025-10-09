@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Статистика</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 16px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+    }
+    select, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .checkbox-item input {
+      margin: 0;
+    }
+    .mode-toggle {
+      display: flex;
+      gap: 10px;
+    }
+    .mode-toggle button {
+      flex: 1;
+    }
+    .report {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f0f8ff;
+      border-radius: 6px;
+    }
+    .report h3 {
+      margin-top: 0;
+    }
+    .report-item {
+      margin: 8px 0;
+    }
+    .hidden {
+      display: none;
+    }
+    .loading {
+      text-align: center;
+      color: #666;
+    }
+    .error {
+      color: #d32f2f;
+      background: #ffebee;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Статистика работ</h2>
+
+    <div id="loading" class="loading">Загрузка данных...</div>
+    <div id="error" class="error hidden"></div>
+
+    <div id="controls" class="hidden">
+      <label for="date-select">Выберите день:</label>
+      <select id="date-select"></select>
+
+      <label>Выберите виды работ:</label>
+      <div class="checkbox-group" id="work-types"></div>
+      <button id="select-all">Выбрать все</button>
+
+      <label>Режим отображения:</label>
+      <div class="mode-toggle">
+        <button id="mode-shift" class="active">За смену</button>
+        <button id="mode-hourly">По часам</button>
+      </div>
+
+      <div id="report" class="report hidden"></div>
+    </div>
+  </div>
+
+  <script>
+    const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/refs/heads/main/fullData.json';
+
+    // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+    function parseTime(timeStr) {
+      if (!timeStr) return 0;
+      const parts = timeStr.split(':').map(Number);
+      if (parts.length !== 3) return 0;
+      const [h, m, s] = parts;
+      return (h || 0) * 3600 + (m || 0) * 60 + (s || 0);
+    }
+
+    function formatTime(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function parseCurrency(str) {
+      if (!str || typeof str !== 'string') return 0;
+      // Убираем всё, кроме цифр и запятой/точки
+      let clean = str.replace(/[^\d,.-]/g, '');
+      // Заменяем запятую на точку для parseFloat
+      clean = clean.replace(',', '.');
+      const num = parseFloat(clean);
+      return isNaN(num) ? 0 : num;
+    }
+
+    // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+    let records = [];
+    let selectedDate = '';
+    let selectedWorkTypes = new Set();
+    let mode = 'shift'; // 'shift' или 'hourly'
+
+    // === DOM ЭЛЕМЕНТЫ ===
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const controlsDiv = document.getElementById('controls');
+    const dateSelect = document.getElementById('date-select');
+    const workTypesContainer = document.getElementById('work-types');
+    const selectAllBtn = document.getElementById('select-all');
+    const modeShiftBtn = document.getElementById('mode-shift');
+    const modeHourlyBtn = document.getElementById('mode-hourly');
+    const reportDiv = document.getElementById('report');
+
+    // === ЗАГРУЗКА ДАННЫХ ===
+    async function loadData() {
+      try {
+        const response = await fetch(DATA_URL);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
+        records = data.records;
+        initUI();
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+        loadingDiv.classList.add('hidden');
+        errorDiv.textContent = `Не удалось загрузить данные: ${err.message}`;
+        errorDiv.classList.remove('hidden');
+      }
+    }
+
+    // === ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ===
+    function initUI() {
+      loadingDiv.classList.add('hidden');
+      errorDiv.classList.add('hidden');
+      controlsDiv.classList.remove('hidden');
+
+      // Уникальные даты и виды работ
+      const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
+      const uniqueWorkTypes = [...new Set(records.map(r => r['Вид работ']))].filter(Boolean).sort();
+
+      if (uniqueDates.length === 0) {
+        errorDiv.textContent = 'Нет данных о рабочих днях';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      // Заполняем даты
+      dateSelect.innerHTML = '';
+      uniqueDates.forEach(date => {
+        const opt = document.createElement('option');
+        opt.value = date;
+        opt.textContent = date;
+        dateSelect.appendChild(opt);
+      });
+
+      // Заполняем виды работ
+      workTypesContainer.innerHTML = '';
+      uniqueWorkTypes.forEach(type => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = type;
+        input.id = `wt-${type.replace(/\s+/g, '-')}`;
+        const label = document.createElement('label');
+        label.htmlFor = input.id;
+        label.textContent = type;
+        div.appendChild(input);
+        div.appendChild(label);
+        workTypesContainer.appendChild(div);
+
+        input.addEventListener('change', () => {
+          if (input.checked) {
+            selectedWorkTypes.add(type);
+          } else {
+            selectedWorkTypes.delete(type);
+          }
+          renderReport();
+        });
+      });
+
+      // Устанавливаем значения по умолчанию
+      selectedDate = uniqueDates[0];
+      dateSelect.value = selectedDate;
+
+      if (uniqueWorkTypes.length > 0) {
+        selectedWorkTypes = new Set(uniqueWorkTypes);
+        document.querySelectorAll('#work-types input').forEach(cb => cb.checked = true);
+      }
+
+      // События
+      dateSelect.addEventListener('change', () => {
+        selectedDate = dateSelect.value;
+        renderReport();
+      });
+
+      selectAllBtn.addEventListener('click', () => {
+        selectedWorkTypes.clear();
+        document.querySelectorAll('#work-types input').forEach(cb => {
+          cb.checked = true;
+          selectedWorkTypes.add(cb.value);
+        });
+        renderReport();
+      });
+
+      modeShiftBtn.addEventListener('click', () => {
+        mode = 'shift';
+        modeShiftBtn.classList.add('active');
+        modeHourlyBtn.classList.remove('active');
+        renderReport();
+      });
+      modeHourlyBtn.addEventListener('click', () => {
+        mode = 'hourly';
+        modeHourlyBtn.classList.add('active');
+        modeShiftBtn.classList.remove('active');
+        renderReport();
+      });
+
+      renderReport();
+    }
+
+    // === ОТЧЁТ ===
+    function renderReport() {
+      if (!selectedDate || selectedWorkTypes.size === 0) {
+        reportDiv.classList.add('hidden');
+        return;
+      }
+
+      const filtered = records.filter(r =>
+        r['Рабочий день'] === selectedDate &&
+        selectedWorkTypes.has(r['Вид работ']) &&
+        (r['Должность'] === 'Ответственный' || r['Должность'] === 'Ответсвенный')
+      );
+
+      if (filtered.length === 0) {
+        reportDiv.innerHTML = '<p>Нет данных по выбранным критериям.</p>';
+        reportDiv.classList.remove('hidden');
+        return;
+      }
+
+      let html = `<h3>Отчёт за ${selectedDate}</h3>`;
+
+      if (mode === 'shift') {
+        let totalUnits = 0;
+        let totalAmount = 0;
+        let totalSeconds = 0;
+
+        filtered.forEach(r => {
+          totalUnits += parseInt(r['Количество единиц']) || 0;
+          totalAmount += parseCurrency(r['Расчетная сумма']);
+          totalSeconds += parseTime(r['Рабочее время']);
+        });
+
+        html += `
+          <div class="report-item"><strong>Всего единиц:</strong> ${totalUnits}</div>
+          <div class="report-item"><strong>Общая сумма:</strong> р.${totalAmount.toFixed(2)}</div>
+          <div class="report-item"><strong>Общее время:</strong> ${formatTime(totalSeconds)}</div>
+          <div class="report-item"><strong>Средняя расценка:</strong> р.${(totalAmount / (totalUnits || 1)).toFixed(2)} за ед.</div>
+        `;
+      } else {
+        html += `<p><em>Режим "По часам" — детализация по задачам:</em></p>`;
+        filtered.forEach(r => {
+          html += `
+            <div class="report-item" style="border-bottom:1px solid #eee; padding-bottom:8px; margin-bottom:8px;">
+              <div><strong>${r['Сотрудник']}</strong></div>
+              <div>Вид работ: ${r['Вид работ']}</div>
+              <div>Кол-во: ${r['Количество единиц']} ${r['Единица расчета'] || 'шт.'}</div>
+              <div>Время: ${r['Рабочее время']}</div>
+              <div>Сумма: ${r['Расчетная сумма']}</div>
+            </div>
+          `;
+        });
+      }
+
+      reportDiv.innerHTML = html;
+      reportDiv.classList.remove('hidden');
+    }
+
+    // === СТАРТ ===
+    loadData();
+  </script>
+</body>
+</html>
