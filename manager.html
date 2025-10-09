@@ -96,7 +96,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-
+    <h3>v 10.09-1558</h3>
     <div id="loading" class="loading">Загрузка данных...</div>
     <div id="error" class="error hidden"></div>
 
@@ -122,10 +122,9 @@
     </div>
   </div>
 
-  <script>
+<script>
   const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/refs/heads/main/fullData.json';
 
-  // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
   function parseTime(timeStr) {
     if (!timeStr) return 0;
     const parts = timeStr.split(':').map(Number);
@@ -141,14 +140,10 @@
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
 
-  // ✅ ПРАВИЛЬНЫЙ ПАРСИНГ ВАЛЮТЫ — РЕШАЕТ ПРОБЛЕМУ "р.24,94" → 24.94
   function parseCurrency(str) {
     if (!str || typeof str !== 'string') return 0;
-    // Убираем "р." и пробелы
     let clean = str.trim().replace(/^р\.\s*/i, '');
-    // Заменяем запятую на точку
     clean = clean.replace(',', '.');
-    // Парсим как число
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : num;
   }
@@ -159,13 +154,15 @@
     return parseInt(h) || 0;
   }
 
-  // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+  function isResponsible(position) {
+    return position === 'Ответственный' || position === 'Ответсвенный';
+  }
+
   let records = [];
   let selectedDate = '';
   let selectedWorkTypes = new Set();
-  let mode = 'shift'; // 'shift', 'hourly', 'hourly-detail'
+  let mode = 'shift';
 
-  // === DOM ЭЛЕМЕНТЫ ===
   const loadingDiv = document.getElementById('loading');
   const errorDiv = document.getElementById('error');
   const controlsDiv = document.getElementById('controls');
@@ -178,7 +175,6 @@
   const modeHourlyDetailBtn = document.getElementById('mode-hourly-detail');
   const reportDiv = document.getElementById('report');
 
-  // === ЗАГРУЗКА ДАННЫХ ===
   async function loadData() {
     try {
       const response = await fetch(DATA_URL);
@@ -195,13 +191,11 @@
     }
   }
 
-  // === ИНИЦИАЛИЗАЦИЯ ИНТЕРФЕЙСА ===
   function initUI() {
     loadingDiv.classList.add('hidden');
     errorDiv.classList.add('hidden');
     controlsDiv.classList.remove('hidden');
 
-    // Уникальные даты и виды работ
     const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
     const uniqueWorkTypes = [...new Set(records.map(r => r['Вид работ']))].filter(Boolean).sort();
 
@@ -211,7 +205,6 @@
       return;
     }
 
-    // Заполняем даты
     dateSelect.innerHTML = '';
     uniqueDates.forEach(date => {
       const opt = document.createElement('option');
@@ -220,7 +213,6 @@
       dateSelect.appendChild(opt);
     });
 
-    // Заполняем выпадающий список видов работ
     workTypeSelect.innerHTML = '';
     uniqueWorkTypes.forEach(type => {
       const opt = document.createElement('option');
@@ -229,11 +221,9 @@
       workTypeSelect.appendChild(opt);
     });
 
-    // Устанавливаем значения по умолчанию
     selectedDate = uniqueDates[0];
     dateSelect.value = selectedDate;
 
-    // События
     dateSelect.addEventListener('change', () => {
       selectedDate = dateSelect.value;
       renderReport();
@@ -259,7 +249,6 @@
       renderReport();
     });
 
-    // Режимы
     const updateModeButtons = () => {
       modeShiftBtn.classList.toggle('active', mode === 'shift');
       modeHourlyBtn.classList.toggle('active', mode === 'hourly');
@@ -282,25 +271,26 @@
       renderReport();
     });
 
-    // Первый рендер
     updateModeButtons();
     renderReport();
   }
 
-  // === ОТЧЁТ ===
   function renderReport() {
     if (!selectedDate || selectedWorkTypes.size === 0) {
       reportDiv.classList.add('hidden');
       return;
     }
 
-    const filtered = records.filter(r =>
+    // Все записи за выбранный день и виды работ
+    const allRecords = records.filter(r =>
       r['Рабочий день'] === selectedDate &&
-      selectedWorkTypes.has(r['Вид работ']) &&
-      (r['Должность'] === 'Ответственный' || r['Должность'] === 'Ответсвенный')
+      selectedWorkTypes.has(r['Вид работ'])
     );
 
-    if (filtered.length === 0) {
+    // Только ответственные — для итогов по единицам, времени, количеству задач
+    const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
+
+    if (allRecords.length === 0) {
       reportDiv.innerHTML = '<p>Нет данных по выбранным критериям.</p>';
       reportDiv.classList.remove('hidden');
       return;
@@ -309,31 +299,35 @@
     let html = `<h3>Отчёт за ${selectedDate}</h3>`;
 
     if (mode === 'shift') {
+      // Итоги за смену
       let totalUnits = 0;
-      let totalAmount = 0;
-      let totalSeconds = 0;
+      let totalTimeSec = 0;
+      let totalTasks = 0;
+      let totalAmount = 0; // ← включает ВСЕХ (и Сотрудников)
 
-      filtered.forEach(r => {
-        const units = parseInt(r['Количество единиц']) || 0;
-        const amount = parseCurrency(r['Расчетная сумма']);
-        const seconds = parseTime(r['Рабочее время']);
+      responsibleRecords.forEach(r => {
+        totalUnits += parseInt(r['Количество единиц']) || 0;
+        totalTimeSec += parseTime(r['Рабочее время']);
+        totalTasks++;
+      });
 
-        totalUnits += units;
-        totalAmount += amount;
-        totalSeconds += seconds;
+      allRecords.forEach(r => {
+        totalAmount += parseCurrency(r['Расчетная сумма']);
       });
 
       html += `
+        <div class="report-item"><strong>Всего задач:</strong> ${totalTasks}</div>
         <div class="report-item"><strong>Всего единиц:</strong> ${totalUnits}</div>
         <div class="report-item"><strong>Общая сумма:</strong> р.${totalAmount.toFixed(2)}</div>
-        <div class="report-item"><strong>Общее время:</strong> ${formatTime(totalSeconds)}</div>
+        <div class="report-item"><strong>Общее время:</strong> ${formatTime(totalTimeSec)}</div>
         <div class="report-item"><strong>Средняя расценка:</strong> р.${(totalAmount / (totalUnits || 1)).toFixed(2)} за ед.</div>
       `;
     } else if (mode === 'hourly' || mode === 'hourly-detail') {
-      // Группируем по часовым интервалам
+      // Группировка по часам
       const hourlyGroups = {};
 
-      filtered.forEach(r => {
+      // Проходим по ВСЕМ записям, чтобы собрать данные по часам
+      allRecords.forEach(r => {
         const hour = getHourFromTime(r['Начало задачи']);
         if (hour === null) return;
 
@@ -341,61 +335,66 @@
         if (!hourlyGroups[key]) {
           hourlyGroups[key] = {
             hours: key,
-            count: 0,
-            units: 0,
-            amount: 0,
-            seconds: 0,
-            employees: {}
+            // Итоги по ответственным
+            responsibleCount: 0,
+            responsibleUnits: 0,
+            responsibleTimeSec: 0,
+            // Сумма — от всех
+            totalAmount: 0,
+            // Все сотрудники для детализации
+            employees: []
           };
         }
 
         const group = hourlyGroups[key];
-        group.count++;
-        const units = parseInt(r['Количество единиц']) || 0;
-        const amount = parseCurrency(r['Расчетная сумма']);
-        const seconds = parseTime(r['Рабочее время']);
 
-        group.units += units;
-        group.amount += amount;
-        group.seconds += seconds;
+        // Сумма от всех
+        group.totalAmount += parseCurrency(r['Расчетная сумма']);
 
+        // Если ответственный — учитываем в итогах
+        if (isResponsible(r['Должность'])) {
+          group.responsibleCount++;
+          group.responsibleUnits += parseInt(r['Количество единиц']) || 0;
+          group.responsibleTimeSec += parseTime(r['Рабочее время']);
+        }
+
+        // Для детализации — добавляем всех
         if (mode === 'hourly-detail') {
-          const empName = r['Сотрудник'];
-          if (!group.employees[empName]) {
-            group.employees[empName] = { units: 0, amount: 0, seconds: 0 };
-          }
-          group.employees[empName].units += units;
-          group.employees[empName].amount += amount;
-          group.employees[empName].seconds += seconds;
+          group.employees.push({
+            name: r['Сотрудник'],
+            position: r['Должность'],
+            units: parseInt(r['Количество единиц']) || 0,
+            amount: parseCurrency(r['Расчетная сумма']),
+            timeSec: parseTime(r['Рабочее время'])
+          });
         }
       });
 
-      // Сортируем по часам
       const sortedHours = Object.keys(hourlyGroups).sort();
 
       html += `<p><em>Режим "${mode === 'hourly' ? 'По часам' : 'Детализация по часам'}"</em></p>`;
 
       sortedHours.forEach(hourKey => {
-        const group = hourlyGroups[hourKey];
+        const g = hourlyGroups[hourKey];
         html += `
           <div class="hourly-group">
             <strong>Часовой интервал: ${hourKey}</strong>
-            <div class="report-item">Количество задач: ${group.count}</div>
-            <div class="report-item">Единиц: ${group.units}</div>
-            <div class="report-item">Сумма: р.${group.amount.toFixed(2)}</div>
-            <div class="report-item">Время: ${formatTime(group.seconds)}</div>
+            <div class="report-item">Количество задач: ${g.responsibleCount}</div>
+            <div class="report-item">Единиц: ${g.responsibleUnits}</div>
+            <div class="report-item">Сумма: р.${g.totalAmount.toFixed(2)}</div>
+            <div class="report-item">Время: ${formatTime(g.responsibleTimeSec)}</div>
         `;
 
         if (mode === 'hourly-detail') {
           html += `<div class="report-item"><strong>По сотрудникам:</strong></div>`;
-          Object.keys(group.employees).forEach(emp => {
-            const e = group.employees[emp];
+          g.employees.forEach(emp => {
+            const posLabel = emp.position === 'Сотрудник' ? 'Сотрудник' : 'Ответственный';
             html += `
               <div class="hourly-subitem">
-                <span>${emp}</span> — 
-                <span>ед.: ${e.units}</span>, 
-                <span>сумма: р.${e.amount.toFixed(2)}</span>, 
-                <span>время: ${formatTime(e.seconds)}</span>
+                <span>${emp.name} (${posLabel})</span> — 
+                <span>ед.: ${emp.units}</span>, 
+                <span>сумма: р.${emp.amount.toFixed(2)}</span>, 
+                <span>время: ${formatTime(emp.timeSec)}</span>
               </div>
             `;
           });
@@ -409,7 +408,6 @@
     reportDiv.classList.remove('hidden');
   }
 
-  // === СТАРТ ===
   loadData();
 </script>
 </body>
