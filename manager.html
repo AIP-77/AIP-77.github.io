@@ -194,12 +194,29 @@
       font-weight: bold;
       color: #2e7d32;
     }
+    /* Стили для фильтров */
+    .filter-section {
+      margin: 15px 0;
+      padding: 15px;
+      background: #fafafa;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+    .filter-section h4 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #333;
+    }
+    .filter-row {
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.10-0050 <span>🕒</span></div>
+    <div class="version">v 10.09-2230 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -218,32 +235,50 @@
         </div>
       </div>
 
-      <label for="work-type-select">Выберите виды работ:</label>
-      <select id="work-type-select" multiple size="3"></select>
-      <button id="select-all">Выбрать все</button>
-      <button id="clear-all">Очистить выбор</button>
+      <!-- ФИЛЬТРЫ -->
+      <div class="filter-section">
+        <h4>Выберите виды работ:</h4>
+        <select id="work-type-select" multiple size="3"></select>
+        <button id="select-all">Выбрать все</button>
+        <button id="clear-all">Очистить выбор</button>
 
-      <!-- НОВЫЕ ФИЛЬТРЫ -->
-      <label for="responsible-filter">Фильтр по ответственному:</label>
-      <select id="responsible-filter">
-        <option value="">Все</option>
-      </select>
+        <h4>Фильтр по ответственному:</h4>
+        <select id="responsible-filter">
+          <option value="">Все</option>
+        </select>
 
-      <label for="delivery-filter">Фильтр по поставке:</label>
-      <select id="delivery-filter">
-        <option value="">Все</option>
-      </select>
+        <h4>Фильтр по поставке:</h4>
+        <select id="delivery-filter">
+          <option value="">Все</option>
+        </select>
 
-      <!-- ПЛАН -->
-      <label for="plan-input">План (шт/час):</label>
-      <input type="number" id="plan-input" placeholder="Например: 80" step="0.1" min="0">
+        <h4>План (шт/час):</h4>
+        <input type="number" id="plan-input" placeholder="Например: 80" step="0.1" min="0">
+
+        <!-- КНОПКА ЭКСПОРТА В ЦЕНТРЕ -->
+        <div style="margin-top: 20px; text-align: center;">
+          <button id="export-excel" style="
+            background: #388e3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            max-width: 300px;
+          ">
+            📊 Экспорт в Excel
+          </button>
+        </div>
+      </div>
 
       <div id="report" class="report hidden"></div>
 
+      <!-- НИЖНИЕ КНОПКИ -->
       <div class="action-buttons">
         <button id="clear-cache-btn">🗑️ Очистить кэш</button>
         <button id="toggle-auto-reload">🔄 Автообновление: ВКЛ</button>
-        <button id="export-excel">📊 Экспорт в Excel</button>
       </div>
     </div>
   </div>
@@ -255,7 +290,7 @@
     let currentMonth = new Date();
     currentMonth.setDate(1);
 
-    // Вспомогательные функции (parseTime, formatTime и т.д.) — без изменений
+    // Вспомогательные функции
     function parseTime(timeStr) {
       if (!timeStr) return 0;
       const parts = timeStr.split(':').map(Number);
