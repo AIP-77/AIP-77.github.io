@@ -133,7 +133,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.10-W1010 <span>🕒</span></div>
+    <div class="version">v 10.09-2035 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -171,6 +171,7 @@
   </div>
 
   <script>
+    // ✅ ИСПРАВЛЕНО: убраны лишние пробелы в URL
     const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/refs/heads/main/fullData.json';
     let autoReloadTimer = null;
     let autoReloadEnabled = true;
@@ -362,6 +363,7 @@
       renderReport();
     }
 
+    // ✅ ИСПРАВЛЕНО: правильное объявление функции
     function renderReport() {
       if (!selectedDate || selectedWorkTypes.size === 0) {
         reportDiv.classList.add('hidden');
@@ -388,11 +390,13 @@
         let totalTimeSec = 0;
         let totalTasks = 0;
         let totalAmount = 0;
+        const uniqueResponsibles = new Set();
 
         responsibleRecords.forEach(r => {
           totalUnits += parseInt(r['Количество единиц']) || 0;
           totalTimeSec += parseTime(r['Рабочее время']);
           totalTasks++;
+          uniqueResponsibles.add(r['Сотрудник']);
         });
 
         allRecords.forEach(r => {
@@ -401,6 +405,7 @@
 
         html += `
           <div class="report-item"><strong>Всего задач:</strong> ${totalTasks}</div>
+          <div class="report-item"><strong>Количество бригад:</strong> ${uniqueResponsibles.size}</div>
           <div class="report-item"><strong>Всего единиц:</strong> ${totalUnits}</div>
           <div class="report-item"><strong>Общая сумма:</strong> р.${totalAmount.toFixed(2)}</div>
           <div class="report-item"><strong>Общее время:</strong> ${formatTime(totalTimeSec)}</div>
@@ -417,31 +422,30 @@
           if (!hourlyGroups[key]) {
             hourlyGroups[key] = {
               hours: key,
+              // Для итогов
               responsibleCount: 0,
               responsibleUnits: 0,
               responsibleTimeSec: 0,
               totalAmount: 0,
-              employees: []
+              // Для группировки в детализации
+              rawEmployees: []
             };
           }
 
           const group = hourlyGroups[key];
           group.totalAmount += parseCurrency(r['Расчетная сумма']);
+          group.rawEmployees.push({
+            name: r['Сотрудник'],
+            position: r['Должность'],
+            units: parseInt(r['Количество единиц']) || 0,
+            amount: parseCurrency(r['Расчетная сумма']),
+            timeSec: parseTime(r['Рабочее время'])
+          });
 
           if (isResponsible(r['Должность'])) {
             group.responsibleCount++;
             group.responsibleUnits += parseInt(r['Количество единиц']) || 0;
             group.responsibleTimeSec += parseTime(r['Рабочее время']);
-          }
-
-          if (mode === 'hourly-detail') {
-            group.employees.push({
-              name: r['Сотрудник'],
-              position: r['Должность'],
-              units: parseInt(r['Количество единиц']) || 0,
-              amount: parseCurrency(r['Расчетная сумма']),
-              timeSec: parseTime(r['Рабочее время'])
-            });
           }
         });
 
@@ -451,24 +455,51 @@
 
         sortedHours.forEach(hourKey => {
           const g = hourlyGroups[hourKey];
+
+          // Группируем с подсчётом задач
+          const groupedResponsibles = {};
+          const groupedHelpers = {};
+
+          g.rawEmployees.forEach(emp => {
+            if (isResponsible(emp.position)) {
+              if (!groupedResponsibles[emp.name]) {
+                groupedResponsibles[emp.name] = { units: 0, amount: 0, timeSec: 0, taskCount: 0 };
+              }
+              groupedResponsibles[emp.name].units += emp.units;
+              groupedResponsibles[emp.name].amount += emp.amount;
+              groupedResponsibles[emp.name].timeSec += emp.timeSec;
+              groupedResponsibles[emp.name].taskCount += 1;
+            } else {
+              if (!groupedHelpers[emp.name]) {
+                groupedHelpers[emp.name] = { units: 0, amount: 0, timeSec: 0, taskCount: 0 };
+              }
+              groupedHelpers[emp.name].units += emp.units;
+              groupedHelpers[emp.name].amount += emp.amount;
+              groupedHelpers[emp.name].timeSec += emp.timeSec;
+              groupedHelpers[emp.name].taskCount += 1;
+            }
+          });
+
+          const brigadeCount = Object.keys(groupedResponsibles).length;
+
           html += `
             <div class="hourly-group">
               <strong>Часовой интервал: ${hourKey}</strong>
               <div class="report-item">Количество задач: ${g.responsibleCount}</div>
+              <div class="report-item">Количество бригад: ${brigadeCount}</div>
               <div class="report-item">Единиц: ${g.responsibleUnits}</div>
               <div class="report-item">Сумма: р.${g.totalAmount.toFixed(2)}</div>
               <div class="report-item">Время: ${formatTime(g.responsibleTimeSec)}</div>
           `;
 
           if (mode === 'hourly-detail') {
-            const responsibles = g.employees.filter(emp => isResponsible(emp.position));
-            const helpers = g.employees.filter(emp => !isResponsible(emp.position));
-
             html += `<div class="report-item"><strong>Ответственные:</strong></div>`;
-            responsibles.forEach(emp => {
+            Object.keys(groupedResponsibles).forEach(name => {
+              const emp = groupedResponsibles[name];
               html += `
                 <div class="hourly-subitem">
-                  <span>${emp.name} (Ответственный)</span> — 
+                  <span>${name} (Ответственный)</span> — 
+                  <span>задач: ${emp.taskCount}</span>, 
                   <span>ед.: ${emp.units}</span>, 
                   <span>сумма: р.${emp.amount.toFixed(2)}</span>, 
                   <span>время: ${formatTime(emp.timeSec)}</span>
@@ -476,17 +507,19 @@
               `;
             });
 
-            if (helpers.length > 0) {
+            if (Object.keys(groupedHelpers).length > 0) {
               html += `
                 <div class="report-item" style="margin-top:12px;">
                   <strong style="color:#e65100;">Помощники (Сотрудники):</strong>
                 </div>
                 <div style="background-color:#fff3e0; padding:8px; border-radius:4px; margin-top:6px;">
               `;
-              helpers.forEach(emp => {
+              Object.keys(groupedHelpers).forEach(name => {
+                const emp = groupedHelpers[name];
                 html += `
                   <div class="hourly-subitem">
-                    <span>${emp.name} (Сотрудник)</span> — 
+                    <span>${name} (Сотрудник)</span> — 
+                    <span>задач: ${emp.taskCount}</span>, 
                     <span>ед.: ${emp.units}</span>, 
                     <span>сумма: р.${emp.amount.toFixed(2)}</span>, 
                     <span>время: ${formatTime(emp.timeSec)}</span>
