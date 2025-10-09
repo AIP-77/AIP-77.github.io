@@ -216,7 +216,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.09-2230 <span>🕒</span></div>
+    <div class="version">v 10.10-0111 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -370,93 +370,93 @@
     const calendarDaysContainer = document.getElementById('calendar-days');
 
     // Загрузка данных
-    async function loadData() {
-      try {
-        loadingDiv.textContent = 'Загрузка данных...';
-        const urlWithCacheBust = `${DATA_URL}?t=${Date.now()}`;
-        const response = await fetch(urlWithCacheBust);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
-        records = data.records;
-        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
-        initUI();
-      } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
-        loadingDiv.classList.add('hidden');
-        errorDiv.textContent = `❌ Не удалось загрузить данные: ${err.message}`;
-        errorDiv.classList.remove('hidden');
-      }
+async function loadData() {
+  try {
+    loadingDiv.textContent = 'Загрузка данных...';
+    const urlWithCacheBust = `${DATA_URL}?t=${Date.now()}`;
+    const response = await fetch(urlWithCacheBust);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
+    records = data.records;
+    lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
+    populateFilters(); // ← Заполняем фильтры сразу после загрузки
+    initUI();
+  } catch (err) {
+    console.error('Ошибка загрузки данных:', err);
+    loadingDiv.classList.add('hidden');
+    errorDiv.textContent = `❌ Не удалось загрузить данные: ${err.message}`;
+    errorDiv.classList.remove('hidden');
+  }
+}
+
+function initUI() {
+  loadingDiv.classList.add('hidden');
+  errorDiv.classList.add('hidden');
+  controlsDiv.classList.remove('hidden');
+
+  renderCalendar();
+
+  // События
+  workTypeSelect.addEventListener('change', updateFiltersAndReport);
+  responsibleFilter.addEventListener('change', () => {
+    selectedResponsible = responsibleFilter.value;
+    renderReport();
+  });
+  deliveryFilter.addEventListener('change', () => {
+    selectedDelivery = deliveryFilter.value;
+    renderReport();
+  });
+  planInput.addEventListener('input', () => {
+    planNormative = parseFloat(planInput.value) || 0;
+    renderReport();
+  });
+
+  selectAllBtn.addEventListener('click', () => {
+    Array.from(workTypeSelect.options).forEach(opt => opt.selected = true);
+    selectedWorkTypes = new Set(Array.from(workTypeSelect.selectedOptions).map(o => o.value));
+    populateFilters();
+    renderReport();
+  });
+
+  clearAllBtn.addEventListener('click', () => {
+    Array.from(workTypeSelect.options).forEach(opt => opt.selected = false);
+    selectedWorkTypes.clear();
+    populateFilters();
+    renderReport();
+  });
+
+  clearCacheBtn.addEventListener('click', () => {
+    localStorage.clear();
+    window.location.href = `${window.location.pathname}?t=${Date.now()}`;
+  });
+
+  toggleAutoReloadBtn.addEventListener('click', () => {
+    autoReloadEnabled = !autoReloadEnabled;
+    if (autoReloadEnabled) {
+      startAutoReload();
+      toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВКЛ';
+      toggleAutoReloadBtn.classList.remove('disabled');
+    } else {
+      if (autoReloadTimer) clearInterval(autoReloadTimer);
+      toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВЫКЛ';
+      toggleAutoReloadBtn.classList.add('disabled');
     }
+  });
 
-    function initUI() {
-      loadingDiv.classList.add('hidden');
-      errorDiv.classList.add('hidden');
-      controlsDiv.classList.remove('hidden');
+  exportExcelBtn.addEventListener('click', exportToExcel);
 
-      renderCalendar();
-      populateFilters();
+  prevMonthBtn.addEventListener('click', () => {
+    currentMonth.setMonth(currentMonth.getMonth() - 1);
+    renderCalendar();
+  });
+  nextMonthBtn.addEventListener('click', () => {
+    currentMonth.setMonth(currentMonth.getMonth() + 1);
+    renderCalendar();
+  });
 
-      // События
-      workTypeSelect.addEventListener('change', updateFiltersAndReport);
-      responsibleFilter.addEventListener('change', () => {
-        selectedResponsible = responsibleFilter.value;
-        renderReport();
-      });
-      deliveryFilter.addEventListener('change', () => {
-        selectedDelivery = deliveryFilter.value;
-        renderReport();
-      });
-      planInput.addEventListener('input', () => {
-        planNormative = parseFloat(planInput.value) || 0;
-        renderReport();
-      });
-
-      selectAllBtn.addEventListener('click', () => {
-        Array.from(workTypeSelect.options).forEach(opt => opt.selected = true);
-        selectedWorkTypes = new Set(Array.from(workTypeSelect.selectedOptions).map(o => o.value));
-        populateFilters();
-        renderReport();
-      });
-
-      clearAllBtn.addEventListener('click', () => {
-        Array.from(workTypeSelect.options).forEach(opt => opt.selected = false);
-        selectedWorkTypes.clear();
-        populateFilters();
-        renderReport();
-      });
-
-      clearCacheBtn.addEventListener('click', () => {
-        localStorage.clear();
-        window.location.href = `${window.location.pathname}?t=${Date.now()}`;
-      });
-
-      toggleAutoReloadBtn.addEventListener('click', () => {
-        autoReloadEnabled = !autoReloadEnabled;
-        if (autoReloadEnabled) {
-          startAutoReload();
-          toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВКЛ';
-          toggleAutoReloadBtn.classList.remove('disabled');
-        } else {
-          if (autoReloadTimer) clearInterval(autoReloadTimer);
-          toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВЫКЛ';
-          toggleAutoReloadBtn.classList.add('disabled');
-        }
-      });
-
-      exportExcelBtn.addEventListener('click', exportToExcel);
-
-      prevMonthBtn.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() - 1);
-        renderCalendar();
-      });
-      nextMonthBtn.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-        renderCalendar();
-      });
-
-      renderReport();
-    }
+  // НЕ ЗАПУСКАЕМ renderReport(), пока не выбран день
+}
 
     function populateFilters() {
       const filteredRecords = records.filter(r =>
