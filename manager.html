@@ -192,7 +192,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.10-1051 <span>🕒</span></div>
+    <div class="version">v 10.10-1101 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -757,28 +757,73 @@ function exportToExcel() {
       });
     });
 
-    // Преобразуем в CSV
-    const csvContent = rows.map(row => 
-      row.map(field => {
-        // Экранируем запятые и кавычки
-        const str = String(field).replace(/"/g, '""');
-        return `"${str}"`;
-      }).join(',')
-    ).join('\n');
+    // Форматируем как TSV (табуляция) — лучше копируется в Excel
+    const tsvContent = rows.map(row => row.join('\t')).join('\n');
 
-    // Создаём Blob и скачиваем
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Отчёт_${selectedDate.replace(/\./g, '-')}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Создаём модальное окно с текстом
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+    modal.style.zIndex = '10000';
+
+    const content = document.createElement('div');
+    content.style.backgroundColor = 'white';
+    content.style.padding = '20px';
+    content.style.borderRadius = '8px';
+    content.style.maxWidth = '90%';
+    content.style.maxHeight = '80%';
+    content.style.overflow = 'auto';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Данные для Excel';
+    title.style.marginTop = '0';
+
+    const textarea = document.createElement('textarea');
+    textarea.value = tsvContent;
+    textarea.style.width = '100%';
+    textarea.style.height = '300px';
+    textarea.style.fontFamily = 'monospace';
+    textarea.style.fontSize = '14px';
+    textarea.readOnly = true;
+
+    const instructions = document.createElement('p');
+    instructions.innerHTML = `
+      <strong>Инструкция:</strong><br>
+      1. Нажмите Ctrl+A (или выделите всё)<br>
+      2. Скопируйте (Ctrl+C)<br>
+      3. Вставьте в Excel или Google Таблицы
+    `;
+    instructions.style.marginTop = '10px';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Закрыть';
+    closeBtn.style.marginTop = '10px';
+    closeBtn.style.padding = '8px 16px';
+    closeBtn.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+
+    content.appendChild(title);
+    content.appendChild(textarea);
+    content.appendChild(instructions);
+    content.appendChild(closeBtn);
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+
+    // Автофокус на текст
+    setTimeout(() => {
+      textarea.select();
+    }, 100);
   } catch (err) {
     console.error('Ошибка экспорта:', err);
-    alert('Ошибка при экспорте: ' + err.message);
+    alert('Ошибка при подготовке данных: ' + err.message);
   }
 }
 
