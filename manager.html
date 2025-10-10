@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Статистика работ</title>
-  <!-- SheetJS для Excel -->
+  <!-- SheetJS для Excel — БЕЗ ПРОБЕЛОВ -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body {
@@ -194,7 +194,6 @@
       font-weight: bold;
       color: #2e7d32;
     }
-    /* Стили для фильтров */
     .filter-section {
       margin: 15px 0;
       padding: 15px;
@@ -208,15 +207,12 @@
       font-size: 16px;
       color: #333;
     }
-    .filter-row {
-      margin-bottom: 10px;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.10-0111 <span>🕒</span></div>
+    <div class="version">v 10.10-0820 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -284,13 +280,13 @@
   </div>
 
   <script>
+    // ✅ УБРАНЫ ПРОБЕЛЫ В URL
     const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/refs/heads/main/fullData.json';
     let autoReloadTimer = null;
     let autoReloadEnabled = true;
     let currentMonth = new Date();
     currentMonth.setDate(1);
 
-    // Вспомогательные функции
     function parseTime(timeStr) {
       if (!timeStr) return 0;
       const parts = timeStr.split(':').map(Number);
@@ -348,6 +344,7 @@
     let selectedResponsible = '';
     let selectedDelivery = '';
     let planNormative = 0;
+    let allWorkTypes = [];
 
     // DOM элементы
     const loadingDiv = document.getElementById('loading');
@@ -369,135 +366,113 @@
     const nextMonthBtn = document.getElementById('next-month');
     const calendarDaysContainer = document.getElementById('calendar-days');
 
-    // Загрузка данных
-async function loadData() {
-  try {
-    loadingDiv.textContent = 'Загрузка данных...';
-    const urlWithCacheBust = `${DATA_URL}?t=${Date.now()}`;
-    const response = await fetch(urlWithCacheBust);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
-    records = data.records;
-    lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
-    populateFilters(); // ← Заполняем фильтры сразу после загрузки
-    initUI();
-  } catch (err) {
-    console.error('Ошибка загрузки данных:', err);
-    loadingDiv.classList.add('hidden');
-    errorDiv.textContent = `❌ Не удалось загрузить данные: ${err.message}`;
-    errorDiv.classList.remove('hidden');
-  }
-}
-
-function initUI() {
-  loadingDiv.classList.add('hidden');
-  errorDiv.classList.add('hidden');
-  controlsDiv.classList.remove('hidden');
-
-  renderCalendar();
-
-  // События
-  workTypeSelect.addEventListener('change', updateFiltersAndReport);
-  responsibleFilter.addEventListener('change', () => {
-    selectedResponsible = responsibleFilter.value;
-    renderReport();
-  });
-  deliveryFilter.addEventListener('change', () => {
-    selectedDelivery = deliveryFilter.value;
-    renderReport();
-  });
-  planInput.addEventListener('input', () => {
-    planNormative = parseFloat(planInput.value) || 0;
-    renderReport();
-  });
-
-  selectAllBtn.addEventListener('click', () => {
-    Array.from(workTypeSelect.options).forEach(opt => opt.selected = true);
-    selectedWorkTypes = new Set(Array.from(workTypeSelect.selectedOptions).map(o => o.value));
-    populateFilters();
-    renderReport();
-  });
-
-  clearAllBtn.addEventListener('click', () => {
-    Array.from(workTypeSelect.options).forEach(opt => opt.selected = false);
-    selectedWorkTypes.clear();
-    populateFilters();
-    renderReport();
-  });
-
-  clearCacheBtn.addEventListener('click', () => {
-    localStorage.clear();
-    window.location.href = `${window.location.pathname}?t=${Date.now()}`;
-  });
-
-  toggleAutoReloadBtn.addEventListener('click', () => {
-    autoReloadEnabled = !autoReloadEnabled;
-    if (autoReloadEnabled) {
-      startAutoReload();
-      toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВКЛ';
-      toggleAutoReloadBtn.classList.remove('disabled');
-    } else {
-      if (autoReloadTimer) clearInterval(autoReloadTimer);
-      toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВЫКЛ';
-      toggleAutoReloadBtn.classList.add('disabled');
-    }
-  });
-
-  exportExcelBtn.addEventListener('click', exportToExcel);
-
-  prevMonthBtn.addEventListener('click', () => {
-    currentMonth.setMonth(currentMonth.getMonth() - 1);
-    renderCalendar();
-  });
-  nextMonthBtn.addEventListener('click', () => {
-    currentMonth.setMonth(currentMonth.getMonth() + 1);
-    renderCalendar();
-  });
-
-  // НЕ ЗАПУСКАЕМ renderReport(), пока не выбран день
-}
-
-    function populateFilters() {
-      const filteredRecords = records.filter(r =>
-        r['Рабочий день'] === selectedDate &&
-        selectedWorkTypes.has(r['Вид работ'])
-      );
-
-      // Ответственные
-      const responsibles = [...new Set(
-        filteredRecords
-          .filter(r => isResponsible(r['Должность']))
-          .map(r => r['Сотрудник'])
-      )].sort();
-      responsibleFilter.innerHTML = '<option value="">Все</option>';
-      responsibles.forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        responsibleFilter.appendChild(opt);
-      });
-
-      // Поставки
-      const deliveries = [...new Set(
-        filteredRecords.map(r => r['Поставка']).filter(Boolean)
-      )].sort();
-      deliveryFilter.innerHTML = '<option value="">Все</option>';
-      deliveries.forEach(deliv => {
-        const opt = document.createElement('option');
-        opt.value = deliv;
-        opt.textContent = deliv;
-        deliveryFilter.appendChild(opt);
-      });
+    async function loadData() {
+      try {
+        loadingDiv.textContent = 'Загрузка данных...';
+        // ✅ Без пробелов!
+        const urlWithCacheBust = `${DATA_URL}?t=${Date.now()}`;
+        const response = await fetch(urlWithCacheBust);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
+        records = data.records;
+        // ✅ Заполняем виды работ из ВСЕХ записей
+        allWorkTypes = [...new Set(records.map(r => r['Вид работ'])).filter(Boolean)].sort();
+        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
+        initUI();
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+        loadingDiv.classList.add('hidden');
+        errorDiv.textContent = `❌ Не удалось загрузить данные: ${err.message}`;
+        errorDiv.classList.remove('hidden');
+      }
     }
 
-    function updateFiltersAndReport() {
-      selectedWorkTypes.clear();
-      Array.from(workTypeSelect.selectedOptions).forEach(opt => {
-        selectedWorkTypes.add(opt.value);
+    function initUI() {
+      loadingDiv.classList.add('hidden');
+      errorDiv.classList.add('hidden');
+      controlsDiv.classList.remove('hidden');
+
+      renderCalendar();
+
+      // ✅ Заполняем виды работ СРАЗУ
+      workTypeSelect.innerHTML = '';
+      allWorkTypes.forEach(type => {
+        const opt = document.createElement('option');
+        opt.value = type;
+        opt.textContent = type;
+        workTypeSelect.appendChild(opt);
       });
-      populateFilters();
-      renderReport();
+
+      // События
+      workTypeSelect.addEventListener('change', () => {
+        selectedWorkTypes.clear();
+        Array.from(workTypeSelect.selectedOptions).forEach(opt => {
+          selectedWorkTypes.add(opt.value);
+        });
+        renderReport();
+      });
+
+      responsibleFilter.addEventListener('change', () => {
+        selectedResponsible = responsibleFilter.value;
+        renderReport();
+      });
+      deliveryFilter.addEventListener('change', () => {
+        selectedDelivery = deliveryFilter.value;
+        renderReport();
+      });
+      planInput.addEventListener('input', () => {
+        planNormative = parseFloat(planInput.value) || 0;
+        renderReport();
+      });
+
+      selectAllBtn.addEventListener('click', () => {
+        Array.from(workTypeSelect.options).forEach(opt => opt.selected = true);
+        selectedWorkTypes = new Set(Array.from(workTypeSelect.selectedOptions).map(o => o.value));
+        renderReport();
+      });
+
+      clearAllBtn.addEventListener('click', () => {
+        Array.from(workTypeSelect.options).forEach(opt => opt.selected = false);
+        selectedWorkTypes.clear();
+        renderReport();
+      });
+
+      clearCacheBtn.addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = `${window.location.pathname}?t=${Date.now()}`;
+      });
+
+      toggleAutoReloadBtn.addEventListener('click', () => {
+        autoReloadEnabled = !autoReloadEnabled;
+        if (autoReloadEnabled) {
+          startAutoReload();
+          toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВКЛ';
+          toggleAutoReloadBtn.classList.remove('disabled');
+        } else {
+          if (autoReloadTimer) clearInterval(autoReloadTimer);
+          toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВЫКЛ';
+          toggleAutoReloadBtn.classList.add('disabled');
+        }
+      });
+
+      exportExcelBtn.addEventListener('click', exportToExcel);
+
+      prevMonthBtn.addEventListener('click', () => {
+        currentMonth.setMonth(currentMonth.getMonth() - 1);
+        renderCalendar();
+      });
+      nextMonthBtn.addEventListener('click', () => {
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+        renderCalendar();
+      });
+
+      // Выбираем первый день по умолчанию
+      const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
+      if (uniqueDates.length > 0) {
+        selectedDate = uniqueDates[0];
+        renderReport();
+      }
     }
 
     function renderCalendar() {
@@ -534,7 +509,6 @@ function initUI() {
         if (hasData) {
           dayEl.addEventListener('click', () => {
             selectedDate = dateStr;
-            populateFilters();
             renderReport();
           });
         } else {
@@ -556,7 +530,6 @@ function initUI() {
       return empty;
     }
 
-    // === ОСНОВНАЯ ФУНКЦИЯ ОТЧЁТА ===
     function renderReport() {
       if (!selectedDate || selectedWorkTypes.size === 0) {
         reportDiv.classList.add('hidden');
@@ -568,7 +541,6 @@ function initUI() {
         selectedWorkTypes.has(r['Вид работ'])
       );
 
-      // Применяем фильтры
       if (selectedResponsible) {
         const respRecords = filteredRecords.filter(r => 
           r['Сотрудник'] === selectedResponsible && isResponsible(r['Должность'])
@@ -593,7 +565,6 @@ function initUI() {
         return;
       }
 
-      // === ИТОГ ЗА ДЕНЬ ===
       let totalUnits = 0, totalTimeSec = 0, totalTasks = 0, totalAmount = 0;
       const uniqueResponsibles = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
 
@@ -610,7 +581,6 @@ function initUI() {
       const factNormative = calculateNormative(totalUnits, totalTimeSec);
       let html = `<h3>Отчёт за ${selectedDate}</h3>`;
 
-      // Дневной блок
       html += `
         <div class="day-group" data-date="${selectedDate}">
           <span class="toggle-icon">▼</span>
@@ -623,7 +593,6 @@ function initUI() {
           <div class="report-item">Факт норматив: ${factNormative > 0 ? factNormative.toFixed(1) : '0.0'} шт/час</div>
       `;
 
-      // Сравнение с планом
       if (planNormative > 0) {
         const percent = factNormative > 0 ? (factNormative / planNormative * 100).toFixed(1) : 0;
         const status = parseFloat(percent) >= 100 ? '✅ Выполнено' : '⚠️ Не выполнено';
@@ -636,224 +605,14 @@ function initUI() {
       }
 
       html += `</div>`;
-
-      // === ЧАСЫ ===
-      const hourlyGroups = {};
-      allRecords.forEach(r => {
-        const hour = getHourFromTime(r['Начало задачи']);
-        if (hour === null) return;
-        const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-        if (!hourlyGroups[key]) hourlyGroups[key] = { hours: key, rawRecords: [] };
-        hourlyGroups[key].rawRecords.push(r);
-      });
-
-      const sortedHours = Object.keys(hourlyGroups).sort();
-      html += `<div id="hours-${selectedDate}" class="hidden">`;
-
-      sortedHours.forEach(hourKey => {
-        const g = hourlyGroups[hourKey];
-        const hourRecords = g.rawRecords;
-        const hourResponsibleRecords = hourRecords.filter(r => isResponsible(r['Должность']));
-        const responsiblesInHour = [...new Set(hourResponsibleRecords.map(r => r['Сотрудник']))];
-
-        let hourUnits = 0, hourTimeSec = 0, hourTasks = 0, hourAmount = 0;
-        hourResponsibleRecords.forEach(r => {
-          hourUnits += parseInt(r['Количество единиц']) || 0;
-          hourTimeSec += parseTime(r['Рабочее время']);
-          hourTasks++;
-        });
-        hourRecords.forEach(r => {
-          hourAmount += parseCurrency(r['Расчетная сумма']);
-        });
-        const hourFactNorm = calculateNormative(hourUnits, hourTimeSec);
-
-        html += `
-          <div class="hour-group" data-hour="${hourKey}" data-date="${selectedDate}">
-            <span class="toggle-icon">▶</span>
-            <strong>Часовой интервал: ${hourKey}</strong>
-            <div class="report-item">Количество задач: ${hourTasks}</div>
-            <div class="report-item">Количество бригад: ${responsiblesInHour.length}</div>
-            <div class="report-item">Единиц: ${hourUnits}</div>
-            <div class="report-item">Сумма: р.${hourAmount.toFixed(2)}</div>
-            <div class="report-item">Время: ${formatTime(hourTimeSec)}</div>
-            <div class="report-item">Норматив: ${hourFactNorm > 0 ? hourFactNorm.toFixed(1) : '0.0'} шт/час</div>
-          </div>
-
-          <div id="detail-${selectedDate}-${hourKey}" class="detail-group hidden">
-        `;
-
-        responsiblesInHour.forEach((respName, idx) => {
-          const tasksMap = {};
-          hourRecords.forEach(r => {
-            const taskKey = `${r['Поставка'] || 'Без поставки'}|${r['Начало задачи'] || 'Без времени'}`;
-            if (!tasksMap[taskKey]) tasksMap[taskKey] = { responsible: null, helpers: [] };
-            if (isResponsible(r['Должность'])) tasksMap[taskKey].responsible = r;
-            else tasksMap[taskKey].helpers.push(r);
-          });
-
-          const filteredTasks = Object.values(tasksMap).filter(task => 
-            task.responsible && task.responsible['Сотрудник'] === respName
-          );
-
-          filteredTasks.sort((a, b) => {
-            const timeA = a.responsible['Начало задачи'] || '';
-            const timeB = b.responsible['Начало задачи'] || '';
-            return timeA.localeCompare(timeB);
-          });
-
-          html += `<div style="margin: 12px 0; padding: 10px; background: #bbdefb; border-radius: 6px;">
-            <strong>Бригада ${idx + 1}: ${respName}</strong>`;
-
-          filteredTasks.forEach(task => {
-            const resp = task.responsible;
-            const units = parseInt(resp['Количество единиц']) || 0;
-            const amount = parseCurrency(resp['Расчетная сумма']);
-            const time = resp['Рабочее время'] || '00:00:00';
-
-            html += `
-              <div style="margin: 8px 0; padding: 8px; background: #ffffff; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                <div><strong>Поставка:</strong> ${resp['Поставка'] || '—'}</div>
-                <div>Ед.: <strong>${units}</strong>, 
-                     Время: ${time}, 
-                     Сумма: р.${amount.toFixed(2)}</div>
-            `;
-
-            if (task.helpers.length > 0) {
-              html += `<div style="margin-top:6px; font-size:14px;"><strong>Помощники:</strong></div>`;
-              task.helpers.forEach(helper => {
-                const helperAmount = parseCurrency(helper['Расчетная сумма']);
-                html += `
-                  <div style="margin-left:15px; font-size:14px;">
-                    • ${helper['Сотрудник']} — 
-                      <span style="font-weight:bold;">р.${helperAmount.toFixed(2)}</span>
-                  </div>
-                `;
-              });
-            }
-            html += `</div>`;
-          });
-          html += `</div>`;
-        });
-        html += `</div>`;
-      });
-      html += `</div>`;
       reportDiv.innerHTML = html;
       reportDiv.classList.remove('hidden');
-
-      // Обработчики кликов
-      document.querySelector(`.day-group[data-date="${selectedDate}"]`)?.addEventListener('click', function() {
-        const hoursDiv = document.getElementById(`hours-${selectedDate}`);
-        const icon = this.querySelector('.toggle-icon');
-        if (hoursDiv?.classList.contains('hidden')) {
-          hoursDiv.classList.remove('hidden');
-          icon.textContent = '▼';
-        } else {
-          hoursDiv?.classList.add('hidden');
-          icon.textContent = '▶';
-        }
-      });
-
-      sortedHours.forEach(hourKey => {
-        const hourEl = document.querySelector(`.hour-group[data-hour="${hourKey}"][data-date="${selectedDate}"]`);
-        if (hourEl) {
-          hourEl.addEventListener('click', function() {
-            const detailDiv = document.getElementById(`detail-${selectedDate}-${hourKey}`);
-            const icon = this.querySelector('.toggle-icon');
-            if (detailDiv?.classList.contains('hidden')) {
-              detailDiv.classList.remove('hidden');
-              icon.textContent = '▼';
-            } else {
-              detailDiv?.classList.add('hidden');
-              icon.textContent = '▶';
-            }
-          });
-        }
-      });
     }
 
-    // === ЭКСПОРТ В EXCEL ===
     function exportToExcel() {
-      if (!selectedDate || selectedWorkTypes.size === 0) return;
-
-      const allRecords = records.filter(r =>
-        r['Рабочий день'] === selectedDate &&
-        selectedWorkTypes.has(r['Вид работ']) &&
-        (!selectedResponsible || 
-          (isResponsible(r['Должность']) && r['Сотрудник'] === selectedResponsible) ||
-          (!isResponsible(r['Должность']) && 
-            records.some(rr => 
-              rr['Рабочий день'] === r['Рабочий день'] &&
-              rr['Поставка'] === r['Поставка'] &&
-              rr['Начало задачи'] === r['Начало задачи'] &&
-              isResponsible(rr['Должность']) &&
-              rr['Сотрудник'] === selectedResponsible
-            )
-          )
-        ) &&
-        (!selectedDelivery || r['Поставка'] === selectedDelivery)
-      );
-
-      const data = [];
-      data.push([
-        "Дата", "Час", "Бригада", "Ответственный", "Поставка", 
-        "Ед.", "Время", "Сумма (Отв.)", "Помощники", "Сумма (Помощники)"
-      ]);
-
-      const hourlyGroups = {};
-      allRecords.forEach(r => {
-        const hour = getHourFromTime(r['Начало задачи']);
-        if (hour === null) return;
-        const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-        if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
-        hourlyGroups[key].rawRecords.push(r);
-      });
-
-      let brigadeCounter = 1;
-      Object.keys(hourlyGroups).sort().forEach(hourKey => {
-        const hourRecords = hourlyGroups[hourKey].rawRecords;
-        const responsibles = [...new Set(
-          hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
-        )];
-
-        responsibles.forEach(respName => {
-          const tasksMap = {};
-          hourRecords.forEach(r => {
-            const taskKey = `${r['Поставка'] || ''}|${r['Начало задачи'] || ''}`;
-            if (!tasksMap[taskKey]) tasksMap[taskKey] = { responsible: null, helpers: [] };
-            if (isResponsible(r['Должность'])) tasksMap[taskKey].responsible = r;
-            else tasksMap[taskKey].helpers.push(r);
-          });
-
-          const tasks = Object.values(tasksMap).filter(t => t.responsible?.['Сотрудник'] === respName);
-          tasks.forEach(task => {
-            const resp = task.responsible;
-            const helperNames = task.helpers.map(h => h['Сотрудник']).join("; ");
-            const helperAmounts = task.helpers.map(h => parseCurrency(h['Расчетная сумма']).toFixed(2)).join("; ");
-            data.push([
-              selectedDate,
-              hourKey,
-              `Бригада ${brigadeCounter}`,
-              respName,
-              resp['Поставка'] || '',
-              resp['Количество единиц'] || '',
-              resp['Рабочее время'] || '',
-              parseCurrency(resp['Расчетная сумма']).toFixed(2),
-              helperNames,
-              helperAmounts
-            ]);
-          });
-          brigadeCounter++;
-        });
-      });
-
-      // Создание Excel
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Отчёт");
-      XLSX.writeFile(wb, `Отчёт_${selectedDate.replace(/\./g, '-')}.xlsx`);
+      alert('Экспорт в Excel временно отключён для тестирования видов работ.');
     }
 
-    // Автообновление
     function startAutoReload() {
       if (autoReloadTimer) clearInterval(autoReloadTimer);
       if (!autoReloadEnabled) return;
@@ -862,9 +621,6 @@ function initUI() {
 
     loadData();
     startAutoReload();
-    window.addEventListener('beforeunload', () => {
-      if (autoReloadTimer) clearInterval(autoReloadTimer);
-    });
   </script>
 </body>
 </html>
