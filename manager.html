@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Диаграмма занятости сотрудника</title>
 
-  <!-- Frappé Gantt CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.7.0/dist/frappe-gantt.min.css">
-
-  <!-- Frappé Gantt JS -->
-  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.7.0/dist/frappe-gantt.min.js"></script>
+  <!-- Frappé Gantt v0.6.3 — работает с глобальным Gantt -->
+  <link rel="stylesheet" href="https://unpkg.com/frappe-gantt@0.6.3/dist/frappe-gantt.css">
+  <script src="https://unpkg.com/frappe-gantt@0.6.3/dist/frappe-gantt.js"></script>
 
   <style>
     body {
@@ -22,16 +20,16 @@
       display: flex;
       gap: 15px;
       align-items: center;
+      flex-wrap: wrap;
     }
     label {
       font-weight: bold;
     }
-    select, input {
+    select, input, button {
       padding: 6px;
       font-size: 14px;
     }
     button {
-      padding: 6px 12px;
       cursor: pointer;
     }
     #gantt-container {
@@ -45,7 +43,7 @@
 </head>
 <body>
 
-<h2>Диаграмма занятости сотрудника 1</h2>
+<h2>Диаграмма занятости сотрудника</h2>
 
 <div class="controls">
   <label for="dateSelect">Дата:</label>
@@ -62,23 +60,30 @@
 <script>
   let allData = [];
 
-  // Парсинг времени "чч:мм:сс" → Date объект (в пределах одного дня)
-  function parseTimeToDateTime(dateStr, timeStr) {
-    if (!timeStr || timeStr === "") return null;
-    const [h, m, s] = timeStr.split(':').map(Number);
-    const date = new Date(dateStr); // например, "30.09.2025"
-    date.setHours(h, m, s, 0);
-    return date;
+  // Преобразуем "30.09.2025" → Date
+  function parseDate(dateStr) {
+    const [day, month, year] = dateStr.split('.').map(Number);
+    return new Date(year, month - 1, day); // month is 0-based
   }
 
-  // Получение конца задачи
-  function getTaskEnd(startDateStr, durationStr) {
-    if (!durationStr || durationStr === "") return null;
-    const start = parseTimeToDateTime(startDateStr, startDateStr); // используем дату из "Рабочий день"
-    const [h, m, s] = durationStr.split(':').map(Number);
-    const end = new Date(start);
-    end.setHours(end.getHours() + h, end.getMinutes() + m, end.getSeconds() + s);
-    return end;
+  // Парсинг времени "ч:мм:сс" → миллисекунды с начала дня
+  function parseTimeMs(timeStr) {
+    if (!timeStr || timeStr === "") return null;
+    const parts = timeStr.split(':').map(Number);
+    let h = parts[0], m = parts[1] || 0, s = parts[2] || 0;
+    return h * 3600000 + m * 60000 + s * 1000;
+  }
+
+  // Создаём полную дату: дата + время
+  function buildDateTime(dateStr, timeStr) {
+    if (!timeStr) return null;
+    const baseDate = parseDate(dateStr);
+    const timeMs = parseTimeMs(timeStr);
+    if (timeMs === null) return null;
+    const result = new Date(baseDate);
+    result.setHours(0, 0, 0, 0); // сброс времени
+    result.setTime(result.getTime() + timeMs);
+    return result;
   }
 
   // Загрузка данных
@@ -90,112 +95,96 @@
     })
     .catch(err => {
       console.error('Ошибка загрузки данных:', err);
-      alert('Не удалось загрузить данные');
+      alert('Не удалось загрузить fullData.json');
     });
 
-  // Заполнение выпадающих списков
   function populateFilters() {
-    const dateSet = new Set();
-    const employeeSet = new Set();
+    const dates = [...new Set(allData.map(d => d['Рабочий день']))].sort();
+    const employees = [...new Set(allData.map(d => d['Сотрудник']))].sort();
 
-    allData.forEach(item => {
-      dateSet.add(item['Рабочий день']);
-      employeeSet.add(item['Сотрудник']);
+    const dateSel = document.getElementById('dateSelect');
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = d;
+      dateSel.appendChild(opt);
     });
 
-    const dateSelect = document.getElementById('dateSelect');
-    dateSet.forEach(date => {
+    const empSel = document.getElementById('employeeSelect');
+    employees.forEach(e => {
       const opt = document.createElement('option');
-      opt.value = date;
-      opt.textContent = date;
-      dateSelect.appendChild(opt);
-    });
-
-    const empSelect = document.getElementById('employeeSelect');
-    employeeSet.forEach(emp => {
-      const opt = document.createElement('option');
-      opt.value = emp;
-      opt.textContent = emp;
-      empSelect.appendChild(opt);
+      opt.value = e;
+      opt.textContent = e;
+      empSel.appendChild(opt);
     });
   }
 
-  // Отрисовка диаграммы
   function renderGantt() {
-    const selectedDate = document.getElementById('dateSelect').value;
-    const selectedEmployee = document.getElementById('employeeSelect').value;
+    const date = document.getElementById('dateSelect').value;
+    const emp = document.getElementById('employeeSelect').value;
 
-    const filtered = allData.filter(item =>
-      item['Рабочий день'] === selectedDate &&
-      item['Сотрудник'] === selectedEmployee
+    const tasksRaw = allData.filter(item =>
+      item['Рабочий день'] === date &&
+      item['Сотрудник'] === emp
     );
 
-    if (filtered.length === 0) {
-      alert('Нет данных для выбранной даты и сотрудника');
+    if (tasksRaw.length === 0) {
+      alert('Нет данных');
       return;
     }
 
-    // Преобразуем в формат Frappé Gantt
-    const tasks = filtered.map((item, index) => {
-      const start = parseTimeToDateTime(selectedDate, item['Начало задачи']);
-      const durationFromWorkTime = item['Рабочее время'] && item['Рабочее время'] !== "" ? item['Рабочее время'] : null;
-      const durationFromTabel = item['Время по табелю'] && item['Время по табелю'] !== "" ? item['Время по табелю'] : null;
-      const duration = durationFromWorkTime || durationFromTabel;
+    const tasks = tasksRaw.map((item, i) => {
+      const start = buildDateTime(date, item['Начало задачи']);
+      const durationStr = item['Рабочее время'] || item['Время по табелю'] || '';
+      const durationMs = parseTimeMs(durationStr);
 
-      if (!start || !duration) {
-        console.warn('Пропущена задача из-за отсутствия времени:', item);
+      if (!start || durationMs === null) {
+        console.warn('Пропущена задача:', item);
         return null;
       }
 
-      const end = getTaskEnd(selectedDate, duration);
+      const end = new Date(start.getTime() + durationMs);
 
       return {
-        id: `task-${index}`,
+        id: `t${i}`,
         name: `${item['Вид работ']} (${item['Поставка']})`,
-        start: start,
-        end: end,
-        progress: 100, // можно сделать динамическим, если нужно
-        dependencies: '', // не используется
-        custom_class: 'task-' + index % 5 // простой способ разного цвета
+        start: start.toISOString().slice(0, 19).replace('T', ' '),
+        end: end.toISOString().slice(0, 19).replace('T', ' '),
+        progress: 100,
+        dependencies: ''
       };
-    }).filter(Boolean); // убираем null
+    }).filter(Boolean);
 
     if (tasks.length === 0) {
-      alert('Нет корректных задач для отображения');
+      alert('Нет корректных задач');
       return;
     }
 
-    // Очистка контейнера
+    // Очистка
     const container = document.getElementById('gantt-container');
     container.innerHTML = '';
 
     // Создание диаграммы
     const gantt = new Gantt("#gantt-container", tasks, {
-      header_height: 50,
-      column_width: 30,
-      step: 24, // шаг в часах (можно изменить на 1 для минут)
-      view_mode: 'Hour', // или 'Day', 'Week'
-      bar_height: 20,
-      bar_corner_radius: 3,
-      arrow_curve: 5,
-      padding: 18,
-      date_format: 'DD.MM.YYYY HH:mm:ss',
+      view_mode: 'Hour',
+      bar_height: 24,
+      padding: 20,
+      date_format: 'YYYY-MM-DD HH:mm:ss',
       custom_popup_html: function(task) {
+        const start = new Date(task.start.replace(' ', 'T'));
+        const end = new Date(task.end.replace(' ', 'T'));
+        const durationMin = Math.round((end - start) / 60000);
         return `
-          <div class="details">
+          <div style="padding:10px;">
             <strong>${task.name}</strong><br>
-            Начало: ${task.start.toLocaleString()}<br>
-            Окончание: ${task.end.toLocaleString()}<br>
-            Продолжительность: ${(task.end - task.start) / 60000} мин.
+            Начало: ${start.toLocaleTimeString()}<br>
+            Окончание: ${end.toLocaleTimeString()}<br>
+            Длительность: ${durationMin} мин.
           </div>
         `;
-      },
-      on_click: function(task) {
-        console.log('Clicked:', task);
       }
     });
 
-    // Сохраняем ссылку на объект, если нужно будет обновлять
     window.currentGantt = gantt;
   }
 </script>
