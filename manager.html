@@ -3,9 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Диаграмма занятости</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-timeline@0.5.0"></script>
+  <title>Диаграмма занятости сотрудника</title>
+
+  <!-- Frappé Gantt CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.7.0/dist/frappe-gantt.min.css">
+
+  <!-- Frappé Gantt JS -->
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.7.0/dist/frappe-gantt.min.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,19 +19,27 @@
     }
     .controls {
       margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
     }
     label {
-      display: inline-block;
-      margin-right: 10px;
+      font-weight: bold;
     }
     select, input {
       padding: 6px;
-      margin-right: 15px;
+      font-size: 14px;
     }
-    canvas {
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    #gantt-container {
       background: white;
       border-radius: 6px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      min-height: 300px;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -44,24 +57,28 @@
   <button onclick="renderGantt()">Построить</button>
 </div>
 
-<canvas id="ganttChart" height="150"></canvas>
+<div id="gantt-container"></div>
 
 <script>
   let allData = [];
 
-  // Функция для парсинга времени вида "чч:мм:сс" → миллисекунды с начала дня
-  function parseTime(timeStr) {
+  // Парсинг времени "чч:мм:сс" → Date объект (в пределах одного дня)
+  function parseTimeToDateTime(dateStr, timeStr) {
     if (!timeStr || timeStr === "") return null;
     const [h, m, s] = timeStr.split(':').map(Number);
-    return h * 3600000 + m * 60000 + s * 1000;
+    const date = new Date(dateStr); // например, "30.09.2025"
+    date.setHours(h, m, s, 0);
+    return date;
   }
 
-  // Функция для сложения времени начала и продолжительности
-  function addDuration(startTimeStr, durationStr) {
-    const startMs = parseTime(startTimeStr);
-    const durMs = parseTime(durationStr);
-    if (startMs === null || durMs === null) return null;
-    return startMs + durMs;
+  // Получение конца задачи
+  function getTaskEnd(startDateStr, durationStr) {
+    if (!durationStr || durationStr === "") return null;
+    const start = parseTimeToDateTime(startDateStr, startDateStr); // используем дату из "Рабочий день"
+    const [h, m, s] = durationStr.split(':').map(Number);
+    const end = new Date(start);
+    end.setHours(end.getHours() + h, end.getMinutes() + m, end.getSeconds() + s);
+    return end;
   }
 
   // Загрузка данных
@@ -118,24 +135,28 @@
       return;
     }
 
-    const tasks = filtered.map(item => {
-      const start = parseTime(item['Начало задачи']);
+    // Преобразуем в формат Frappé Gantt
+    const tasks = filtered.map((item, index) => {
+      const start = parseTimeToDateTime(selectedDate, item['Начало задачи']);
       const durationFromWorkTime = item['Рабочее время'] && item['Рабочее время'] !== "" ? item['Рабочее время'] : null;
       const durationFromTabel = item['Время по табелю'] && item['Время по табелю'] !== "" ? item['Время по табелю'] : null;
       const duration = durationFromWorkTime || durationFromTabel;
 
-      if (start === null || duration === null) {
+      if (!start || !duration) {
         console.warn('Пропущена задача из-за отсутствия времени:', item);
         return null;
       }
 
-      const end = addDuration(item['Начало задачи'], duration);
-      const label = `${item['Вид работ']} (${item['Поставка']})`;
+      const end = getTaskEnd(selectedDate, duration);
 
       return {
-        label: label,
+        id: `task-${index}`,
+        name: `${item['Вид работ']} (${item['Поставка']})`,
         start: start,
-        end: end
+        end: end,
+        progress: 100, // можно сделать динамическим, если нужно
+        dependencies: '', // не используется
+        custom_class: 'task-' + index % 5 // простой способ разного цвета
       };
     }).filter(Boolean); // убираем null
 
@@ -144,73 +165,38 @@
       return;
     }
 
-    const ctx = document.getElementById('ganttChart').getContext('2d');
+    // Очистка контейнера
+    const container = document.getElementById('gantt-container');
+    container.innerHTML = '';
 
-    // Уничтожаем предыдущий график, если есть
-    if (window.myGanttChart) {
-      window.myGanttChart.destroy();
-    }
-
-    window.myGanttChart = new Chart(ctx, {
-      type: 'timeline',
-      data: {
-        datasets: [{
-          label: 'Задачи',
-          data: tasks,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
+    // Создание диаграммы
+    const gantt = new Gantt("#gantt-container", tasks, {
+      header_height: 50,
+      column_width: 30,
+      step: 24, // шаг в часах (можно изменить на 1 для минут)
+      view_mode: 'Hour', // или 'Day', 'Week'
+      bar_height: 20,
+      bar_corner_radius: 3,
+      arrow_curve: 5,
+      padding: 18,
+      date_format: 'DD.MM.YYYY HH:mm:ss',
+      custom_popup_html: function(task) {
+        return `
+          <div class="details">
+            <strong>${task.name}</strong><br>
+            Начало: ${task.start.toLocaleString()}<br>
+            Окончание: ${task.end.toLocaleString()}<br>
+            Продолжительность: ${(task.end - task.start) / 60000} мин.
+          </div>
+        `;
       },
-      options: {
-        responsive: true,
-        scales: {
-          x: {
-            type: 'time',
-            time: {
-              parser: 'HH:mm:ss',
-              unit: 'hour',
-              displayFormats: {
-                hour: 'HH:mm'
-              }
-            },
-            title: {
-              display: true,
-              text: 'Время'
-            }
-          },
-          y: {
-            ticks: {
-              autoSkip: false
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            display: false
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const task = context.raw;
-                const start = new Date(task.start);
-                const end = new Date(task.end);
-                const durationMs = task.end - task.start;
-                const durHours = Math.floor(durationMs / 3600000);
-                const durMins = Math.floor((durationMs % 3600000) / 60000);
-                const durSecs = Math.floor((durationMs % 60000) / 1000);
-                const durStr = `${String(durHours).padStart(2, '0')}:${String(durMins).padStart(2, '0')}:${String(durSecs).padStart(2, '0')}`;
-                return [
-                  `Начало: ${start.toTimeString().slice(0, 8)}`,
-                  `Окончание: ${end.toTimeString().slice(0, 8)}`,
-                  `Продолжительность: ${durStr}`
-                ];
-              }
-            }
-          }
-        }
+      on_click: function(task) {
+        console.log('Clicked:', task);
       }
     });
+
+    // Сохраняем ссылку на объект, если нужно будет обновлять
+    window.currentGantt = gantt;
   }
 </script>
 
