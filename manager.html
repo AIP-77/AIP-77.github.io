@@ -192,7 +192,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.10-1110 <span>🕒</span></div>
+    <div class="version">v 10.10-1200 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -743,25 +743,25 @@ function exportToExcel() {
           const helperAmounts = task.helpers.map(h => parseCurrency(h['Расчетная сумма']).toFixed(2)).join("; ");
           rows.push([
             selectedDate,
-            hourKey,
+            hourKey,  // ← Час — строка, не время
             `Бригада ${brigadeCounter}`,
             respName,
             resp['Поставка'] || '',
             resp['Количество единиц'] || '',
-            resp['Рабочее время'] || '',
-            parseCurrency(resp['Расчетная сумма']).toFixed(2),
+            resp['Рабочее время'] || '',  // ← Время — строка
+            parseCurrency(resp['Расчетная сумма']).toFixed(2),  // ← Сумма — число с двумя знаками
             helperNames,
-            helperAmounts
+            helperAmounts  // ← Суммы помощников — строки
           ]);
         });
         brigadeCounter++;
       });
     });
 
-    // Форматируем как TSV (табуляция) — лучше копируется в Excel
+    // Форматируем как TSV (табуляция)
     const tsvContent = rows.map(row => row.join('\t')).join('\n');
 
-    // Создаём модальное окно с текстом
+    // Создаём модальное окно
     const modal = document.createElement('div');
     modal.style.position = 'fixed';
     modal.style.top = '0';
@@ -796,10 +796,13 @@ function exportToExcel() {
 
     const instructions = document.createElement('p');
     instructions.innerHTML = `
-      <strong>Инструкция:</strong><br>
+      <strong>Как вставить в Excel:</strong><br>
       1. Нажмите Ctrl+A (или выделите всё)<br>
       2. Скопируйте (Ctrl+C)<br>
-      3. Вставьте в Excel или Google Таблицы
+      3. В Excel: ПКМ → «Вставить» → «Текст»<br>
+      4. При вставке выберите: <strong>«Текст с разделителями»</strong><br>
+      5. Разделитель: <strong>табуляция</strong><br>
+      6. Готово!
     `;
     instructions.style.marginTop = '10px';
 
@@ -818,7 +821,7 @@ function exportToExcel() {
     modal.appendChild(content);
     document.body.appendChild(modal);
 
-    // Автофокус на текст
+    // Автофокус
     setTimeout(() => {
       textarea.select();
     }, 100);
