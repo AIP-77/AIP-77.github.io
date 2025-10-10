@@ -174,8 +174,9 @@
 
     <div class="tabs">
       <div id="tab-employee" class="tab active">Мой отчёт</div>
-      <div id="tab-manager" class="tab hidden">Отдел</div>
       <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
+      <div id="tab-manager" class="tab hidden">Отдел</div>
+      <div id="tab-statistics" class="tab hidden">📊 Статистика</div>
       <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
     </div>
 
@@ -472,6 +473,9 @@ async function init() {
         tabAdmin.classList.remove('hidden');
         tabManager.classList.remove('hidden');
       }
+      if (isManager || isAdmin) {
+         tabStatistics.classList.remove('hidden');
+     }
 
       // Рендерим основной вид
       renderEmployeeViewForUser(chatId);
@@ -1187,6 +1191,13 @@ async function init() {
       if (isAdmin) {
         window.location.href = 'admin.html';
       }
+    });
+    const tabStatistics = document.getElementById('tab-statistics');
+
+   tabStatistics.addEventListener('click', () => {
+     if (isManager || isAdmin) {
+     window.location.href = 'statistics.html';
+    }
     });
     changeDepartmentBtn.addEventListener('click', () => {
       departmentReport.classList.add('hidden');
