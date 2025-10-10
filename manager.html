@@ -366,27 +366,28 @@
     const nextMonthBtn = document.getElementById('next-month');
     const calendarDaysContainer = document.getElementById('calendar-days');
 
-    async function loadData() {
-      try {
-        loadingDiv.textContent = 'Загрузка данных...';
-        // ✅ Без пробелов!
-        const urlWithCacheBust = `${DATA_URL}?t=${Date.now()}`;
-        const response = await fetch(urlWithCacheBust);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
-        records = data.records;
-        // ✅ Заполняем виды работ из ВСЕХ записей
-        allWorkTypes = [...new Set(records.map(r => r['Вид работ'])).filter(Boolean)].sort();
-        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
-        initUI();
-      } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
-        loadingDiv.classList.add('hidden');
-        errorDiv.textContent = `❌ Не удалось загрузить данные: ${err.message}`;
-        errorDiv.classList.remove('hidden');
-      }
-    }
+async function loadData() {
+  try {
+    loadingDiv.textContent = 'Загрузка данных...';
+    const urlWithCacheBust = `${DATA_URL}?t=${Date.now()}`;
+    const response = await fetch(urlWithCacheBust);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
+    records = data.records;
+    
+    // ✅ ИСПРАВЛЕНО: сначала filter, потом Set
+    allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
+    
+    lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
+    initUI();
+  } catch (err) {
+    console.error('Ошибка загрузки данных:', err);
+    loadingDiv.classList.add('hidden');
+    errorDiv.textContent = `❌ Не удалось загрузить данные: ${err.message}`;
+    errorDiv.classList.remove('hidden');
+  }
+}
 
     function initUI() {
       loadingDiv.classList.add('hidden');
