@@ -3,35 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Диаграмма занятости сотрудника</title>
+  <title>Диаграмма занятости</title>
 
-  <!-- Frappé Gantt v0.6.3 — работает с глобальным Gantt -->
-  <link rel="stylesheet" href="https://unpkg.com/frappe-gantt@0.6.3/dist/frappe-gantt.css">
-  <script src="https://unpkg.com/frappe-gantt@0.6.3/dist/frappe-gantt.js"></script>
+  <!-- Frappé Gantt v0.6.3 — через jsDelivr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.3/dist/frappe-gantt.css">
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.3/dist/frappe-gantt.js"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f9f9f9;
-    }
-    .controls {
-      margin-bottom: 20px;
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    label {
-      font-weight: bold;
-    }
-    select, input, button {
-      padding: 6px;
-      font-size: 14px;
-    }
-    button {
-      cursor: pointer;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    label { font-weight: bold; }
+    select, button { padding: 6px; font-size: 14px; }
+    button { cursor: pointer; }
     #gantt-container {
       background: white;
       border-radius: 6px;
@@ -43,7 +26,7 @@
 </head>
 <body>
 
-<h2>Диаграмма занятости сотрудника</h2>
+<h2>1Диаграмма занятости сотрудника</h2>
 
 <div class="controls">
   <label for="dateSelect">Дата:</label>
@@ -60,93 +43,95 @@
 <script>
   let allData = [];
 
-  // Преобразуем "30.09.2025" → Date
+  // Вспомогательные функции
   function parseDate(dateStr) {
-    const [day, month, year] = dateStr.split('.').map(Number);
-    return new Date(year, month - 1, day); // month is 0-based
+    const [d, m, y] = dateStr.split('.').map(Number);
+    return new Date(y, m - 1, d);
   }
 
-  // Парсинг времени "ч:мм:сс" → миллисекунды с начала дня
-  function parseTimeMs(timeStr) {
+  function timeToMs(timeStr) {
     if (!timeStr || timeStr === "") return null;
-    const parts = timeStr.split(':').map(Number);
-    let h = parts[0], m = parts[1] || 0, s = parts[2] || 0;
-    return h * 3600000 + m * 60000 + s * 1000;
+    const [h, m, s] = timeStr.split(':').map(Number);
+    return (h || 0) * 3600000 + (m || 0) * 60000 + (s || 0) * 1000;
   }
 
-  // Создаём полную дату: дата + время
-  function buildDateTime(dateStr, timeStr) {
-    if (!timeStr) return null;
-    const baseDate = parseDate(dateStr);
-    const timeMs = parseTimeMs(timeStr);
-    if (timeMs === null) return null;
-    const result = new Date(baseDate);
-    result.setHours(0, 0, 0, 0); // сброс времени
-    result.setTime(result.getTime() + timeMs);
-    return result;
+  function buildDateTime(datePart, timePart) {
+    const date = parseDate(datePart);
+    const ms = timeToMs(timePart);
+    if (ms === null) return null;
+    date.setHours(0, 0, 0, 0);
+    date.setTime(date.getTime() + ms);
+    return date;
   }
 
   // Загрузка данных
   fetch('fullData.json')
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error('fullData.json не найден');
+      return res.json();
+    })
     .then(data => {
-      allData = data.records;
+      allData = data.records || [];
       populateFilters();
     })
     .catch(err => {
-      console.error('Ошибка загрузки данных:', err);
-      alert('Не удалось загрузить fullData.json');
+      console.error('Ошибка:', err);
+      alert('Не удалось загрузить fullData.json\n' + err.message);
     });
 
   function populateFilters() {
-    const dates = [...new Set(allData.map(d => d['Рабочий день']))].sort();
-    const employees = [...new Set(allData.map(d => d['Сотрудник']))].sort();
+    const dates = [...new Set(allData.map(x => x['Рабочий день']))].sort();
+    const emps = [...new Set(allData.map(x => x['Сотрудник']))].sort();
 
-    const dateSel = document.getElementById('dateSelect');
+    const ds = document.getElementById('dateSelect');
     dates.forEach(d => {
       const opt = document.createElement('option');
-      opt.value = d;
-      opt.textContent = d;
-      dateSel.appendChild(opt);
+      opt.value = d; opt.textContent = d;
+      ds.appendChild(opt);
     });
 
-    const empSel = document.getElementById('employeeSelect');
-    employees.forEach(e => {
+    const es = document.getElementById('employeeSelect');
+    emps.forEach(e => {
       const opt = document.createElement('option');
-      opt.value = e;
-      opt.textContent = e;
-      empSel.appendChild(opt);
+      opt.value = e; opt.textContent = e;
+      es.appendChild(opt);
     });
   }
 
   function renderGantt() {
-    const date = document.getElementById('dateSelect').value;
-    const emp = document.getElementById('employeeSelect').value;
-
-    const tasksRaw = allData.filter(item =>
-      item['Рабочий день'] === date &&
-      item['Сотрудник'] === emp
-    );
-
-    if (tasksRaw.length === 0) {
-      alert('Нет данных');
+    // 🔥 КРИТИЧЕСКАЯ ПРОВЕРКА
+    if (typeof Gantt === 'undefined') {
+      alert('Ошибка: библиотека Gantt не загружена. Проверьте подключение скрипта.');
+      console.error('Gantt is not defined. Script may have failed to load.');
       return;
     }
 
-    const tasks = tasksRaw.map((item, i) => {
-      const start = buildDateTime(date, item['Начало задачи']);
-      const durationStr = item['Рабочее время'] || item['Время по табелю'] || '';
-      const durationMs = parseTimeMs(durationStr);
+    const date = document.getElementById('dateSelect').value;
+    const emp = document.getElementById('employeeSelect').value;
 
-      if (!start || durationMs === null) {
+    const filtered = allData.filter(x =>
+      x['Рабочий день'] === date && x['Сотрудник'] === emp
+    );
+
+    if (filtered.length === 0) {
+      alert('Нет данных для выбранной даты и сотрудника');
+      return;
+    }
+
+    const tasks = filtered.map((item, i) => {
+      const start = buildDateTime(date, item['Начало задачи']);
+      const dur = item['Рабочее время'] || item['Время по табелю'] || '';
+      const durMs = timeToMs(dur);
+
+      if (!start || durMs === null) {
         console.warn('Пропущена задача:', item);
         return null;
       }
 
-      const end = new Date(start.getTime() + durationMs);
+      const end = new Date(start.getTime() + durMs);
 
       return {
-        id: `t${i}`,
+        id: `task-${i}`,
         name: `${item['Вид работ']} (${item['Поставка']})`,
         start: start.toISOString().slice(0, 19).replace('T', ' '),
         end: end.toISOString().slice(0, 19).replace('T', ' '),
@@ -156,7 +141,7 @@
     }).filter(Boolean);
 
     if (tasks.length === 0) {
-      alert('Нет корректных задач');
+      alert('Нет корректных задач для отображения');
       return;
     }
 
@@ -165,27 +150,18 @@
     container.innerHTML = '';
 
     // Создание диаграммы
-    const gantt = new Gantt("#gantt-container", tasks, {
-      view_mode: 'Hour',
-      bar_height: 24,
-      padding: 20,
-      date_format: 'YYYY-MM-DD HH:mm:ss',
-      custom_popup_html: function(task) {
-        const start = new Date(task.start.replace(' ', 'T'));
-        const end = new Date(task.end.replace(' ', 'T'));
-        const durationMin = Math.round((end - start) / 60000);
-        return `
-          <div style="padding:10px;">
-            <strong>${task.name}</strong><br>
-            Начало: ${start.toLocaleTimeString()}<br>
-            Окончание: ${end.toLocaleTimeString()}<br>
-            Длительность: ${durationMin} мин.
-          </div>
-        `;
-      }
-    });
-
-    window.currentGantt = gantt;
+    try {
+      const gantt = new Gantt("#gantt-container", tasks, {
+        view_mode: 'Hour',
+        bar_height: 24,
+        padding: 20,
+        date_format: 'YYYY-MM-DD HH:mm:ss'
+      });
+      window.currentGantt = gantt;
+    } catch (err) {
+      console.error('Ошибка при создании Gantt:', err);
+      alert('Не удалось построить диаграмму: ' + err.message);
+    }
   }
 </script>
 
