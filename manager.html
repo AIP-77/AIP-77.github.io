@@ -3,845 +3,216 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Статистика работ</title>
+  <title>Диаграмма занятости</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-timeline@0.5.0"></script>
   <style>
-    /* ... стили без изменений ... */
     body {
       font-family: Arial, sans-serif;
-      padding: 16px;
-      background: #f9f9f9;
-      color: #333;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
       padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: #f9f9f9;
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .version {
-      text-align: center;
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 15px;
-    }
-    .last-updated {
-      text-align: center;
-      font-size: 13px;
-      color: #555;
-      margin-bottom: 15px;
-      font-style: italic;
+    .controls {
+      margin-bottom: 20px;
     }
     label {
-      display: block;
-      margin: 10px 0 5px;
-      font-weight: bold;
-    }
-    select, button, input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .calendar-container {
-      margin: 15px 0;
-      padding: 15px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    }
-    .calendar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-    .calendar-title {
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .calendar-nav-btn {
-      background: #2196f3;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .calendar-days {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-    }
-    .calendar-day-header {
-      text-align: center;
-      font-weight: bold;
-      padding: 8px;
-      background: #f0f0f0;
-      border-radius: 4px;
-    }
-    .calendar-day {
-      text-align: center;
-      padding: 10px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .calendar-day.has-data {
-      background: #2196f3;
-      color: white;
-    }
-    .calendar-day.disabled {
-      color: #aaa;
-      cursor: not-allowed;
-    }
-    .report {
-      margin-top: 20px;
-      padding: 15px;
-      background: #f0f8ff;
-      border-radius: 6px;
-    }
-    .report h3 {
-      margin-top: 0;
-    }
-    .report-item {
-      margin: 8px 0;
-    }
-    .day-group, .hour-group {
-      margin: 12px 0;
-      padding: 10px;
-      background: #e3f2fd;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .hour-group {
-      background: #bbdefb;
-      margin-left: 20px;
-    }
-    .detail-group {
-      margin-left: 40px;
-      padding: 10px;
-      background: #e1f5fe;
-      border-radius: 4px;
-      margin-top: 8px;
-    }
-    .toggle-icon {
       display: inline-block;
-      width: 16px;
-      text-align: center;
-      margin-right: 6px;
+      margin-right: 10px;
     }
-    .hidden {
-      display: none;
+    select, input {
+      padding: 6px;
+      margin-right: 15px;
     }
-    .loading {
-      text-align: center;
-      color: #666;
-    }
-    .error {
-      color: #d32f2f;
-      background: #ffebee;
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 10px;
-    }
-    .action-buttons {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .action-buttons button {
-      flex: 1;
-      padding: 10px;
-      font-weight: bold;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #clear-cache-btn {
-      background: #d32f2f;
-      color: white;
-    }
-    #toggle-auto-reload {
-      background: #1976d2;
-      color: white;
-    }
-    #export-excel {
-      background: #388e3c;
-      color: white;
-    }
-    #toggle-auto-reload.disabled {
-      background: #9e9e9e;
-    }
-    .plan-comparison {
-      background: #e8f5e8;
-      padding: 8px;
-      border-radius: 4px;
-      margin-top: 6px;
-      font-weight: bold;
-      color: #2e7d32;
+    canvas {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Статистика работ</h2>
-    <div class="version">v 10.10-1200 <span>🕒</span></div>
-    <div class="last-updated" id="last-updated">Обновлено: —</div>
 
-    <div id="loading" class="loading">Загрузка данных...</div>
-    <div id="error" class="error hidden"></div>
-
-    <div id="controls" class="hidden">
-       <!-- ВИДЫ РАБОТ + ПЛАН -->
-      <label for="work-type-select">Выберите виды работ:</label>
-      <select id="work-type-select" multiple size="3"></select>
-      <button id="select-all">Выбрать все</button>
-      <button id="clear-all">Очистить выбор</button>
-
-      <!-- КАЛЕНДАРЬ -->
-      <div class="calendar-container">
-        <div class="calendar-header">
-          <button class="calendar-nav-btn" id="prev-month">◀</button>
-          <div class="calendar-title" id="calendar-title">Октябрь 2025</div>
-          <button class="calendar-nav-btn" id="next-month">▶</button>
-        </div>
-        <div class="calendar-days" id="calendar-days">
-          <!-- Заполняется JS -->
-        </div>
-      </div>
-
-     
-      <label for="plan-input">План (шт/час):</label>
-      <input type="number" id="plan-input" placeholder="Например: 80" step="0.1" min="0">
-
-   
-
-      <div id="report" class="report hidden"></div>
-
-      <!-- КНОПКИ ВНИЗУ -->
-      <button id="export-excel">📊 Экспорт данных  </button>
-      <div class="action-buttons">
-        <button id="clear-cache-btn">🗑️ Очистить кэш</button>
-        <button id="toggle-auto-reload">🔄 Автообновление: ВКЛ</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ВСТРОЕННАЯ БИБЛИОТЕКА SHEETJS (минималистичная) -->
-  <script>
-    /* 
-     * SheetJS Community Edition v0.18.5 (минимум для XLSX.writeFile)
-     * Источник: https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.mini.min.js
-     */
-    !function(e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(e=e(),(t="XLSX")in window?window[t]=e:window[t]=e)}(function(){/* ... мини-версия SheetJS ... */return{utils:{aoa_to_sheet:function(d){var s={};return d.forEach(function(r,e){r.forEach(function(c,n){var a=String.fromCharCode(65+n)+String(e+1);s[a]=c})}),s["!ref"]="A1:"+String.fromCharCode(64+d[0].length)+String(d.length),s},book_new:function(){return{SheetNames:[],Sheets:{}}},book_append_sheet:function(e,n,t){e.SheetNames.push(t),e.Sheets[t]=n}},writeFile:function(e,n){var t=window.XLSX||{},r=t.utils.sheet_to_csv||function(){return""},a=r(e.Sheets[e.SheetNames[0]]),o=new Blob([a],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(o),l.download=n,document.body.appendChild(l),l.click(),document.body.removeChild(l)}}});
-  </script>
-
-  <script>
-    const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/refs/heads/main/fullData.json';
-    let autoReloadTimer = null;
-    let autoReloadEnabled = true;
-    let currentMonth = new Date();
-    currentMonth.setDate(1);
-
-    // ... (все функции parseTime, formatTime и т.д. — без изменений) ...
-
-    function parseTime(timeStr) {
-      if (!timeStr) return 0;
-      const parts = timeStr.split(':').map(Number);
-      if (parts.length !== 3) return 0;
-      const [h, m, s] = parts;
-      return (h || 0) * 3600 + (m || 0) * 60 + (s || 0);
-    }
-
-    function formatTime(seconds) {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = seconds % 60;
-      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    function parseCurrency(str) {
-      if (!str || typeof str !== 'string') return 0;
-      let clean = str.trim().replace(/^р\.\s*/i, '');
-      clean = clean.replace(',', '.');
-      const num = parseFloat(clean);
-      return isNaN(num) ? 0 : num;
-    }
-
-    function getHourFromTime(timeStr) {
-      if (!timeStr) return null;
-      const [h] = timeStr.split(':');
-      return parseInt(h) || 0;
-    }
-
-    function isResponsible(position) {
-      return position === 'Ответственный' || position === 'Ответсвенный';
-    }
-
-    function formatDateTime(date) {
-      return new Intl.DateTimeFormat('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      }).format(date);
-    }
-
-    function calculateNormative(units, seconds) {
-      if (seconds <= 0) return 0;
-      const hours = seconds / 3600;
-      return units / hours;
-    }
-
-    let records = [];
-    let selectedDate = '';
-    let selectedWorkTypes = new Set();
-    let planNormative = 0;
-    let allWorkTypes = [];
-
-    const loadingDiv = document.getElementById('loading');
-    const errorDiv = document.getElementById('error');
-    const controlsDiv = document.getElementById('controls');
-    const workTypeSelect = document.getElementById('work-type-select');
-    const planInput = document.getElementById('plan-input');
-    const selectAllBtn = document.getElementById('select-all');
-    const clearAllBtn = document.getElementById('clear-all');
-    const reportDiv = document.getElementById('report');
-    const lastUpdatedDiv = document.getElementById('last-updated');
-    const clearCacheBtn = document.getElementById('clear-cache-btn');
-    const toggleAutoReloadBtn = document.getElementById('toggle-auto-reload');
-    const exportExcelBtn = document.getElementById('export-excel');
-    const calendarTitle = document.getElementById('calendar-title');
-    const prevMonthBtn = document.getElementById('prev-month');
-    const nextMonthBtn = document.getElementById('next-month');
-    const calendarDaysContainer = document.getElementById('calendar-days');
-
-    async function loadData() {
-      try {
-        loadingDiv.textContent = 'Загрузка данных...';
-        const urlWithCacheBust = `${DATA_URL}?t=${Date.now()}`;
-        const response = await fetch(urlWithCacheBust);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
-        records = data.records;
-        allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
-        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
-        initUI();
-      } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
-        loadingDiv.classList.add('hidden');
-        errorDiv.textContent = `❌ Не удалось загрузить данные: ${err.message}`;
-        errorDiv.classList.remove('hidden');
-      }
-    }
-
-    function initUI() {
-      loadingDiv.classList.add('hidden');
-      errorDiv.classList.add('hidden');
-      controlsDiv.classList.remove('hidden');
-
-      renderCalendar();
-
-      workTypeSelect.innerHTML = '';
-      allWorkTypes.forEach(type => {
-        const opt = document.createElement('option');
-        opt.value = type;
-        opt.textContent = type;
-        workTypeSelect.appendChild(opt);
-      });
-
-      // ... (события без изменений) ...
-
-      workTypeSelect.addEventListener('change', () => {
-        selectedWorkTypes.clear();
-        Array.from(workTypeSelect.selectedOptions).forEach(opt => {
-          selectedWorkTypes.add(opt.value);
-        });
-        renderReport();
-      });
-
-      planInput.addEventListener('input', () => {
-        planNormative = parseFloat(planInput.value) || 0;
-        renderReport();
-      });
-
-      selectAllBtn.addEventListener('click', () => {
-        Array.from(workTypeSelect.options).forEach(opt => opt.selected = true);
-        selectedWorkTypes = new Set(Array.from(workTypeSelect.selectedOptions).map(o => o.value));
-        renderReport();
-      });
-
-      clearAllBtn.addEventListener('click', () => {
-        Array.from(workTypeSelect.options).forEach(opt => opt.selected = false);
-        selectedWorkTypes.clear();
-        renderReport();
-      });
-
-      clearCacheBtn.addEventListener('click', () => {
-        localStorage.clear();
-        window.location.href = `${window.location.pathname}?t=${Date.now()}`;
-      });
-
-      toggleAutoReloadBtn.addEventListener('click', () => {
-        autoReloadEnabled = !autoReloadEnabled;
-        if (autoReloadEnabled) {
-          startAutoReload();
-          toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВКЛ';
-          toggleAutoReloadBtn.classList.remove('disabled');
-        } else {
-          if (autoReloadTimer) clearInterval(autoReloadTimer);
-          toggleAutoReloadBtn.textContent = '🔄 Автообновление: ВЫКЛ';
-          toggleAutoReloadBtn.classList.add('disabled');
-        }
-      });
-
-      exportExcelBtn.addEventListener('click', exportToExcel);
-
-      prevMonthBtn.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() - 1);
-        renderCalendar();
-      });
-      nextMonthBtn.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-        renderCalendar();
-      });
-
-      const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
-      if (uniqueDates.length > 0) {
-        selectedDate = uniqueDates[0];
-        renderReport();
-      }
-    }
-
-    // ... (renderCalendar, createEmptyDay — без изменений) ...
-
-    function renderCalendar() {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-      calendarTitle.textContent = `${monthNames[month]} ${year}`;
-
-      const firstDay = new Date(year, month, 1);
-      const lastDay = new Date(year, month + 1, 0);
-      const daysInMonth = lastDay.getDate();
-      const firstDayOfWeek = firstDay.getDay();
-
-      calendarDaysContainer.innerHTML = '';
-      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      dayNames.forEach(name => {
-        const header = document.createElement('div');
-        header.className = 'calendar-day-header';
-        header.textContent = name;
-        calendarDaysContainer.appendChild(header);
-      });
-
-      for (let i = 0; i < (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1); i++) {
-        calendarDaysContainer.appendChild(createEmptyDay());
-      }
-
-      const availableDates = new Set(records.map(r => r['Рабочий день']));
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
-        const hasData = availableDates.has(dateStr);
-        const dayEl = document.createElement('div');
-        dayEl.className = `calendar-day${hasData ? ' has-data' : ''}`;
-        dayEl.textContent = day;
-        if (hasData) {
-          dayEl.addEventListener('click', () => {
-            selectedDate = dateStr;
-            renderReport();
-          });
-        } else {
-          dayEl.classList.add('disabled');
-        }
-        calendarDaysContainer.appendChild(dayEl);
-      }
-
-      const lastDayOfWeek = lastDay.getDay();
-      const remaining = 6 - (lastDayOfWeek === 0 ? 6 : lastDayOfWeek - 1);
-      for (let i = 0; i < remaining; i++) {
-        calendarDaysContainer.appendChild(createEmptyDay());
-      }
-    }
-
-    function createEmptyDay() {
-      const empty = document.createElement('div');
-      empty.className = 'calendar-day disabled';
-      return empty;
-    }
-
-    // ... (renderReport — без изменений) ...
-
-    function renderReport() {
-      if (!selectedDate || selectedWorkTypes.size === 0) {
-        reportDiv.classList.add('hidden');
-        return;
-      }
-
-      const allRecords = records.filter(r =>
-        r['Рабочий день'] === selectedDate &&
-        selectedWorkTypes.has(r['Вид работ'])
-      );
-
-      const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
-
-      if (allRecords.length === 0) {
-        reportDiv.innerHTML = '<p>Нет данных по выбранным критериям.</p>';
-        reportDiv.classList.remove('hidden');
-        return;
-      }
-
-      let totalUnits = 0, totalTimeSec = 0, totalTasks = 0, totalAmount = 0;
-      const uniqueResponsibles = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
-
-      responsibleRecords.forEach(r => {
-        totalUnits += parseInt(r['Количество единиц']) || 0;
-        totalTimeSec += parseTime(r['Рабочее время']);
-        totalTasks++;
-      });
-
-      allRecords.forEach(r => {
-        totalAmount += parseCurrency(r['Расчетная сумма']);
-      });
-
-      const factNormative = calculateNormative(totalUnits, totalTimeSec);
-      let html = `<h3>Отчёт за ${selectedDate}</h3>`;
-
-      html += `
-        <div class="day-group" data-date="${selectedDate}">
-          <span class="toggle-icon">▼</span>
-          <strong>Итог за день</strong>
-          <div class="report-item">Всего задач: ${totalTasks}</div>
-          <div class="report-item">Количество бригад: ${uniqueResponsibles.length}</div>
-          <div class="report-item">Всего единиц: ${totalUnits}</div>
-          <div class="report-item">Общая сумма: р.${totalAmount.toFixed(2)}</div>
-          <div class="report-item">Общее время: ${formatTime(totalTimeSec)}</div>
-          <div class="report-item">Норматив: ${factNormative > 0 ? factNormative.toFixed(1) : '0.0'} шт/час</div>
-      `;
-
-      if (planNormative > 0) {
-        const percent = factNormative > 0 ? (factNormative / planNormative * 100).toFixed(1) : 0;
-        const status = parseFloat(percent) >= 100 ? '✅ Выполнено' : '⚠️ Не выполнено';
-        html += `
-          <div class="plan-comparison">
-            План: ${planNormative.toFixed(1)} шт/час | 
-            Выполнение: ${percent}% | ${status}
-          </div>
-        `;
-      }
-
-      html += `</div>`;
-
-      const hourlyGroups = {};
-      allRecords.forEach(r => {
-        const hour = getHourFromTime(r['Начало задачи']);
-        if (hour === null) return;
-        const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-        if (!hourlyGroups[key]) {
-          hourlyGroups[key] = { hours: key, rawRecords: [] };
-        }
-        hourlyGroups[key].rawRecords.push(r);
-      });
-
-      const sortedHours = Object.keys(hourlyGroups).sort();
-      html += `<div id="hours-${selectedDate}" class="hidden">`;
-
-      sortedHours.forEach(hourKey => {
-        const g = hourlyGroups[hourKey];
-        const hourRecords = g.rawRecords;
-        const responsiblesInHour = [...new Set(
-          hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
-        )];
-
-        const hourResponsibleRecords = hourRecords.filter(r => isResponsible(r['Должность']));
-        let hourUnits = 0, hourTimeSec = 0, hourTasks = 0, hourAmount = 0;
-        hourResponsibleRecords.forEach(r => {
-          hourUnits += parseInt(r['Количество единиц']) || 0;
-          hourTimeSec += parseTime(r['Рабочее время']);
-          hourTasks++;
-        });
-        hourRecords.forEach(r => {
-          hourAmount += parseCurrency(r['Расчетная сумма']);
-        });
-        const hourFactNorm = calculateNormative(hourUnits, hourTimeSec);
-
-        html += `
-          <div class="hour-group" data-hour="${hourKey}" data-date="${selectedDate}">
-            <span class="toggle-icon">▶</span>
-            <strong>Часовой интервал: ${hourKey}</strong>
-            <div class="report-item">Количество задач: ${hourTasks}</div>
-            <div class="report-item">Количество бригад: ${responsiblesInHour.length}</div>
-            <div class="report-item">Единиц: ${hourUnits}</div>
-            <div class="report-item">Сумма: р.${hourAmount.toFixed(2)}</div>
-            <div class="report-item">Время: ${formatTime(hourTimeSec)}</div>
-            <div class="report-item">Норматив: ${hourFactNorm > 0 ? hourFactNorm.toFixed(1) : '0.0'} шт/час</div>
-          </div>
-
-          <div id="detail-${selectedDate}-${hourKey}" class="detail-group hidden">
-        `;
-
-        responsiblesInHour.forEach((respName, idx) => {
-          const tasksMap = {};
-          hourRecords.forEach(r => {
-            const taskKey = `${r['Поставка'] || 'Без поставки'}|${r['Начало задачи'] || 'Без времени'}`;
-            if (!tasksMap[taskKey]) {
-              tasksMap[taskKey] = { responsible: null, helpers: [] };
-            }
-            if (isResponsible(r['Должность'])) {
-              tasksMap[taskKey].responsible = r;
-            } else {
-              tasksMap[taskKey].helpers.push(r);
-            }
-          });
-
-          const filteredTasks = Object.values(tasksMap).filter(task => 
-            task.responsible && task.responsible['Сотрудник'] === respName
-          );
-
-          filteredTasks.sort((a, b) => {
-            const timeA = a.responsible['Начало задачи'] || '';
-            const timeB = b.responsible['Начало задачи'] || '';
-            return timeA.localeCompare(timeB);
-          });
-
-          html += `<div style="margin: 12px 0; padding: 10px; background: #bbdefb; border-radius: 6px;">
-            <strong>Бригада ${idx + 1}: ${respName}</strong>`;
-
-          filteredTasks.forEach(task => {
-            const resp = task.responsible;
-            const units = parseInt(resp['Количество единиц']) || 0;
-            const amount = parseCurrency(resp['Расчетная сумма']);
-            const time = resp['Рабочее время'] || '00:00:00';
-
-            html += `
-              <div style="margin: 8px 0; padding: 8px; background: #ffffff; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                <div><strong>Поставка:</strong> ${resp['Поставка'] || '—'}</div>
-                <div>Ед.: <strong>${units}</strong>, 
-                     Время: ${time}, 
-                     Сумма: р.${amount.toFixed(2)}</div>
-            `;
-
-            if (task.helpers.length > 0) {
-              html += `<div style="margin-top:6px; font-size:14px;"><strong>Помощники:</strong></div>`;
-              task.helpers.forEach(helper => {
-                const helperAmount = parseCurrency(helper['Расчетная сумма']);
-                html += `
-                  <div style="margin-left:15px; font-size:14px;">
-                    • ${helper['Сотрудник']} — 
-                      <span style="font-weight:bold;">р.${helperAmount.toFixed(2)}</span>
-                  </div>
-                `;
-              });
-            }
-            html += `</div>`;
-          });
-          html += `</div>`;
-        });
-
-        html += `</div>`;
-      });
-
-      html += `</div>`;
-      reportDiv.innerHTML = html;
-      reportDiv.classList.remove('hidden');
-
-      // Обработчики кликов
-      document.querySelector(`.day-group[data-date="${selectedDate}"]`)?.addEventListener('click', function() {
-        const hoursDiv = document.getElementById(`hours-${selectedDate}`);
-        const icon = this.querySelector('.toggle-icon');
-        if (hoursDiv?.classList.contains('hidden')) {
-          hoursDiv.classList.remove('hidden');
-          icon.textContent = '▼';
-        } else {
-          hoursDiv?.classList.add('hidden');
-          icon.textContent = '▶';
-        }
-      });
-
-      sortedHours.forEach(hourKey => {
-        const hourEl = document.querySelector(`.hour-group[data-hour="${hourKey}"][data-date="${selectedDate}"]`);
-        if (hourEl) {
-          hourEl.addEventListener('click', function() {
-            const detailDiv = document.getElementById(`detail-${selectedDate}-${hourKey}`);
-            const icon = this.querySelector('.toggle-icon');
-            if (detailDiv?.classList.contains('hidden')) {
-              detailDiv.classList.remove('hidden');
-              icon.textContent = '▼';
-            } else {
-              detailDiv?.classList.add('hidden');
-              icon.textContent = '▶';
-            }
-          });
-        }
-      });
-    }
-
-    // === ЭКСПОРТ В EXCEL (с защитой от ошибок) ===
-function exportToExcel() {
-  try {
-    if (!selectedDate || selectedWorkTypes.size === 0) {
-      alert('Выберите день и виды работ');
-      return;
-    }
-
-    const allRecords = records.filter(r =>
-      r['Рабочий день'] === selectedDate &&
-      selectedWorkTypes.has(r['Вид работ'])
+<h2>Диаграмма занятости сотрудника</h2>
+
+<div class="controls">
+  <label for="dateSelect">Дата:</label>
+  <select id="dateSelect"></select>
+
+  <label for="employeeSelect">Сотрудник:</label>
+  <select id="employeeSelect"></select>
+
+  <button onclick="renderGantt()">Построить</button>
+</div>
+
+<canvas id="ganttChart" height="150"></canvas>
+
+<script>
+  let allData = [];
+
+  // Функция для парсинга времени вида "чч:мм:сс" → миллисекунды с начала дня
+  function parseTime(timeStr) {
+    if (!timeStr || timeStr === "") return null;
+    const [h, m, s] = timeStr.split(':').map(Number);
+    return h * 3600000 + m * 60000 + s * 1000;
+  }
+
+  // Функция для сложения времени начала и продолжительности
+  function addDuration(startTimeStr, durationStr) {
+    const startMs = parseTime(startTimeStr);
+    const durMs = parseTime(durationStr);
+    if (startMs === null || durMs === null) return null;
+    return startMs + durMs;
+  }
+
+  // Загрузка данных
+  fetch('fullData.json')
+    .then(res => res.json())
+    .then(data => {
+      allData = data.records;
+      populateFilters();
+    })
+    .catch(err => {
+      console.error('Ошибка загрузки данных:', err);
+      alert('Не удалось загрузить данные');
+    });
+
+  // Заполнение выпадающих списков
+  function populateFilters() {
+    const dateSet = new Set();
+    const employeeSet = new Set();
+
+    allData.forEach(item => {
+      dateSet.add(item['Рабочий день']);
+      employeeSet.add(item['Сотрудник']);
+    });
+
+    const dateSelect = document.getElementById('dateSelect');
+    dateSet.forEach(date => {
+      const opt = document.createElement('option');
+      opt.value = date;
+      opt.textContent = date;
+      dateSelect.appendChild(opt);
+    });
+
+    const empSelect = document.getElementById('employeeSelect');
+    employeeSet.forEach(emp => {
+      const opt = document.createElement('option');
+      opt.value = emp;
+      opt.textContent = emp;
+      empSelect.appendChild(opt);
+    });
+  }
+
+  // Отрисовка диаграммы
+  function renderGantt() {
+    const selectedDate = document.getElementById('dateSelect').value;
+    const selectedEmployee = document.getElementById('employeeSelect').value;
+
+    const filtered = allData.filter(item =>
+      item['Рабочий день'] === selectedDate &&
+      item['Сотрудник'] === selectedEmployee
     );
 
-    if (allRecords.length === 0) {
-      alert('Нет данных для экспорта');
+    if (filtered.length === 0) {
+      alert('Нет данных для выбранной даты и сотрудника');
       return;
     }
 
-    // Собираем данные
-    const rows = [];
-    rows.push([
-      "Дата", "Час", "Бригада", "Ответственный", "Поставка", 
-      "Ед.", "Время", "Сумма (Отв.)", "Помощники", "Сумма (Помощники)"
-    ]);
+    const tasks = filtered.map(item => {
+      const start = parseTime(item['Начало задачи']);
+      const durationFromWorkTime = item['Рабочее время'] && item['Рабочее время'] !== "" ? item['Рабочее время'] : null;
+      const durationFromTabel = item['Время по табелю'] && item['Время по табелю'] !== "" ? item['Время по табелю'] : null;
+      const duration = durationFromWorkTime || durationFromTabel;
 
-    const hourlyGroups = {};
-    allRecords.forEach(r => {
-      const hour = getHourFromTime(r['Начало задачи']);
-      if (hour === null) return;
-      const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-      if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
-      hourlyGroups[key].rawRecords.push(r);
-    });
+      if (start === null || duration === null) {
+        console.warn('Пропущена задача из-за отсутствия времени:', item);
+        return null;
+      }
 
-    let brigadeCounter = 1;
-    Object.keys(hourlyGroups).sort().forEach(hourKey => {
-      const hourRecords = hourlyGroups[hourKey].rawRecords;
-      const responsibles = [...new Set(
-        hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
-      )];
+      const end = addDuration(item['Начало задачи'], duration);
+      const label = `${item['Вид работ']} (${item['Поставка']})`;
 
-      responsibles.forEach(respName => {
-        const tasksMap = {};
-        hourRecords.forEach(r => {
-          const taskKey = `${r['Поставка'] || ''}|${r['Начало задачи'] || ''}`;
-          if (!tasksMap[taskKey]) tasksMap[taskKey] = { responsible: null, helpers: [] };
-          if (isResponsible(r['Должность'])) tasksMap[taskKey].responsible = r;
-          else tasksMap[taskKey].helpers.push(r);
-        });
+      return {
+        label: label,
+        start: start,
+        end: end
+      };
+    }).filter(Boolean); // убираем null
 
-        const tasks = Object.values(tasksMap).filter(t => t.responsible?.['Сотрудник'] === respName);
-        tasks.forEach(task => {
-          const resp = task.responsible;
-          const helperNames = task.helpers.map(h => h['Сотрудник'] || '').join("; ");
-          const helperAmounts = task.helpers.map(h => parseCurrency(h['Расчетная сумма']).toFixed(2)).join("; ");
-          rows.push([
-            selectedDate,
-            hourKey,  // ← Час — строка, не время
-            `Бригада ${brigadeCounter}`,
-            respName,
-            resp['Поставка'] || '',
-            resp['Количество единиц'] || '',
-            resp['Рабочее время'] || '',  // ← Время — строка
-            parseCurrency(resp['Расчетная сумма']).toFixed(2),  // ← Сумма — число с двумя знаками
-            helperNames,
-            helperAmounts  // ← Суммы помощников — строки
-          ]);
-        });
-        brigadeCounter++;
-      });
-    });
-
-    // Форматируем как TSV (табуляция)
-    const tsvContent = rows.map(row => row.join('\t')).join('\n');
-
-    // Создаём модальное окно
-    const modal = document.createElement('div');
-    modal.style.position = 'fixed';
-    modal.style.top = '0';
-    modal.style.left = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
-    modal.style.display = 'flex';
-    modal.style.justifyContent = 'center';
-    modal.style.alignItems = 'center';
-    modal.style.zIndex = '10000';
-
-    const content = document.createElement('div');
-    content.style.backgroundColor = 'white';
-    content.style.padding = '20px';
-    content.style.borderRadius = '8px';
-    content.style.maxWidth = '90%';
-    content.style.maxHeight = '80%';
-    content.style.overflow = 'auto';
-
-    const title = document.createElement('h3');
-    title.textContent = 'Данные для Excel';
-    title.style.marginTop = '0';
-
-    const textarea = document.createElement('textarea');
-    textarea.value = tsvContent;
-    textarea.style.width = '100%';
-    textarea.style.height = '300px';
-    textarea.style.fontFamily = 'monospace';
-    textarea.style.fontSize = '14px';
-    textarea.readOnly = true;
-
-    const instructions = document.createElement('p');
-    instructions.innerHTML = `
-      <strong>Как вставить в Excel:</strong><br>
-      1. Нажмите Ctrl+A (или выделите всё)<br>
-      2. Скопируйте (Ctrl+C)<br>
-      3. В Excel: ПКМ → «Вставить» → «Текст»<br>
-      4. При вставке выберите: <strong>«Текст с разделителями»</strong><br>
-      5. Разделитель: <strong>табуляция</strong><br>
-      6. Готово!
-    `;
-    instructions.style.marginTop = '10px';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Закрыть';
-    closeBtn.style.marginTop = '10px';
-    closeBtn.style.padding = '8px 16px';
-    closeBtn.addEventListener('click', () => {
-      document.body.removeChild(modal);
-    });
-
-    content.appendChild(title);
-    content.appendChild(textarea);
-    content.appendChild(instructions);
-    content.appendChild(closeBtn);
-    modal.appendChild(content);
-    document.body.appendChild(modal);
-
-    // Автофокус
-    setTimeout(() => {
-      textarea.select();
-    }, 100);
-  } catch (err) {
-    console.error('Ошибка экспорта:', err);
-    alert('Ошибка при подготовке данных: ' + err.message);
-  }
-}
-
-    function startAutoReload() {
-      if (autoReloadTimer) clearInterval(autoReloadTimer);
-      if (!autoReloadEnabled) return;
-      autoReloadTimer = setInterval(() => loadData(), 5 * 60 * 1000);
+    if (tasks.length === 0) {
+      alert('Нет корректных задач для отображения');
+      return;
     }
 
-    loadData();
-    startAutoReload();
-    window.addEventListener('beforeunload', () => {
-      if (autoReloadTimer) clearInterval(autoReloadTimer);
+    const ctx = document.getElementById('ganttChart').getContext('2d');
+
+    // Уничтожаем предыдущий график, если есть
+    if (window.myGanttChart) {
+      window.myGanttChart.destroy();
+    }
+
+    window.myGanttChart = new Chart(ctx, {
+      type: 'timeline',
+      data: {
+        datasets: [{
+          label: 'Задачи',
+          data: tasks,
+          backgroundColor: 'rgba(54, 162, 235, 0.6)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              parser: 'HH:mm:ss',
+              unit: 'hour',
+              displayFormats: {
+                hour: 'HH:mm'
+              }
+            },
+            title: {
+              display: true,
+              text: 'Время'
+            }
+          },
+          y: {
+            ticks: {
+              autoSkip: false
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const task = context.raw;
+                const start = new Date(task.start);
+                const end = new Date(task.end);
+                const durationMs = task.end - task.start;
+                const durHours = Math.floor(durationMs / 3600000);
+                const durMins = Math.floor((durationMs % 3600000) / 60000);
+                const durSecs = Math.floor((durationMs % 60000) / 1000);
+                const durStr = `${String(durHours).padStart(2, '0')}:${String(durMins).padStart(2, '0')}:${String(durSecs).padStart(2, '0')}`;
+                return [
+                  `Начало: ${start.toTimeString().slice(0, 8)}`,
+                  `Окончание: ${end.toTimeString().slice(0, 8)}`,
+                  `Продолжительность: ${durStr}`
+                ];
+              }
+            }
+          }
+        }
+      }
     });
-  </script>
+  }
+</script>
+
 </body>
 </html>
