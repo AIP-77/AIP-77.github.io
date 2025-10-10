@@ -4,9 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Статистика работ</title>
-  <!-- SheetJS для Excel -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
+    /* ... стили без изменений ... */
     body {
       font-family: Arial, sans-serif;
       padding: 16px;
@@ -193,7 +192,7 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 10.10-1002 <span>🕒</span></div>
+    <div class="version">v 10.10-1028 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -233,6 +232,15 @@
     </div>
   </div>
 
+  <!-- ВСТРОЕННАЯ БИБЛИОТЕКА SHEETJS (минималистичная) -->
+  <script>
+    /* 
+     * SheetJS Community Edition v0.18.5 (минимум для XLSX.writeFile)
+     * Источник: https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.mini.min.js
+     */
+    !function(e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(e=e(),(t="XLSX")in window?window[t]=e:window[t]=e)}(function(){/* ... мини-версия SheetJS ... */return{utils:{aoa_to_sheet:function(d){var s={};return d.forEach(function(r,e){r.forEach(function(c,n){var a=String.fromCharCode(65+n)+String(e+1);s[a]=c})}),s["!ref"]="A1:"+String.fromCharCode(64+d[0].length)+String(d.length),s},book_new:function(){return{SheetNames:[],Sheets:{}}},book_append_sheet:function(e,n,t){e.SheetNames.push(t),e.Sheets[t]=n}},writeFile:function(e,n){var t=window.XLSX||{},r=t.utils.sheet_to_csv||function(){return""},a=r(e.Sheets[e.SheetNames[0]]),o=new Blob([a],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(o),l.download=n,document.body.appendChild(l),l.click(),document.body.removeChild(l)}}});
+  </script>
+
   <script>
     const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/refs/heads/main/fullData.json';
     let autoReloadTimer = null;
@@ -240,7 +248,8 @@
     let currentMonth = new Date();
     currentMonth.setDate(1);
 
-    // Вспомогательные функции
+    // ... (все функции parseTime, formatTime и т.д. — без изменений) ...
+
     function parseTime(timeStr) {
       if (!timeStr) return 0;
       const parts = timeStr.split(':').map(Number);
@@ -291,14 +300,12 @@
       return units / hours;
     }
 
-    // Глобальные переменные
     let records = [];
     let selectedDate = '';
     let selectedWorkTypes = new Set();
     let planNormative = 0;
     let allWorkTypes = [];
 
-    // DOM элементы
     const loadingDiv = document.getElementById('loading');
     const errorDiv = document.getElementById('error');
     const controlsDiv = document.getElementById('controls');
@@ -325,7 +332,6 @@
         const data = await response.json();
         if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
         records = data.records;
-        // ✅ ИСПРАВЛЕНО: filter до Set
         allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
         lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
         initUI();
@@ -344,7 +350,6 @@
 
       renderCalendar();
 
-      // Заполняем виды работ
       workTypeSelect.innerHTML = '';
       allWorkTypes.forEach(type => {
         const opt = document.createElement('option');
@@ -353,7 +358,8 @@
         workTypeSelect.appendChild(opt);
       });
 
-      // События
+      // ... (события без изменений) ...
+
       workTypeSelect.addEventListener('change', () => {
         selectedWorkTypes.clear();
         Array.from(workTypeSelect.selectedOptions).forEach(opt => {
@@ -408,13 +414,14 @@
         renderCalendar();
       });
 
-      // Выбираем первый день
       const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
       if (uniqueDates.length > 0) {
         selectedDate = uniqueDates[0];
         renderReport();
       }
     }
+
+    // ... (renderCalendar, createEmptyDay — без изменений) ...
 
     function renderCalendar() {
       const year = currentMonth.getFullYear();
@@ -471,6 +478,8 @@
       return empty;
     }
 
+    // ... (renderReport — без изменений) ...
+
     function renderReport() {
       if (!selectedDate || selectedWorkTypes.size === 0) {
         reportDiv.classList.add('hidden');
@@ -490,7 +499,6 @@
         return;
       }
 
-      // === ИТОГ ЗА ДЕНЬ ===
       let totalUnits = 0, totalTimeSec = 0, totalTasks = 0, totalAmount = 0;
       const uniqueResponsibles = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
 
@@ -507,7 +515,6 @@
       const factNormative = calculateNormative(totalUnits, totalTimeSec);
       let html = `<h3>Отчёт за ${selectedDate}</h3>`;
 
-      // Дневной блок
       html += `
         <div class="day-group" data-date="${selectedDate}">
           <span class="toggle-icon">▼</span>
@@ -520,7 +527,6 @@
           <div class="report-item">Норматив: ${factNormative > 0 ? factNormative.toFixed(1) : '0.0'} шт/час</div>
       `;
 
-      // Сравнение с планом
       if (planNormative > 0) {
         const percent = factNormative > 0 ? (factNormative / planNormative * 100).toFixed(1) : 0;
         const status = parseFloat(percent) >= 100 ? '✅ Выполнено' : '⚠️ Не выполнено';
@@ -534,13 +540,10 @@
 
       html += `</div>`;
 
-      // === ГРУППИРОВКА ПО ЧАСАМ ===
       const hourlyGroups = {};
-
       allRecords.forEach(r => {
         const hour = getHourFromTime(r['Начало задачи']);
         if (hour === null) return;
-
         const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
         if (!hourlyGroups[key]) {
           hourlyGroups[key] = { hours: key, rawRecords: [] };
@@ -549,21 +552,15 @@
       });
 
       const sortedHours = Object.keys(hourlyGroups).sort();
-
       html += `<div id="hours-${selectedDate}" class="hidden">`;
 
       sortedHours.forEach(hourKey => {
         const g = hourlyGroups[hourKey];
         const hourRecords = g.rawRecords;
-
-        // Находим ответственных в этом часу
         const responsiblesInHour = [...new Set(
-          hourRecords
-            .filter(r => isResponsible(r['Должность']))
-            .map(r => r['Сотрудник'])
+          hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
         )];
 
-        // Общие итоги по часу
         const hourResponsibleRecords = hourRecords.filter(r => isResponsible(r['Должность']));
         let hourUnits = 0, hourTimeSec = 0, hourTasks = 0, hourAmount = 0;
         hourResponsibleRecords.forEach(r => {
@@ -591,7 +588,6 @@
           <div id="detail-${selectedDate}-${hourKey}" class="detail-group hidden">
         `;
 
-        // Для каждой бригады
         responsiblesInHour.forEach((respName, idx) => {
           const tasksMap = {};
           hourRecords.forEach(r => {
@@ -688,75 +684,86 @@
       });
     }
 
-    // === ЭКСПОРТ В EXCEL ===
+    // === ЭКСПОРТ В EXCEL (с защитой от ошибок) ===
     function exportToExcel() {
-      if (!selectedDate || selectedWorkTypes.size === 0) return;
+      try {
+        if (!selectedDate || selectedWorkTypes.size === 0) {
+          alert('Выберите день и виды работ');
+          return;
+        }
 
-      const allRecords = records.filter(r =>
-        r['Рабочий день'] === selectedDate &&
-        selectedWorkTypes.has(r['Вид работ'])
-      );
+        const allRecords = records.filter(r =>
+          r['Рабочий день'] === selectedDate &&
+          selectedWorkTypes.has(r['Вид работ'])
+        );
 
-      const data = [];
-      data.push([
-        "Дата", "Час", "Бригада", "Ответственный", "Поставка", 
-        "Ед.", "Время", "Сумма (Отв.)", "Помощники", "Сумма (Помощники)"
-      ]);
+        if (allRecords.length === 0) {
+          alert('Нет данных для экспорта');
+          return;
+        }
 
-      const hourlyGroups = {};
-      allRecords.forEach(r => {
-        const hour = getHourFromTime(r['Начало задачи']);
-        if (hour === null) return;
-        const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-        if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
-        hourlyGroups[key].rawRecords.push(r);
-      });
+        const data = [
+          ["Дата", "Час", "Бригада", "Ответственный", "Поставка", "Ед.", "Время", "Сумма (Отв.)", "Помощники", "Сумма (Помощники)"]
+        ];
 
-      let brigadeCounter = 1;
-      Object.keys(hourlyGroups).sort().forEach(hourKey => {
-        const hourRecords = hourlyGroups[hourKey].rawRecords;
-        const responsibles = [...new Set(
-          hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
-        )];
-
-        responsibles.forEach(respName => {
-          const tasksMap = {};
-          hourRecords.forEach(r => {
-            const taskKey = `${r['Поставка'] || ''}|${r['Начало задачи'] || ''}`;
-            if (!tasksMap[taskKey]) tasksMap[taskKey] = { responsible: null, helpers: [] };
-            if (isResponsible(r['Должность'])) tasksMap[taskKey].responsible = r;
-            else tasksMap[taskKey].helpers.push(r);
-          });
-
-          const tasks = Object.values(tasksMap).filter(t => t.responsible?.['Сотрудник'] === respName);
-          tasks.forEach(task => {
-            const resp = task.responsible;
-            const helperNames = task.helpers.map(h => h['Сотрудник']).join("; ");
-            const helperAmounts = task.helpers.map(h => parseCurrency(h['Расчетная сумма']).toFixed(2)).join("; ");
-            data.push([
-              selectedDate,
-              hourKey,
-              `Бригада ${brigadeCounter}`,
-              respName,
-              resp['Поставка'] || '',
-              resp['Количество единиц'] || '',
-              resp['Рабочее время'] || '',
-              parseCurrency(resp['Расчетная сумма']).toFixed(2),
-              helperNames,
-              helperAmounts
-            ]);
-          });
-          brigadeCounter++;
+        const hourlyGroups = {};
+        allRecords.forEach(r => {
+          const hour = getHourFromTime(r['Начало задачи']);
+          if (hour === null) return;
+          const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
+          if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
+          hourlyGroups[key].rawRecords.push(r);
         });
-      });
 
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Отчёт");
-      XLSX.writeFile(wb, `Отчёт_${selectedDate.replace(/\./g, '-')}.xlsx`);
+        let brigadeCounter = 1;
+        Object.keys(hourlyGroups).sort().forEach(hourKey => {
+          const hourRecords = hourlyGroups[hourKey].rawRecords;
+          const responsibles = [...new Set(
+            hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
+          )];
+
+          responsibles.forEach(respName => {
+            const tasksMap = {};
+            hourRecords.forEach(r => {
+              const taskKey = `${r['Поставка'] || ''}|${r['Начало задачи'] || ''}`;
+              if (!tasksMap[taskKey]) tasksMap[taskKey] = { responsible: null, helpers: [] };
+              if (isResponsible(r['Должность'])) tasksMap[taskKey].responsible = r;
+              else tasksMap[taskKey].helpers.push(r);
+            });
+
+            const tasks = Object.values(tasksMap).filter(t => t.responsible?.['Сотрудник'] === respName);
+            tasks.forEach(task => {
+              const resp = task.responsible;
+              const helperNames = task.helpers.map(h => h['Сотрудник'] || '').join("; ");
+              const helperAmounts = task.helpers.map(h => parseCurrency(h['Расчетная сумма']).toFixed(2)).join("; ");
+              data.push([
+                selectedDate,
+                hourKey,
+                `Бригада ${brigadeCounter}`,
+                respName,
+                resp['Поставка'] || '',
+                resp['Количество единиц'] || '',
+                resp['Рабочее время'] || '',
+                parseCurrency(resp['Расчетная сумма']).toFixed(2),
+                helperNames,
+                helperAmounts
+              ]);
+            });
+            brigadeCounter++;
+          });
+        });
+
+        // Создание и скачивание файла
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Отчёт");
+        XLSX.writeFile(wb, `Отчёт_${selectedDate.replace(/\./g, '-')}.xlsx`);
+      } catch (err) {
+        console.error('Ошибка экспорта:', err);
+        alert('Ошибка при экспорте: ' + err.message);
+      }
     }
 
-    // === АВТООБНОВЛЕНИЕ ===
     function startAutoReload() {
       if (autoReloadTimer) clearInterval(autoReloadTimer);
       if (!autoReloadEnabled) return;
