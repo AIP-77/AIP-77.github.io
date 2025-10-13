@@ -1,1 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Диаграмма занятости</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    label { font-weight: bold; }
+    select, button { padding: 6px; font-size: 14px; }
+    button { cursor: pointer; }
+    canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
 
+<h2>Диаграмма занятости сотрудника</h2>
+
+<div class="controls">
+  <label for="dateSelect">Дата:</label>
+  <select id="dateSelect"></select>
+
+  <label for="employeeSelect">Сотрудник:</label>
+  <select id="employeeSelect"></select>
+
+  <button onclick="renderGantt()">Построить</button>
+</div>
+
+<canvas id="ganttChart" height="150"></canvas>
+
+<script>
+  let allData = [];
+
+  // Вспомогательные функции
+  function parseDate(dateStr) {
+    const [d, m, y] = dateStr.split('.').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function timeToMs(timeStr) {
+    if (!timeStr || timeStr === "") return null;
+    const [h, m, s] = timeStr.split(':').map(Number);
+    return (h || 0) * 3600000 + (m || 0) * 60000 + (s || 0) * 1000;
+  }
+
+  function buildDateTime(datePart, timePart) {
+    const base = parseDate(datePart);
+    const ms = timeToMs(timePart);
+    if (ms === null) return null;
+    const result = new Date(base);
+    result.setHours(0, 0, 0, 0);
+    result.setTime(result.getTime() + ms);
+    return result;
+  }
+
+  // Загрузка данных
+  fetch('fullData.json')
+    .then(res => res.json())
+    .then(data => {
+      allData = data.records || [];
+      populateFilters();
+    })
+    .catch(err => {
+      console.error('Ошибка:', err);
+      alert('Не удалось загрузить fullData.json');
+    });
+
+  function populateFilters() {
+    const dates = [...new Set(allData.map(x => x['Рабочий день']))].sort();
+    const emps = [...new Set(allData.map(x => x['Сотрудник']))].sort();
+
+    const ds = document.getElementById('dateSelect');
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      ds.appendChild(opt);
+    });
+
+    const es = document.getElementById('employeeSelect');
+    emps.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e; opt.textContent = e;
+      es.appendChild(opt);
+    });
+  }
+
+  function renderGantt() {
+    const date = document.getElementById('dateSelect').value;
+    const emp = document.getElementById('employeeSelect').value;
+
+    const filtered = allData.filter(x =>
+      x['Рабочий день'] === date && x['Сотрудник'] === emp
+    );
+
+    if (filtered.length === 0) {
+      alert('Нет данных');
+      return;
+    }
+
+    // Подготовка данных для Chart.js
+    const labels = filtered.map((item, i) => 
+      `${item['Вид работ']} (${item['Поставка']})`
+    );
+
+    const data = filtered.map(item => {
+      const start = buildDateTime(date, item['Начало задачи']);
+      const dur = item['Рабочее время'] || item['Время по табелю'] || '';
+      const durMs = timeToMs(dur);
+
+      if (!start || durMs === null) return null;
+
+      const end = new Date(start.getTime() + durMs);
+      return { x: [start, end] };
+    }).filter(Boolean);
+
+    if (data.length === 0) {
+      alert('Нет корректных задач');
+      return;
+    }
+
+    const ctx = document.getElementById('ganttChart').getContext('2d');
+
+    // Уничтожаем предыдущий график
+    if (window.myGantt) {
+      window.myGantt.destroy();
+    }
+
+    // Создаём график
+    window.myGantt = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Задачи',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.6)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        indexAxis: 'y', // горизонтальные полосы
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'minute',
+              displayFormats: {
+                minute: 'HH:mm'
+              }
+            },
+            title: {
+              display: true,
+              text: 'Время'
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Задачи'
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const start = context.parsed.x[0];
+                const end = context.parsed.x[1];
+                const durationMin = Math.round((end - start) / 60000);
+                return `Длительность: ${durationMin} мин`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
