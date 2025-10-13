@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Диаграмма занятости</title>
+  <title>Диаграмма занятости сотрудника</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
@@ -22,25 +22,30 @@
       border: 1px solid #ddd;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       position: relative;
-      overflow: hidden;
+      overflow-x: auto;
     }
 
     .timeline-header {
       display: grid;
-      grid-template-columns: 150px repeat(5, 1fr);
+      grid-template-columns: minmax(150px, 1fr) repeat(24, 1fr);
       background: #f0f0f0;
       border-bottom: 1px solid #ddd;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     .timeline-header div {
       padding: 8px;
       text-align: center;
       font-weight: bold;
+      font-size: 12px;
+      white-space: nowrap;
     }
 
     .timeline-row {
       display: grid;
-      grid-template-columns: 150px repeat(5, 1fr);
+      grid-template-columns: minmax(150px, 1fr) repeat(24, 1fr);
       border-bottom: 1px solid #eee;
       position: relative;
       height: 40px;
@@ -51,6 +56,7 @@
       font-weight: bold;
       background: #fafafa;
       border-right: 1px solid #eee;
+      font-size: 12px;
     }
 
     .task-block {
@@ -76,13 +82,35 @@
     .task-block.orange { background: #ffa500; }
     .task-block.red { background: #ff6b6b; }
 
+    .legend-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .legend-table th,
+    .legend-table td {
+      padding: 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .legend-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+
     .empty { text-align: center; padding: 50px; color: #666; font-style: italic; }
   </style>
 </head>
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-2016</p>
+<p class="version">Версия: 10.13-2333</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -99,6 +127,10 @@
 
 <div id="timelineContainer" class="timeline-table">
   <!-- Заполняется скриптом -->
+</div>
+
+<div id="legendContainer" class="legend-table">
+  <!-- Легенда -->
 </div>
 
 <div style="margin-top: 10px;">
@@ -211,26 +243,13 @@
 
     showDebug(`Найдено задач: ${tasks.length}`);
 
-    const container = document.getElementById('timelineContainer');
-    container.innerHTML = '';
-
-    // Временные точки (как на фото)
-    const timePoints = [
-      { label: '9:00', ms: 9 * 3600000 },
-      { label: '11:20', ms: 11 * 3600000 + 20 * 60000 },
-      { label: '15:00', ms: 15 * 3600000 },
-      { label: '16:00', ms: 16 * 3600000 },
-      { label: '19:00', ms: 19 * 3600000 }
-    ];
-
-    // Создаём заголовок
-    const header = document.createElement('div');
-    header.className = 'timeline-header';
-    header.innerHTML = `
-      <div>Вид работ</div>
-      ${timePoints.map(tp => `<div>${tp.label}</div>`).join('')}
-    `;
-    container.appendChild(header);
+    // Находим начало рабочего дня (первую задачу с "Рабочий день")
+    const workDayTask = tasks.find(t => t['Вид работ'] === 'Рабочий день');
+    let startTimeMs = 0;
+    if (workDayTask) {
+      const start = buildDateTime(date, workDayTask['Начало задачи']);
+      startTimeMs = start ? start.getTime() - parseDate(date).getTime() : 0;
+    }
 
     // Группируем задачи по "Вид работ"
     const grouped = {};
@@ -239,6 +258,27 @@
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(task);
     });
+
+    // Создаём временные точки (с 0 до 24 часов, начиная с startTimeMs)
+    const timePoints = [];
+    for (let i = 0; i <= 24; i++) {
+      const ms = startTimeMs + i * 3600000;
+      const h = Math.floor(ms / 3600000) % 24;
+      const m = Math.floor((ms % 3600000) / 60000);
+      timePoints.push({
+        label: `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`,
+        ms: ms
+      });
+    }
+
+    // Создаём заголовок
+    const container = document.getElementById('timelineContainer');
+    container.innerHTML = '';
+
+    const header = document.createElement('div');
+    header.className = 'timeline-header';
+    header.innerHTML = `<div>Вид работ</div>` + timePoints.map(tp => `<div>${tp.label}</div>`).join('');
+    container.appendChild(header);
 
     // Для каждого вида работ — строка
     Object.keys(grouped).forEach(workType => {
@@ -274,7 +314,7 @@
         const startMs = start.getTime() - parseDate(date).getTime();
         const endMs = startMs + durMs;
 
-        // Определяем, в какую ячейку попадает задача
+        // Определяем, в какие ячейки попадает задача
         for (let i = 0; i < timePoints.length - 1; i++) {
           const fromMs = timePoints[i].ms;
           const toMs = timePoints[i + 1].ms;
@@ -304,6 +344,37 @@
         }
       });
     });
+
+    // Создаём легенду
+    const legendContainer = document.getElementById('legendContainer');
+    legendContainer.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Начало задачи</th>
+            <th>Вид работ</th>
+            <th>Рабочее время / Время по табелю</th>
+            <th>Поставка</th>
+            <th>Должность</th>
+            <th>тип товара</th>
+            <th>Количество единиц</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map(task => `
+            <tr>
+              <td>${task['Начало задачи']}</td>
+              <td>${task['Вид работ']}</td>
+              <td>${task['Рабочее время'] || task['Время по табелю'] || ''}</td>
+              <td>${task['Поставка'] || ''}</td>
+              <td>${task['Должность'] || ''}</td>
+              <td>${task['тип товара'] || ''}</td>
+              <td>${task['Количество единиц'] || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
 
     showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
   }
