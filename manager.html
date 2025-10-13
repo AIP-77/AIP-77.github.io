@@ -21,7 +21,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-1630</p>
+<p class="version">Версия: 04.05-1900</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -188,7 +188,7 @@
 
     window.ganttChart = new Chart(ctx, {
       type: 'bar',
-       { labels, datasets: [{ data, backgroundColor: 'rgba(54,162,235,0.7)' }] },
+      data: { labels, datasets: [{ data, backgroundColor: 'rgba(54,162,235,0.7)' }] },
       options: {
         indexAxis: 'y',
         responsive: true,
