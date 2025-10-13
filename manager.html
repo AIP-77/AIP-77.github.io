@@ -15,15 +15,16 @@
     canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; }
     .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; }
     .version { font-size: 0.85em; color: #666; margin-top: -10px; }
+    .debug { font-size: 0.9em; color: #333; background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0; }
   </style>
 </head>
 <body>
 
-<!-- Версия формы: ММ.ДД-ЧЧММ -->
 <h2>Диаграмма занятости сотрудника</h2>
 <p class="version">Версия: 04.05-1430</p>
 
 <div id="errorMessage" class="error" style="display:none;"></div>
+<div id="debugInfo" class="debug" style="display:none;"></div>
 
 <div class="controls">
   <label for="dateSelect">Дата:</label>
@@ -38,9 +39,7 @@
 <canvas id="ganttChart" height="200"></canvas>
 
 <script>
-  // Версия для отладки
   const BUILD_VERSION = "04.05-1430";
-
   let allData = [];
 
   function showError(msg) {
@@ -48,6 +47,13 @@
     el.textContent = "Ошибка: " + msg;
     el.style.display = 'block';
     console.error(msg);
+  }
+
+  function showDebug(msg) {
+    const el = document.getElementById('debugInfo');
+    el.textContent = "Отладка: " + msg;
+    el.style.display = 'block';
+    console.log(msg);
   }
 
   function parseDate(dateStr) {
@@ -79,7 +85,7 @@
       return res.json();
     })
     .then(data => {
-      // Проверка структуры
+      showDebug('Данные успешно загружены');
       if (!data || !Array.isArray(data.records)) {
         throw new Error('Неверная структура JSON: ожидается { "records": [...] }');
       }
@@ -87,7 +93,8 @@
       populateFilters();
     })
     .catch(err => {
-      showError('Не удалось загрузить или обработать fullData.json: ' + err.message);
+      showError('Не удалось загрузить fullData.json: ' + err.message);
+      showDebug('Проверьте URL: https://aip-77.github.io/fullData.json');
     });
 
   function populateFilters() {
@@ -119,6 +126,8 @@
       opt.value = e; opt.textContent = e;
       es.appendChild(opt);
     });
+
+    showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}`);
   }
 
   function renderGantt() {
