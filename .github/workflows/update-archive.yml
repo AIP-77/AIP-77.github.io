@@ -1,4 +1,4 @@
- name: Update archive.json from Google Sheets
+name: Update archive.json from Google Sheets
 
 on:
   schedule:
