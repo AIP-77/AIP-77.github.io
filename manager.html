@@ -15,14 +15,16 @@
     canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; }
     .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
     .version { font-size: 0.85em; color: #555; margin-top: -10px; }
+    .debug { font-size: 0.9em; color: #333; background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
   </style>
 </head>
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: <!-- ВЕРСИЯ_ФОРМЫ -->04.05-1520</p>
+<p class="version">Версия: 04.05-1630</p>
 
 <div id="errorMessage" class="error"></div>
+<div id="debugInfo" class="debug"></div>
 
 <div class="controls">
   <label for="dateSelect">Дата:</label>
@@ -32,6 +34,7 @@
   <select id="employeeSelect"><option>—</option></select>
 
   <button onclick="renderGantt()">Построить</button>
+  <button onclick="clearCacheAndReload()" style="background:#ff9900;color:white;">🔄 Сбросить кэш</button>
 </div>
 
 <canvas id="ganttChart" height="200"></canvas>
@@ -41,24 +44,35 @@
   let allData = [];
 
   function showError(msg) {
-    document.getElementById('errorMessage').textContent = "⚠️ " + msg;
-    document.getElementById('errorMessage').style.display = 'block';
+    const el = document.getElementById('errorMessage');
+    el.textContent = "⚠️ " + msg;
+    el.style.display = 'block';
     console.error(msg);
   }
 
+  function showDebug(msg) {
+    const el = document.getElementById('debugInfo');
+    el.textContent = "🔍 " + msg;
+    el.style.display = 'block';
+    console.log(msg);
+  }
+
   function parseDate(dateStr) {
+    if (!dateStr) return null;
     const [d, m, y] = dateStr.split('.').map(Number);
     return new Date(y, m - 1, d);
   }
 
   function timeToMs(timeStr) {
     if (!timeStr || timeStr === "") return null;
-    const [h, m, s] = timeStr.split(':').map(n => parseInt(n) || 0);
+    const parts = timeStr.split(':').map(Number);
+    let h = parts[0] || 0, m = parts[1] || 0, s = parts[2] || 0;
     return h * 3600000 + m * 60000 + s * 1000;
   }
 
   function buildDateTime(datePart, timePart) {
     const base = parseDate(datePart);
+    if (!base) return null;
     const ms = timeToMs(timePart);
     if (ms === null) return null;
     const result = new Date(base);
@@ -69,16 +83,26 @@
 
   // Загрузка данных
   fetch('fullData.json')
-    .then(res => res.ok ? res.json() : Promise.reject('HTTP ' + res.status))
-    .then(data => {
-      if (!data.records || !Array.isArray(data.records)) {
-        throw new Error('Неверная структура JSON: нет records[]');
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      return res.text(); // Получаем как текст
+    })
+    .then(text => {
+      try {
+        const data = JSON.parse(text); // Парсим вручную
+        if (!data.records || !Array.isArray(data.records)) {
+          throw new Error('Нет records[]');
+        }
+        allData = data.records;
+        populateFilters();
+        showDebug(`Загружено записей: ${allData.length}`);
+      } catch (e) {
+        throw new Error(`JSON парсинг: ${e.message}`);
       }
-      allData = data.records;
-      populateFilters();
     })
     .catch(err => {
-      showError('Ошибка загрузки fullData.json: ' + err);
+      showError('Ошибка загрузки fullData.json: ' + err.message);
+      showDebug('Проверьте URL: https://aip-77.github.io/fullData.json');
     });
 
   function populateFilters() {
@@ -100,22 +124,37 @@
       opt.value = e; opt.textContent = e;
       es.appendChild(opt);
     });
+
+    showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}`);
   }
 
   function renderGantt() {
     const date = document.getElementById('dateSelect').value;
     const emp = document.getElementById('employeeSelect').value;
-    if (!date || !emp) return alert('Выберите дату и сотрудника');
+    if (!date || !emp) {
+      alert('Выберите дату и сотрудника');
+      return;
+    }
 
     const tasks = allData.filter(x =>
       x['Рабочий день'] === date && x['Сотрудник'] === emp
     );
 
-    if (tasks.length === 0) return alert('Нет данных');
+    if (tasks.length === 0) {
+      alert('Нет данных для выбранной даты и сотрудника');
+      return;
+    }
 
     const base = parseDate(date);
-    const minTime = new Date(base); minTime.setHours(0,0,0,0);
-    const maxTime = new Date(base); maxTime.setHours(24,0,0,0);
+    if (!base) {
+      alert('Неверная дата');
+      return;
+    }
+
+    const minTime = new Date(base);
+    minTime.setHours(0, 0, 0, 0);
+    const maxTime = new Date(base);
+    maxTime.setHours(24, 0, 0, 0);
 
     const labels = [];
     const data = [];
@@ -124,16 +163,25 @@
       const start = buildDateTime(date, item['Начало задачи']);
       const dur = item['Рабочее время'] || item['Время по табелю'] || '';
       const durMs = timeToMs(dur);
-      if (!start || durMs === null) return;
+      if (!start || durMs === null) {
+        console.warn('Пропущена задача:', item);
+        return;
+      }
 
       const end = new Date(start.getTime() + durMs);
-      if (end <= minTime || start >= maxTime) return;
+      if (end <= minTime || start >= maxTime) {
+        console.warn('Задача вне диапазона:', item);
+        return;
+      }
 
       labels.push(`${item['Вид работ']} (${item['Поставка']})`);
       data.push({ x: [start, end] });
     });
 
-    if (data.length === 0) return alert('Нет корректных задач');
+    if (data.length === 0) {
+      alert('Нет корректных задач для отображения');
+      return;
+    }
 
     const ctx = document.getElementById('ganttChart').getContext('2d');
     if (window.ganttChart) window.ganttChart.destroy();
@@ -172,6 +220,14 @@
         }
       }
     });
+  }
+
+  // Функция сброса кэша
+  function clearCacheAndReload() {
+    const url = window.location.href;
+    const separator = url.includes('?') ? '&' : '?';
+    const newUrl = `${url}${separator}nocache=${Date.now()}`;
+    window.location.href = newUrl;
   }
   // === КОНЕЦ: основной код ===
 </script>
