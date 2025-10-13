@@ -4,20 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Диаграмма занятости</title>
+  <!-- Chart.js с поддержкой временных шкал -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
     label { font-weight: bold; }
     select, button { padding: 6px; font-size: 14px; }
     button { cursor: pointer; }
-    canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; }
   </style>
 </head>
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<h3>10.13-1330</h3>
+
 <div class="controls">
   <label for="dateSelect">Дата:</label>
   <select id="dateSelect"></select>
@@ -28,12 +30,11 @@
   <button onclick="renderGantt()">Построить</button>
 </div>
 
-<canvas id="ganttChart" height="150"></canvas>
+<canvas id="ganttChart" height="200"></canvas>
 
 <script>
   let allData = [];
 
-  // Вспомогательные функции
   function parseDate(dateStr) {
     const [d, m, y] = dateStr.split('.').map(Number);
     return new Date(y, m - 1, d);
@@ -41,8 +42,9 @@
 
   function timeToMs(timeStr) {
     if (!timeStr || timeStr === "") return null;
-    const [h, m, s] = timeStr.split(':').map(Number);
-    return (h || 0) * 3600000 + (m || 0) * 60000 + (s || 0) * 1000;
+    const parts = timeStr.split(':').map(Number);
+    let h = parts[0] || 0, m = parts[1] || 0, s = parts[2] || 0;
+    return h * 3600000 + m * 60000 + s * 1000;
   }
 
   function buildDateTime(datePart, timePart) {
@@ -55,7 +57,6 @@
     return result;
   }
 
-  // Загрузка данных
   fetch('fullData.json')
     .then(res => res.json())
     .then(data => {
@@ -63,8 +64,8 @@
       populateFilters();
     })
     .catch(err => {
-      console.error('Ошибка:', err);
-      alert('Не удалось загрузить fullData.json');
+      console.error('Ошибка загрузки fullData.json:', err);
+      alert('Не удалось загрузить данные. Проверьте наличие fullData.json в корне.');
     });
 
   function populateFilters() {
@@ -95,47 +96,48 @@
     );
 
     if (filtered.length === 0) {
-      alert('Нет данных');
+      alert('Нет данных для выбранной даты и сотрудника');
       return;
     }
 
-    // Подготовка данных для Chart.js
-    const labels = filtered.map((item, i) => 
-      `${item['Вид работ']} (${item['Поставка']})`
-    );
+    // Подготавливаем данные
+    const labels = [];
+    const data = [];
 
-    const data = filtered.map(item => {
+    filtered.forEach((item, i) => {
       const start = buildDateTime(date, item['Начало задачи']);
-      const dur = item['Рабочее время'] || item['Время по табелю'] || '';
-      const durMs = timeToMs(dur);
+      const durStr = item['Рабочее время'] || item['Время по табелю'] || '';
+      const durMs = timeToMs(durStr);
 
-      if (!start || durMs === null) return null;
+      if (!start || durMs === null) {
+        console.warn('Пропущена задача (нет времени):', item);
+        return;
+      }
 
       const end = new Date(start.getTime() + durMs);
-      return { x: [start, end] };
-    }).filter(Boolean);
+      labels.push(`${item['Вид работ']} (${item['Поставка']})`);
+      data.push({ x: [start, end] });
+    });
 
     if (data.length === 0) {
-      alert('Нет корректных задач');
+      alert('Нет корректных задач для отображения');
       return;
     }
 
     const ctx = document.getElementById('ganttChart').getContext('2d');
 
-    // Уничтожаем предыдущий график
     if (window.myGantt) {
       window.myGantt.destroy();
     }
 
-    // Создаём график
     window.myGantt = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [{
-          label: 'Задачи',
+          label: 'Занятость',
           data: data,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
           borderColor: 'rgba(54, 162, 235, 1)',
           borderWidth: 1
         }]
@@ -149,6 +151,7 @@
             type: 'time',
             time: {
               unit: 'minute',
+              tooltipFormat: 'HH:mm:ss',
               displayFormats: {
                 minute: 'HH:mm'
               }
@@ -172,8 +175,12 @@
               label: function(context) {
                 const start = context.parsed.x[0];
                 const end = context.parsed.x[1];
-                const durationMin = Math.round((end - start) / 60000);
-                return `Длительность: ${durationMin} мин`;
+                const durationSec = (end - start) / 1000;
+                const h = Math.floor(durationSec / 3600);
+                const m = Math.floor((durationSec % 3600) / 60);
+                const s = Math.floor(durationSec % 60);
+                const durStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                return `Длительность: ${durStr}`;
               }
             }
           }
