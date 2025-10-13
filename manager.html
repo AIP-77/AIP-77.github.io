@@ -21,7 +21,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-1900</p>
+<p class="version">Версия: 04.05-1906</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -129,63 +129,74 @@
   }
 
   function renderGantt() {
-    const date = document.getElementById('dateSelect').value;
-    const emp = document.getElementById('employeeSelect').value;
-    if (!date || !emp) {
-      alert('Выберите дату и сотрудника');
+  const date = document.getElementById('dateSelect').value;
+  const emp = document.getElementById('employeeSelect').value;
+  if (!date || !emp) {
+    alert('Выберите дату и сотрудника');
+    return;
+  }
+
+  const tasks = allData.filter(x =>
+    x['Рабочий день'] === date && x['Сотрудник'] === emp
+  );
+
+  if (tasks.length === 0) {
+    alert('Нет данных для выбранной даты и сотрудника');
+    return;
+  }
+
+  showDebug(`Найдено задач: ${tasks.length}`);
+
+  const base = parseDate(date);
+  if (!base) {
+    alert('Неверная дата');
+    return;
+  }
+
+  const minTime = new Date(base);
+  minTime.setHours(0, 0, 0, 0);
+  const maxTime = new Date(base);
+  maxTime.setHours(24, 0, 0, 0);
+
+  const labels = [];
+  const data = [];
+
+  let skippedCount = 0;
+
+  tasks.forEach((item, i) => {
+    const start = buildDateTime(date, item['Начало задачи']);
+    const dur = item['Рабочее время'] || item['Время по табелю'] || '';
+    const durMs = timeToMs(dur);
+
+    if (!start || durMs === null) {
+      console.warn(`Пропущена задача ${i+1} (нет времени):`, item);
+      skippedCount++;
       return;
     }
 
-    const tasks = allData.filter(x =>
-      x['Рабочий день'] === date && x['Сотрудник'] === emp
-    );
+    const end = new Date(start.getTime() + durMs);
 
-    if (tasks.length === 0) {
-      alert('Нет данных для выбранной даты и сотрудника');
+    if (end <= minTime || start >= maxTime) {
+      console.warn(`Задача ${i+1} вне диапазона 00:00–24:00:`, item);
+      skippedCount++;
       return;
     }
 
-    const base = parseDate(date);
-    if (!base) {
-      alert('Неверная дата');
-      return;
-    }
+    labels.push(`${item['Вид работ']} (${item['Поставка']})`);
+    data.push({ x: [start, end] });
+  });
 
-    const minTime = new Date(base);
-    minTime.setHours(0, 0, 0, 0);
-    const maxTime = new Date(base);
-    maxTime.setHours(24, 0, 0, 0);
+  showDebug(`Обработано задач: ${tasks.length}, пропущено: ${skippedCount}, для отображения: ${data.length}`);
 
-    const labels = [];
-    const data = [];
+  if (data.length === 0) {
+    alert('Нет корректных задач для отображения');
+    return;
+  }
 
-    tasks.forEach(item => {
-      const start = buildDateTime(date, item['Начало задачи']);
-      const dur = item['Рабочее время'] || item['Время по табелю'] || '';
-      const durMs = timeToMs(dur);
-      if (!start || durMs === null) {
-        console.warn('Пропущена задача:', item);
-        return;
-      }
+  const ctx = document.getElementById('ganttChart').getContext('2d');
+  if (window.ganttChart) window.ganttChart.destroy();
 
-      const end = new Date(start.getTime() + durMs);
-      if (end <= minTime || start >= maxTime) {
-        console.warn('Задача вне диапазона:', item);
-        return;
-      }
-
-      labels.push(`${item['Вид работ']} (${item['Поставка']})`);
-      data.push({ x: [start, end] });
-    });
-
-    if (data.length === 0) {
-      alert('Нет корректных задач для отображения');
-      return;
-    }
-
-    const ctx = document.getElementById('ganttChart').getContext('2d');
-    if (window.ganttChart) window.ganttChart.destroy();
-
+  try {
     window.ganttChart = new Chart(ctx, {
       type: 'bar',
       data: { labels, datasets: [{ data, backgroundColor: 'rgba(54,162,235,0.7)' }] },
@@ -220,7 +231,11 @@
         }
       }
     });
+  } catch (err) {
+    showError(`Ошибка при построении диаграммы: ${err.message}`);
+    console.error(err);
   }
+}
 
   // Функция сброса кэша
   function clearCacheAndReload() {
