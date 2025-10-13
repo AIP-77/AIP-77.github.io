@@ -1,4 +1,4 @@
-name: Update data.json from Google Sheets
+ name: Update archive.json from Google Sheets
 
 on:
   schedule:
@@ -22,17 +22,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Generate current.json
-        run: node scripts/generate-current.mjs
-
-      - name: Generate calendar-cache.json
-        run: node scripts/generate-calendar-cache.mjs
-
-      - name: Generate staff.json
-        run: node scripts/generate-staff.mjs
-
-      - name: Generate fullData.json
-        run: node scripts/generate-fullData.mjs
+      - name: Generate archive.json
+        run: node scripts/generate-Archive.mjs
 
       - name: Commit and push
         run: |
