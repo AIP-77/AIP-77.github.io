@@ -13,18 +13,24 @@
     select, button { padding: 6px; font-size: 14px; }
     button { cursor: pointer; }
     canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; }
+    .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    .version { font-size: 0.85em; color: #666; margin-top: -10px; }
   </style>
 </head>
 <body>
 
+<!-- Версия формы: ММ.ДД-ЧЧММ -->
 <h2>Диаграмма занятости сотрудника</h2>
-<h2>10.13-1347</h2>
+<p class="version">Версия: 04.05-1430</p>
+
+<div id="errorMessage" class="error" style="display:none;"></div>
+
 <div class="controls">
   <label for="dateSelect">Дата:</label>
-  <select id="dateSelect"></select>
+  <select id="dateSelect"><option value="">—</option></select>
 
   <label for="employeeSelect">Сотрудник:</label>
-  <select id="employeeSelect"></select>
+  <select id="employeeSelect"><option value="">—</option></select>
 
   <button onclick="renderGantt()">Построить</button>
 </div>
@@ -32,7 +38,17 @@
 <canvas id="ganttChart" height="200"></canvas>
 
 <script>
+  // Версия для отладки
+  const BUILD_VERSION = "04.05-1430";
+
   let allData = [];
+
+  function showError(msg) {
+    const el = document.getElementById('errorMessage');
+    el.textContent = "Ошибка: " + msg;
+    el.style.display = 'block';
+    console.error(msg);
+  }
 
   function parseDate(dateStr) {
     const [d, m, y] = dateStr.split('.').map(Number);
@@ -56,22 +72,40 @@
     return result;
   }
 
+  // Загрузка данных
   fetch('fullData.json')
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      return res.json();
+    })
     .then(data => {
-      allData = data.records || [];
+      // Проверка структуры
+      if (!data || !Array.isArray(data.records)) {
+        throw new Error('Неверная структура JSON: ожидается { "records": [...] }');
+      }
+      allData = data.records;
       populateFilters();
     })
     .catch(err => {
-      console.error('Ошибка загрузки fullData.json:', err);
-      alert('Не удалось загрузить данные. Проверьте наличие fullData.json в корне.');
+      showError('Не удалось загрузить или обработать fullData.json: ' + err.message);
     });
 
   function populateFilters() {
-    const dates = [...new Set(allData.map(x => x['Рабочий день']))].sort();
-    const emps = [...new Set(allData.map(x => x['Сотрудник']))].sort();
+    if (allData.length === 0) {
+      showError('Нет записей в fullData.json');
+      return;
+    }
+
+    const dates = [...new Set(allData.map(x => x['Рабочий день']))].filter(Boolean).sort();
+    const emps = [...new Set(allData.map(x => x['Сотрудник']))].filter(Boolean).sort();
+
+    if (dates.length === 0 || emps.length === 0) {
+      showError('В данных отсутствуют даты или сотрудники');
+      return;
+    }
 
     const ds = document.getElementById('dateSelect');
+    ds.innerHTML = '<option value="">Выберите дату</option>';
     dates.forEach(d => {
       const opt = document.createElement('option');
       opt.value = d; opt.textContent = d;
@@ -79,6 +113,7 @@
     });
 
     const es = document.getElementById('employeeSelect');
+    es.innerHTML = '<option value="">Выберите сотрудника</option>';
     emps.forEach(e => {
       const opt = document.createElement('option');
       opt.value = e; opt.textContent = e;
@@ -90,6 +125,11 @@
     const date = document.getElementById('dateSelect').value;
     const emp = document.getElementById('employeeSelect').value;
 
+    if (!date || !emp) {
+      alert('Выберите дату и сотрудника');
+      return;
+    }
+
     const filtered = allData.filter(x =>
       x['Рабочий день'] === date && x['Сотрудник'] === emp
     );
@@ -99,7 +139,6 @@
       return;
     }
 
-    // Создаём базовую дату для границ (00:00 и 24:00)
     const baseDate = parseDate(date);
     const minTime = new Date(baseDate);
     minTime.setHours(0, 0, 0, 0);
@@ -120,12 +159,7 @@
       }
 
       const end = new Date(start.getTime() + durMs);
-
-      // Проверка: задача должна быть в пределах суток
-      if (start < minTime || end > maxTime) {
-        console.warn('Задача вне диапазона 00:00–24:00:', item);
-        return;
-      }
+      if (start < minTime || end > maxTime) return;
 
       labels.push(`${item['Вид работ']} (${item['Поставка']})`);
       data.push({ x: [start, end] });
@@ -137,23 +171,11 @@
     }
 
     const ctx = document.getElementById('ganttChart').getContext('2d');
-
-    if (window.myGantt) {
-      window.myGantt.destroy();
-    }
+    if (window.myGantt) window.myGantt.destroy();
 
     window.myGantt = new Chart(ctx, {
       type: 'bar',
-       {
-        labels: labels,
-        datasets: [{
-          label: 'Занятость',
-          data: data,
-          backgroundColor: 'rgba(54, 162, 235, 0.7)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
+       { labels, datasets: [{ label: 'Занятость', data, backgroundColor: 'rgba(54,162,235,0.7)' }] },
       options: {
         indexAxis: 'y',
         responsive: true,
@@ -161,39 +183,25 @@
         scales: {
           x: {
             type: 'time',
-            min: minTime,   // ←←← ФИКС: явные границы
-            max: maxTime,   // ←←← ФИКС: явные границы
-            time: {
-              unit: 'hour',
-              displayFormats: {
-                hour: 'HH:mm'
-              }
-            },
-            title: {
-              display: true,
-              text: 'Время'
-            }
+            min: minTime,
+            max: maxTime,
+            time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
+            title: { display: true, text: 'Время' }
           },
-          y: {
-            title: {
-              display: true,
-              text: 'Задачи'
-            }
-          }
+          y: { title: { display: true, text: 'Задачи' } }
         },
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: function(context) {
-                const start = context.parsed.x[0];
-                const end = context.parsed.x[1];
-                const durationSec = (end - start) / 1000;
-                const h = Math.floor(durationSec / 3600);
-                const m = Math.floor((durationSec % 3600) / 60);
-                const s = Math.floor(durationSec % 60);
-                const durStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                return `Длительность: ${durStr}`;
+              label: function(ctx) {
+                const start = ctx.parsed.x[0];
+                const end = ctx.parsed.x[1];
+                const sec = (end - start) / 1000;
+                const h = Math.floor(sec / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s = Math.floor(sec % 60);
+                return `Длительность: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
               }
             }
           }
