@@ -21,7 +21,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-2000</p>
+<p class="version">Версия: 04.05-1936</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -182,7 +182,6 @@
         return;
       }
 
-      // Защита от NaN
       if (isNaN(startMs) || isNaN(endMs)) {
         console.warn(`Задача ${i+1} содержит NaN:`, item);
         skippedCount++;
@@ -201,7 +200,11 @@
     }
 
     const ctx = document.getElementById('ganttChart').getContext('2d');
-    if (window.ganttChart) window.ganttChart.destroy();
+
+    // Уничтожаем предыдущий график, если он есть и является Chart-объектом
+    if (window.ganttChart && typeof window.ganttChart.destroy === 'function') {
+      window.ganttChart.destroy();
+    }
 
     try {
       window.ganttChart = new Chart(ctx, {
@@ -252,7 +255,6 @@
   }
 
   function clearCacheAndReload() {
-    // Для Telegram WebApp используем location.reload()
     location.reload();
   }
 </script>
