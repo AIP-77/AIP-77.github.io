@@ -4,24 +4,85 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Диаграмма занятости</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
     label { font-weight: bold; }
     select, button { padding: 6px; font-size: 14px; }
     button { cursor: pointer; }
-    canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; height: 300px; }
     .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
     .version { font-size: 0.85em; color: #555; margin-top: -10px; }
     .debug { font-size: 0.9em; color: #333; background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
+
+    /* Таблица */
+    .timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timeline-header {
+      display: grid;
+      grid-template-columns: 150px repeat(5, 1fr);
+      background: #f0f0f0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .timeline-header div {
+      padding: 8px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 150px repeat(5, 1fr);
+      border-bottom: 1px solid #eee;
+      position: relative;
+      height: 40px;
+    }
+
+    .timeline-row > div:first-child {
+      padding: 8px;
+      font-weight: bold;
+      background: #fafafa;
+      border-right: 1px solid #eee;
+    }
+
+    .task-block {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: #78be20;
+      color: white;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-radius: 2px;
+      box-sizing: border-box;
+    }
+
+    .task-block.blue { background: #4a90e2; }
+    .task-block.green { background: #78be20; }
+    .task-block.orange { background: #ffa500; }
+    .task-block.red { background: #ff6b6b; }
+
     .empty { text-align: center; padding: 50px; color: #666; font-style: italic; }
   </style>
 </head>
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-1953</p>
+<p class="version">Версия: 04.05-2016</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -33,10 +94,12 @@
   <label for="employeeSelect">Сотрудник:</label>
   <select id="employeeSelect"><option>—</option></select>
 
-  <button onclick="renderGantt()">Построить</button>
+  <button onclick="renderTimeline()">Построить</button>
 </div>
 
-<canvas id="ganttChart" height="300"></canvas>
+<div id="timelineContainer" class="timeline-table">
+  <!-- Заполняется скриптом -->
+</div>
 
 <div style="margin-top: 10px;">
   <button onclick="clearCacheAndReload()" style="background:#ff9900;color:white;">🔄 Сбросить кэш</button>
@@ -129,7 +192,7 @@
     showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}`);
   }
 
-  function renderGantt() {
+  function renderTimeline() {
     const date = document.getElementById('dateSelect').value;
     const emp = document.getElementById('employeeSelect').value;
     if (!date || !emp) {
@@ -148,124 +211,101 @@
 
     showDebug(`Найдено задач: ${tasks.length}`);
 
-    const base = parseDate(date);
-    if (!base) {
-      alert('Неверная дата');
-      return;
-    }
+    const container = document.getElementById('timelineContainer');
+    container.innerHTML = '';
 
-    const minTimeMs = 0;
-    const maxTimeMs = 24 * 3600 * 1000;
+    // Временные точки (как на фото)
+    const timePoints = [
+      { label: '9:00', ms: 9 * 3600000 },
+      { label: '11:20', ms: 11 * 3600000 + 20 * 60000 },
+      { label: '15:00', ms: 15 * 3600000 },
+      { label: '16:00', ms: 16 * 3600000 },
+      { label: '19:00', ms: 19 * 3600000 }
+    ];
 
-    const labels = [];
-    const data = [];
+    // Создаём заголовок
+    const header = document.createElement('div');
+    header.className = 'timeline-header';
+    header.innerHTML = `
+      <div>Вид работ</div>
+      ${timePoints.map(tp => `<div>${tp.label}</div>`).join('')}
+    `;
+    container.appendChild(header);
 
-    let skippedCount = 0;
-
-    tasks.forEach((item, i) => {
-      const start = buildDateTime(date, item['Начало задачи']);
-      const dur = item['Рабочее время'] || item['Время по табелю'] || '';
-      const durMs = timeToMs(dur);
-
-      if (!start || durMs === null) {
-        console.warn(`Пропущена задача ${i+1} (нет времени):`, item);
-        skippedCount++;
-        return;
-      }
-
-      const startMs = start.getTime() - base.getTime();
-      const endMs = startMs + durMs;
-
-      if (endMs <= minTimeMs || startMs >= maxTimeMs) {
-        console.warn(`Задача ${i+1} вне диапазона:`, item);
-        skippedCount++;
-        return;
-      }
-
-      if (isNaN(startMs) || isNaN(endMs)) {
-        console.warn(`Задача ${i+1} содержит NaN:`, item);
-        skippedCount++;
-        return;
-      }
-
-      labels.push(`${item['Вид работ']} (${item['Поставка']})`);
-      data.push({ x: [startMs, endMs] });
+    // Группируем задачи по "Вид работ"
+    const grouped = {};
+    tasks.forEach(task => {
+      const key = task['Вид работ'];
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(task);
     });
 
-    showDebug(`Обработано задач: ${tasks.length}, пропущено: ${skippedCount}, для отображения: ${data.length}`);
+    // Для каждого вида работ — строка
+    Object.keys(grouped).forEach(workType => {
+      const row = document.createElement('div');
+      row.className = 'timeline-row';
 
-    if (data.length === 0) {
-      document.getElementById('ganttChart').innerHTML = '<div class="empty">Нет корректных задач для отображения</div>';
-      return;
-    }
+      // Ячейка с названием вида работ
+      const workCell = document.createElement('div');
+      workCell.textContent = workType;
+      row.appendChild(workCell);
 
-    const ctx = document.getElementById('ganttChart').getContext('2d');
+      // Ячейки с временем
+      timePoints.forEach((tp, i) => {
+        const cell = document.createElement('div');
+        cell.style.position = 'relative';
+        cell.style.height = '100%';
+        row.appendChild(cell);
+      });
 
-    if (window.ganttChart && typeof window.ganttChart.destroy === 'function') {
-      window.ganttChart.destroy();
-    }
+      container.appendChild(row);
 
-    try {
-      window.ganttChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            data,
-            backgroundColor: 'rgba(54, 162, 235, 0.7)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
-            barPercentage: 0.8,
-            categoryPercentage: 0.9
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const [s, e] = ctx.parsed.x;
-                  const durationMs = e - s;
-                  const h = Math.floor(durationMs / 3600000);
-                  const m = Math.floor((durationMs % 3600000) / 60000);
-                  const s2 = Math.floor((durationMs % 60000) / 1000);
-                  return `Длительность: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s2.toString().padStart(2,'0')}`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              type: 'linear',
-              min: minTimeMs,
-              max: maxTimeMs,
-              title: { display: true, text: 'Время (мс с начала дня)' },
-              ticks: {
-                callback: function(value) {
-                  const h = Math.floor(value / 3600000);
-                  const m = Math.floor((value % 3600000) / 60000);
-                  const s = Math.floor((value % 60000) / 1000);
-                  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-                }
-              },
-              grid: { display: true }
-            },
-            y: {
-              title: { display: true, text: 'Задачи' },
-              grid: { display: false },
-              ticks: { font: { size: 12 }, padding: 5 }
-            }
+      // Добавляем задачи в ячейки
+      grouped[workType].forEach(task => {
+        const start = buildDateTime(date, task['Начало задачи']);
+        const dur = task['Рабочее время'] || task['Время по табелю'] || '';
+        const durMs = timeToMs(dur);
+
+        if (!start || durMs === null) {
+          console.warn('Пропущена задача (нет времени):', task);
+          return;
+        }
+
+        const startMs = start.getTime() - parseDate(date).getTime();
+        const endMs = startMs + durMs;
+
+        // Определяем, в какую ячейку попадает задача
+        for (let i = 0; i < timePoints.length - 1; i++) {
+          const fromMs = timePoints[i].ms;
+          const toMs = timePoints[i + 1].ms;
+
+          if (startMs < toMs && endMs > fromMs) {
+            // Задача пересекается с этой ячейкой
+            const cell = row.children[i + 1]; // +1 потому что первая ячейка — название
+
+            const block = document.createElement('div');
+            block.className = 'task-block';
+            block.textContent = task['Поставка'] || 'Без номера';
+
+            // Цвет по типу работы
+            if (workType.includes('Рабочий день')) block.classList.add('green');
+            else if (workType.includes('Разгрузка')) block.classList.add('blue');
+            else block.classList.add('orange');
+
+            // Позиционирование
+            const leftPct = Math.max(0, (startMs - fromMs) / (toMs - fromMs)) * 100;
+            const widthPct = Math.min(100, (endMs - startMs) / (toMs - fromMs) * 100);
+
+            block.style.left = `${leftPct}%`;
+            block.style.width = `${widthPct}%`;
+
+            cell.appendChild(block);
           }
         }
       });
-    } catch (err) {
-      showError(`Ошибка при построении диаграммы: ${err.message}`);
-      console.error(err);
-    }
+    });
+
+    showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
   }
 
   function clearCacheAndReload() {
