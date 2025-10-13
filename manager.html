@@ -21,7 +21,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-1936</p>
+<p class="version">Версия: 04.05-1953</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -201,7 +201,6 @@
 
     const ctx = document.getElementById('ganttChart').getContext('2d');
 
-    // Уничтожаем предыдущий график, если он есть и является Chart-объектом
     if (window.ganttChart && typeof window.ganttChart.destroy === 'function') {
       window.ganttChart.destroy();
     }
@@ -209,28 +208,21 @@
     try {
       window.ganttChart = new Chart(ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ data, backgroundColor: 'rgba(54,162,235,0.7)' }] },
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            barPercentage: 0.8,
+            categoryPercentage: 0.9
+          }]
+        },
         options: {
           indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
-          scales: {
-            x: {
-              type: 'linear',
-              min: minTimeMs,
-              max: maxTimeMs,
-              title: { display: true, text: 'Время (мс с начала дня)' },
-              ticks: {
-                callback: function(value) {
-                  const h = Math.floor(value / 3600000);
-                  const m = Math.floor((value % 3600000) / 60000);
-                  const s = Math.floor((value % 60000) / 1000);
-                  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-                }
-              }
-            },
-            y: { title: { display: true, text: 'Задачи' } }
-          },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -244,6 +236,28 @@
                   return `Длительность: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s2.toString().padStart(2,'0')}`;
                 }
               }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              min: minTimeMs,
+              max: maxTimeMs,
+              title: { display: true, text: 'Время (мс с начала дня)' },
+              ticks: {
+                callback: function(value) {
+                  const h = Math.floor(value / 3600000);
+                  const m = Math.floor((value % 3600000) / 60000);
+                  const s = Math.floor((value % 60000) / 1000);
+                  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                }
+              },
+              grid: { display: true }
+            },
+            y: {
+              title: { display: true, text: 'Задачи' },
+              grid: { display: false },
+              ticks: { font: { size: 12 }, padding: 5 }
             }
           }
         }
