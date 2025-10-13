@@ -11,16 +11,17 @@
     label { font-weight: bold; }
     select, button { padding: 6px; font-size: 14px; }
     button { cursor: pointer; }
-    canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; }
+    canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; height: 300px; }
     .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
     .version { font-size: 0.85em; color: #555; margin-top: -10px; }
     .debug { font-size: 0.9em; color: #333; background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
+    .empty { text-align: center; padding: 50px; color: #666; font-style: italic; }
   </style>
 </head>
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-1915</p>
+<p class="version">Версия: 04.05-2000</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -35,7 +36,7 @@
   <button onclick="renderGantt()">Построить</button>
 </div>
 
-<canvas id="ganttChart" height="200"></canvas>
+<canvas id="ganttChart" height="300"></canvas>
 
 <div style="margin-top: 10px;">
   <button onclick="clearCacheAndReload()" style="background:#ff9900;color:white;">🔄 Сбросить кэш</button>
@@ -181,6 +182,13 @@
         return;
       }
 
+      // Защита от NaN
+      if (isNaN(startMs) || isNaN(endMs)) {
+        console.warn(`Задача ${i+1} содержит NaN:`, item);
+        skippedCount++;
+        return;
+      }
+
       labels.push(`${item['Вид работ']} (${item['Поставка']})`);
       data.push({ x: [startMs, endMs] });
     });
@@ -188,7 +196,7 @@
     showDebug(`Обработано задач: ${tasks.length}, пропущено: ${skippedCount}, для отображения: ${data.length}`);
 
     if (data.length === 0) {
-      alert('Нет корректных задач для отображения');
+      document.getElementById('ganttChart').innerHTML = '<div class="empty">Нет корректных задач для отображения</div>';
       return;
     }
 
@@ -244,10 +252,8 @@
   }
 
   function clearCacheAndReload() {
-    const url = window.location.href;
-    const separator = url.includes('?') ? '&' : '?';
-    const newUrl = `${url}${separator}nocache=${Date.now()}`;
-    window.location.href = newUrl;
+    // Для Telegram WebApp используем location.reload()
+    location.reload();
   }
 </script>
 
