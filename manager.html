@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Диаграмма занятости</title>
-  <!-- Chart.js с поддержкой временных шкал -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
@@ -19,7 +18,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-
+<h2>10.13-1347</h2>
 <div class="controls">
   <label for="dateSelect">Дата:</label>
   <select id="dateSelect"></select>
@@ -100,7 +99,13 @@
       return;
     }
 
-    // Подготавливаем данные
+    // Создаём базовую дату для границ (00:00 и 24:00)
+    const baseDate = parseDate(date);
+    const minTime = new Date(baseDate);
+    minTime.setHours(0, 0, 0, 0);
+    const maxTime = new Date(baseDate);
+    maxTime.setHours(24, 0, 0, 0);
+
     const labels = [];
     const data = [];
 
@@ -115,6 +120,13 @@
       }
 
       const end = new Date(start.getTime() + durMs);
+
+      // Проверка: задача должна быть в пределах суток
+      if (start < minTime || end > maxTime) {
+        console.warn('Задача вне диапазона 00:00–24:00:', item);
+        return;
+      }
+
       labels.push(`${item['Вид работ']} (${item['Поставка']})`);
       data.push({ x: [start, end] });
     });
@@ -132,7 +144,7 @@
 
     window.myGantt = new Chart(ctx, {
       type: 'bar',
-      data: {
+       {
         labels: labels,
         datasets: [{
           label: 'Занятость',
@@ -143,17 +155,18 @@
         }]
       },
       options: {
-        indexAxis: 'y', // горизонтальные полосы
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
         scales: {
           x: {
             type: 'time',
+            min: minTime,   // ←←← ФИКС: явные границы
+            max: maxTime,   // ←←← ФИКС: явные границы
             time: {
-              unit: 'minute',
-              tooltipFormat: 'HH:mm:ss',
+              unit: 'hour',
               displayFormats: {
-                minute: 'HH:mm'
+                hour: 'HH:mm'
               }
             },
             title: {
