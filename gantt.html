@@ -3,50 +3,173 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Диаграмма занятости</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Диаграмма занятости сотрудника</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
     label { font-weight: bold; }
     select, button { padding: 6px; font-size: 14px; }
     button { cursor: pointer; }
-    canvas { background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
+    .version { font-size: 0.85em; color: #555; margin-top: -10px; }
+    .debug { font-size: 0.9em; color: #333; background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
+
+    /* Таблица */
+    .timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .timeline-header {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) repeat(24, 1fr);
+      background: #f0f0f0;
+      border-bottom: 1px solid #ddd;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .timeline-header div {
+      padding: 8px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) repeat(24, 1fr);
+      border-bottom: 1px solid #eee;
+      position: relative;
+      height: 40px;
+    }
+
+    .timeline-row > div:first-child {
+      padding: 8px;
+      font-weight: bold;
+      background: #fafafa;
+      border-right: 1px solid #eee;
+      font-size: 12px;
+    }
+
+    .task-block {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: #78be20;
+      color: white;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-radius: 2px;
+      box-sizing: border-box;
+    }
+
+    .task-block.blue { background: #4a90e2; }
+    .task-block.green { background: #78be20; }
+    .task-block.orange { background: #ffa500; }
+    .task-block.red { background: #ff6b6b; }
+
+    .legend-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .legend-table th,
+    .legend-table td {
+      padding: 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .legend-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+
+    .empty { text-align: center; padding: 50px; color: #666; font-style: italic; }
   </style>
 </head>
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
+<p class="version">Версия: 10.13-2333</p>
+
+<div id="errorMessage" class="error"></div>
+<div id="debugInfo" class="debug"></div>
 
 <div class="controls">
   <label for="dateSelect">Дата:</label>
-  <select id="dateSelect"></select>
+  <select id="dateSelect"><option>—</option></select>
 
   <label for="employeeSelect">Сотрудник:</label>
-  <select id="employeeSelect"></select>
+  <select id="employeeSelect"><option>—</option></select>
 
-  <button onclick="renderGantt()">Построить</button>
+  <button onclick="renderTimeline()">Построить</button>
 </div>
 
-<canvas id="ganttChart" height="150"></canvas>
+<div id="timelineContainer" class="timeline-table">
+  <!-- Заполняется скриптом -->
+</div>
+
+<div id="legendContainer" class="legend-table">
+  <!-- Легенда -->
+</div>
+
+<div style="margin-top: 10px;">
+  <button onclick="clearCacheAndReload()" style="background:#ff9900;color:white;">🔄 Сбросить кэш</button>
+</div>
 
 <script>
   let allData = [];
 
-  // Вспомогательные функции
+  function showError(msg) {
+    const el = document.getElementById('errorMessage');
+    el.textContent = "⚠️ " + msg;
+    el.style.display = 'block';
+    console.error(msg);
+  }
+
+  function showDebug(msg) {
+    const el = document.getElementById('debugInfo');
+    el.textContent = "🔍 " + msg;
+    el.style.display = 'block';
+    console.log(msg);
+  }
+
   function parseDate(dateStr) {
+    if (!dateStr) return null;
     const [d, m, y] = dateStr.split('.').map(Number);
     return new Date(y, m - 1, d);
   }
 
   function timeToMs(timeStr) {
     if (!timeStr || timeStr === "") return null;
-    const [h, m, s] = timeStr.split(':').map(Number);
-    return (h || 0) * 3600000 + (m || 0) * 60000 + (s || 0) * 1000;
+    const parts = timeStr.split(':').map(Number);
+    let h = parts[0] || 0, m = parts[1] || 0, s = parts[2] || 0;
+    return h * 3600000 + m * 60000 + s * 1000;
   }
 
   function buildDateTime(datePart, timePart) {
     const base = parseDate(datePart);
+    if (!base) return null;
     const ms = timeToMs(timePart);
     if (ms === null) return null;
     const result = new Date(base);
@@ -55,23 +178,35 @@
     return result;
   }
 
-  // Загрузка данных
   fetch('fullData.json')
-    .then(res => res.json())
-    .then(data => {
-      allData = data.records || [];
-      populateFilters();
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      return res.text();
+    })
+    .then(text => {
+      try {
+        const data = JSON.parse(text);
+        if (!data.records || !Array.isArray(data.records)) {
+          throw new Error('Нет records[]');
+        }
+        allData = data.records;
+        populateFilters();
+        showDebug(`Загружено записей: ${allData.length}`);
+      } catch (e) {
+        throw new Error(`JSON парсинг: ${e.message}`);
+      }
     })
     .catch(err => {
-      console.error('Ошибка:', err);
-      alert('Не удалось загрузить fullData.json');
+      showError('Ошибка загрузки fullData.json: ' + err.message);
+      showDebug('Проверьте URL: https://aip-77.github.io/fullData.json');
     });
 
   function populateFilters() {
-    const dates = [...new Set(allData.map(x => x['Рабочий день']))].sort();
-    const emps = [...new Set(allData.map(x => x['Сотрудник']))].sort();
+    const dates = [...new Set(allData.map(x => x['Рабочий день']))].filter(Boolean).sort();
+    const emps = [...new Set(allData.map(x => x['Сотрудник']))].filter(Boolean).sort();
 
     const ds = document.getElementById('dateSelect');
+    ds.innerHTML = '<option value="">Выберите дату</option>';
     dates.forEach(d => {
       const opt = document.createElement('option');
       opt.value = d; opt.textContent = d;
@@ -79,107 +214,173 @@
     });
 
     const es = document.getElementById('employeeSelect');
+    es.innerHTML = '<option value="">Выберите сотрудника</option>';
     emps.forEach(e => {
       const opt = document.createElement('option');
       opt.value = e; opt.textContent = e;
       es.appendChild(opt);
     });
+
+    showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}`);
   }
 
-  function renderGantt() {
+  function renderTimeline() {
     const date = document.getElementById('dateSelect').value;
     const emp = document.getElementById('employeeSelect').value;
+    if (!date || !emp) {
+      alert('Выберите дату и сотрудника');
+      return;
+    }
 
-    const filtered = allData.filter(x =>
+    const tasks = allData.filter(x =>
       x['Рабочий день'] === date && x['Сотрудник'] === emp
     );
 
-    if (filtered.length === 0) {
-      alert('Нет данных');
+    if (tasks.length === 0) {
+      alert('Нет данных для выбранной даты и сотрудника');
       return;
     }
 
-    // Подготовка данных для Chart.js
-    const labels = filtered.map((item, i) => 
-      `${item['Вид работ']} (${item['Поставка']})`
-    );
+    showDebug(`Найдено задач: ${tasks.length}`);
 
-    const data = filtered.map(item => {
-      const start = buildDateTime(date, item['Начало задачи']);
-      const dur = item['Рабочее время'] || item['Время по табелю'] || '';
-      const durMs = timeToMs(dur);
-
-      if (!start || durMs === null) return null;
-
-      const end = new Date(start.getTime() + durMs);
-      return { x: [start, end] };
-    }).filter(Boolean);
-
-    if (data.length === 0) {
-      alert('Нет корректных задач');
-      return;
+    // Находим начало рабочего дня (первую задачу с "Рабочий день")
+    const workDayTask = tasks.find(t => t['Вид работ'] === 'Рабочий день');
+    let startTimeMs = 0;
+    if (workDayTask) {
+      const start = buildDateTime(date, workDayTask['Начало задачи']);
+      startTimeMs = start ? start.getTime() - parseDate(date).getTime() : 0;
     }
 
-    const ctx = document.getElementById('ganttChart').getContext('2d');
+    // Группируем задачи по "Вид работ"
+    const grouped = {};
+    tasks.forEach(task => {
+      const key = task['Вид работ'];
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(task);
+    });
 
-    // Уничтожаем предыдущий график
-    if (window.myGantt) {
-      window.myGantt.destroy();
+    // Создаём временные точки (с 0 до 24 часов, начиная с startTimeMs)
+    const timePoints = [];
+    for (let i = 0; i <= 24; i++) {
+      const ms = startTimeMs + i * 3600000;
+      const h = Math.floor(ms / 3600000) % 24;
+      const m = Math.floor((ms % 3600000) / 60000);
+      timePoints.push({
+        label: `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`,
+        ms: ms
+      });
     }
 
-    // Создаём график
-    window.myGantt = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Задачи',
-          data: data,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        indexAxis: 'y', // горизонтальные полосы
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            type: 'time',
-            time: {
-              unit: 'minute',
-              displayFormats: {
-                minute: 'HH:mm'
-              }
-            },
-            title: {
-              display: true,
-              text: 'Время'
-            }
-          },
-          y: {
-            title: {
-              display: true,
-              text: 'Задачи'
-            }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                const start = context.parsed.x[0];
-                const end = context.parsed.x[1];
-                const durationMin = Math.round((end - start) / 60000);
-                return `Длительность: ${durationMin} мин`;
-              }
-            }
+    // Создаём заголовок
+    const container = document.getElementById('timelineContainer');
+    container.innerHTML = '';
+
+    const header = document.createElement('div');
+    header.className = 'timeline-header';
+    header.innerHTML = `<div>Вид работ</div>` + timePoints.map(tp => `<div>${tp.label}</div>`).join('');
+    container.appendChild(header);
+
+    // Для каждого вида работ — строка
+    Object.keys(grouped).forEach(workType => {
+      const row = document.createElement('div');
+      row.className = 'timeline-row';
+
+      // Ячейка с названием вида работ
+      const workCell = document.createElement('div');
+      workCell.textContent = workType;
+      row.appendChild(workCell);
+
+      // Ячейки с временем
+      timePoints.forEach((tp, i) => {
+        const cell = document.createElement('div');
+        cell.style.position = 'relative';
+        cell.style.height = '100%';
+        row.appendChild(cell);
+      });
+
+      container.appendChild(row);
+
+      // Добавляем задачи в ячейки
+      grouped[workType].forEach(task => {
+        const start = buildDateTime(date, task['Начало задачи']);
+        const dur = task['Рабочее время'] || task['Время по табелю'] || '';
+        const durMs = timeToMs(dur);
+
+        if (!start || durMs === null) {
+          console.warn('Пропущена задача (нет времени):', task);
+          return;
+        }
+
+        const startMs = start.getTime() - parseDate(date).getTime();
+        const endMs = startMs + durMs;
+
+        // Определяем, в какие ячейки попадает задача
+        for (let i = 0; i < timePoints.length - 1; i++) {
+          const fromMs = timePoints[i].ms;
+          const toMs = timePoints[i + 1].ms;
+
+          if (startMs < toMs && endMs > fromMs) {
+            // Задача пересекается с этой ячейкой
+            const cell = row.children[i + 1]; // +1 потому что первая ячейка — название
+
+            const block = document.createElement('div');
+            block.className = 'task-block';
+            block.textContent = task['Поставка'] || 'Без номера';
+
+            // Цвет по типу работы
+            if (workType.includes('Рабочий день')) block.classList.add('green');
+            else if (workType.includes('Разгрузка')) block.classList.add('blue');
+            else block.classList.add('orange');
+
+            // Позиционирование
+            const leftPct = Math.max(0, (startMs - fromMs) / (toMs - fromMs)) * 100;
+            const widthPct = Math.min(100, (endMs - startMs) / (toMs - fromMs) * 100);
+
+            block.style.left = `${leftPct}%`;
+            block.style.width = `${widthPct}%`;
+
+            cell.appendChild(block);
           }
         }
-      }
+      });
     });
+
+    // Создаём легенду
+    const legendContainer = document.getElementById('legendContainer');
+    legendContainer.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Начало задачи</th>
+            <th>Вид работ</th>
+            <th>Рабочее время / Время по табелю</th>
+            <th>Поставка</th>
+            <th>Должность</th>
+            <th>тип товара</th>
+            <th>Количество единиц</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map(task => `
+            <tr>
+              <td>${task['Начало задачи']}</td>
+              <td>${task['Вид работ']}</td>
+              <td>${task['Рабочее время'] || task['Время по табелю'] || ''}</td>
+              <td>${task['Поставка'] || ''}</td>
+              <td>${task['Должность'] || ''}</td>
+              <td>${task['тип товара'] || ''}</td>
+              <td>${task['Количество единиц'] || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
+  }
+
+  function clearCacheAndReload() {
+    location.reload();
   }
 </script>
 
