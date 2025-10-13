@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Диаграмма занятости</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
     .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
@@ -21,7 +20,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-1906</p>
+<p class="version">Версия: 04.05-1915</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -34,13 +33,15 @@
   <select id="employeeSelect"><option>—</option></select>
 
   <button onclick="renderGantt()">Построить</button>
-  <button onclick="clearCacheAndReload()" style="background:#ff9900;color:white;">🔄 Сбросить кэш</button>
 </div>
 
 <canvas id="ganttChart" height="200"></canvas>
 
+<div style="margin-top: 10px;">
+  <button onclick="clearCacheAndReload()" style="background:#ff9900;color:white;">🔄 Сбросить кэш</button>
+</div>
+
 <script>
-  // === НАЧАЛО: основной код ===
   let allData = [];
 
   function showError(msg) {
@@ -81,15 +82,14 @@
     return result;
   }
 
-  // Загрузка данных
   fetch('fullData.json')
     .then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      return res.text(); // Получаем как текст
+      return res.text();
     })
     .then(text => {
       try {
-        const data = JSON.parse(text); // Парсим вручную
+        const data = JSON.parse(text);
         if (!data.records || !Array.isArray(data.records)) {
           throw new Error('Нет records[]');
         }
@@ -129,122 +129,126 @@
   }
 
   function renderGantt() {
-  const date = document.getElementById('dateSelect').value;
-  const emp = document.getElementById('employeeSelect').value;
-  if (!date || !emp) {
-    alert('Выберите дату и сотрудника');
-    return;
-  }
-
-  const tasks = allData.filter(x =>
-    x['Рабочий день'] === date && x['Сотрудник'] === emp
-  );
-
-  if (tasks.length === 0) {
-    alert('Нет данных для выбранной даты и сотрудника');
-    return;
-  }
-
-  showDebug(`Найдено задач: ${tasks.length}`);
-
-  const base = parseDate(date);
-  if (!base) {
-    alert('Неверная дата');
-    return;
-  }
-
-  const minTime = new Date(base);
-  minTime.setHours(0, 0, 0, 0);
-  const maxTime = new Date(base);
-  maxTime.setHours(24, 0, 0, 0);
-
-  const labels = [];
-  const data = [];
-
-  let skippedCount = 0;
-
-  tasks.forEach((item, i) => {
-    const start = buildDateTime(date, item['Начало задачи']);
-    const dur = item['Рабочее время'] || item['Время по табелю'] || '';
-    const durMs = timeToMs(dur);
-
-    if (!start || durMs === null) {
-      console.warn(`Пропущена задача ${i+1} (нет времени):`, item);
-      skippedCount++;
+    const date = document.getElementById('dateSelect').value;
+    const emp = document.getElementById('employeeSelect').value;
+    if (!date || !emp) {
+      alert('Выберите дату и сотрудника');
       return;
     }
 
-    const end = new Date(start.getTime() + durMs);
+    const tasks = allData.filter(x =>
+      x['Рабочий день'] === date && x['Сотрудник'] === emp
+    );
 
-    if (end <= minTime || start >= maxTime) {
-      console.warn(`Задача ${i+1} вне диапазона 00:00–24:00:`, item);
-      skippedCount++;
+    if (tasks.length === 0) {
+      alert('Нет данных для выбранной даты и сотрудника');
       return;
     }
 
-    labels.push(`${item['Вид работ']} (${item['Поставка']})`);
-    data.push({ x: [start, end] });
-  });
+    showDebug(`Найдено задач: ${tasks.length}`);
 
-  showDebug(`Обработано задач: ${tasks.length}, пропущено: ${skippedCount}, для отображения: ${data.length}`);
+    const base = parseDate(date);
+    if (!base) {
+      alert('Неверная дата');
+      return;
+    }
 
-  if (data.length === 0) {
-    alert('Нет корректных задач для отображения');
-    return;
-  }
+    const minTimeMs = 0;
+    const maxTimeMs = 24 * 3600 * 1000;
 
-  const ctx = document.getElementById('ganttChart').getContext('2d');
-  if (window.ganttChart) window.ganttChart.destroy();
+    const labels = [];
+    const data = [];
 
-  try {
-    window.ganttChart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ data, backgroundColor: 'rgba(54,162,235,0.7)' }] },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            type: 'time',
-            min: minTime,
-            max: maxTime,
-            time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
-            title: { display: true, text: 'Время' }
+    let skippedCount = 0;
+
+    tasks.forEach((item, i) => {
+      const start = buildDateTime(date, item['Начало задачи']);
+      const dur = item['Рабочее время'] || item['Время по табелю'] || '';
+      const durMs = timeToMs(dur);
+
+      if (!start || durMs === null) {
+        console.warn(`Пропущена задача ${i+1} (нет времени):`, item);
+        skippedCount++;
+        return;
+      }
+
+      const startMs = start.getTime() - base.getTime();
+      const endMs = startMs + durMs;
+
+      if (endMs <= minTimeMs || startMs >= maxTimeMs) {
+        console.warn(`Задача ${i+1} вне диапазона:`, item);
+        skippedCount++;
+        return;
+      }
+
+      labels.push(`${item['Вид работ']} (${item['Поставка']})`);
+      data.push({ x: [startMs, endMs] });
+    });
+
+    showDebug(`Обработано задач: ${tasks.length}, пропущено: ${skippedCount}, для отображения: ${data.length}`);
+
+    if (data.length === 0) {
+      alert('Нет корректных задач для отображения');
+      return;
+    }
+
+    const ctx = document.getElementById('ganttChart').getContext('2d');
+    if (window.ganttChart) window.ganttChart.destroy();
+
+    try {
+      window.ganttChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ data, backgroundColor: 'rgba(54,162,235,0.7)' }] },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'linear',
+              min: minTimeMs,
+              max: maxTimeMs,
+              title: { display: true, text: 'Время (мс с начала дня)' },
+              ticks: {
+                callback: function(value) {
+                  const h = Math.floor(value / 3600000);
+                  const m = Math.floor((value % 3600000) / 60000);
+                  const s = Math.floor((value % 60000) / 1000);
+                  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                }
+              }
+            },
+            y: { title: { display: true, text: 'Задачи' } }
           },
-          y: { title: { display: true, text: 'Задачи' } }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const [s, e] = ctx.parsed.x;
-                const sec = (e - s) / 1000;
-                const h = Math.floor(sec / 3600);
-                const m = Math.floor((sec % 3600) / 60);
-                const s2 = Math.floor(sec % 60);
-                return `Длительность: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s2.toString().padStart(2,'0')}`;
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const [s, e] = ctx.parsed.x;
+                  const durationMs = e - s;
+                  const h = Math.floor(durationMs / 3600000);
+                  const m = Math.floor((durationMs % 3600000) / 60000);
+                  const s2 = Math.floor((durationMs % 60000) / 1000);
+                  return `Длительность: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s2.toString().padStart(2,'0')}`;
+                }
               }
             }
           }
         }
-      }
-    });
-  } catch (err) {
-    showError(`Ошибка при построении диаграммы: ${err.message}`);
-    console.error(err);
+      });
+    } catch (err) {
+      showError(`Ошибка при построении диаграммы: ${err.message}`);
+      console.error(err);
+    }
   }
-}
 
-  // Функция сброса кэша
   function clearCacheAndReload() {
     const url = window.location.href;
     const separator = url.includes('?') ? '&' : '?';
     const newUrl = `${url}${separator}nocache=${Date.now()}`;
     window.location.href = newUrl;
   }
-  // === КОНЕЦ: основной код ===
 </script>
 
 </body>
