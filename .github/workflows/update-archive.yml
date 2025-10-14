@@ -1,12 +1,12 @@
-name: Update archive.json from Google Sheets
+name: Sync Archive from Google Drive
 
 on:
   schedule:
-    - cron: '0 9 * * *'  # 14:00 по ЕКБ (UTC+5)
+    - cron: '0 5 * * *'  # Каждый день в 10:00 по ЕКБ (UTC+5)
   workflow_dispatch:
 
 jobs:
-  update:
+  sync:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -14,30 +14,105 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Generate JSON files
-        run: node scripts/generate-Archive.mjs
+      - name: Install dependencies
+        run: npm init -y && npm install node-fetch@2
+
+      - name: Sync archive files from Google Drive
+        env:
+          # Укажите ID файлов из Google Drive
+          ARCHIVE_FILES: |
+            2025-09 fullData.json:1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO
+            2025-10 fullData.json:1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO
+            # Добавляйте новые месяцы по мере появления
+        run: |
+          mkdir -p archive
+          node <<'EOF'
+          const fs = require('fs');
+          const fetch = require('node-fetch');
+
+          const archiveList = process.env.ARCHIVE_FILES
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#'))
+            .map(line => {
+              const [name, id] = line.split(':');
+              return { name: name.trim(), id: id.trim() };
+            });
+
+          async function downloadFile(fileName, fileId) {
+            const url = `https://drive.google.com/uc?export=download&id=${fileId}`;
+            try {
+              const response = await fetch(url);
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              const text = await response.text();
+              fs.writeFileSync(`archive/${fileName}`, text, 'utf8');
+              console.log(`✅ ${fileName}`);
+            } catch (err) {
+              console.error(`❌ Не удалось скачать ${fileName}: ${err.message}`);
+            }
+          }
+
+          async function main() {
+            for (const file of archiveList) {
+              await downloadFile(file.name, file.id);
+              // Задержка, чтобы не заблокировали
+              await new Promise(r => setTimeout(r, 1000));
+            }
+          }
+
+          main().catch(console.error);
+          EOF
+
+      - name: Build fullData.json from archives
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+
+          const archiveDir = './archive';
+          const files = fs.readdirSync(archiveDir).filter(f => f.endsWith('.json'));
+
+          let allRecords = [];
+          let lastUpdated = new Date().toISOString();
+
+          for (const file of files) {
+            try {
+              const content = fs.readFileSync(path.join(archiveDir, file), 'utf8');
+              const data = JSON.parse(content);
+              if (data.records && Array.isArray(data.records)) {
+                allRecords = allRecords.concat(data.records);
+                // Берём самую свежую дату обновления
+                if (data.lastUpdated && new Date(data.lastUpdated) > new Date(lastUpdated)) {
+                  lastUpdated = data.lastUpdated;
+                }
+              }
+            } catch (err) {
+              console.error(`Ошибка при чтении ${file}:`, err.message);
+            }
+          }
+
+          const fullData = { lastUpdated, records: allRecords };
+          fs.writeFileSync('fullData.json', JSON.stringify(fullData, null, 2), 'utf8');
+          console.log(`✅ fullData.json создан (${allRecords.length} записей)`);
+          EOF
 
       - name: Commit and push
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # Добавляем ВСЕ сгенерированные файлы
           git add fullData.json archive/
           
-          # Проверяем, есть ли изменения
           if ! git diff --staged --quiet; then
-            git commit -m "🔄 Обновление данных [$(date +'%Y-%m-%d %H:%M')]"
+            git commit -m "🔄 Синхронизация архивов из Google Drive [$(date +'%Y-%m-%d')]"
             git push
-            echo "✅ Изменения успешно отправлены"
+            echo "✅ Изменения отправлены"
           else
-            echo "ℹ️ Нет изменений — коммит не требуется"
+            echo "ℹ️ Нет изменений"
           fi
