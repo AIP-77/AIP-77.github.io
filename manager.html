@@ -50,7 +50,8 @@
       color: #333;
     }
 
-    .controls select, .controls button {
+    .controls select,
+    .controls button {
       width: 100%;
       padding: 8px 12px;
       margin-top: 8px;
@@ -116,7 +117,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">Ведомость заработной платы2</div>
+    <div class="header">Ведомость заработной платы</div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -142,14 +143,13 @@
     // Настройки
     // ========================
     const AVAILABLE_MONTHS = [
-      
       "2025-08",
       "2025-09",
       "2025-10"
     ];
-    const CURRENT_MONTH = "2025-10";
+    const CURRENT_MONTH = "2025-10"; // текущий месяц → fullData.json
 
-    let cacheBuster = Date.now(); // для сброса кэша
+    let cacheBuster = Date.now();
 
     // ========================
     // Вспомогательные функции
@@ -184,6 +184,7 @@
       return `${monthNames[parseInt(month)]} ${year}`;
     }
 
+    // 🔥 ИСПРАВЛЕНО: убраны пробелы в URL!
     async function fetchRecordsForMonth(yyyymm) {
       try {
         let baseUrl;
@@ -193,13 +194,22 @@
           baseUrl = `https://AIP-77.github.io/archive/${yyyymm}.json`;
         }
 
-        // Добавляем cache buster
         const url = `${baseUrl}?t=${cacheBuster}`;
+        console.log('Загрузка:', url); // для отладки
+
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
-        return Array.isArray(data.records) ? data.records : [];
+
+        if (!data || !Array.isArray(data.records)) {
+          throw new Error('Неверный формат данных: ожидается { "records": [...] }');
+        }
+
+        return data.records;
       } catch (err) {
+        console.error('Ошибка загрузки:', err);
         throw new Error(`Не удалось загрузить данные за ${getMonthLabel(yyyymm)}`);
       }
     }
@@ -226,7 +236,6 @@
         summary[name].totalSum += parseMoney(record["Расчетная сумма"]) + parseMoney(record["Доплата XIS"]);
       });
 
-      // Преобразуем в массив и сортируем по ФИО
       return Object.entries(summary)
         .map(([name, data]) => ({
           Сотрудник: name,
@@ -294,14 +303,8 @@
       try {
         const records = await fetchRecordsForMonth(month);
         const fullSummary = calculateSummary(records);
-
-        // Сохраняем для фильтрации
         window.currentSummary = fullSummary;
-
-        // Заполняем список сотрудников
         populateEmployeeFilter(fullSummary);
-
-        // По умолчанию — показываем всех
         renderTable(fullSummary);
       } catch (err) {
         content.innerHTML = `<div class="error">${err.message}</div>`;
@@ -333,12 +336,11 @@
         if (e.target.value) loadAndRender(e.target.value);
       });
 
-      // Инициализация
       loadAndRender(CURRENT_MONTH);
     }
 
     // ========================
-    // Обработчики событий
+    // Инициализация
     // ========================
     document.addEventListener('DOMContentLoaded', () => {
       if (window.Telegram?.WebApp) {
@@ -346,20 +348,20 @@
         Telegram.WebApp.expand();
       }
 
-      // Кнопка сброса кэша
       document.getElementById('clear-cache-btn').addEventListener('click', () => {
         cacheBuster = Date.now();
         const currentMonth = document.getElementById('month-select').value;
         if (currentMonth) {
           loadAndRender(currentMonth);
         }
-        // Опционально: показать уведомление
         if (window.Telegram?.WebApp) {
-          Telegram.WebApp.showPopup({ title: "Кэш сброшен", message: "Данные будут загружены заново." });
+          Telegram.WebApp.showPopup({
+            title: "Кэш сброшен",
+            message: "Данные будут загружены заново."
+          });
         }
       });
 
-      // Фильтр по сотруднику
       document.getElementById('employee-select').addEventListener('change', applyEmployeeFilter);
 
       initMonthSelector();
