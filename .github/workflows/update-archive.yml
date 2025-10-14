@@ -28,7 +28,7 @@ jobs:
           # Укажите ID файлов из Google Drive
           ARCHIVE_FILES: |
             2025-09 fullData.json:1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO
-            2025-10 fullData.json:1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO
+            2025-10 fullData.json:1S01XOfCjSfICnXQEJtLkL6hGQ_wW2bsO
             # Добавляйте новые месяцы по мере появления
         run: |
           mkdir -p archive
