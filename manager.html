@@ -50,12 +50,25 @@
       color: #333;
     }
 
-    .controls select {
+    .controls select, .controls button {
       width: 100%;
       padding: 8px 12px;
+      margin-top: 8px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 16px;
+    }
+
+    .controls button {
+      background: #ff5722;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .controls button:hover {
+      background: #e64a19;
     }
 
     table {
@@ -95,18 +108,28 @@
         padding: 8px 4px;
         font-size: 13px;
       }
+      .controls button {
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">Ведомость заработной платы 1</div>
+    <div class="header">Ведомость заработной платы2</div>
 
     <div class="controls">
-      <label for="month-select">Выберите месяц:</label>
+      <label for="month-select">Месяц:</label>
       <select id="month-select">
         <option value="">Загрузка...</option>
       </select>
+
+      <label for="employee-select">Сотрудник:</label>
+      <select id="employee-select">
+        <option value="">Загрузка...</option>
+      </select>
+
+      <button id="clear-cache-btn">🔄 Сбросить кэш</button>
     </div>
 
     <div id="content">
@@ -116,19 +139,17 @@
 
   <script>
     // ========================
-    // Настройка: список доступных месяцев
-    // Обновляйте этот список по мере добавления архивов
+    // Настройки
     // ========================
     const AVAILABLE_MONTHS = [
-      "2025-07",
+      
       "2025-08",
       "2025-09",
-      "2025-10"// ← текущий месяц (пример)
-      // Добавляйте сюда новые месяцы по мере архивации
+      "2025-10"
     ];
+    const CURRENT_MONTH = "2025-10";
 
-    // Текущий месяц (берётся из fullData.json)
-    const CURRENT_MONTH = "2025-10"; // ← обновляйте при смене месяца
+    let cacheBuster = Date.now(); // для сброса кэша
 
     // ========================
     // Вспомогательные функции
@@ -165,21 +186,20 @@
 
     async function fetchRecordsForMonth(yyyymm) {
       try {
-        let url;
+        let baseUrl;
         if (yyyymm === CURRENT_MONTH) {
-          url = 'https://AIP-77.github.io/fullData.json';
+          baseUrl = 'https://AIP-77.github.io/fullData.json';
         } else {
-          url = `https://AIP-77.github.io/archive/${yyyymm}.json`;
+          baseUrl = `https://AIP-77.github.io/archive/${yyyymm}.json`;
         }
 
+        // Добавляем cache buster
+        const url = `${baseUrl}?t=${cacheBuster}`;
         const res = await fetch(url);
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         return Array.isArray(data.records) ? data.records : [];
       } catch (err) {
-        console.error(`Ошибка загрузки ${yyyymm}:`, err);
         throw new Error(`Не удалось загрузить данные за ${getMonthLabel(yyyymm)}`);
       }
     }
@@ -206,113 +226,142 @@
         summary[name].totalSum += parseMoney(record["Расчетная сумма"]) + parseMoney(record["Доплата XIS"]);
       });
 
-      return Object.entries(summary).map(([name, data]) => {
-        const efficiency = data.workTime > 0
-          ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
-          : '0,00%';
-
-        return {
+      // Преобразуем в массив и сортируем по ФИО
+      return Object.entries(summary)
+        .map(([name, data]) => ({
           Сотрудник: name,
           "Кол-во задач": data.tasks,
           "Количество единиц": Math.round(data.units),
           "Эффективное время": secondsToTime(data.effectiveTime),
           "Рабочее время": secondsToTime(data.workTime),
-          "Эффективность сотрудника": efficiency,
+          "Эффективность сотрудника": data.workTime > 0
+            ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
+            : '0,00%',
           "Расчетная сумма": `р.${data.totalSum.toFixed(2).replace('.', ',')}`
-        };
-      });
+        }))
+        .sort((a, b) => a.Сотрудник.localeCompare(b.Сотрудник, 'ru'));
     }
 
     function renderTable(data) {
       const content = document.getElementById('content');
       if (data.length === 0) {
-        content.innerHTML = '<div class="error">Нет данных за выбранный период</div>';
+        content.innerHTML = '<div class="error">Нет данных</div>';
         return;
       }
 
-      let html = `
-        <table>
-          <thead>
-            <tr>
-              <th>Сотрудник</th>
-              <th>Кол-во задач</th>
-              <th>Единиц</th>
-              <th>Эфф. время</th>
-              <th>Раб. время</th>
-              <th>Эффективность</th>
-              <th>Сумма</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
+      let html = `<table><thead><tr>
+        <th>Сотрудник</th>
+        <th>Кол-во задач</th>
+        <th>Единиц</th>
+        <th>Эфф. время</th>
+        <th>Раб. время</th>
+        <th>Эффективность</th>
+        <th>Сумма</th>
+      </tr></thead><tbody>`;
 
       data.forEach(row => {
-        html += `
-          <tr>
-            <td>${row.Сотрудник}</td>
-            <td>${row["Кол-во задач"]}</td>
-            <td>${row["Количество единиц"]}</td>
-            <td>${row["Эффективное время"]}</td>
-            <td>${row["Рабочее время"]}</td>
-            <td>${row["Эффективность сотрудника"]}</td>
-            <td>${row["Расчетная сумма"]}</td>
-          </tr>
-        `;
+        html += `<tr>
+          <td>${row.Сотрудник}</td>
+          <td>${row["Кол-во задач"]}</td>
+          <td>${row["Количество единиц"]}</td>
+          <td>${row["Эффективное время"]}</td>
+          <td>${row["Рабочее время"]}</td>
+          <td>${row["Эффективность сотрудника"]}</td>
+          <td>${row["Расчетная сумма"]}</td>
+        </tr>`;
       });
 
       html += `</tbody></table>`;
       content.innerHTML = html;
     }
 
+    function populateEmployeeFilter(summaryData) {
+      const select = document.getElementById('employee-select');
+      select.innerHTML = '<option value="">Все сотрудники</option>';
+      const employees = summaryData.map(r => r.Сотрудник).sort();
+      employees.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp;
+        opt.textContent = emp;
+        select.appendChild(opt);
+      });
+    }
+
     async function loadAndRender(month) {
       const content = document.getElementById('content');
-      content.innerHTML = '<div class="loading">Загрузка данных...</div>';
+      content.innerHTML = '<div class="loading">Загрузка...</div>';
 
       try {
         const records = await fetchRecordsForMonth(month);
-        const report = calculateSummary(records);
-        renderTable(report);
+        const fullSummary = calculateSummary(records);
+
+        // Сохраняем для фильтрации
+        window.currentSummary = fullSummary;
+
+        // Заполняем список сотрудников
+        populateEmployeeFilter(fullSummary);
+
+        // По умолчанию — показываем всех
+        renderTable(fullSummary);
       } catch (err) {
-        document.getElementById('content').innerHTML = `<div class="error">${err.message}</div>`;
+        content.innerHTML = `<div class="error">${err.message}</div>`;
       }
+    }
+
+    function applyEmployeeFilter() {
+      const selected = document.getElementById('employee-select').value;
+      const filtered = selected
+        ? window.currentSummary.filter(r => r.Сотрудник === selected)
+        : window.currentSummary;
+      renderTable(filtered);
     }
 
     function initMonthSelector() {
       const select = document.getElementById('month-select');
       select.innerHTML = '';
 
-      // Сортируем месяцы от новых к старым
-      const sortedMonths = [...AVAILABLE_MONTHS].sort((a, b) => {
-        return b.localeCompare(a); // лексикографически работает для YYYY-MM
+      const sorted = [...AVAILABLE_MONTHS].sort((a, b) => b.localeCompare(a));
+      sorted.forEach(yyyymm => {
+        const opt = document.createElement('option');
+        opt.value = yyyymm;
+        opt.textContent = getMonthLabel(yyyymm) + (yyyymm === CURRENT_MONTH ? ' (текущий)' : '');
+        select.appendChild(opt);
       });
 
-      sortedMonths.forEach(yyyymm => {
-        const option = document.createElement('option');
-        option.value = yyyymm;
-        option.textContent = getMonthLabel(yyyymm) + (yyyymm === CURRENT_MONTH ? ' (текущий)' : '');
-        select.appendChild(option);
-      });
-
-      // Выбираем текущий месяц по умолчанию
       select.value = CURRENT_MONTH;
       select.addEventListener('change', (e) => {
-        if (e.target.value) {
-          loadAndRender(e.target.value);
-        }
+        if (e.target.value) loadAndRender(e.target.value);
       });
 
-      // Первый рендер
+      // Инициализация
       loadAndRender(CURRENT_MONTH);
     }
 
     // ========================
-    // Инициализация
+    // Обработчики событий
     // ========================
     document.addEventListener('DOMContentLoaded', () => {
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
       }
+
+      // Кнопка сброса кэша
+      document.getElementById('clear-cache-btn').addEventListener('click', () => {
+        cacheBuster = Date.now();
+        const currentMonth = document.getElementById('month-select').value;
+        if (currentMonth) {
+          loadAndRender(currentMonth);
+        }
+        // Опционально: показать уведомление
+        if (window.Telegram?.WebApp) {
+          Telegram.WebApp.showPopup({ title: "Кэш сброшен", message: "Данные будут загружены заново." });
+        }
+      });
+
+      // Фильтр по сотруднику
+      document.getElementById('employee-select').addEventListener('change', applyEmployeeFilter);
+
       initMonthSelector();
     });
   </script>
