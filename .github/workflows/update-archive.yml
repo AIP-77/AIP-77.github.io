@@ -2,7 +2,7 @@ name: Sync Archive from Google Drive
 
 on:
   schedule:
-    - cron: '0 5 * * *'  # Каждый день в 10:00 по ЕКБ (UTC+5)
+    - cron: '0 10 * * *'  # Каждый день в 15:00 по ЕКБ (UTC+5)
   workflow_dispatch:
 
 jobs:
@@ -25,7 +25,6 @@ jobs:
 
       - name: Sync archive files from Google Drive
         env:
-          # Укажите ID файлов из Google Drive
           ARCHIVE_FILES: |
             2025-09 fullData.json:1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO
             2025-10 fullData.json:1S01XOfCjSfICnXQEJtLkL6hGQ_wW2bsO
@@ -61,7 +60,6 @@ jobs:
           async function main() {
             for (const file of archiveList) {
               await downloadFile(file.name, file.id);
-              // Задержка, чтобы не заблокировали
               await new Promise(r => setTimeout(r, 1000));
             }
           }
@@ -69,48 +67,15 @@ jobs:
           main().catch(console.error);
           EOF
 
-      - name: Build fullData.json from archives
-        run: |
-          node <<'EOF'
-          const fs = require('fs');
-          const path = require('path');
-
-          const archiveDir = './archive';
-          const files = fs.readdirSync(archiveDir).filter(f => f.endsWith('.json'));
-
-          let allRecords = [];
-          let lastUpdated = new Date().toISOString();
-
-          for (const file of files) {
-            try {
-              const content = fs.readFileSync(path.join(archiveDir, file), 'utf8');
-              const data = JSON.parse(content);
-              if (data.records && Array.isArray(data.records)) {
-                allRecords = allRecords.concat(data.records);
-                // Берём самую свежую дату обновления
-                if (data.lastUpdated && new Date(data.lastUpdated) > new Date(lastUpdated)) {
-                  lastUpdated = data.lastUpdated;
-                }
-              }
-            } catch (err) {
-              console.error(`Ошибка при чтении ${file}:`, err.message);
-            }
-          }
-
-          const fullData = { lastUpdated, records: allRecords };
-          fs.writeFileSync('fullData.json', JSON.stringify(fullData, null, 2), 'utf8');
-          console.log(`✅ fullData.json создан (${allRecords.length} записей)`);
-          EOF
-
       - name: Commit and push
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          git add fullData.json archive/
+          git add archive/
           
           if ! git diff --staged --quiet; then
-            git commit -m "🔄 Синхронизация архивов из Google Drive [$(date +'%Y-%m-%d')]"
+            git commit -m "🔄 Обновление архивов [$(date +'%Y-%m-%d')]"
             git push
             echo "✅ Изменения отправлены"
           else
