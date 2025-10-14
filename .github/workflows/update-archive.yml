@@ -2,7 +2,7 @@ name: Update archive.json from Google Sheets
 
 on:
   schedule:
-    - cron: '0 9 * * *'  #   14:00 по ЕКБ (UTC+5)
+    - cron: '0 9 * * *'  # 14:00 по ЕКБ (UTC+5)
   workflow_dispatch:
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Generate archive.json
+      - name: Generate JSON files
         run: node scripts/generate-Archive.mjs
 
       - name: Commit and push
@@ -30,23 +30,14 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # 🔹 Сохраняем возможные локальные изменения (маловероятно, но на всякий)
-          git stash push -u || true
+          # Добавляем ВСЕ сгенерированные файлы
+          git add fullData.json archive/
           
-          # Получаем свежие изменения из main
-          git pull --rebase origin main
-
-          # Восстанавливаем изменения (если были)
-          git stash pop || true
-
-          # Добавляем  JSON-файл
-          git add archive.json
-
-          # Проверяем, есть ли staged изменения
+          # Проверяем, есть ли изменения
           if ! git diff --staged --quiet; then
             git commit -m "🔄 Обновление данных [$(date +'%Y-%m-%d %H:%M')]"
             git push
             echo "✅ Изменения успешно отправлены"
           else
-            echo "ℹ️ Нет изменений в JSON-файлах — коммит не требуется"
+            echo "ℹ️ Нет изменений — коммит не требуется"
           fi
