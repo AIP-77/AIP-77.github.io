@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ведомость ЗП</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f5f5f5;
+      padding: 16px;
+      color: #000;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header {
+      padding: 16px;
+      background: #0088cc;
+      color: white;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .controls {
+      padding: 12px 16px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .controls label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .controls select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background-color: #fafafa;
+      font-weight: 600;
+      color: #333;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .loading, .error {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+    }
+
+    .error {
+      color: #d32f2f;
+    }
+
+    @media (max-width: 600px) {
+      th, td {
+        padding: 8px 4px;
+        font-size: 13px;
+      }
+      .header {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Ведомость заработной платы</div>
+
+    <div class="controls">
+      <label for="month-select">Выберите месяц:</label>
+      <select id="month-select">
+        <option value="">Загрузка...</option>
+      </select>
+    </div>
+
+    <div id="content">
+      <div class="loading">Загрузка данных...</div>
+    </div>
+  </div>
+
+  <script>
+    // ========================
+    // Вспомогательные функции
+    // ========================
+
+    function timeToSeconds(timeStr) {
+      if (!timeStr || timeStr.trim() === '') return 0;
+      const parts = timeStr.split(':').map(Number);
+      const [h = 0, m = 0, s = 0] = parts;
+      return h * 3600 + m * 60 + s;
+    }
+
+    function secondsToTime(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function parseMoney(str) {
+      if (!str || str.trim() === '') return 0;
+      const cleaned = str.replace(/[^\d,]/g, '').replace(',', '.');
+      return parseFloat(cleaned) || 0;
+    }
+
+    function extractMonthYear(dateStr) {
+      // dateStr = "30.09.2025"
+      const parts = dateStr.split('.');
+      if (parts.length !== 3) return null;
+      const [day, month, year] = parts;
+      return `${month}.${year}`;
+    }
+
+    function getUniqueMonths(records) {
+      const months = new Set();
+      records.forEach(r => {
+        const my = extractMonthYear(r["Рабочий день"]);
+        if (my) months.add(my);
+      });
+      return Array.from(months).sort((a, b) => {
+        const [ma, ya] = a.split('.');
+        const [mb, yb] = b.split('.');
+        return ya !== yb ? ya - yb : ma - mb;
+      }).reverse(); // самые свежие — первые
+    }
+
+    function filterByMonth(records, monthYear) {
+      return records.filter(r => extractMonthYear(r["Рабочий день"]) === monthYear);
+    }
+
+    function calculateSummary(records) {
+      const summary = {};
+
+      records.forEach(record => {
+        const name = record["Сотрудник"];
+        if (!summary[name]) {
+          summary[name] = {
+            tasks: 0,
+            units: 0,
+            effectiveTime: 0,
+            workTime: 0,
+            totalSum: 0
+          };
+        }
+
+        summary[name].tasks += 1;
+        summary[name].units += parseFloat(record["Количество единиц"]) || 0;
+        summary[name].effectiveTime += timeToSeconds(record["Рабочее время"]);
+        summary[name].workTime += timeToSeconds(record["Время по табелю"]);
+        summary[name].totalSum += parseMoney(record["Расчетная сумма"]) + parseMoney(record["Доплата XIS"]);
+      });
+
+      return Object.entries(summary).map(([name, data]) => {
+        const efficiency = data.workTime > 0
+          ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
+          : '0,00%';
+
+        return {
+          Сотрудник: name,
+          "Кол-во задач": data.tasks,
+          "Количество единиц": Math.round(data.units),
+          "Эффективное время": secondsToTime(data.effectiveTime),
+          "Рабочее время": secondsToTime(data.workTime),
+          "Эффективность сотрудника": efficiency,
+          "Расчетная сумма": `р.${data.totalSum.toFixed(2).replace('.', ',')}`
+        };
+      });
+    }
+
+    function renderTable(data) {
+      if (data.length === 0) {
+        document.getElementById('content').innerHTML = '<div class="error">Нет данных за выбранный период</div>';
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Сотрудник</th>
+              <th>Кол-во задач</th>
+              <th>Единиц</th>
+              <th>Эфф. время</th>
+              <th>Раб. время</th>
+              <th>Эффективность</th>
+              <th>Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      data.forEach(row => {
+        html += `
+          <tr>
+            <td>${row.Сотрудник}</td>
+            <td>${row["Кол-во задач"]}</td>
+            <td>${row["Количество единиц"]}</td>
+            <td>${row["Эффективное время"]}</td>
+            <td>${row["Рабочее время"]}</td>
+            <td>${row["Эффективность сотрудника"]}</td>
+            <td>${row["Расчетная сумма"]}</td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      document.getElementById('content').innerHTML = html;
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch('https://AIP-77.github.io/fullData.json');
+        if (!res.ok) throw new Error('Ошибка сети');
+        const data = await res.json();
+        return data.records || [];
+      } catch (err) {
+        document.getElementById('content').innerHTML = `<div class="error">Ошибка загрузки данных: ${err.message}</div>`;
+        throw err;
+      }
+    }
+
+    // ========================
+    // Основной поток
+    // ========================
+
+    let allRecords = [];
+
+    async function init() {
+      // Инициализация Telegram WebApp
+      if (window.Telegram?.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        Telegram.WebApp.MainButton.hide();
+      }
+
+      // Загрузка данных
+      allRecords = await loadData();
+
+      // Заполнение выпадающего списка месяцами
+      const months = getUniqueMonths(allRecords);
+      const select = document.getElementById('month-select');
+      select.innerHTML = '';
+      if (months.length === 0) {
+        select.innerHTML = '<option>Нет данных</option>';
+        document.getElementById('content').innerHTML = '<div class="error">Нет записей для отображения</div>';
+        return;
+      }
+
+      months.forEach(m => {
+        const [month, year] = m.split('.');
+        const monthNames = [
+          '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+        ];
+        const label = `${monthNames[parseInt(month)]} ${year}`;
+        const option = document.createElement('option');
+        option.value = m;
+        option.textContent = label;
+        select.appendChild(option);
+      });
+
+      // Выбираем первый (самый свежий) месяц по умолчанию
+      select.value = months[0];
+      select.disabled = false;
+      select.addEventListener('change', () => {
+        if (select.value) {
+          const filtered = filterByMonth(allRecords, select.value);
+          const report = calculateSummary(filtered);
+          renderTable(report);
+        }
+      });
+
+      // Первый рендер
+      const filtered = filterByMonth(allRecords, months[0]);
+      const report = calculateSummary(filtered);
+      renderTable(report);
+    }
+
+    // Запуск
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
