@@ -74,8 +74,6 @@
       background-color: #fafafa;
       font-weight: 600;
       color: #333;
-      position: sticky;
-      top: 0;
     }
 
     tr:hover {
@@ -97,9 +95,6 @@
         padding: 8px 4px;
         font-size: 13px;
       }
-      .header {
-        font-size: 16px;
-      }
     }
   </style>
 </head>
@@ -120,6 +115,30 @@
   </div>
 
   <script>
+    // ========================
+    // Настройка: список доступных месяцев
+    // Обновляйте этот список по мере добавления архивов
+    // ========================
+    const AVAILABLE_MONTHS = [
+      "2024-09",
+      "2024-10",
+      "2024-11",
+      "2024-12",
+      "2025-01",
+      "2025-02",
+      "2025-03",
+      "2025-04",
+      "2025-05",
+      "2025-06",
+      "2025-07",
+      "2025-08",
+      "2025-09" // ← текущий месяц (пример)
+      // Добавляйте сюда новые месяцы по мере архивации
+    ];
+
+    // Текущий месяц (берётся из fullData.json)
+    const CURRENT_MONTH = "2025-10"; // ← обновляйте при смене месяца
+
     // ========================
     // Вспомогательные функции
     // ========================
@@ -144,29 +163,34 @@
       return parseFloat(cleaned) || 0;
     }
 
-    function extractMonthYear(dateStr) {
-      // dateStr = "30.09.2025"
-      const parts = dateStr.split('.');
-      if (parts.length !== 3) return null;
-      const [day, month, year] = parts;
-      return `${month}.${year}`;
+    function getMonthLabel(yyyymm) {
+      const [year, month] = yyyymm.split('-');
+      const monthNames = [
+        '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+      ];
+      return `${monthNames[parseInt(month)]} ${year}`;
     }
 
-    function getUniqueMonths(records) {
-      const months = new Set();
-      records.forEach(r => {
-        const my = extractMonthYear(r["Рабочий день"]);
-        if (my) months.add(my);
-      });
-      return Array.from(months).sort((a, b) => {
-        const [ma, ya] = a.split('.');
-        const [mb, yb] = b.split('.');
-        return ya !== yb ? ya - yb : ma - mb;
-      }).reverse(); // самые свежие — первые
-    }
+    async function fetchRecordsForMonth(yyyymm) {
+      try {
+        let url;
+        if (yyyymm === CURRENT_MONTH) {
+          url = 'https://AIP-77.github.io/fullData.json';
+        } else {
+          url = `https://AIP-77.github.io/archive/${yyyymm}.json`;
+        }
 
-    function filterByMonth(records, monthYear) {
-      return records.filter(r => extractMonthYear(r["Рабочий день"]) === monthYear);
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        return Array.isArray(data.records) ? data.records : [];
+      } catch (err) {
+        console.error(`Ошибка загрузки ${yyyymm}:`, err);
+        throw new Error(`Не удалось загрузить данные за ${getMonthLabel(yyyymm)}`);
+      }
     }
 
     function calculateSummary(records) {
@@ -209,8 +233,9 @@
     }
 
     function renderTable(data) {
+      const content = document.getElementById('content');
       if (data.length === 0) {
-        document.getElementById('content').innerHTML = '<div class="error">Нет данных за выбранный период</div>';
+        content.innerHTML = '<div class="error">Нет данных за выбранный период</div>';
         return;
       }
 
@@ -245,80 +270,60 @@
       });
 
       html += `</tbody></table>`;
-      document.getElementById('content').innerHTML = html;
+      content.innerHTML = html;
     }
 
-    async function loadData() {
+    async function loadAndRender(month) {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">Загрузка данных...</div>';
+
       try {
-        const res = await fetch('https://AIP-77.github.io/fullData.json');
-        if (!res.ok) throw new Error('Ошибка сети');
-        const data = await res.json();
-        return data.records || [];
+        const records = await fetchRecordsForMonth(month);
+        const report = calculateSummary(records);
+        renderTable(report);
       } catch (err) {
-        document.getElementById('content').innerHTML = `<div class="error">Ошибка загрузки данных: ${err.message}</div>`;
-        throw err;
+        document.getElementById('content').innerHTML = `<div class="error">${err.message}</div>`;
       }
     }
 
-    // ========================
-    // Основной поток
-    // ========================
-
-    let allRecords = [];
-
-    async function init() {
-      // Инициализация Telegram WebApp
-      if (window.Telegram?.WebApp) {
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-        Telegram.WebApp.MainButton.hide();
-      }
-
-      // Загрузка данных
-      allRecords = await loadData();
-
-      // Заполнение выпадающего списка месяцами
-      const months = getUniqueMonths(allRecords);
+    function initMonthSelector() {
       const select = document.getElementById('month-select');
       select.innerHTML = '';
-      if (months.length === 0) {
-        select.innerHTML = '<option>Нет данных</option>';
-        document.getElementById('content').innerHTML = '<div class="error">Нет записей для отображения</div>';
-        return;
-      }
 
-      months.forEach(m => {
-        const [month, year] = m.split('.');
-        const monthNames = [
-          '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-        ];
-        const label = `${monthNames[parseInt(month)]} ${year}`;
+      // Сортируем месяцы от новых к старым
+      const sortedMonths = [...AVAILABLE_MONTHS].sort((a, b) => {
+        return b.localeCompare(a); // лексикографически работает для YYYY-MM
+      });
+
+      sortedMonths.forEach(yyyymm => {
         const option = document.createElement('option');
-        option.value = m;
-        option.textContent = label;
+        option.value = yyyymm;
+        option.textContent = getMonthLabel(yyyymm) + (yyyymm === CURRENT_MONTH ? ' (текущий)' : '');
         select.appendChild(option);
       });
 
-      // Выбираем первый (самый свежий) месяц по умолчанию
-      select.value = months[0];
-      select.disabled = false;
-      select.addEventListener('change', () => {
-        if (select.value) {
-          const filtered = filterByMonth(allRecords, select.value);
-          const report = calculateSummary(filtered);
-          renderTable(report);
+      // Выбираем текущий месяц по умолчанию
+      select.value = CURRENT_MONTH;
+      select.addEventListener('change', (e) => {
+        if (e.target.value) {
+          loadAndRender(e.target.value);
         }
       });
 
       // Первый рендер
-      const filtered = filterByMonth(allRecords, months[0]);
-      const report = calculateSummary(filtered);
-      renderTable(report);
+      loadAndRender(CURRENT_MONTH);
     }
 
-    // Запуск
-    document.addEventListener('DOMContentLoaded', init);
+    // ========================
+    // Инициализация
+    // ========================
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.Telegram?.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+      }
+      initMonthSelector();
+    });
   </script>
 </body>
 </html>
