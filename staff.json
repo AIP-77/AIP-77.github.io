@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "8:25:30",
+  "lastUpdated": "11:15:42",
   "staff": [
     {
       "name": "Абдразак Уулу Алтынбек",
@@ -99,6 +99,13 @@
     {
       "name": "Жамалидинов Билолиддин",
       "department": "Отдел подготовки Маркетплейсов",
+      "division": "Исходящая логистика",
+      "role": "сотрудник",
+      "managedDepartments": []
+    },
+    {
+      "name": "Зубов Александр Сергеевич",
+      "department": "Исходящие потоки",
       "division": "Исходящая логистика",
       "role": "сотрудник",
       "managedDepartments": []
@@ -497,7 +504,7 @@
     {
       "name": "Честюнин Степан Дмитриевич",
       "department": "Отдел подготовки Маркетплейсов",
-      "division": "Исходящая логистика",
+      "division": "Исходяща�� логистика",
       "role": "сотрудник",
       "managedDepartments": []
     },
@@ -814,6 +821,13 @@
       "managedDepartments": []
     },
     {
+      "name": "Аплаев Алексей",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
       "name": "Аутсорсер",
       "department": "Наемники",
       "division": "",
@@ -821,7 +835,21 @@
       "managedDepartments": []
     },
     {
-      "name": "Сафин И.",
+      "name": "Бабушкин Александр",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Байгузин Дмитрий",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Валиев Денис",
       "department": "Наемники",
       "division": "",
       "role": "",
@@ -835,7 +863,119 @@
       "managedDepartments": []
     },
     {
-      "name": "Ст��ровойтов Д.",
+      "name": "Криворотов Иван",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Курбанов Шамиль",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Немытов Вячеслав",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Парамонов Денис",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Пономарев Александр Александро",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Рау Максим",
+      "department": "На��мники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Рудных Георгий",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Савченко Иван",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Сафин И.",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Сергиенко Кирилл",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Сергин Валерий",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Скаландист Денис",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Старовойтов Д.",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Старовойтов Дмитрий",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Стенников Владимир",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Цветков Григорий",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Чернецов Дмитрий",
       "department": "Наемники",
       "division": "",
       "role": "",
