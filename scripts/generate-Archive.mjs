@@ -110,7 +110,6 @@ function splitRecordsByMonth(records) {
 async function main() {
   try {
     console.log('Загрузка полных данных...');
-    // ✅ Исправлено: используем GID, а не GID_FULL
     const tsv = await fetchSheetAsTSV(SPREADSHEET_ID, GID);
     const parsed = parseTSV(tsv);
     const fullJson = buildFullDataJson(parsed);
@@ -124,7 +123,8 @@ async function main() {
     let archiveCount = 0;
 
     for (const [yearMonth, records] of Object.entries(monthlyRecords)) {
-      const archivePath = `${OUTPUT_DIR}${yearMonth}.json`;
+      // ✅ Формат: "2025-09 fullData.json"
+      const archivePath = `${OUTPUT_DIR}${yearMonth} fullData.json`;
       const archiveJson = {
         lastUpdated: fullJson.lastUpdated,
         records
@@ -140,5 +140,3 @@ async function main() {
     process.exit(1);
   }
 }
-
-main();
