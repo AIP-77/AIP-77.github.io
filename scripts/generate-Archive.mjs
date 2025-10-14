@@ -6,8 +6,8 @@ import { URL } from 'url';
 
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
 const GID = '46987733'; // ← Убедитесь, что это правильный GID листа с данными!
-const OUTPUT_DIR = './AIP-77.github.io/archive/'; // Папка для архивов
-const MAIN_OUTPUT_PATH = './fullData.json'; // Основной файл
+const OUTPUT_DIR = './archive/';     // Папка для архивов
+const MAIN_OUTPUT_PATH = './fullData.json';  // Основной файл
 
 // Убедимся, что папка существует
 if (!fs.existsSync(OUTPUT_DIR)) {
