@@ -5,7 +5,7 @@ import http from 'http';
 import { URL } from 'url';
 
 const SPREADSHEET_ID = '19x2J263xJryZFiucALL5vOISyUUVjAK1fr-sOH2O4K4';
-const GID = '46987733'; // ← Убедитесь, что это правильный GID листа с данными!
+const GID = '46987733'; // ← Убедитесь, что это правильный GID листа с данными (Архивы)!
 const OUTPUT_DIR = './archive/';     // Папка для архивов
 const MAIN_OUTPUT_PATH = './fullData.json';  // Основной файл
 
