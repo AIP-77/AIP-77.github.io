@@ -153,12 +153,15 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 10.16-2301</p>
+<p class="version">Версия: 10.16-2338</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
 
 <div class="controls">
+  <label for="monthSelect">Месяц:</label>
+  <select id="monthSelect"><option>—</option></select>
+
   <label for="dateSelect">Дата:</label>
   <select id="dateSelect"><option>—</option></select>
 
@@ -238,29 +241,32 @@
     return result;
   }
 
-  fetch('fullData.json')
-    .then(res => {
+  // Функция загрузки данных по месяцу
+  async function loadMonthData(month) {
+    const url = `https://aip-77.github.io/archive/${month} fullData.json`;
+    try {
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      return res.text();
-    })
-    .then(text => {
-      try {
-        const data = JSON.parse(text);
-        if (!data.records || !Array.isArray(data.records)) {
-          throw new Error('Нет records[]');
-        }
-        // Добавляем уникальный id каждой задаче
-        allData = data.records.map((task, index) => ({ ...task, id: index }));
-        populateFilters();
-        showDebug(`Загружено записей: ${allData.length}`);
-      } catch (e) {
-        throw new Error(`JSON парсинг: ${e.message}`);
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (!data.records || !Array.isArray(data.records)) {
+        throw new Error('Нет records[]');
       }
-    })
-    .catch(err => {
-      showError('Ошибка загрузки fullData.json: ' + err.message);
-      showDebug('Проверьте URL: https://aip-77.github.io/fullData.json');
-    });
+      allData = data.records.map((task, index) => ({ ...task, id: index }));
+      showDebug(`Загружено записей: ${allData.length} из ${url}`);
+      populateFilters();
+    } catch (err) {
+      showError(`Ошибка загрузки данных за ${month}: ${err.message}`);
+      showDebug(`Проверьте URL: ${url}`);
+    }
+  }
+
+  // Инициализация: загрузка данных за текущий месяц (например, 2025-10)
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedMonth = localStorage.getItem('selectedMonth') || '2025-10';
+    document.getElementById('monthSelect').value = savedMonth;
+    loadMonthData(savedMonth);
+  });
 
   function populateFilters() {
     const dates = [...new Set(allData.map(x => x['Рабочий день']))].filter(Boolean).sort();
@@ -283,6 +289,37 @@
     });
 
     showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}`);
+  }
+
+  // Функция для обновления списка сотрудников по дате
+  function updateEmployeeList() {
+    const date = document.getElementById('dateSelect').value;
+    const empSelect = document.getElementById('employeeSelect');
+
+    // Получаем всех сотрудников, работавших в эту дату
+    const filteredEmps = [...new Set(
+      allData.filter(x => x['Рабочий день'] === date).map(x => x['Сотрудник'])
+    )].filter(Boolean).sort();
+
+    // Запоминаем текущего сотрудника
+    const currentEmp = empSelect.value;
+
+    // Очищаем список
+    empSelect.innerHTML = '<option value="">Выберите сотрудника</option>';
+
+    // Заполняем новыми значениями
+    filteredEmps.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e; opt.textContent = e;
+      empSelect.appendChild(opt);
+    });
+
+    // Восстанавливаем текущего сотрудника, если он есть в новом списке
+    if (currentEmp && filteredEmps.includes(currentEmp)) {
+      empSelect.value = currentEmp;
+    } else {
+      empSelect.value = ''; // Или первый элемент
+    }
   }
 
   function renderTimeline() {
@@ -537,7 +574,7 @@
       const otherEndMs = otherStartMs + otherDurMs;
 
       // Определяем зазор (например, 1 минута)
-      const gapMs = 600; // 1 минута=60000 милисекунд
+      const gapMs = 60; // 1 минута
 
       // Проверяем пересечение с учётом зазора
       // Если задачи перекрываются или стыкуются с зазором < 1 минуты — считаем конфликтом
@@ -560,8 +597,18 @@
     location.reload();
   }
 
-  // Автообновление при выборе даты или сотрудника
-  document.getElementById('dateSelect').addEventListener('change', renderTimeline);
+  // Автообновление при выборе месяца, даты или сотрудника
+  document.getElementById('monthSelect').addEventListener('change', function() {
+    const month = this.value;
+    localStorage.setItem('selectedMonth', month);
+    loadMonthData(month);
+  });
+
+  document.getElementById('dateSelect').addEventListener('change', function() {
+    updateEmployeeList();
+    renderTimeline(); // Перестраиваем диаграмму
+  });
+
   document.getElementById('employeeSelect').addEventListener('change', renderTimeline);
 </script>
 
