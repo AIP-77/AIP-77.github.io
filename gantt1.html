@@ -153,7 +153,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 10.16-2338</p>
+<p class="version">Версия: 10.16-2348</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -241,6 +241,12 @@
     return result;
   }
 
+  // Список доступных месяцев (можно добавить вручную или получить из API)
+  const availableMonths = [
+    '2025-09',
+    '2025-10'
+  ];
+
   // Функция загрузки данных по месяцу
   async function loadMonthData(month) {
     const url = `https://aip-77.github.io/archive/${month} fullData.json`;
@@ -261,11 +267,25 @@
     }
   }
 
-  // Инициализация: загрузка данных за текущий месяц (например, 2025-10)
+  // Инициализация: загрузка данных за последний месяц
   window.addEventListener('DOMContentLoaded', () => {
-    const savedMonth = localStorage.getItem('selectedMonth') || '2025-10';
-    document.getElementById('monthSelect').value = savedMonth;
-    loadMonthData(savedMonth);
+    const savedMonth = localStorage.getItem('selectedMonth');
+    const defaultMonth = availableMonths[availableMonths.length - 1]; // Последний месяц
+    const monthToLoad = savedMonth && availableMonths.includes(savedMonth) ? savedMonth : defaultMonth;
+
+    // Заполняем выпадающий список месяцев
+    const ms = document.getElementById('monthSelect');
+    ms.innerHTML = '<option value="">Выберите месяц</option>';
+    availableMonths.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      if (m === monthToLoad) opt.selected = true;
+      ms.appendChild(opt);
+    });
+
+    // Загружаем данные
+    loadMonthData(monthToLoad);
   });
 
   function populateFilters() {
@@ -600,6 +620,7 @@
   // Автообновление при выборе месяца, даты или сотрудника
   document.getElementById('monthSelect').addEventListener('change', function() {
     const month = this.value;
+    if (!month) return;
     localStorage.setItem('selectedMonth', month);
     loadMonthData(month);
   });
