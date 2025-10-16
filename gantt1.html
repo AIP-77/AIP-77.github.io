@@ -169,7 +169,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 10.16-2116</p>
+<p class="version">Версия: 10.16-2127</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -398,7 +398,11 @@
     // Группируем задачи по "Вид работ"
     const grouped = {};
     tasks.forEach(task => {
-      const key = task['Вид работ'];
+      // Объединяем "Рабочий день" и "Дополнительное время для работ" в "Рабочее время"
+      let key = task['Вид работ'];
+      if (key === 'Рабочий день' || key === 'Дополнительное время для работ') {
+        key = 'Рабочее время';
+      }
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(task);
     });
@@ -451,7 +455,20 @@
             block.textContent = task['Поставка'] || 'Без номера';
 
             // Цвет по типу работы
-            block.style.backgroundColor = getColorForWorkType(workType);
+            let bgColor = getColorForWorkType(workType);
+
+            // Если это "Рабочее время" — делаем оттенки
+            if (workType === 'Рабочее время') {
+              if (task['Вид работ'] === 'Рабочий день') {
+                // Основное время — светлый оттенок
+                bgColor = 'hsl(120, 70%, 60%)'; // светло-зелёный
+              } else if (task['Вид работ'] === 'Дополнительное время для работ') {
+                // Доп. время — тёмный оттенок
+                bgColor = 'hsl(120, 70%, 40%)'; // тёмно-зелёный
+              }
+            }
+
+            block.style.backgroundColor = bgColor;
 
             // Позиционирование
             const leftPct = Math.max(0, (startMs - fromMs) / (toMs - fromMs)) * 100;
@@ -460,7 +477,7 @@
             block.style.left = `${leftPct}%`;
             block.style.width = `${widthPct}%`;
 
-            // Проверка пересечений с другими задачами
+            // Проверка пересечений
             checkConflicts(block, startMs, endMs, tasks, date);
 
             // Подсказка при наведении
