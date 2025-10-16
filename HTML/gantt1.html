@@ -1,1 +1,562 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Диаграмма занятости сотрудника</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    label { font-weight: bold; }
+    select, button { padding: 6px; font-size: 14px; }
+    button { cursor: pointer; }
+    .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
+    .version { font-size: 0.85em; color: #555; margin-top: -10px; }
+    .debug { font-size: 0.9em; color: #333; background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
 
+    /* Таблица */
+    .timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: relative;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    .timeline-header {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) repeat(var(--cols), 1fr);
+      background: #f0f0f0;
+      border-bottom: 1px solid #ddd;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .timeline-header div {
+      padding: 8px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) repeat(var(--cols), 1fr);
+      border-bottom: 1px solid #eee;
+      position: relative;
+      height: 40px;
+    }
+
+    .timeline-row > div:first-child {
+      padding: 8px;
+      font-weight: bold;
+      background: #fafafa;
+      border-right: 1px solid #eee;
+      font-size: 12px;
+    }
+
+    .task-block {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      color: white;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-radius: 2px;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition: transform 0.2s;
+      border: 1px solid rgba(0,0,0,0.3); /* Обводка */
+    }
+
+    .task-block:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+
+    .task-block.conflict {
+      background: #ff6b6b !important; /* Красный при пересечении */
+      border-color: #cc0000;
+    }
+
+    .legend-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+
+    .legend-table th,
+    .legend-table td {
+      padding: 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .legend-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+
+    .empty { text-align: center; padding: 50px; color: #666; font-style: italic; }
+
+    /* Мобильная адаптация */
+    @media (max-width: 768px) {
+      .controls { flex-direction: column; align-items: stretch; }
+      .timeline-header, .timeline-row {
+        grid-template-columns: minmax(120px, 1fr) repeat(var(--cols), 1fr);
+      }
+      .timeline-header div, .timeline-row > div:first-child {
+        font-size: 10px;
+        padding: 4px;
+      }
+      .task-block {
+        font-size: 10px;
+        padding: 0 2px;
+      }
+      .legend-table th, .legend-table td {
+        font-size: 10px;
+        padding: 4px;
+      }
+    }
+
+    /* Фильтры */
+    .filters {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filters label {
+      font-size: 12px;
+    }
+    .filters select {
+      font-size: 12px;
+      padding: 4px;
+    }
+
+    /* Подсказка */
+    .tooltip {
+      position: absolute;
+      background: #333;
+      color: white;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Диаграмма занятости сотрудника</h2>
+<p class="version">Версия: 10.16-2116</p>
+
+<div id="errorMessage" class="error"></div>
+<div id="debugInfo" class="debug"></div>
+
+<div class="controls">
+  <label for="dateSelect">Дата:</label>
+  <select id="dateSelect"><option>—</option></select>
+
+  <label for="employeeSelect">Сотрудник:</label>
+  <select id="employeeSelect"><option>—</option></select>
+
+  <button onclick="renderTimeline()">Построить</button>
+</div>
+
+<!-- Фильтры -->
+<div class="filters">
+  <label for="workTypeFilter">Фильтр по виду работ:</label>
+  <select id="workTypeFilter" onchange="applyWorkTypeFilter()">
+    <option value="">Все</option>
+  </select>
+</div>
+
+<div id="timelineContainer" class="timeline-table">
+  <!-- Заполняется скриптом -->
+</div>
+
+<div id="legendContainer" class="legend-table">
+  <!-- Легенда -->
+</div>
+
+<div style="margin-top: 10px;">
+  <button onclick="clearCacheAndReload()" style="background:#ff9900;color:white;">🔄 Сбросить кэш</button>
+</div>
+
+<!-- Подсказка -->
+<div id="tooltip" class="tooltip"></div>
+
+<script>
+  let allData = [];
+  let currentTasks = [];
+  let timePoints = [];
+
+  // Цвета для видов работ (динамически)
+  const workTypeColors = {};
+
+  function getColorForWorkType(workType) {
+    if (!workTypeColors[workType]) {
+      // Генерируем случайный цвет
+      const hue = Object.keys(workTypeColors).length * 45 % 360;
+      workTypeColors[workType] = `hsl(${hue}, 70%, 50%)`;
+    }
+    return workTypeColors[workType];
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMessage');
+    el.textContent = "⚠️ " + msg;
+    el.style.display = 'block';
+    console.error(msg);
+  }
+
+  function showDebug(msg) {
+    const el = document.getElementById('debugInfo');
+    el.textContent = "🔍 " + msg;
+    el.style.display = 'block';
+    console.log(msg);
+  }
+
+  function parseDate(dateStr) {
+    if (!dateStr) return null;
+    const [d, m, y] = dateStr.split('.').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function timeToMs(timeStr) {
+    if (!timeStr || timeStr === "") return null;
+    const parts = timeStr.split(':').map(Number);
+    let h = parts[0] || 0, m = parts[1] || 0, s = parts[2] || 0;
+    return h * 3600000 + m * 60000 + s * 1000;
+  }
+
+  function buildDateTime(datePart, timePart) {
+    const base = parseDate(datePart);
+    if (!base) return null;
+    const ms = timeToMs(timePart);
+    if (ms === null) return null;
+    const result = new Date(base);
+    result.setHours(0, 0, 0, 0);
+    result.setTime(result.getTime() + ms);
+    return result;
+  }
+
+  fetch('fullData.json')
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      return res.text();
+    })
+    .then(text => {
+      try {
+        const data = JSON.parse(text);
+        if (!data.records || !Array.isArray(data.records)) {
+          throw new Error('Нет records[]');
+        }
+        allData = data.records;
+        populateFilters();
+        showDebug(`Загружено записей: ${allData.length}`);
+      } catch (e) {
+        throw new Error(`JSON парсинг: ${e.message}`);
+      }
+    })
+    .catch(err => {
+      showError('Ошибка загрузки fullData.json: ' + err.message);
+      showDebug('Проверьте URL: https://aip-77.github.io/fullData.json');
+    });
+
+  function populateFilters() {
+    const dates = [...new Set(allData.map(x => x['Рабочий день']))].filter(Boolean).sort();
+    const emps = [...new Set(allData.map(x => x['Сотрудник']))].filter(Boolean).sort();
+
+    const ds = document.getElementById('dateSelect');
+    ds.innerHTML = '<option value="">Выберите дату</option>';
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      ds.appendChild(opt);
+    });
+
+    const es = document.getElementById('employeeSelect');
+    es.innerHTML = '<option value="">Выберите сотрудника</option>';
+    emps.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e; opt.textContent = e;
+      es.appendChild(opt);
+    });
+
+    // Заполняем фильтр по виду работ
+    const workTypes = [...new Set(allData.map(x => x['Вид работ']))].filter(Boolean).sort();
+    const ws = document.getElementById('workTypeFilter');
+    ws.innerHTML = '<option value="">Все</option>';
+    workTypes.forEach(wt => {
+      const opt = document.createElement('option');
+      opt.value = wt; opt.textContent = wt;
+      ws.appendChild(opt);
+    });
+
+    showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}, видов работ: ${workTypes.length}`);
+  }
+
+  function renderTimeline() {
+    const date = document.getElementById('dateSelect').value;
+    const emp = document.getElementById('employeeSelect').value;
+    if (!date || !emp) {
+      alert('Выберите дату и сотрудника');
+      return;
+    }
+
+    // Получаем все задачи
+    let tasks = allData.filter(x =>
+      x['Рабочий день'] === date && x['Сотрудник'] === emp
+    );
+
+    // Применяем фильтр по виду работ
+    const filterValue = document.getElementById('workTypeFilter').value;
+    if (filterValue) {
+      tasks = tasks.filter(t => t['Вид работ'] === filterValue);
+    }
+
+    currentTasks = tasks;
+
+    if (tasks.length === 0) {
+      alert('Нет данных для выбранной даты и сотрудника');
+      return;
+    }
+
+    showDebug(`Найдено задач: ${tasks.length}`);
+
+    // Определяем минимальное и максимальное время
+    let minTimeMs = Infinity;
+    let maxTimeMs = -Infinity;
+
+    tasks.forEach(task => {
+      const start = buildDateTime(date, task['Начало задачи']);
+      const dur = task['Рабочее время'] || task['Время по табелю'] || '';
+      const durMs = timeToMs(dur);
+
+      if (!start || durMs === null) return;
+
+      const startMs = start.getTime() - parseDate(date).getTime();
+      const endMs = startMs + durMs;
+
+      minTimeMs = Math.min(minTimeMs, startMs);
+      maxTimeMs = Math.max(maxTimeMs, endMs);
+    });
+
+    // Если не удалось определить времена — используем стандартные 8:00–20:00
+    if (minTimeMs === Infinity) minTimeMs = 8 * 3600000;
+    if (maxTimeMs === -Infinity) maxTimeMs = 20 * 3600000;
+
+    // Округляем до часа
+    minTimeMs = Math.floor(minTimeMs / 3600000) * 3600000;
+    maxTimeMs = Math.ceil(maxTimeMs / 3600000) * 3600000;
+
+    // Создаём временные точки с интервалом 1 час
+    timePoints = [];
+    for (let ms = minTimeMs; ms <= maxTimeMs; ms += 3600000) {
+      const h = Math.floor(ms / 3600000) % 24;
+      const m = Math.floor((ms % 3600000) / 60000);
+      timePoints.push({
+        label: `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`,
+        ms: ms
+      });
+    }
+
+    // Устанавливаем количество колонок в CSS
+    document.documentElement.style.setProperty('--cols', timePoints.length);
+
+    // Создаём заголовок
+    const container = document.getElementById('timelineContainer');
+    container.innerHTML = '';
+
+    const header = document.createElement('div');
+    header.className = 'timeline-header';
+    header.innerHTML = `<div>Вид работ</div>` + timePoints.map(tp => `<div>${tp.label}</div>`).join('');
+    container.appendChild(header);
+
+    // Группируем задачи по "Вид работ"
+    const grouped = {};
+    tasks.forEach(task => {
+      const key = task['Вид работ'];
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(task);
+    });
+
+    // Для каждого вида работ — строка
+    Object.keys(grouped).forEach(workType => {
+      const row = document.createElement('div');
+      row.className = 'timeline-row';
+
+      // Ячейка с названием вида работ
+      const workCell = document.createElement('div');
+      workCell.textContent = workType;
+      row.appendChild(workCell);
+
+      // Ячейки с временем
+      timePoints.forEach((tp, i) => {
+        const cell = document.createElement('div');
+        cell.style.position = 'relative';
+        cell.style.height = '100%';
+        row.appendChild(cell);
+      });
+
+      container.appendChild(row);
+
+      // Добавляем задачи в ячейки
+      grouped[workType].forEach(task => {
+        const start = buildDateTime(date, task['Начало задачи']);
+        const dur = task['Рабочее время'] || task['Время по табелю'] || '';
+        const durMs = timeToMs(dur);
+
+        if (!start || durMs === null) {
+          console.warn('Пропущена задача (нет времени):', task);
+          return;
+        }
+
+        const startMs = start.getTime() - parseDate(date).getTime();
+        const endMs = startMs + durMs;
+
+        // Определяем, в какие ячейки попадает задача
+        for (let i = 0; i < timePoints.length - 1; i++) {
+          const fromMs = timePoints[i].ms;
+          const toMs = timePoints[i + 1].ms;
+
+          if (startMs < toMs && endMs > fromMs) {
+            // Задача пересекается с этой ячейкой
+            const cell = row.children[i + 1]; // +1 потому что первая ячейка — название
+
+            const block = document.createElement('div');
+            block.className = 'task-block';
+            block.textContent = task['Поставка'] || 'Без номера';
+
+            // Цвет по типу работы
+            block.style.backgroundColor = getColorForWorkType(workType);
+
+            // Позиционирование
+            const leftPct = Math.max(0, (startMs - fromMs) / (toMs - fromMs)) * 100;
+            const widthPct = Math.min(100, (endMs - startMs) / (toMs - fromMs) * 100);
+
+            block.style.left = `${leftPct}%`;
+            block.style.width = `${widthPct}%`;
+
+            // Проверка пересечений с другими задачами
+            checkConflicts(block, startMs, endMs, tasks, date);
+
+            // Подсказка при наведении
+            block.addEventListener('mouseenter', (e) => {
+              const tooltip = document.getElementById('tooltip');
+              tooltip.innerHTML = `
+                <strong>${task['Вид работ']}</strong><br>
+                Поставка: ${task['Поставка'] || '—'}<br>
+                Начало: ${task['Начало задачи']}<br>
+                Длительность: ${dur}<br>
+                Должность: ${task['Должность'] || '—'}
+              `;
+              tooltip.style.opacity = 1;
+              tooltip.style.left = `${e.pageX + 10}px`;
+              tooltip.style.top = `${e.pageY + 10}px`;
+            });
+
+            block.addEventListener('mouseleave', () => {
+              document.getElementById('tooltip').style.opacity = 0;
+            });
+
+            cell.appendChild(block);
+          }
+        }
+      });
+    });
+
+    // Создаём легенду
+    const legendContainer = document.getElementById('legendContainer');
+    legendContainer.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Начало задачи</th>
+            <th>Вид работ</th>
+            <th>Рабочее время / Время по табелю</th>
+            <th>Поставка</th>
+            <th>Должность</th>
+            <th>тип товара</th>
+            <th>Количество единиц</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map(task => `
+            <tr>
+              <td>${task['Начало задачи']}</td>
+              <td>${task['Вид работ']}</td>
+              <td>${task['Рабочее время'] || task['Время по табелю'] || ''}</td>
+              <td>${task['Поставка'] || ''}</td>
+              <td>${task['Должность'] || ''}</td>
+              <td>${task['тип товара'] || ''}</td>
+              <td>${task['Количество единиц'] || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
+  }
+
+  function checkConflicts(block, startMs, endMs, allTasks, date) {
+    // Проверяем пересечения с другими задачами
+    for (const other of allTasks) {
+      if (other === block.task) continue; // Не сравниваем с собой
+
+      const otherStart = buildDateTime(date, other['Начало задачи']);
+      const otherDur = other['Рабочее время'] || other['Время по табелю'] || '';
+      const otherDurMs = timeToMs(otherDur);
+
+      if (!otherStart || otherDurMs === null) continue;
+
+      const otherStartMs = otherStart.getTime() - parseDate(date).getTime();
+      const otherEndMs = otherStartMs + otherDurMs;
+
+      // Проверяем пересечение
+      if (startMs < otherEndMs && endMs > otherStartMs) {
+        // Есть пересечение — подкрашиваем красным
+        block.classList.add('conflict');
+        break; // Достаточно одного пересечения
+      }
+    }
+  }
+
+  function applyWorkTypeFilter() {
+    renderTimeline(); // Перестраиваем при изменении фильтра
+  }
+
+  function clearCacheAndReload() {
+    location.reload();
+  }
+
+  // Автообновление при выборе даты или сотрудника
+  document.getElementById('dateSelect').addEventListener('change', renderTimeline);
+  document.getElementById('employeeSelect').addEventListener('change', renderTimeline);
+</script>
+
+</body>
+</html>
