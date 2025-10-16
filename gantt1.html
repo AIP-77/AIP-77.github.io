@@ -153,7 +153,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-2000</p>
+<p class="version">Версия: 04.05-2203</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -369,13 +369,13 @@
 
     // Выводим "Рабочее время" первой строкой
     if (grouped['Рабочее время']) {
-      renderRow(container, 'Рабочее время', grouped['Рабочее время'], true, date); // isWorkTime: true
+      renderRow(container, 'Рабочее время', grouped['Рабочее время'], true, date, tasks); // isWorkTime: true, allTasks: tasks
       delete grouped['Рабочее время']; // Удаляем, чтобы не дублировать
     }
 
     // Выводим остальные строки
     Object.keys(grouped).forEach(workType => {
-      renderRow(container, workType, grouped[workType], false, date); // isWorkTime: false
+      renderRow(container, workType, grouped[workType], false, date, tasks); // isWorkTime: false, allTasks: tasks
     });
 
     // Создаём легенду
@@ -412,7 +412,7 @@
     showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
   }
 
-  function renderRow(container, workType, tasks, isWorkTime, date) {
+  function renderRow(container, workType, tasks, isWorkTime, date, allTasks) {
     const row = document.createElement('div');
     row.className = 'timeline-row';
 
@@ -481,7 +481,7 @@
 
           // Проверка пересечений — только если НЕ "Рабочее время"
           if (!isWorkTime) {
-            checkConflicts(block, startMs, endMs, tasks, date, isWorkTime);
+            checkConflicts(block, startMs, endMs, allTasks, date, isWorkTime);
           }
 
           // Подсказка при наведении
