@@ -169,7 +169,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 10.16-2127</p>
+<p class="version">Версия: 04.05-2000</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -407,102 +407,15 @@
       grouped[key].push(task);
     });
 
-    // Для каждого вида работ — строка
+    // Выводим "Рабочее время" первой строкой
+    if (grouped['Рабочее время']) {
+      renderRow(container, 'Рабочее время', grouped['Рабочее время'], true); // isWorkTime: true
+      delete grouped['Рабочее время']; // Удаляем, чтобы не дублировать
+    }
+
+    // Выводим остальные строки
     Object.keys(grouped).forEach(workType => {
-      const row = document.createElement('div');
-      row.className = 'timeline-row';
-
-      // Ячейка с названием вида работ
-      const workCell = document.createElement('div');
-      workCell.textContent = workType;
-      row.appendChild(workCell);
-
-      // Ячейки с временем
-      timePoints.forEach((tp, i) => {
-        const cell = document.createElement('div');
-        cell.style.position = 'relative';
-        cell.style.height = '100%';
-        row.appendChild(cell);
-      });
-
-      container.appendChild(row);
-
-      // Добавляем задачи в ячейки
-      grouped[workType].forEach(task => {
-        const start = buildDateTime(date, task['Начало задачи']);
-        const dur = task['Рабочее время'] || task['Время по табелю'] || '';
-        const durMs = timeToMs(dur);
-
-        if (!start || durMs === null) {
-          console.warn('Пропущена задача (нет времени):', task);
-          return;
-        }
-
-        const startMs = start.getTime() - parseDate(date).getTime();
-        const endMs = startMs + durMs;
-
-        // Определяем, в какие ячейки попадает задача
-        for (let i = 0; i < timePoints.length - 1; i++) {
-          const fromMs = timePoints[i].ms;
-          const toMs = timePoints[i + 1].ms;
-
-          if (startMs < toMs && endMs > fromMs) {
-            // Задача пересекается с этой ячейкой
-            const cell = row.children[i + 1]; // +1 потому что первая ячейка — название
-
-            const block = document.createElement('div');
-            block.className = 'task-block';
-            block.textContent = task['Поставка'] || 'Без номера';
-
-            // Цвет по типу работы
-            let bgColor = getColorForWorkType(workType);
-
-            // Если это "Рабочее время" — делаем оттенки
-            if (workType === 'Рабочее время') {
-              if (task['Вид работ'] === 'Рабочий день') {
-                // Основное время — светлый оттенок
-                bgColor = 'hsl(120, 70%, 60%)'; // светло-зелёный
-              } else if (task['Вид работ'] === 'Дополнительное время для работ') {
-                // Доп. время — тёмный оттенок
-                bgColor = 'hsl(120, 70%, 40%)'; // тёмно-зелёный
-              }
-            }
-
-            block.style.backgroundColor = bgColor;
-
-            // Позиционирование
-            const leftPct = Math.max(0, (startMs - fromMs) / (toMs - fromMs)) * 100;
-            const widthPct = Math.min(100, (endMs - startMs) / (toMs - fromMs) * 100);
-
-            block.style.left = `${leftPct}%`;
-            block.style.width = `${widthPct}%`;
-
-            // Проверка пересечений
-            checkConflicts(block, startMs, endMs, tasks, date);
-
-            // Подсказка при наведении
-            block.addEventListener('mouseenter', (e) => {
-              const tooltip = document.getElementById('tooltip');
-              tooltip.innerHTML = `
-                <strong>${task['Вид работ']}</strong><br>
-                Поставка: ${task['Поставка'] || '—'}<br>
-                Начало: ${task['Начало задачи']}<br>
-                Длительность: ${dur}<br>
-                Должность: ${task['Должность'] || '—'}
-              `;
-              tooltip.style.opacity = 1;
-              tooltip.style.left = `${e.pageX + 10}px`;
-              tooltip.style.top = `${e.pageY + 10}px`;
-            });
-
-            block.addEventListener('mouseleave', () => {
-              document.getElementById('tooltip').style.opacity = 0;
-            });
-
-            cell.appendChild(block);
-          }
-        }
-      });
+      renderRow(container, workType, grouped[workType], false); // isWorkTime: false
     });
 
     // Создаём легенду
@@ -539,7 +452,104 @@
     showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
   }
 
-  function checkConflicts(block, startMs, endMs, allTasks, date) {
+  function renderRow(container, workType, tasks, isWorkTime) {
+    const row = document.createElement('div');
+    row.className = 'timeline-row';
+
+    // Ячейка с названием вида работ
+    const workCell = document.createElement('div');
+    workCell.textContent = workType;
+    row.appendChild(workCell);
+
+    // Ячейки с временем
+    timePoints.forEach((tp, i) => {
+      const cell = document.createElement('div');
+      cell.style.position = 'relative';
+      cell.style.height = '100%';
+      row.appendChild(cell);
+    });
+
+    container.appendChild(row);
+
+    // Добавляем задачи в ячейки
+    tasks.forEach(task => {
+      const start = buildDateTime(date, task['Начало задачи']);
+      const dur = task['Рабочее время'] || task['Время по табелю'] || '';
+      const durMs = timeToMs(dur);
+
+      if (!start || durMs === null) {
+        console.warn('Пропущена задача (нет времени):', task);
+        return;
+      }
+
+      const startMs = start.getTime() - parseDate(date).getTime();
+      const endMs = startMs + durMs;
+
+      // Определяем, в какие ячейки попадает задача
+      for (let i = 0; i < timePoints.length - 1; i++) {
+        const fromMs = timePoints[i].ms;
+        const toMs = timePoints[i + 1].ms;
+
+        if (startMs < toMs && endMs > fromMs) {
+          // Задача пересекается с этой ячейкой
+          const cell = row.children[i + 1]; // +1 потому что первая ячейка — название
+
+          const block = document.createElement('div');
+          block.className = 'task-block';
+          block.textContent = task['Поставка'] || 'Без номера';
+
+          // Цвет по типу работы
+          let bgColor = getColorForWorkType(workType);
+
+          // Если это "Рабочее время" — делаем оттенки
+          if (workType === 'Рабочее время') {
+            if (task['Вид работ'] === 'Рабочий день') {
+              bgColor = 'hsl(120, 70%, 60%)'; // светло-зелёный
+            } else if (task['Вид работ'] === 'Дополнительное время для работ') {
+              bgColor = 'hsl(120, 70%, 40%)'; // тёмно-зелёный
+            }
+          }
+
+          block.style.backgroundColor = bgColor;
+
+          // Позиционирование
+          const leftPct = Math.max(0, (startMs - fromMs) / (toMs - fromMs)) * 100;
+          const widthPct = Math.min(100, (endMs - startMs) / (toMs - fromMs) * 100);
+
+          block.style.left = `${leftPct}%`;
+          block.style.width = `${widthPct}%`;
+
+          // Проверка пересечений — только если НЕ "Рабочее время"
+          if (!isWorkTime) {
+            checkConflicts(block, startMs, endMs, tasks, date, isWorkTime);
+          }
+
+          // Подсказка при наведении
+          block.addEventListener('mouseenter', (e) => {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `
+              <strong>${task['Вид работ']}</strong><br>
+              Поставка: ${task['Поставка'] || '—'}<br>
+              Начало: ${task['Начало задачи']}<br>
+              Длительность: ${dur}<br>
+              Должность: ${task['Должность'] || '—'}
+            `;
+            tooltip.style.opacity = 1;
+            tooltip.style.left = `${e.pageX + 10}px`;
+            tooltip.style.top = `${e.pageY + 10}px`;
+          });
+
+          block.addEventListener('mouseleave', () => {
+            document.getElementById('tooltip').style.opacity = 0;
+          });
+
+          cell.appendChild(block);
+        }
+      }
+    });
+  }
+
+  function checkConflicts(block, startMs, endMs, allTasks, date, isWorkTime) {
     // Проверяем пересечения с другими задачами
     for (const other of allTasks) {
       if (other === block.task) continue; // Не сравниваем с собой
