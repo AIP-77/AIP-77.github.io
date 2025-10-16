@@ -153,7 +153,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 10.05-2153</p>
+<p class="version">Версия: 04.05-2000</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -510,31 +510,31 @@
   }
 
   function checkConflicts(block, startMs, endMs, allTasks, date, isWorkTime) {
-  // Проверяем пересечения с другими задачами
-  for (const other of allTasks) {
-    if (other === block.task) continue; // Не сравниваем с собой
+    // Проверяем пересечения с другими задачами
+    for (const other of allTasks) {
+      if (other === block.task) continue; // Не сравниваем с собой
 
-    const otherStart = buildDateTime(date, other['Начало задачи']);
-    const otherDur = other['Рабочее время'] || other['Время по табелю'] || '';
-    const otherDurMs = timeToMs(otherDur);
+      const otherStart = buildDateTime(date, other['Начало задачи']);
+      const otherDur = other['Рабочее время'] || other['Время по табелю'] || '';
+      const otherDurMs = timeToMs(otherDur);
 
-    if (!otherStart || otherDurMs === null) continue;
+      if (!otherStart || otherDurMs === null) continue;
 
-    const otherStartMs = otherStart.getTime() - parseDate(date).getTime();
-    const otherEndMs = otherStartMs + otherDurMs;
+      const otherStartMs = otherStart.getTime() - parseDate(date).getTime();
+      const otherEndMs = otherStartMs + otherDurMs;
 
-    // Определяем зазор (например, 1 минута)
-    const gapMs = 60000; // 1 минута
+      // Определяем зазор (например, 1 минута)
+      const gapMs = 60000; // 1 минута
 
-    // Проверяем пересечение с учётом зазора
-    // Если задачи перекрываются или стыкуются с зазором < 1 минуты — считаем конфликтом
-    if (startMs < otherEndMs + gapMs && endMs > otherStartMs - gapMs) {
-      // Есть пересечение — подкрашиваем красным
-      block.classList.add('conflict');
-      break; // Достаточно одного пересечения
+      // Проверяем пересечение с учётом зазора
+      // Если задачи перекрываются или стыкуются с зазором < 1 минуты — считаем конфликтом
+      if (startMs < otherEndMs + gapMs && endMs > otherStartMs - gapMs) {
+        // Есть пересечение — подкрашиваем красным
+        block.classList.add('conflict');
+        break; // Достаточно одного пересечения
+      }
     }
   }
-}
 
   function clearCacheAndReload() {
     location.reload();
