@@ -135,22 +135,6 @@
       }
     }
 
-    /* Фильтры */
-    .filters {
-      margin-bottom: 10px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .filters label {
-      font-size: 12px;
-    }
-    .filters select {
-      font-size: 12px;
-      padding: 4px;
-    }
-
     /* Подсказка */
     .tooltip {
       position: absolute;
@@ -169,7 +153,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-2000</p>
+<p class="version">Версия: 04.05-2143</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -182,14 +166,6 @@
   <select id="employeeSelect"><option>—</option></select>
 
   <button onclick="renderTimeline()">Построить</button>
-</div>
-
-<!-- Фильтры -->
-<div class="filters">
-  <label for="workTypeFilter">Фильтр по виду работ:</label>
-  <select id="workTypeFilter" onchange="applyWorkTypeFilter()">
-    <option value="">Все</option>
-  </select>
 </div>
 
 <div id="timelineContainer" class="timeline-table">
@@ -305,17 +281,7 @@
       es.appendChild(opt);
     });
 
-    // Заполняем фильтр по виду работ
-    const workTypes = [...new Set(allData.map(x => x['Вид работ']))].filter(Boolean).sort();
-    const ws = document.getElementById('workTypeFilter');
-    ws.innerHTML = '<option value="">Все</option>';
-    workTypes.forEach(wt => {
-      const opt = document.createElement('option');
-      opt.value = wt; opt.textContent = wt;
-      ws.appendChild(opt);
-    });
-
-    showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}, видов работ: ${workTypes.length}`);
+    showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}`);
   }
 
   function renderTimeline() {
@@ -330,12 +296,6 @@
     let tasks = allData.filter(x =>
       x['Рабочий день'] === date && x['Сотрудник'] === emp
     );
-
-    // Применяем фильтр по виду работ
-    const filterValue = document.getElementById('workTypeFilter').value;
-    if (filterValue) {
-      tasks = tasks.filter(t => t['Вид работ'] === filterValue);
-    }
 
     currentTasks = tasks;
 
@@ -409,13 +369,13 @@
 
     // Выводим "Рабочее время" первой строкой
     if (grouped['Рабочее время']) {
-      renderRow(container, 'Рабочее время', grouped['Рабочее время'], true); // isWorkTime: true
+      renderRow(container, 'Рабочее время', grouped['Рабочее время'], true, date); // isWorkTime: true
       delete grouped['Рабочее время']; // Удаляем, чтобы не дублировать
     }
 
     // Выводим остальные строки
     Object.keys(grouped).forEach(workType => {
-      renderRow(container, workType, grouped[workType], false); // isWorkTime: false
+      renderRow(container, workType, grouped[workType], false, date); // isWorkTime: false
     });
 
     // Создаём легенду
@@ -452,7 +412,7 @@
     showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
   }
 
-  function renderRow(container, workType, tasks, isWorkTime) {
+  function renderRow(container, workType, tasks, isWorkTime, date) {
     const row = document.createElement('div');
     row.className = 'timeline-row';
 
@@ -570,10 +530,6 @@
         break; // Достаточно одного пересечения
       }
     }
-  }
-
-  function applyWorkTypeFilter() {
-    renderTimeline(); // Перестраиваем при изменении фильтра
   }
 
   function clearCacheAndReload() {
