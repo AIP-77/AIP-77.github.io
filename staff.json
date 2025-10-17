@@ -1,5 +1,9 @@
 {
+<<<<<<< Updated upstream
   "lastUpdated": "14:56:58",
+=======
+  "lastUpdated": "18:10:38",
+>>>>>>> Stashed changes
   "staff": [
     {
       "name": "Абдразак Уулу Алтынбек",
@@ -238,7 +242,11 @@
       "managedDepartments": []
     },
     {
+<<<<<<< Updated upstream
       "name": "Кудайбергено�� Нурбек Орозбаевич",
+=======
+      "name": "Кудайбергенов Нурбек Орозбаевич",
+>>>>>>> Stashed changes
       "department": "Отдел подготовки Маркетплейсов",
       "division": "Исходящая логистика",
       "role": "сотрудник",
