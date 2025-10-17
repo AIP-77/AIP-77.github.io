@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "18:10:38",
+  "lastUpdated": "20:53:25",
   "staff": [
     {
       "name": "Абдразак Уулу Алтынбек",
@@ -863,6 +863,20 @@
       "managedDepartments": []
     },
     {
+      "name": "Варецкий Андрей",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Киселев Я.",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
       "name": "Криворотов Иван",
       "department": "Наемники",
       "division": "",
@@ -892,6 +906,13 @@
     },
     {
       "name": "Пономарев Александр Александро",
+      "department": "Наемники",
+      "division": "",
+      "role": "",
+      "managedDepartments": []
+    },
+    {
+      "name": "Пьянков Кирилл",
       "department": "Наемники",
       "division": "",
       "role": "",
