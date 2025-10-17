@@ -1,9 +1,5 @@
 {
-<<<<<<< Updated upstream
-  "lastUpdated": "14:56:58",
-=======
   "lastUpdated": "18:10:38",
->>>>>>> Stashed changes
   "staff": [
     {
       "name": "Абдразак Уулу Алтынбек",
@@ -242,11 +238,7 @@
       "managedDepartments": []
     },
     {
-<<<<<<< Updated upstream
-      "name": "Кудайбергено�� Нурбек Орозбаевич",
-=======
       "name": "Кудайбергенов Нурбек Орозбаевич",
->>>>>>> Stashed changes
       "department": "Отдел подготовки Маркетплейсов",
       "division": "Исходящая логистика",
       "role": "сотрудник",
@@ -490,7 +482,7 @@
     },
     {
       "name": "Тешабаев Маърифжон Арифжонович",
-      "department": "Исходящие ��отоки",
+      "department": "Исходящие потоки",
       "division": "Исходящая логистика",
       "role": "сотрудник",
       "managedDepartments": []
@@ -822,7 +814,7 @@
       "managedDepartments": []
     },
     {
-      "name": "Шокиров Зафар Нозимжон Угли",
+      "name": "Шокиров Зафа�� Нозимжон Угли",
       "department": "Уволен",
       "division": "",
       "role": "",
