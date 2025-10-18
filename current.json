@@ -2189,7 +2189,7 @@
             "xisBonus": "347,63 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Д��полнительное время для работ",
             "count": 0,
             "time": "00:00:00",
             "pay": "512,50 ₽",
@@ -5270,6 +5270,9 @@
 =======
     "role": "сотрудник",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -5997,7 +6000,7 @@
             "work": "Другие виды работ",
             "count": 415,
             "time": "07:28:00",
-            "pay": "2 325,00 ₽",
+            "pay": "2 325,00 ��",
             "xisBonus": "0,00 ₽"
           }
         ],
@@ -6887,7 +6890,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Разгрузка",
+            "work": "Разг��узка",
             "count": 2486,
             "time": "04:27:00",
             "pay": "2 936,57 ₽",
@@ -7113,12 +7116,16 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "Пт",
 =======
             "day": "П��",
 >>>>>>> Stashed changes
 =======
             "day": "П��",
+>>>>>>> Stashed changes
+=======
+            "day": "Пт",
 >>>>>>> Stashed changes
             "value": 72.5
           }
@@ -7919,7 +7926,7 @@
             "value": 96.46
           },
           {
-            "day": "Ср",
+            "day": "��р",
             "value": 50.21
           },
           {
@@ -10168,7 +10175,7 @@
             "xisBonus": "593,91 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополнительное время ��ля работ",
             "count": 0,
             "time": "00:00:00",
             "pay": "645,00 ₽",
@@ -11702,6 +11709,9 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
             "day": "Сб",
 =======
             "day": "��б",
@@ -13022,7 +13032,11 @@
         ],
         "earningsData": [
           {
+<<<<<<< Updated upstream
             "day": "Сб",
+=======
+            "day": "С��",
+>>>>>>> Stashed changes
             "pay": 0
           },
           {
@@ -13100,7 +13114,11 @@
         ],
         "earningsData": [
           {
+<<<<<<< Updated upstream
             "day": "Сб",
+=======
+            "day": "��б",
+>>>>>>> Stashed changes
             "pay": 0
           },
           {
@@ -15269,8 +15287,11 @@
         "payMonth": "36 376,43 ₽",
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         "xisBonusDay": "0,00 ���",
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         "xisBonusDay": "0,00 ₽",
@@ -17965,8 +17986,11 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "С��",
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
             "day": "Сб",
@@ -21261,7 +21285,11 @@
             "pay": 2510
           },
           {
+<<<<<<< Updated upstream
             "day": "Пт",
+=======
+            "day": "П��",
+>>>>>>> Stashed changes
             "pay": 2495
           }
         ]
@@ -23061,7 +23089,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Главная сборка",
+            "work": "Глав��ая сборка",
             "count": 893,
             "time": "08:44:00",
             "pay": "2 605,46 ₽",
@@ -25738,7 +25766,7 @@
             "xisBonus": "213,56 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополнительное время для р��бот",
             "count": 0,
             "time": "00:00:00",
             "pay": "437,50 ₽",
@@ -26638,7 +26666,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Погрузка",
+            "work": "Погруз��а",
             "count": 0,
             "time": "06:40:00",
             "pay": "5,73 ₽",
@@ -27976,7 +28004,11 @@
             "pay": 6628.47
           },
           {
+<<<<<<< Updated upstream
             "day": "Пт",
+=======
+            "day": "��т",
+>>>>>>> Stashed changes
             "pay": 4509.630000000001
           }
         ]
@@ -29514,7 +29546,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Главная сборка",
+            "work": "Главная с��орка",
             "count": 1095,
             "time": "09:20:00",
             "pay": "3 194,79 ₽",
@@ -30372,7 +30404,11 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "П��",
+=======
+            "day": "Пт",
+>>>>>>> Stashed changes
 =======
             "day": "Пт",
 >>>>>>> Stashed changes
@@ -31896,7 +31932,7 @@
             "xisBonus": "255,66 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополнитель��ое время для работ",
             "count": 0,
             "time": "00:00:00",
             "pay": "507,50 ₽",
@@ -32193,12 +32229,16 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "Пт",
 =======
             "day": "П��",
 >>>>>>> Stashed changes
 =======
             "day": "П��",
+>>>>>>> Stashed changes
+=======
+            "day": "Пт",
 >>>>>>> Stashed changes
             "value": 179.19
           }
@@ -32333,7 +32373,7 @@
             "count": 0,
             "time": "00:00:00",
             "pay": "0,00 ₽",
-            "xisBonus": "0,00 ₽"
+            "xisBonus": "0,00 ��"
           },
           {
             "work": "Главная сборка",
@@ -32435,7 +32475,7 @@
             "xisBonus": "291,52 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополнительное в��емя для работ",
             "count": 0,
             "time": "00:00:00",
             "pay": "497,50 ₽",
@@ -34182,10 +34222,13 @@
           {
             "day": "Пт",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "pay": 0
           },
           {
             "day": "Пт",
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
             "pay": 0
@@ -37352,9 +37395,13 @@
           },
           {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "work": "Гл��вная сборка",
 =======
             "work": "��лавная сборка",
+>>>>>>> Stashed changes
+=======
+            "work": "Гл��вная сборка",
 >>>>>>> Stashed changes
             "count": 101,
             "time": "02:23:00",
@@ -38842,7 +38889,11 @@
             "xisBonus": "0,00 ₽"
           },
           {
+<<<<<<< Updated upstream
             "work": "Главная сборка",
+=======
+            "work": "Г��авная сборка",
+>>>>>>> Stashed changes
             "count": 368,
             "time": "16:39:00",
             "pay": "1 147,29 ₽",
@@ -38922,7 +38973,7 @@
         "worked": "07:02",
         "planned": "11:00",
         "efficiency": "0,64%",
-        "payDay": "1 681,87 ₽",
+        "payDay": "1 681,87 ��",
         "payMonth": "15 885,60 ₽",
         "xisBonusDay": "51,07 ₽",
         "details": [
@@ -40658,7 +40709,11 @@
             "pay": 0
           },
           {
-            "day": "Чт",
+            "day": "��т",
+            "pay": 0
+          },
+          {
+            "day": "Пт",
             "pay": 0
           },
           {
@@ -42729,6 +42784,9 @@
         "efficiencyData": [
           {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
             "day": "Сб",
 =======
             "day": "С��",
@@ -48682,7 +48740,7 @@
         "xisBonusDay": "0,00 ₽",
         "details": [
           {
-            "work": "Стикеровка Шины",
+            "work": "Стик��ровка Шины",
             "count": 33,
             "time": "00:14:00",
             "pay": "102,88 ₽",
@@ -49162,7 +49220,7 @@
             "count": 27,
             "time": "00:08:00",
             "pay": "84,18 ₽",
-            "xisBonus": "0,00 ₽"
+            "xisBonus": "0,00 ��"
           }
         ],
         "efficiencyData": [
@@ -50011,12 +50069,16 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "Пт",
 =======
             "day": "��т",
 >>>>>>> Stashed changes
 =======
             "day": "Пт",
+>>>>>>> Stashed changes
+=======
+            "day": "��т",
 >>>>>>> Stashed changes
             "pay": 0
           }
@@ -50279,7 +50341,7 @@
             "value": 0
           },
           {
-            "day": "Вс",
+            "day": "В��",
             "value": 0
           },
           {
@@ -50541,6 +50603,10 @@
             "day": "Пт",
 =======
 >>>>>>> Stashed changes
+            "value": 0
+          },
+          {
+            "day": "Пт",
             "value": 0
           }
         ],
@@ -52005,7 +52071,11 @@
         "xisBonusDay": "0,00 ₽",
         "details": [
           {
+<<<<<<< Updated upstream
             "work": "Главная сбо��ка",
+=======
+            "work": "Главная с��орка",
+>>>>>>> Stashed changes
             "count": 4,
             "time": "00:00:00",
             "pay": "11,67 ₽",
@@ -53570,7 +53640,7 @@
             "value": 22.08
           },
           {
-            "day": "Пн",
+            "day": "П��",
             "value": 11.87
           },
           {
@@ -54314,6 +54384,10 @@
           },
           {
             "day": "��т",
+            "value": 0
+          },
+          {
+            "day": "Пт",
             "value": 0
           },
           {
@@ -56031,7 +56105,7 @@
     ]
   },
   "2010": {
-    "name": "Немытов Вячеслав",
+    "name": "��емытов Вячеслав",
     "role": "",
     "department": "Наемники",
     "managedDepartments": [],
@@ -56800,9 +56874,13 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "work": "Рабочий день",
 =======
             "work": "Раб��чий день",
+>>>>>>> Stashed changes
+=======
+            "work": "Рабочий день",
 >>>>>>> Stashed changes
 =======
             "work": "Рабочий день",
@@ -56902,7 +56980,88 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+>>>>>>> Stashed changes
+=======
+            "day": "Сб",
+            "value": 59.6
+          },
+          {
+            "day": "Вс",
+            "value": 0
+          },
+          {
+            "day": "Пн",
+            "value": 0
+          },
+          {
+            "day": "Вт",
+            "value": 0
+          },
+          {
+            "day": "Ср",
+            "value": 0
+          },
+          {
+            "day": "Чт",
+            "value": 0
+          },
+          {
+            "day": "Пт",
+            "value": 0
+          }
+        ],
+        "earningsData": [
+          {
+            "day": "Сб",
+            "pay": 1138.0900000000001
+          },
+          {
+            "day": "Вс",
+            "pay": 0
+          },
+          {
+            "day": "Пн",
+            "pay": 0
+          },
+          {
+            "day": "Вт",
+            "pay": 0
+          },
+          {
+            "day": "Ср",
+            "pay": 0
+          },
+          {
+            "day": "Чт",
+            "pay": 0
+          },
+          {
+            "day": "Пт",
+            "pay": 0
+          }
+        ]
+      },
+      {
+        "date": "17.10.2025",
+        "worked": "00:00",
+        "planned": "08:00",
+        "efficiency": "0,00%",
+        "payDay": "0,00 ₽",
+        "payMonth": "1 138,09 ₽",
+        "xisBonusDay": "0,00 ₽",
+        "details": [
+          {
+            "work": "Рабочий день",
+            "count": 0,
+            "time": "00:00:00",
+            "pay": "0,00 ₽",
+            "xisBonus": "0,00 ₽"
+          }
+        ],
+        "efficiencyData": [
+          {
 >>>>>>> Stashed changes
             "day": "Сб",
             "value": 59.6
@@ -56960,6 +57119,7 @@
           {
             "day": "Пт",
             "pay": 0
+<<<<<<< Updated upstream
           }
         ]
       },
@@ -57124,6 +57284,8 @@
             "day": "Пт",
             "pay": 0
 <<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -58043,12 +58205,16 @@
         "payMonth": "15 754,78 ₽",
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         "xisBonusDay": "270,30 ₽",
 =======
         "xisBonusDay": "270,30 ���",
 >>>>>>> Stashed changes
 =======
         "xisBonusDay": "270,30 ���",
+>>>>>>> Stashed changes
+=======
+        "xisBonusDay": "270,30 ₽",
 >>>>>>> Stashed changes
         "details": [
           {
@@ -59031,7 +59197,7 @@
             "xisBonus": "145,84 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополнительное время для ра��от",
             "count": 0,
             "time": "00:00:00",
             "pay": "452,50 ₽",
@@ -68726,7 +68892,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Рабочий день",
+            "work": "Рабоч��й день",
             "count": 0,
             "time": "00:00:00",
             "pay": "0,00 ₽",
@@ -68952,7 +69118,11 @@
             "xisBonus": "0,00 ₽"
           },
           {
+<<<<<<< Updated upstream
             "work": "Д��полнительное время для работ",
+=======
+            "work": "Дополни��ельное время для работ",
+>>>>>>> Stashed changes
             "count": 0,
             "time": "00:00:00",
             "pay": "472,50 ₽",
@@ -69125,7 +69295,7 @@
         "planned": "11:09",
         "efficiency": "0,83%",
         "payDay": "6 541,85 ₽",
-        "payMonth": "40 465,49 ₽",
+        "payMonth": "40 465,49 ��",
         "xisBonusDay": "225,05 ₽",
         "details": [
           {
@@ -70192,7 +70362,7 @@
             "work": "Погрузка",
             "count": 0,
             "time": "00:20:00",
-            "pay": "0,31 ₽",
+            "pay": "0,31 ��",
             "xisBonus": "0,00 ₽"
           },
           {
@@ -71366,7 +71536,7 @@
             "work": "Рабочий день",
             "count": 0,
             "time": "00:00:00",
-            "pay": "0,00 ₽",
+            "pay": "0,00 ���",
             "xisBonus": "0,00 ₽"
           },
           {
@@ -71465,7 +71635,7 @@
             "work": "Другие виды работ",
             "count": 1,
             "time": "01:48:00",
-            "pay": "504,00 ₽",
+            "pay": "504,00 ���",
             "xisBonus": "0,00 ₽"
           },
           {
@@ -72711,7 +72881,11 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "Сб",
+=======
+            "day": "��б",
+>>>>>>> Stashed changes
 =======
             "day": "��б",
 >>>>>>> Stashed changes
@@ -72984,6 +73158,9 @@
 =======
         "payDay": "8 450,24 ₽",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -73210,7 +73387,11 @@
             "xisBonus": "0,00 ₽"
           },
           {
+<<<<<<< Updated upstream
             "work": "Стикер��вка Шины",
+=======
+            "work": "Стикеров��а Шины",
+>>>>>>> Stashed changes
             "count": 696,
             "time": "04:30:00",
             "pay": "2 169,85 ₽",
@@ -73722,7 +73903,7 @@
             "work": "Главная сборка",
             "count": 437,
             "time": "06:16:00",
-            "pay": "1 291,01 ₽",
+            "pay": "1 291,01 ��",
             "xisBonus": "170,72 ₽"
           },
           {
@@ -74205,7 +74386,11 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "work": "Рабочий ��ень",
+=======
+            "work": "Рабочий де��ь",
+>>>>>>> Stashed changes
 =======
             "work": "Рабочий де��ь",
 >>>>>>> Stashed changes
@@ -74992,6 +75177,10 @@
           {
             "day": "Пт",
             "pay": 2400
+          },
+          {
+            "day": "Пт",
+            "pay": 2400
           }
         ]
       },
@@ -75567,7 +75756,11 @@
         "xisBonusDay": "0,00 ₽",
         "details": [
           {
+<<<<<<< Updated upstream
             "work": "Рабоч��й день",
+=======
+            "work": "Раб��чий день",
+>>>>>>> Stashed changes
             "count": 0,
             "time": "00:00:00",
             "pay": "0,00 ₽",
@@ -77059,6 +77252,9 @@
         "payDay": "5 329,23 ₽",
         "payMonth": "81 445,08 ₽",
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
         "xisBonusDay": "317,01 ₽",
 =======
         "xisBonusDay": "317,01 ���",
@@ -77247,8 +77443,11 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "��б",
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
             "day": "Сб",
@@ -77291,7 +77490,7 @@
         "xisBonusDay": "747,34 ₽",
         "details": [
           {
-            "work": "Упаковка паллеты",
+            "work": "Упак��вка паллеты",
             "count": 1106,
             "time": "09:48:00",
             "pay": "2 784,35 ₽",
@@ -77411,7 +77610,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополните��ьное время для работ",
             "count": 0,
             "time": "00:00:00",
             "pay": "487,50 ₽",
@@ -78702,7 +78901,7 @@
             "pay": 0
           },
           {
-            "day": "Ср",
+            "day": "С��",
             "pay": 0
           },
           {
@@ -79757,7 +79956,7 @@
         "xisBonusDay": "0,00 ₽",
         "details": [
           {
-            "work": "Рабочий день",
+            "work": "Р��бочий день",
             "count": 0,
             "time": "00:00:00",
             "pay": "0,00 ₽",
@@ -81273,7 +81472,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Другие виды работ",
+            "work": "Д��угие виды работ",
             "count": 0,
             "time": "01:19:00",
             "pay": "395,00 ₽",
@@ -82610,7 +82809,7 @@
             "pay": 624.94
           },
           {
-            "day": "Чт",
+            "day": "Ч��",
             "pay": 1072.77
           },
           {
@@ -83138,7 +83337,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополнительное время ��ля работ",
             "count": 0,
             "time": "00:00:00",
             "pay": "417,50 ₽",
@@ -88403,7 +88602,11 @@
             "xisBonus": "0,00 ₽"
           },
           {
+<<<<<<< Updated upstream
             "work": "Дополнител��ное время для работ",
+=======
+            "work": "Дополнительн��е время для работ",
+>>>>>>> Stashed changes
             "count": 0,
             "time": "00:00:00",
             "pay": "890,00 ₽",
@@ -89550,9 +89753,13 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "work": "Дополнительное время д��я работ",
 =======
             "work": "Дополнительное время для работ",
+>>>>>>> Stashed changes
+=======
+            "work": "Дополнительное время дл�� работ",
 >>>>>>> Stashed changes
 =======
             "work": "Дополнительное время дл�� работ",
@@ -91669,7 +91876,11 @@
             "xisBonus": "0,00 ₽"
           },
           {
+<<<<<<< Updated upstream
             "work": "Дополните��ьное время для работ",
+=======
+            "work": "Дополнитель��ое время для работ",
+>>>>>>> Stashed changes
             "count": 0,
             "time": "00:00:00",
             "pay": "150,00 ₽",
@@ -94605,7 +94816,7 @@
         "xisBonusDay": "322,16 ₽",
         "details": [
           {
-            "work": "Работа с расхождениями",
+            "work": "Рабо��а с расхождениями",
             "count": 166,
             "time": "08:29:00",
             "pay": "2 644,76 ₽",
@@ -95130,12 +95341,16 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "Пт",
 =======
             "day": "П��",
 >>>>>>> Stashed changes
 =======
             "day": "П��",
+>>>>>>> Stashed changes
+=======
+            "day": "Пт",
 >>>>>>> Stashed changes
             "pay": 1189.8899999999999
           }
@@ -97024,7 +97239,11 @@
             "pay": 0
           },
           {
-            "day": "Чт",
+            "day": "Ч��",
+            "pay": 0
+          },
+          {
+            "day": "Пт",
             "pay": 0
           },
           {
@@ -97185,7 +97404,11 @@
             "value": 0
           },
           {
-            "day": "Чт",
+            "day": "Ч��",
+            "value": 0
+          },
+          {
+            "day": "Пт",
             "value": 0
           },
           {
@@ -97987,7 +98210,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополнительное время ��ля работ",
             "count": 0,
             "time": "00:00:00",
             "pay": "517,50 ₽",
@@ -98660,7 +98883,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Допол��ительное время для работ",
             "count": 0,
             "time": "00:00:00",
             "pay": "547,50 ₽",
@@ -99651,7 +99874,11 @@
             "xisBonus": "0,00 ₽"
           },
           {
+<<<<<<< Updated upstream
             "work": "Стикеровка Шины",
+=======
+            "work": "Стике��овка Шины",
+>>>>>>> Stashed changes
             "count": 209,
             "time": "01:18:00",
             "pay": "651,58 ₽",
@@ -99939,7 +100166,11 @@
         "payDay": "3 780,80 ₽",
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         "payMonth": "72 165,72 ���",
+=======
+        "payMonth": "72 165,72 ₽",
+>>>>>>> Stashed changes
 =======
         "payMonth": "72 165,72 ₽",
 >>>>>>> Stashed changes
@@ -101116,7 +101347,11 @@
             "xisBonus": "0,00 ₽"
           },
           {
+<<<<<<< Updated upstream
             "work": "Стик��ровка Шины",
+=======
+            "work": "Стикер��вка Шины",
+>>>>>>> Stashed changes
             "count": 1613,
             "time": "07:37:00",
             "pay": "5 028,69 ₽",
@@ -101300,7 +101535,7 @@
             "xisBonus": "0,00 ₽"
           },
           {
-            "work": "Транспортировка товара по складу",
+            "work": "Транспортировка товара п�� складу",
             "count": 1791,
             "time": "06:51:00",
             "pay": "1 642,23 ₽",
@@ -104539,9 +104774,13 @@
           },
           {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "Пт",
 =======
             "day": "П��",
+>>>>>>> Stashed changes
+=======
+            "day": "Пт",
 >>>>>>> Stashed changes
             "value": 63.04
           }
@@ -106323,7 +106562,7 @@
             "pay": 1091.17
           },
           {
-            "day": "Вт",
+            "day": "В��",
             "pay": 6510.84
           },
           {
@@ -106337,12 +106576,16 @@
           {
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             "day": "Пт",
 =======
             "day": "П��",
 >>>>>>> Stashed changes
 =======
             "day": "П��",
+>>>>>>> Stashed changes
+=======
+            "day": "Пт",
 >>>>>>> Stashed changes
             "pay": 4546.48
           }
@@ -107265,7 +107508,11 @@
         "xisBonusDay": "0,00 ₽",
         "details": [
           {
+<<<<<<< Updated upstream
             "work": "Раб��чий день",
+=======
+            "work": "Р��бочий день",
+>>>>>>> Stashed changes
             "count": 0,
             "time": "00:00:00",
             "pay": "0,00 ₽",
@@ -107640,7 +107887,7 @@
             "xisBonus": "397,49 ₽"
           },
           {
-            "work": "Дополнительное время для работ",
+            "work": "Дополнительное время для р��бот",
             "count": 0,
             "time": "00:00:00",
             "pay": "440,00 ₽",
