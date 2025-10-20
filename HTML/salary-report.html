@@ -37,6 +37,14 @@
       font-weight: 600;
     }
 
+    .version {
+      padding: 6px 16px;
+      background: #e0f7fa;
+      font-size: 12px;
+      color: #006064;
+      text-align: right;
+    }
+
     .controls {
       padding: 12px 16px;
       background: #f0f0f0;
@@ -118,7 +126,7 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 20.10-1102 <span>🕒</span></div>
+    <div class="version">v 20.10-1120 <span>🕒</span></div>
     <div class="controls">
       <label for="month-select">Месяц:</label>
       <select id="month-select">
@@ -140,13 +148,14 @@
 
   <script>
     // ========================
-    // Настройки
+    // Настройки: только архивные месяцы
     // ========================
     const AVAILABLE_MONTHS = [
       "2025-09",
-      "2025-10"
+      "2025-10",
+      "2025-11"
+      // Добавляйте новые месяцы сюда: "2025-11", "2025-12", ...
     ];
-    const CURRENT_MONTH = "2025-10"; // текущий месяц → fullData.json
 
     let cacheBuster = Date.now();
 
@@ -183,18 +192,13 @@
       return `${monthNames[parseInt(month)]} ${year}`;
     }
 
-    // 🔥 ИСПРАВЛЕНО: убраны пробелы в URL!
+    // 🔥 Теперь ВСЕ данные — только из архива
     async function fetchRecordsForMonth(yyyymm) {
       try {
-        let baseUrl;
-        if (yyyymm === CURRENT_MONTH) {
-          baseUrl = 'https://AIP-77.github.io/fullData.json';
-        } else {
-          baseUrl = `https://AIP-77.github.io/archive/${yyyymm}.json`;
-        }
-
+        // Единый путь для всех месяцев
+        const baseUrl = `https://AIP-77.github.io/archive/${yyyymm}.json`;
         const url = `${baseUrl}?t=${cacheBuster}`;
-        console.log('Загрузка:', url); // для отладки
+        console.log('Загрузка:', url);
 
         const res = await fetch(url);
         if (!res.ok) {
@@ -203,12 +207,12 @@
         const data = await res.json();
 
         if (!data || !Array.isArray(data.records)) {
-          throw new Error('Неверный формат данных: ожидается { "records": [...] }');
+          throw new Error('Неверный формат: ожидается { "records": [...] }');
         }
 
         return data.records;
       } catch (err) {
-        console.error('Ошибка загрузки:', err);
+        console.error('Ошибка:', err);
         throw new Error(`Не удалось загрузить данные за ${getMonthLabel(yyyymm)}`);
       }
     }
@@ -322,20 +326,25 @@
       const select = document.getElementById('month-select');
       select.innerHTML = '';
 
+      // Сортируем от новых к старым
       const sorted = [...AVAILABLE_MONTHS].sort((a, b) => b.localeCompare(a));
       sorted.forEach(yyyymm => {
         const opt = document.createElement('option');
         opt.value = yyyymm;
-        opt.textContent = getMonthLabel(yyyymm) + (yyyymm === CURRENT_MONTH ? ' (текущий)' : '');
+        opt.textContent = getMonthLabel(yyyymm);
         select.appendChild(opt);
       });
 
-      select.value = CURRENT_MONTH;
-      select.addEventListener('change', (e) => {
-        if (e.target.value) loadAndRender(e.target.value);
-      });
-
-      loadAndRender(CURRENT_MONTH);
+      // Выбираем самый свежий месяц по умолчанию
+      if (sorted.length > 0) {
+        select.value = sorted[0];
+        select.addEventListener('change', (e) => {
+          if (e.target.value) loadAndRender(e.target.value);
+        });
+        loadAndRender(sorted[0]);
+      } else {
+        document.getElementById('content').innerHTML = '<div class="error">Нет доступных месяцев</div>';
+      }
     }
 
     // ========================
@@ -356,7 +365,7 @@
         if (window.Telegram?.WebApp) {
           Telegram.WebApp.showPopup({
             title: "Кэш сброшен",
-            message: "Данные будут загружены заново."
+            message: "Данные загружены заново."
           });
         }
       });
