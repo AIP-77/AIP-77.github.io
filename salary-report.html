@@ -250,7 +250,7 @@
 
     async function loadData() {
       try {
-        const res = await fetch('https://AIP-77.github.io/fullData.json');
+        const res = await fetch('https://AIP-77.github.io/archive/2025-10 fullData.json');
         if (!res.ok) throw new Error('Ошибка сети');
         const data = await res.json();
         return data.records || [];
