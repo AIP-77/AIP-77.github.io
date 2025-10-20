@@ -50,12 +50,26 @@
       color: #333;
     }
 
-    .controls select {
+    .controls select,
+    .controls button {
       width: 100%;
       padding: 8px 12px;
+      margin-top: 8px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 16px;
+    }
+
+    .controls button {
+      background: #ff5722;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .controls button:hover {
+      background: #e64a19;
     }
 
     table {
@@ -74,8 +88,6 @@
       background-color: #fafafa;
       font-weight: 600;
       color: #333;
-      position: sticky;
-      top: 0;
     }
 
     tr:hover {
@@ -97,8 +109,8 @@
         padding: 8px 4px;
         font-size: 13px;
       }
-      .header {
-        font-size: 16px;
+      .controls button {
+        font-size: 14px;
       }
     }
   </style>
@@ -106,13 +118,19 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 20.10-1055 <span>🕒</span></div>
-    <div class="last-updated" id="last-updated">Обновлено: —</div>
+    <div class="version">v 20.10-1102 <span>🕒</span></div>
     <div class="controls">
-      <label for="month-select">Выберите месяц:</label>
+      <label for="month-select">Месяц:</label>
       <select id="month-select">
         <option value="">Загрузка...</option>
       </select>
+
+      <label for="employee-select">Сотрудник:</label>
+      <select id="employee-select">
+        <option value="">Загрузка...</option>
+      </select>
+
+      <button id="clear-cache-btn">🔄 Сбросить кэш</button>
     </div>
 
     <div id="content">
@@ -121,6 +139,17 @@
   </div>
 
   <script>
+    // ========================
+    // Настройки
+    // ========================
+    const AVAILABLE_MONTHS = [
+      "2025-09",
+      "2025-10"
+    ];
+    const CURRENT_MONTH = "2025-10"; // текущий месяц → fullData.json
+
+    let cacheBuster = Date.now();
+
     // ========================
     // Вспомогательные функции
     // ========================
@@ -145,29 +174,43 @@
       return parseFloat(cleaned) || 0;
     }
 
-    function extractMonthYear(dateStr) {
-      // dateStr = "30.09.2025"
-      const parts = dateStr.split('.');
-      if (parts.length !== 3) return null;
-      const [day, month, year] = parts;
-      return `${month}.${year}`;
+    function getMonthLabel(yyyymm) {
+      const [year, month] = yyyymm.split('-');
+      const monthNames = [
+        '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+      ];
+      return `${monthNames[parseInt(month)]} ${year}`;
     }
 
-    function getUniqueMonths(records) {
-      const months = new Set();
-      records.forEach(r => {
-        const my = extractMonthYear(r["Рабочий день"]);
-        if (my) months.add(my);
-      });
-      return Array.from(months).sort((a, b) => {
-        const [ma, ya] = a.split('.');
-        const [mb, yb] = b.split('.');
-        return ya !== yb ? ya - yb : ma - mb;
-      }).reverse(); // самые свежие — первые
-    }
+    // 🔥 ИСПРАВЛЕНО: убраны пробелы в URL!
+    async function fetchRecordsForMonth(yyyymm) {
+      try {
+        let baseUrl;
+        if (yyyymm === CURRENT_MONTH) {
+          baseUrl = 'https://AIP-77.github.io/fullData.json';
+        } else {
+          baseUrl = `https://AIP-77.github.io/archive/${yyyymm}.json`;
+        }
 
-    function filterByMonth(records, monthYear) {
-      return records.filter(r => extractMonthYear(r["Рабочий день"]) === monthYear);
+        const url = `${baseUrl}?t=${cacheBuster}`;
+        console.log('Загрузка:', url); // для отладки
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+
+        if (!data || !Array.isArray(data.records)) {
+          throw new Error('Неверный формат данных: ожидается { "records": [...] }');
+        }
+
+        return data.records;
+      } catch (err) {
+        console.error('Ошибка загрузки:', err);
+        throw new Error(`Не удалось загрузить данные за ${getMonthLabel(yyyymm)}`);
+      }
     }
 
     function calculateSummary(records) {
@@ -192,134 +235,136 @@
         summary[name].totalSum += parseMoney(record["Расчетная сумма"]) + parseMoney(record["Доплата XIS"]);
       });
 
-      return Object.entries(summary).map(([name, data]) => {
-        const efficiency = data.workTime > 0
-          ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
-          : '0,00%';
-
-        return {
+      return Object.entries(summary)
+        .map(([name, data]) => ({
           Сотрудник: name,
           "Кол-во задач": data.tasks,
           "Количество единиц": Math.round(data.units),
           "Эффективное время": secondsToTime(data.effectiveTime),
           "Рабочее время": secondsToTime(data.workTime),
-          "Эффективность сотрудника": efficiency,
+          "Эффективность сотрудника": data.workTime > 0
+            ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
+            : '0,00%',
           "Расчетная сумма": `р.${data.totalSum.toFixed(2).replace('.', ',')}`
-        };
-      });
+        }))
+        .sort((a, b) => a.Сотрудник.localeCompare(b.Сотрудник, 'ru'));
     }
 
     function renderTable(data) {
+      const content = document.getElementById('content');
       if (data.length === 0) {
-        document.getElementById('content').innerHTML = '<div class="error">Нет данных за выбранный период</div>';
+        content.innerHTML = '<div class="error">Нет данных</div>';
         return;
       }
 
-      let html = `
-        <table>
-          <thead>
-            <tr>
-              <th>Сотрудник</th>
-              <th>Кол-во задач</th>
-              <th>Единиц</th>
-              <th>Эфф. время</th>
-              <th>Раб. время</th>
-              <th>Эффективность</th>
-              <th>Сумма</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
+      let html = `<table><thead><tr>
+        <th>Сотрудник</th>
+        <th>Кол-во задач</th>
+        <th>Единиц</th>
+        <th>Эфф. время</th>
+        <th>Раб. время</th>
+        <th>Эффективность</th>
+        <th>Сумма</th>
+      </tr></thead><tbody>`;
 
       data.forEach(row => {
-        html += `
-          <tr>
-            <td>${row.Сотрудник}</td>
-            <td>${row["Кол-во задач"]}</td>
-            <td>${row["Количество единиц"]}</td>
-            <td>${row["Эффективное время"]}</td>
-            <td>${row["Рабочее время"]}</td>
-            <td>${row["Эффективность сотрудника"]}</td>
-            <td>${row["Расчетная сумма"]}</td>
-          </tr>
-        `;
+        html += `<tr>
+          <td>${row.Сотрудник}</td>
+          <td>${row["Кол-во задач"]}</td>
+          <td>${row["Количество единиц"]}</td>
+          <td>${row["Эффективное время"]}</td>
+          <td>${row["Рабочее время"]}</td>
+          <td>${row["Эффективность сотрудника"]}</td>
+          <td>${row["Расчетная сумма"]}</td>
+        </tr>`;
       });
 
       html += `</tbody></table>`;
-      document.getElementById('content').innerHTML = html;
+      content.innerHTML = html;
     }
 
-    async function loadData() {
+    function populateEmployeeFilter(summaryData) {
+      const select = document.getElementById('employee-select');
+      select.innerHTML = '<option value="">Все сотрудники</option>';
+      const employees = summaryData.map(r => r.Сотрудник).sort();
+      employees.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp;
+        opt.textContent = emp;
+        select.appendChild(opt);
+      });
+    }
+
+    async function loadAndRender(month) {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">Загрузка...</div>';
+
       try {
-        const res = await fetch('https://AIP-77.github.io/archive/2025-10 fullData.json');
-        if (!res.ok) throw new Error('Ошибка сети');
-        const data = await res.json();
-        return data.records || [];
+        const records = await fetchRecordsForMonth(month);
+        const fullSummary = calculateSummary(records);
+        window.currentSummary = fullSummary;
+        populateEmployeeFilter(fullSummary);
+        renderTable(fullSummary);
       } catch (err) {
-        document.getElementById('content').innerHTML = `<div class="error">Ошибка загрузки данных: ${err.message}</div>`;
-        throw err;
+        content.innerHTML = `<div class="error">${err.message}</div>`;
       }
     }
 
-    // ========================
-    // Основной поток
-    // ========================
+    function applyEmployeeFilter() {
+      const selected = document.getElementById('employee-select').value;
+      const filtered = selected
+        ? window.currentSummary.filter(r => r.Сотрудник === selected)
+        : window.currentSummary;
+      renderTable(filtered);
+    }
 
-    let allRecords = [];
+    function initMonthSelector() {
+      const select = document.getElementById('month-select');
+      select.innerHTML = '';
 
-    async function init() {
-      // Инициализация Telegram WebApp
+      const sorted = [...AVAILABLE_MONTHS].sort((a, b) => b.localeCompare(a));
+      sorted.forEach(yyyymm => {
+        const opt = document.createElement('option');
+        opt.value = yyyymm;
+        opt.textContent = getMonthLabel(yyyymm) + (yyyymm === CURRENT_MONTH ? ' (текущий)' : '');
+        select.appendChild(opt);
+      });
+
+      select.value = CURRENT_MONTH;
+      select.addEventListener('change', (e) => {
+        if (e.target.value) loadAndRender(e.target.value);
+      });
+
+      loadAndRender(CURRENT_MONTH);
+    }
+
+    // ========================
+    // Инициализация
+    // ========================
+    document.addEventListener('DOMContentLoaded', () => {
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
-        Telegram.WebApp.MainButton.hide();
       }
 
-      // Загрузка данных
-      allRecords = await loadData();
-
-      // Заполнение выпадающего списка месяцами
-      const months = getUniqueMonths(allRecords);
-      const select = document.getElementById('month-select');
-      select.innerHTML = '';
-      if (months.length === 0) {
-        select.innerHTML = '<option>Нет данных</option>';
-        document.getElementById('content').innerHTML = '<div class="error">Нет записей для отображения</div>';
-        return;
-      }
-
-      months.forEach(m => {
-        const [month, year] = m.split('.');
-        const monthNames = [
-          '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
-        ];
-        const label = `${monthNames[parseInt(month)]} ${year}`;
-        const option = document.createElement('option');
-        option.value = m;
-        option.textContent = label;
-        select.appendChild(option);
-      });
-
-      // Выбираем первый (самый свежий) месяц по умолчанию
-      select.value = months[0];
-      select.disabled = false;
-      select.addEventListener('change', () => {
-        if (select.value) {
-          const filtered = filterByMonth(allRecords, select.value);
-          const report = calculateSummary(filtered);
-          renderTable(report);
+      document.getElementById('clear-cache-btn').addEventListener('click', () => {
+        cacheBuster = Date.now();
+        const currentMonth = document.getElementById('month-select').value;
+        if (currentMonth) {
+          loadAndRender(currentMonth);
+        }
+        if (window.Telegram?.WebApp) {
+          Telegram.WebApp.showPopup({
+            title: "Кэш сброшен",
+            message: "Данные будут загружены заново."
+          });
         }
       });
 
-      // Первый рендер
-      const filtered = filterByMonth(allRecords, months[0]);
-      const report = calculateSummary(filtered);
-      renderTable(report);
-    }
+      document.getElementById('employee-select').addEventListener('change', applyEmployeeFilter);
 
-    // Запуск
-    document.addEventListener('DOMContentLoaded', init);
+      initMonthSelector();
+    });
   </script>
 </body>
 </html>
