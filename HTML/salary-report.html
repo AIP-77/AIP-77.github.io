@@ -15,8 +15,9 @@
 
     body {
       background-color: #f5f5f5;
-      padding: 16px;
+      padding: 12px;
       color: #000;
+      line-height: 1.4;
     }
 
     .container {
@@ -47,8 +48,8 @@
 
     .controls {
       padding: 12px 16px;
-      background: #f0f0f0;
-      border-bottom: 1px solid #e0e0e0;
+      background: #f9f9f9;
+      border-bottom: 1px solid #eee;
     }
 
     .controls label {
@@ -56,28 +57,16 @@
       margin-bottom: 6px;
       font-weight: 500;
       color: #333;
+      font-size: 14px;
     }
 
-    .controls select,
-    .controls button {
+    .controls select {
       width: 100%;
-      padding: 8px 12px;
-      margin-top: 8px;
+      padding: 10px 12px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 16px;
-    }
-
-    .controls button {
-      background: #ff5722;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .controls button:hover {
-      background: #e64a19;
+      background: white;
     }
 
     table {
@@ -96,29 +85,88 @@
       background-color: #fafafa;
       font-weight: 600;
       color: #333;
+      position: sticky;
+      top: 0;
     }
 
     tr:hover {
-      background-color: #f9f9f9;
+      background-color: #fcfcfc;
     }
 
     .loading, .error {
       padding: 20px;
       text-align: center;
       color: #666;
+      font-size: 16px;
     }
 
     .error {
       color: #d32f2f;
     }
 
+    /* Кнопка под таблицей */
+    .footer-actions {
+      padding: 16px;
+      text-align: center;
+      background: #fafafa;
+      border-top: 1px solid #eee;
+    }
+
+    .footer-actions button {
+      background: #ff5722;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: auto;
+      min-width: 180px;
+    }
+
+    .footer-actions button:hover {
+      background: #e64a19;
+    }
+
+    /* Адаптивность для маленьких экранов */
     @media (max-width: 600px) {
+      body {
+        padding: 8px;
+      }
+
+      .header {
+        font-size: 16px;
+        padding: 14px 12px;
+      }
+
       th, td {
-        padding: 8px 4px;
+        padding: 8px 6px;
         font-size: 13px;
       }
-      .controls button {
+
+      .controls select {
+        font-size: 16px; /* важно для iOS */
+        padding: 10px;
+      }
+
+      .footer-actions button {
+        padding: 10px 16px;
+        font-size: 15px;
+        min-width: 140px;
+      }
+    }
+
+    /* Очень узкие экраны */
+    @media (max-width: 400px) {
+      th, td {
+        padding: 6px 4px;
+        font-size: 12px;
+      }
+
+      .footer-actions button {
         font-size: 14px;
+        padding: 8px 12px;
       }
     }
   </style>
@@ -126,7 +174,8 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 20.10-1130 <span>🕒</span></div>
+    <div class="version">v 20.10-1155 <span>🕒</span></div>
+
     <div class="controls">
       <label for="month-select">Месяц:</label>
       <select id="month-select">
@@ -137,18 +186,20 @@
       <select id="employee-select">
         <option value="">Загрузка...</option>
       </select>
-
-      <button id="clear-cache-btn">🔄 Сбросить кэш</button>
     </div>
 
     <div id="content">
       <div class="loading">Загрузка данных...</div>
     </div>
+
+    <div class="footer-actions">
+      <button id="clear-cache-btn">🔄 Сбросить кэш</button>
+    </div>
   </div>
 
   <script>
     // ========================
-    // Настройки: только архивные месяцы
+    // Настройки
     // ========================
     const AVAILABLE_MONTHS = [
       "2025-09",
@@ -175,6 +226,15 @@
       return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
+    // 🔢 Форматирование числа: 70561.04 → "70 561,04"
+    function formatMoneyNumber(num) {
+      if (typeof num !== 'number' || isNaN(num)) return '0,00';
+      return num
+        .toFixed(2)
+        .replace('.', ',')
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
     function parseMoney(str) {
       if (!str || str.trim() === '') return 0;
       const cleaned = str.replace(/[^\d,]/g, '').replace(',', '.');
@@ -190,7 +250,6 @@
       return `${monthNames[parseInt(month)]} ${year}`;
     }
 
-    // 🔥 ИСПРАВЛЕНО: имя файла — "2025-10 fullData.json", а не "2025-10.json"
     async function fetchRecordsForMonth(yyyymm) {
       try {
         const baseUrl = `https://AIP-77.github.io/archive/${yyyymm} fullData.json`;
@@ -246,7 +305,7 @@
           "Эффективность сотрудника": data.workTime > 0
             ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
             : '0,00%',
-          "Расчетная сумма": `р.${data.totalSum.toFixed(2).replace('.', ',')}`
+          "Расчетная сумма": `р.${formatMoneyNumber(data.totalSum)}`
         }))
         .sort((a, b) => a.Сотрудник.localeCompare(b.Сотрудник, 'ru'));
     }
