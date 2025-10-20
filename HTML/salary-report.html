@@ -60,7 +60,8 @@
       font-size: 14px;
     }
 
-    .controls select {
+    .controls select,
+    .controls input {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid #ccc;
@@ -129,7 +130,7 @@
       background: #e64a19;
     }
 
-    /* Адаптивность для маленьких экранов */
+    /* Адаптивность */
     @media (max-width: 600px) {
       body {
         padding: 8px;
@@ -145,8 +146,9 @@
         font-size: 13px;
       }
 
-      .controls select {
-        font-size: 16px; /* важно для iOS */
+      .controls select,
+      .controls input {
+        font-size: 16px;
         padding: 10px;
       }
 
@@ -157,7 +159,6 @@
       }
     }
 
-    /* Очень узкие экраны */
     @media (max-width: 400px) {
       th, td {
         padding: 6px 4px;
@@ -174,7 +175,7 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 20.10-1155 <span>🕒</span></div>
+    <div class="version">v 20.10-1220 <span>🕒</span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -182,10 +183,8 @@
         <option value="">Загрузка...</option>
       </select>
 
-      <label for="employee-select">Сотрудник:</label>
-      <select id="employee-select">
-        <option value="">Загрузка...</option>
-      </select>
+      <label for="employee-search">Поиск по сотруднику:</label>
+      <input type="text" id="employee-search" placeholder="Введите ФИО или часть имени...">
     </div>
 
     <div id="content">
@@ -226,7 +225,6 @@
       return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
-    // 🔢 Форматирование числа: 70561.04 → "70 561,04"
     function formatMoneyNumber(num) {
       if (typeof num !== 'number' || isNaN(num)) return '0,00';
       return num
@@ -343,16 +341,15 @@
       content.innerHTML = html;
     }
 
-    function populateEmployeeFilter(summaryData) {
-      const select = document.getElementById('employee-select');
-      select.innerHTML = '<option value="">Все сотрудники</option>';
-      const employees = summaryData.map(r => r.Сотрудник).sort();
-      employees.forEach(emp => {
-        const opt = document.createElement('option');
-        opt.value = emp;
-        opt.textContent = emp;
-        select.appendChild(opt);
-      });
+    // 🔍 Фильтрация по поисковому запросу
+    function applySearchFilter() {
+      const query = document.getElementById('employee-search').value.trim().toLowerCase();
+      const filtered = query
+        ? window.currentSummary.filter(row =>
+            row.Сотрудник.toLowerCase().includes(query)
+          )
+        : window.currentSummary;
+      renderTable(filtered);
     }
 
     async function loadAndRender(month) {
@@ -363,19 +360,10 @@
         const records = await fetchRecordsForMonth(month);
         const fullSummary = calculateSummary(records);
         window.currentSummary = fullSummary;
-        populateEmployeeFilter(fullSummary);
         renderTable(fullSummary);
       } catch (err) {
         content.innerHTML = `<div class="error">${err.message}</div>`;
       }
-    }
-
-    function applyEmployeeFilter() {
-      const selected = document.getElementById('employee-select').value;
-      const filtered = selected
-        ? window.currentSummary.filter(r => r.Сотрудник === selected)
-        : window.currentSummary;
-      renderTable(filtered);
     }
 
     function initMonthSelector() {
@@ -410,6 +398,14 @@
         Telegram.WebApp.expand();
       }
 
+      // Поиск по вводу (с небольшой задержкой для производительности)
+      const searchInput = document.getElementById('employee-search');
+      let searchTimeout;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(applySearchFilter, 300);
+      });
+
       document.getElementById('clear-cache-btn').addEventListener('click', () => {
         cacheBuster = Date.now();
         const currentMonth = document.getElementById('month-select').value;
@@ -423,8 +419,6 @@
           });
         }
       });
-
-      document.getElementById('employee-select').addEventListener('change', applyEmployeeFilter);
 
       initMonthSelector();
     });
