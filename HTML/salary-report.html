@@ -126,7 +126,7 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 20.10-1120 <span>🕒</span></div>
+    <div class="version">v 20.10-1130 <span>🕒</span></div>
     <div class="controls">
       <label for="month-select">Месяц:</label>
       <select id="month-select">
@@ -152,9 +152,7 @@
     // ========================
     const AVAILABLE_MONTHS = [
       "2025-09",
-      "2025-10",
-      "2025-11"
-      // Добавляйте новые месяцы сюда: "2025-11", "2025-12", ...
+      "2025-10"
     ];
 
     let cacheBuster = Date.now();
@@ -192,11 +190,10 @@
       return `${monthNames[parseInt(month)]} ${year}`;
     }
 
-    // 🔥 Теперь ВСЕ данные — только из архива
+    // 🔥 ИСПРАВЛЕНО: имя файла — "2025-10 fullData.json", а не "2025-10.json"
     async function fetchRecordsForMonth(yyyymm) {
       try {
-        // Единый путь для всех месяцев
-        const baseUrl = `https://AIP-77.github.io/archive/${yyyymm}.json`;
+        const baseUrl = `https://AIP-77.github.io/archive/${yyyymm} fullData.json`;
         const url = `${baseUrl}?t=${cacheBuster}`;
         console.log('Загрузка:', url);
 
@@ -326,7 +323,6 @@
       const select = document.getElementById('month-select');
       select.innerHTML = '';
 
-      // Сортируем от новых к старым
       const sorted = [...AVAILABLE_MONTHS].sort((a, b) => b.localeCompare(a));
       sorted.forEach(yyyymm => {
         const opt = document.createElement('option');
@@ -335,7 +331,6 @@
         select.appendChild(opt);
       });
 
-      // Выбираем самый свежий месяц по умолчанию
       if (sorted.length > 0) {
         select.value = sorted[0];
         select.addEventListener('change', (e) => {
