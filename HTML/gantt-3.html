@@ -153,7 +153,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 04.05-2000</p>
+<p class="version">Версия: 21.10-2140/p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -253,18 +253,6 @@
     }
 
     return date;
-  }
-
-  // Функция получения конца задачи
-  function getEndTask(task) {
-    const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
-    const dur = task['Рабочее время'] || task['Время по табелю'] || '';
-    const durMs = timeToMs(dur);
-
-    if (!start || durMs === null) return null;
-
-    const end = new Date(start.getTime() + durMs);
-    return end;
   }
 
   // Список доступных месяцев
@@ -418,13 +406,12 @@
 
     tasks.forEach(task => {
       const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
-      const dur = task['Рабочее время'] || task['Время по табелю'] || '';
-      const durMs = timeToMs(dur);
+      const end = buildDateTime(task['Рабочий день'], task['Конец задачи']); // Берём из данных
 
-      if (!start || durMs === null) return;
+      if (!start || !end) return;
 
       const startMs = start.getTime() - parseDate(task['Рабочий день']).getTime();
-      const endMs = startMs + durMs;
+      const endMs = end.getTime() - parseDate(task['Рабочий день']).getTime();
 
       minTimeMs = Math.min(minTimeMs, startMs);
       maxTimeMs = Math.max(maxTimeMs, endMs);
@@ -501,22 +488,18 @@
           </tr>
         </thead>
         <tbody>
-          ${tasks.map(task => {
-            const endTask = getEndTask(task);
-            const endTimeStr = endTask ? `${String(endTask.getHours()).padStart(2,'0')}:${String(endTask.getMinutes()).padStart(2,'0')}:${String(endTask.getSeconds()).padStart(2,'0')}` : '—';
-            return `
-              <tr>
-                <td>${task['Начало задачи']}</td>
-                <td>${endTimeStr}</td>
-                <td>${task['Вид работ']}</td>
-                <td>${task['Рабочее время'] || task['Время по табелю'] || ''}</td>
-                <td>${task['Поставка'] || ''}</td>
-                <td>${task['Должность'] || ''}</td>
-                <td>${task['тип товара'] || ''}</td>
-                <td>${task['Количество единиц'] || ''}</td>
-              </tr>
-            `;
-          }).join('')}
+          ${tasks.map(task => `
+            <tr>
+              <td>${task['Начало задачи']}</td>
+              <td>${task['Конец задачи'] || '—'}</td>
+              <td>${task['Вид работ']}</td>
+              <td>${task['Рабочее время'] || task['Время по табелю'] || ''}</td>
+              <td>${task['Поставка'] || ''}</td>
+              <td>${task['Должность'] || ''}</td>
+              <td>${task['тип товара'] || ''}</td>
+              <td>${task['Количество единиц'] || ''}</td>
+            </tr>
+          `).join('')}
         </tbody>
       </table>
     `;
@@ -546,16 +529,15 @@
     // Добавляем задачи в ячейки
     tasks.forEach(task => {
       const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
-      const dur = task['Рабочее время'] || task['Время по табелю'] || '';
-      const durMs = timeToMs(dur);
+      const end = buildDateTime(task['Рабочий день'], task['Конец задачи']); // Берём из данных
 
-      if (!start || durMs === null) {
+      if (!start || !end) {
         console.warn('Пропущена задача (нет времени):', task);
         return;
       }
 
       const startMs = start.getTime() - parseDate(task['Рабочий день']).getTime();
-      const endMs = startMs + durMs;
+      const endMs = end.getTime() - parseDate(task['Рабочий день']).getTime();
 
       // Логирование времён для отладки
       console.log(`Задача: ${task['Вид работ']} (${task['Поставка']})`);
@@ -609,7 +591,7 @@
               <strong>${task['Вид работ']}</strong><br>
               Поставка: ${task['Поставка'] || '—'}<br>
               Начало: ${task['Начало задачи']}<br>
-              Длительность: ${dur}<br>
+              Конец: ${task['Конец задачи'] || '—'}<br>
               Должность: ${task['Должность'] || '—'}
             `;
             tooltip.style.opacity = 1;
@@ -639,13 +621,12 @@
       }
 
       const otherStart = buildDateTime(other['Рабочий день'], other['Начало задачи']);
-      const otherDur = other['Рабочее время'] || other['Время по табелю'] || '';
-      const otherDurMs = timeToMs(otherDur);
+      const otherEnd = buildDateTime(other['Рабочий день'], other['Конец задачи']); // Берём из данных
 
-      if (!otherStart || otherDurMs === null) continue;
+      if (!otherStart || !otherEnd) continue;
 
       const otherStartMs = otherStart.getTime() - parseDate(other['Рабочий день']).getTime();
-      const otherEndMs = otherStartMs + otherDurMs;
+      const otherEndMs = otherEnd.getTime() - parseDate(other['Рабочий день']).getTime();
 
       // Определяем зазор (например, 1 минута)
       const gapMs = 60000; // 1 минута
