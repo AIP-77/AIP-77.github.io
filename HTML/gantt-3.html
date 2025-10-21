@@ -153,12 +153,15 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 10.17-0854</p>
+<p class="version">Версия: 04.05-2000</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
 
 <div class="controls">
+  <label for="monthSelect">Месяц:</label>
+  <select id="monthSelect"><option>—</option></select>
+
   <label for="dateSelect">Дата:</label>
   <select id="dateSelect"><option>—</option></select>
 
@@ -238,32 +241,95 @@
     return result;
   }
 
-  fetch('fullData.json')
-    .then(res => {
+  // Функция нормализации даты по правилу 5:00:00
+  function normalizeDate(dateStr, timeStr) {
+    const date = parseDate(dateStr);
+    const timeMs = timeToMs(timeStr);
+    if (!date || timeMs === null) return date;
+
+    // Если время меньше 5 часов — это предыдущий день
+    if (timeMs < 5 * 3600000) {
+      date.setDate(date.getDate() - 1);
+    }
+
+    return date;
+  }
+
+  // Функция получения конца задачи
+  function getEndTask(task) {
+    const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
+    const dur = task['Рабочее время'] || task['Время по табелю'] || '';
+    const durMs = timeToMs(dur);
+
+    if (!start || durMs === null) return null;
+
+    const end = new Date(start.getTime() + durMs);
+    return end;
+  }
+
+  // Список доступных месяцев
+  const availableMonths = [
+    '2025-09',
+    '2025-10'
+  ];
+
+  // Функция загрузки данных по месяцу
+  async function loadMonthData(month) {
+    const url = `https://aip-77.github.io/archive/${month} fullData.json`;
+    try {
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      return res.text();
-    })
-    .then(text => {
-      try {
-        const data = JSON.parse(text);
-        if (!data.records || !Array.isArray(data.records)) {
-          throw new Error('Нет records[]');
-        }
-        // Добавляем уникальный id каждой задаче
-        allData = data.records.map((task, index) => ({ ...task, id: index }));
-        populateFilters();
-        showDebug(`Загружено записей: ${allData.length}`);
-      } catch (e) {
-        throw new Error(`JSON парсинг: ${e.message}`);
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (!data.records || !Array.isArray(data.records)) {
+        throw new Error('Нет records[]');
       }
-    })
-    .catch(err => {
-      showError('Ошибка загрузки fullData.json: ' + err.message);
-      showDebug('Проверьте URL: https://aip-77.github.io/fullData.json');
+      allData = data.records.map((task, index) => ({ ...task, id: index }));
+      showDebug(`Загружено записей: ${allData.length} из ${url}`);
+      populateFilters();
+    } catch (err) {
+      showError(`Ошибка загрузки данных за ${month}: ${err.message}`);
+      showDebug(`Проверьте URL: ${url}`);
+    }
+  }
+
+  // Инициализация: загрузка данных за последний месяц
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedMonth = localStorage.getItem('selectedMonth');
+    const defaultMonth = availableMonths[availableMonths.length - 1]; // Последний месяц
+    const monthToLoad = savedMonth && availableMonths.includes(savedMonth) ? savedMonth : defaultMonth;
+
+    // Заполняем выпадающий список месяцев
+    const ms = document.getElementById('monthSelect');
+    ms.innerHTML = '<option value="">Выберите месяц</option>';
+    availableMonths.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      if (m === monthToLoad) opt.selected = true;
+      ms.appendChild(opt);
     });
 
+    // Загружаем данные
+    loadMonthData(monthToLoad);
+  });
+
   function populateFilters() {
-    const dates = [...new Set(allData.map(x => x['Рабочий день']))].filter(Boolean).sort();
+    // Получаем все даты с нормализацией по 5:00:00
+    const datesSet = new Set();
+    allData.forEach(task => {
+      const normDate = normalizeDate(task['Рабочий день'], task['Начало задачи']);
+      if (normDate) {
+        const formatted = `${String(normDate.getDate()).padStart(2,'0')}.${String(normDate.getMonth() + 1).padStart(2,'0')}.${normDate.getFullYear()}`;
+        datesSet.add(formatted);
+      }
+    });
+    const dates = [...datesSet].sort((a, b) => {
+      const [d1, m1, y1] = a.split('.').map(Number);
+      const [d2, m2, y2] = b.split('.').map(Number);
+      return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1); // По убыванию
+    });
+
     const emps = [...new Set(allData.map(x => x['Сотрудник']))].filter(Boolean).sort();
 
     const ds = document.getElementById('dateSelect');
@@ -290,9 +356,14 @@
     const date = document.getElementById('dateSelect').value;
     const empSelect = document.getElementById('employeeSelect');
 
-    // Получаем всех сотрудников, работавших в эту дату
+    // Получаем всех сотрудников, работавших в эту дату (с учётом нормализации)
     const filteredEmps = [...new Set(
-      allData.filter(x => x['Рабочий день'] === date).map(x => x['Сотрудник'])
+      allData.filter(x => {
+        const normDate = normalizeDate(x['Рабочий день'], x['Начало задачи']);
+        if (!normDate) return false;
+        const formatted = `${String(normDate.getDate()).padStart(2,'0')}.${String(normDate.getMonth() + 1).padStart(2,'0')}.${normDate.getFullYear()}`;
+        return formatted === date;
+      }).map(x => x['Сотрудник'])
     )].filter(Boolean).sort();
 
     // Запоминаем текущего сотрудника
@@ -324,10 +395,13 @@
       return;
     }
 
-    // Получаем все задачи
-    let tasks = allData.filter(x =>
-      x['Рабочий день'] === date && x['Сотрудник'] === emp
-    );
+    // Получаем все задачи для выбранной даты (с учётом нормализации)
+    let tasks = allData.filter(x => {
+      const normDate = normalizeDate(x['Рабочий день'], x['Начало задачи']);
+      if (!normDate) return false;
+      const formatted = `${String(normDate.getDate()).padStart(2,'0')}.${String(normDate.getMonth() + 1).padStart(2,'0')}.${normDate.getFullYear()}`;
+      return formatted === date && x['Сотрудник'] === emp;
+    });
 
     currentTasks = tasks;
 
@@ -343,13 +417,13 @@
     let maxTimeMs = -Infinity;
 
     tasks.forEach(task => {
-      const start = buildDateTime(date, task['Начало задачи']);
+      const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
       const dur = task['Рабочее время'] || task['Время по табелю'] || '';
       const durMs = timeToMs(dur);
 
       if (!start || durMs === null) return;
 
-      const startMs = start.getTime() - parseDate(date).getTime();
+      const startMs = start.getTime() - parseDate(task['Рабочий день']).getTime();
       const endMs = startMs + durMs;
 
       minTimeMs = Math.min(minTimeMs, startMs);
@@ -417,6 +491,7 @@
         <thead>
           <tr>
             <th>Начало задачи</th>
+            <th>Конец задачи</th>
             <th>Вид работ</th>
             <th>Рабочее время / Время по табелю</th>
             <th>Поставка</th>
@@ -426,17 +501,22 @@
           </tr>
         </thead>
         <tbody>
-          ${tasks.map(task => `
-            <tr>
-              <td>${task['Начало задачи']}</td>
-              <td>${task['Вид работ']}</td>
-              <td>${task['Рабочее время'] || task['Время по табелю'] || ''}</td>
-              <td>${task['Поставка'] || ''}</td>
-              <td>${task['Должность'] || ''}</td>
-              <td>${task['тип товара'] || ''}</td>
-              <td>${task['Количество единиц'] || ''}</td>
-            </tr>
-          `).join('')}
+          ${tasks.map(task => {
+            const endTask = getEndTask(task);
+            const endTimeStr = endTask ? `${String(endTask.getHours()).padStart(2,'0')}:${String(endTask.getMinutes()).padStart(2,'0')}:${String(endTask.getSeconds()).padStart(2,'0')}` : '—';
+            return `
+              <tr>
+                <td>${task['Начало задачи']}</td>
+                <td>${endTimeStr}</td>
+                <td>${task['Вид работ']}</td>
+                <td>${task['Рабочее время'] || task['Время по табелю'] || ''}</td>
+                <td>${task['Поставка'] || ''}</td>
+                <td>${task['Должность'] || ''}</td>
+                <td>${task['тип товара'] || ''}</td>
+                <td>${task['Количество единиц'] || ''}</td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
     `;
@@ -465,7 +545,7 @@
 
     // Добавляем задачи в ячейки
     tasks.forEach(task => {
-      const start = buildDateTime(date, task['Начало задачи']);
+      const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
       const dur = task['Рабочее время'] || task['Время по табелю'] || '';
       const durMs = timeToMs(dur);
 
@@ -474,13 +554,13 @@
         return;
       }
 
-      const startMs = start.getTime() - parseDate(date).getTime();
+      const startMs = start.getTime() - parseDate(task['Рабочий день']).getTime();
       const endMs = startMs + durMs;
 
       // Логирование времён для отладки
       console.log(`Задача: ${task['Вид работ']} (${task['Поставка']})`);
-      console.log(`  Начало: ${startMs} ms → ${new Date(startMs + parseDate(date).getTime()).toLocaleTimeString()}`);
-      console.log(`  Конец: ${endMs} ms → ${new Date(endMs + parseDate(date).getTime()).toLocaleTimeString()}`);
+      console.log(`  Начало: ${startMs} ms → ${new Date(startMs + parseDate(task['Рабочий день']).getTime()).toLocaleTimeString()}`);
+      console.log(`  Конец: ${endMs} ms → ${new Date(endMs + parseDate(task['Рабочий день']).getTime()).toLocaleTimeString()}`);
 
       // Определяем, в какие ячейки попадает задача
       for (let i = 0; i < timePoints.length - 1; i++) {
@@ -519,7 +599,7 @@
 
           // Проверка пересечений — только если НЕ "Рабочее время"
           if (!isWorkTime) {
-            checkConflicts(block, startMs, endMs, allTasks, date, isWorkTime);
+            checkConflicts(block, startMs, endMs, allTasks, task['Рабочий день'], isWorkTime);
           }
 
           // Подсказка при наведении
@@ -558,17 +638,17 @@
         continue; // Пропускаем
       }
 
-      const otherStart = buildDateTime(date, other['Начало задачи']);
+      const otherStart = buildDateTime(other['Рабочий день'], other['Начало задачи']);
       const otherDur = other['Рабочее время'] || other['Время по табелю'] || '';
       const otherDurMs = timeToMs(otherDur);
 
       if (!otherStart || otherDurMs === null) continue;
 
-      const otherStartMs = otherStart.getTime() - parseDate(date).getTime();
+      const otherStartMs = otherStart.getTime() - parseDate(other['Рабочий день']).getTime();
       const otherEndMs = otherStartMs + otherDurMs;
 
       // Определяем зазор (например, 1 минута)
-      const gapMs = 10; // 1 минута=60000 милисекунд 1секунда =1000 милисекунд
+      const gapMs = 60000; // 1 минута
 
       // Проверяем пересечение с учётом зазора
       // Если задачи перекрываются или стыкуются с зазором < 1 минуты — считаем конфликтом
@@ -591,11 +671,19 @@
     location.reload();
   }
 
-  // Автообновление при выборе даты или сотрудника
+  // Автообновление при выборе месяца, даты или сотрудника
+  document.getElementById('monthSelect').addEventListener('change', function() {
+    const month = this.value;
+    if (!month) return;
+    localStorage.setItem('selectedMonth', month);
+    loadMonthData(month);
+  });
+
   document.getElementById('dateSelect').addEventListener('change', function() {
     updateEmployeeList();
     renderTimeline(); // Перестраиваем диаграмму
   });
+
   document.getElementById('employeeSelect').addEventListener('change', renderTimeline);
 </script>
 
