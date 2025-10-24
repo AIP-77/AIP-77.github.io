@@ -64,6 +64,8 @@
     .calendar-title {
       font-size: 18px;
       font-weight: bold;
+      margin: 0 10px;
+      text-align: center;
     }
     .calendar-nav-btn {
       background: #2196f3;
@@ -72,6 +74,9 @@
       padding: 8px 16px;
       border-radius: 4px;
       cursor: pointer;
+      min-width: 100px;
+      text-align: center;
+      font-weight: bold;
     }
     .calendar-days {
       display: grid;
@@ -191,17 +196,13 @@
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 24.10-1931 <span>🕒</span></div>
+    <div class="version">v 24.10-1945 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
     <div id="error" class="error hidden"></div>
 
     <div id="controls" class="hidden">
-      <!-- ВЫБОР АРХИВА -->
-      <label for="archive-select">Выберите период:</label>
-      <select id="archive-select"></select>
-
       <!-- ВИДЫ РАБОТ + ПЛАН -->
       <label for="work-type-select">Выберите виды работ:</label>
       <select id="work-type-select" multiple size="3"></select>
@@ -211,9 +212,9 @@
       <!-- КАЛЕНДАРЬ -->
       <div class="calendar-container">
         <div class="calendar-header">
-          <button class="calendar-nav-btn" id="prev-month">◀</button>
+          <button class="calendar-nav-btn" id="prev-month">◀ Назад</button>
           <div class="calendar-title" id="calendar-title">Октябрь 2025</div>
-          <button class="calendar-nav-btn" id="next-month">▶</button>
+          <button class="calendar-nav-btn" id="next-month">Вперёд ▶</button>
         </div>
         <div class="calendar-days" id="calendar-days">
           <!-- Заполняется JS -->
@@ -302,8 +303,7 @@
 
     let autoReloadTimer = null;
     let autoReloadEnabled = true;
-    let currentArchive = null;
-    let availableArchives = [];
+    let currentArchive = null; // Например: "2025-10"
     let uiInitialized = false;
 
     // DOM элементы
@@ -325,32 +325,20 @@
     const calendarDaysContainer = document.getElementById('calendar-days');
 
     // === ФУНКЦИИ ===
-    function getArchiveUrl(archiveName) {
-  const encodedName = encodeURIComponent(`${archiveName} fullData.json`);
-  // Берём базовый URL страницы и добавляем /archive/
-  const basePath = window.location.origin + '/archive/';
-  return basePath + encodedName;
-}
+    function getArchiveNameForDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      return `${year}-${month}`;
+    }
 
-    function generateArchiveList() {
-      const now = new Date();
-      const archives = [];
-      for (let i = 0; i < 18; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const label = new Intl.DateTimeFormat('ru-RU', { year: 'numeric', month: 'long' }).format(d);
-        archives.push({
-          name: `${year}-${month}`,
-          label: `${label} ${year}`
-        });
-      }
-      return archives;
+    function getArchiveUrl(archiveName) {
+      const encodedName = encodeURIComponent(`${archiveName} fullData.json`);
+      return `${window.location.origin}/archive/${encodedName}`;
     }
 
     async function loadData() {
       if (!currentArchive) {
-        errorDiv.textContent = 'Не выбран архив';
+        errorDiv.textContent = 'Не определён архив';
         errorDiv.classList.remove('hidden');
         return;
       }
@@ -362,7 +350,7 @@
         const response = await fetch(urlWithCacheBust);
         if (!response.ok) {
           if (response.status === 404) {
-            throw new Error(`Архив за ${currentArchive} не найден`);
+            throw new Error(`Архив за ${currentArchive} не найден. Проверьте наличие файла в папке /archive/`);
           }
           throw new Error(`HTTP ${response.status}`);
         }
@@ -400,17 +388,6 @@
       if (!uiInitialized) {
         setupEventListeners();
         uiInitialized = true;
-      }
-
-      // Обновляем выбор архива
-      const archiveSelect = document.getElementById('archive-select');
-      if (archiveSelect) {
-        const currentMonthStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
-        const found = availableArchives.find(a => a.name === currentMonthStr);
-        if (found) {
-          archiveSelect.value = found.name;
-          currentArchive = found.name;
-        }
       }
 
       const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
@@ -466,20 +443,29 @@
 
       exportExcelBtn.addEventListener('click', exportToExcel);
 
+      // Обработчики кнопок календаря
       prevMonthBtn.addEventListener('click', () => {
         currentMonth.setMonth(currentMonth.getMonth() - 1);
-        renderCalendar();
-      });
-      nextMonthBtn.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-        renderCalendar();
+        const targetArchive = getArchiveNameForDate(currentMonth);
+        if (currentArchive !== targetArchive) {
+          currentArchive = targetArchive;
+          selectedDate = '';
+          loadData();
+        } else {
+          renderCalendar();
+        }
       });
 
-      // Обработчик выбора архива
-      document.getElementById('archive-select').addEventListener('change', () => {
-        currentArchive = document.getElementById('archive-select').value;
-        selectedDate = ''; // сбросить выбор дня
-        loadData();
+      nextMonthBtn.addEventListener('click', () => {
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+        const targetArchive = getArchiveNameForDate(currentMonth);
+        if (currentArchive !== targetArchive) {
+          currentArchive = targetArchive;
+          selectedDate = '';
+          loadData();
+        } else {
+          renderCalendar();
+        }
       });
     }
 
@@ -889,21 +875,7 @@
     }
 
     // === ИНИЦИАЛИЗАЦИЯ ===
-    availableArchives = generateArchiveList();
-    const archiveSelect = document.getElementById('archive-select');
-    availableArchives.forEach(arc => {
-      const opt = document.createElement('option');
-      opt.value = arc.name;
-      opt.textContent = arc.label;
-      archiveSelect.appendChild(opt);
-    });
-
-    // Устанавливаем текущий архив (по умолчанию — текущий месяц)
-    const now = new Date();
-    const defaultArchiveName = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const defaultArchive = availableArchives.find(a => a.name === defaultArchiveName) || availableArchives[0];
-    archiveSelect.value = defaultArchive.name;
-    currentArchive = defaultArchive.name;
+    currentArchive = getArchiveNameForDate(new Date());
 
     loadData();
     startAutoReload();
