@@ -15,8 +15,9 @@
 
     body {
       background-color: #f5f5f5;
-      padding: 16px;
+      padding: 12px;
       color: #000;
+      line-height: 1.4;
     }
 
     .container {
@@ -37,10 +38,18 @@
       font-weight: 600;
     }
 
+    .version {
+      padding: 6px 16px;
+      background: #e0f7fa;
+      font-size: 12px;
+      color: #006064;
+      text-align: right;
+    }
+
     .controls {
       padding: 12px 16px;
-      background: #f0f0f0;
-      border-bottom: 1px solid #e0e0e0;
+      background: #f9f9f9;
+      border-bottom: 1px solid #eee;
     }
 
     .controls label {
@@ -48,14 +57,17 @@
       margin-bottom: 6px;
       font-weight: 500;
       color: #333;
+      font-size: 14px;
     }
 
-    .controls select {
+    .controls select,
+    .controls input {
       width: 100%;
-      padding: 8px 12px;
+      padding: 10px 12px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 16px;
+      background: white;
     }
 
     table {
@@ -79,47 +91,120 @@
     }
 
     tr:hover {
-      background-color: #f9f9f9;
+      background-color: #fcfcfc;
     }
 
     .loading, .error {
       padding: 20px;
       text-align: center;
       color: #666;
+      font-size: 16px;
     }
 
     .error {
       color: #d32f2f;
     }
 
+    .footer-actions {
+      padding: 16px;
+      text-align: center;
+      background: #fafafa;
+      border-top: 1px solid #eee;
+    }
+
+    .footer-actions button {
+      background: #ff5722;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: auto;
+      min-width: 180px;
+    }
+
+    .footer-actions button:hover {
+      background: #e64a19;
+    }
+
     @media (max-width: 600px) {
-      th, td {
-        padding: 8px 4px;
-        font-size: 13px;
+      body {
+        padding: 8px;
       }
+
       .header {
         font-size: 16px;
+        padding: 14px 12px;
+      }
+
+      th, td {
+        padding: 8px 6px;
+        font-size: 13px;
+      }
+
+      .controls select,
+      .controls input {
+        font-size: 16px;
+        padding: 10px;
+      }
+
+      .footer-actions button {
+        padding: 10px 16px;
+        font-size: 15px;
+        min-width: 140px;
+      }
+    }
+
+    @media (max-width: 400px) {
+      th, td {
+        padding: 6px 4px;
+        font-size: 12px;
+      }
+
+      .footer-actions button {
+        font-size: 14px;
+        padding: 8px 12px;
       }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">Ведомость заработной платы 15</div>
+    <div class="header">Ведомость заработной платы</div>
+    <div class="version">v 10.27-1141 <span id="last-updated"></span></div>
 
     <div class="controls">
-      <label for="month-select">Выберите месяц:</label>
+      <label for="month-select">Месяц:</label>
       <select id="month-select">
-        <option value="">Загрузка списка месяцев...</option>
+        <option value="">Загрузка...</option>
       </select>
+
+      <label for="employee-search">Поиск по сотруднику:</label>
+      <input type="text" id="employee-search" placeholder="Введите ФИО или часть имени...">
     </div>
 
     <div id="content">
-      <div class="loading">Выберите месяц для загрузки данных</div>
+      <div class="loading">Загрузка данных...</div>
+    </div>
+
+    <div class="footer-actions">
+      <button id="clear-cache-btn">🔄 Сбросить кэш</button>
     </div>
   </div>
 
   <script>
+    // ========================
+    // Настройки
+    // ========================
+    const AVAILABLE_MONTHS = [
+      "2025-09",
+      "2025-10"
+    ];
+
+    let cacheBuster = Date.now();
+
     // ========================
     // Вспомогательные функции
     // ========================
@@ -138,14 +223,22 @@
       return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
+    function formatMoneyNumber(num) {
+      if (typeof num !== 'number' || isNaN(num)) return '0,00';
+      return num
+        .toFixed(2)
+        .replace('.', ',')
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
     function parseMoney(str) {
       if (!str || str.trim() === '') return 0;
       const cleaned = str.replace(/[^\d,]/g, '').replace(',', '.');
       return parseFloat(cleaned) || 0;
     }
 
-    function getMonthLabel(monthYear) {
-      const [year, month] = monthYear.split('-');
+    function getMonthLabel(yyyymm) {
+      const [year, month] = yyyymm.split('-');
       const monthNames = [
         '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
         'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
@@ -153,35 +246,50 @@
       return `${monthNames[parseInt(month)]} ${year}`;
     }
 
-    async function getAvailableMonths() {
-      // Список месяцев, которые будем проверять (последние 24 месяца)
-      const months = [];
-      const now = new Date();
-      for (let i = 0; i < 24; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        months.push(`${year}-${month}`);
+    // 🔢 Форматирование даты из ISO в "27.10.2025 в 07:41"
+    function formatLastUpdated(isoString) {
+      if (!isoString) return '';
+      try {
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return '';
+
+        // Форматируем с учётом локального часового пояса
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `🕒 Обновлено: ${day}.${month}.${year} в ${hours}:${minutes}`;
+      } catch (e) {
+        console.warn('Ошибка форматирования даты:', e);
+        return '';
       }
-      return months;
     }
 
-    async function loadMonthData(monthYear) {
-      const fileName = `${monthYear} fullData.json`;
-      const url = `https://AIP-77.github.io/archive/${encodeURIComponent(fileName)}`;
-      
+    async function fetchRecordsForMonth(yyyymm) {
       try {
+        const baseUrl = `https://AIP-77.github.io/archive/${yyyymm} fullData.json`;
+        const url = `${baseUrl}?t=${cacheBuster}`;
+        console.log('Загрузка:', url);
+
         const res = await fetch(url);
         if (!res.ok) {
-          if (res.status === 404) {
-            throw new Error('Архив за этот месяц ещё не создан');
-          }
           throw new Error(`HTTP ${res.status}`);
         }
         const data = await res.json();
-        return data.records || [];
+
+        // 🔥 Сохраняем lastUpdated
+        const lastUpdated = data.lastUpdated || null;
+
+        if (!data || !Array.isArray(data.records)) {
+          throw new Error('Неверный формат: ожидается { "records": [...] }');
+        }
+
+        return { records: data.records, lastUpdated };
       } catch (err) {
-        throw new Error(`Не удалось загрузить данные: ${err.message}`);
+        console.error('Ошибка:', err);
+        throw new Error(`Не удалось загрузить данные за ${getMonthLabel(yyyymm)}`);
       }
     }
 
@@ -207,133 +315,142 @@
         summary[name].totalSum += parseMoney(record["Расчетная сумма"]) + parseMoney(record["Доплата XIS"]);
       });
 
-      return Object.entries(summary).map(([name, data]) => {
-        const efficiency = data.workTime > 0
-          ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
-          : '0,00%';
-
-        return {
+      return Object.entries(summary)
+        .map(([name, data]) => ({
           Сотрудник: name,
           "Кол-во задач": data.tasks,
           "Количество единиц": Math.round(data.units),
           "Эффективное время": secondsToTime(data.effectiveTime),
           "Рабочее время": secondsToTime(data.workTime),
-          "Эффективность сотрудника": efficiency,
-          "Расчетная сумма": `р.${data.totalSum.toFixed(2).replace('.', ',')}`
-        };
-      });
+          "Эффективность сотрудника": data.workTime > 0
+            ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
+            : '0,00%',
+          "Расчетная сумма": `р.${formatMoneyNumber(data.totalSum)}`
+        }))
+        .sort((a, b) => a.Сотрудник.localeCompare(b.Сотрудник, 'ru'));
     }
 
     function renderTable(data) {
+      const content = document.getElementById('content');
       if (data.length === 0) {
-        document.getElementById('content').innerHTML = '<div class="error">Нет данных за выбранный период</div>';
+        content.innerHTML = '<div class="error">Нет данных</div>';
         return;
       }
 
-      let html = `
-        <table>
-          <thead>
-            <tr>
-              <th>Сотрудник</th>
-              <th>Кол-во задач</th>
-              <th>Единиц</th>
-              <th>Эфф. время</th>
-              <th>Раб. время</th>
-              <th>Эффективность</th>
-              <th>Сумма</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
+      let html = `<table><thead><tr>
+        <th>Сотрудник</th>
+        <th>Кол-во задач</th>
+        <th>Единиц</th>
+        <th>Эфф. время</th>
+        <th>Раб. время</th>
+        <th>Эффективность</th>
+        <th>Сумма</th>
+      </tr></thead><tbody>`;
 
       data.forEach(row => {
-        html += `
-          <tr>
-            <td>${row.Сотрудник}</td>
-            <td>${row["Кол-во задач"]}</td>
-            <td>${row["Количество единиц"]}</td>
-            <td>${row["Эффективное время"]}</td>
-            <td>${row["Рабочее время"]}</td>
-            <td>${row["Эффективность сотрудника"]}</td>
-            <td>${row["Расчетная сумма"]}</td>
-          </tr>
-        `;
+        html += `<tr>
+          <td>${row.Сотрудник}</td>
+          <td>${row["Кол-во задач"]}</td>
+          <td>${row["Количество единиц"]}</td>
+          <td>${row["Эффективное время"]}</td>
+          <td>${row["Рабочее время"]}</td>
+          <td>${row["Эффективность сотрудника"]}</td>
+          <td>${row["Расчетная сумма"]}</td>
+        </tr>`;
       });
 
       html += `</tbody></table>`;
-      document.getElementById('content').innerHTML = html;
+      content.innerHTML = html;
     }
 
-    async function init() {
+    function applySearchFilter() {
+      const query = document.getElementById('employee-search').value.trim().toLowerCase();
+      const filtered = query
+        ? window.currentSummary.filter(row =>
+            row.Сотрудник.toLowerCase().includes(query)
+          )
+        : window.currentSummary;
+      renderTable(filtered);
+    }
+
+    async function loadAndRender(month) {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">Загрузка...</div>';
+
+      try {
+        const { records, lastUpdated } = await fetchRecordsForMonth(month);
+        const fullSummary = calculateSummary(records);
+        window.currentSummary = fullSummary;
+        renderTable(fullSummary);
+
+        // 🔥 Обновляем время последнего обновления
+        const lastUpdatedEl = document.getElementById('last-updated');
+        if (lastUpdated) {
+          lastUpdatedEl.textContent = ' | ' + formatLastUpdated(lastUpdated);
+        } else {
+          lastUpdatedEl.textContent = ' | данные без отметки времени';
+        }
+      } catch (err) {
+        content.innerHTML = `<div class="error">${err.message}</div>`;
+        document.getElementById('last-updated').textContent = '';
+      }
+    }
+
+    function initMonthSelector() {
+      const select = document.getElementById('month-select');
+      select.innerHTML = '';
+
+      const sorted = [...AVAILABLE_MONTHS].sort((a, b) => b.localeCompare(a));
+      sorted.forEach(yyyymm => {
+        const opt = document.createElement('option');
+        opt.value = yyyymm;
+        opt.textContent = getMonthLabel(yyyymm);
+        select.appendChild(opt);
+      });
+
+      if (sorted.length > 0) {
+        select.value = sorted[0];
+        select.addEventListener('change', (e) => {
+          if (e.target.value) loadAndRender(e.target.value);
+        });
+        loadAndRender(sorted[0]);
+      } else {
+        document.getElementById('content').innerHTML = '<div class="error">Нет доступных месяцев</div>';
+      }
+    }
+
+    // ========================
+    // Инициализация
+    // ========================
+    document.addEventListener('DOMContentLoaded', () => {
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
-        Telegram.WebApp.MainButton.hide();
       }
 
-      const select = document.getElementById('month-select');
-      const contentDiv = document.getElementById('content');
+      const searchInput = document.getElementById('employee-search');
+      let searchTimeout;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(applySearchFilter, 300);
+      });
 
-      try {
-        const months = await getAvailableMonths();
-        let validMonths = [];
-
-        // Проверяем, какие месяцы реально существуют
-        for (const month of months) {
-          const fileName = `${month} fullData.json`;
-          const testUrl = `https://AIP-77.github.io/archive/${encodeURIComponent(fileName)}`;
-          try {
-            const res = await fetch(testUrl, { method: 'HEAD' });
-            if (res.ok) validMonths.push(month);
-          } catch (e) {
-            // Игнорируем ошибки — файл просто не существует
-          }
+      document.getElementById('clear-cache-btn').addEventListener('click', () => {
+        cacheBuster = Date.now();
+        const currentMonth = document.getElementById('month-select').value;
+        if (currentMonth) {
+          loadAndRender(currentMonth);
         }
-
-        if (validMonths.length === 0) {
-          select.innerHTML = '<option>Нет доступных архивов</option>';
-          contentDiv.innerHTML = '<div class="error">Архивные файлы не найдены</div>';
-          return;
+        if (window.Telegram?.WebApp) {
+          Telegram.WebApp.showPopup({
+            title: "Кэш сброшен",
+            message: "Данные загружены заново."
+          });
         }
+      });
 
-        // Сортируем по убыванию (свежие — первые)
-        validMonths.sort((a, b) => b.localeCompare(a));
-
-        select.innerHTML = '';
-        validMonths.forEach(m => {
-          const option = document.createElement('option');
-          option.value = m;
-          option.textContent = getMonthLabel(m);
-          select.appendChild(option);
-        });
-
-        select.disabled = false;
-        select.addEventListener('change', async () => {
-          if (select.value) {
-            contentDiv.innerHTML = '<div class="loading">Загрузка данных...</div>';
-            try {
-              const records = await loadMonthData(select.value);
-              const report = calculateSummary(records);
-              renderTable(report);
-            } catch (err) {
-              contentDiv.innerHTML = `<div class="error">${err.message}</div>`;
-            }
-          }
-        });
-
-        // Автоматически выбираем первый месяц
-        select.value = validMonths[0];
-        contentDiv.innerHTML = '<div class="loading">Загрузка данных...</div>';
-        const records = await loadMonthData(validMonths[0]);
-        const report = calculateSummary(records);
-        renderTable(report);
-
-      } catch (err) {
-        contentDiv.innerHTML = `<div class="error">Ошибка инициализации: ${err.message}</div>`;
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
+      initMonthSelector();
+    });
   </script>
 </body>
 </html>
