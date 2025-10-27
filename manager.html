@@ -46,6 +46,12 @@
       text-align: right;
     }
 
+    /* 🔴 Подсветка устаревших данных */
+    .version .outdated {
+      color: #d32f2f !important;
+      font-weight: 600;
+    }
+
     .controls {
       padding: 12px 16px;
       background: #f9f9f9;
@@ -173,7 +179,7 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 10.27-1141 <span id="last-updated"></span></div>
+    <div class="version">v 10.27-1435 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -195,19 +201,8 @@
   </div>
 
   <script>
-    // ========================
-    // Настройки
-    // ========================
-    const AVAILABLE_MONTHS = [
-      "2025-09",
-      "2025-10"
-    ];
-
+    const AVAILABLE_MONTHS = ["2025-09", "2025-10"];
     let cacheBuster = Date.now();
-
-    // ========================
-    // Вспомогательные функции
-    // ========================
 
     function timeToSeconds(timeStr) {
       if (!timeStr || timeStr.trim() === '') return 0;
@@ -246,23 +241,20 @@
       return `${monthNames[parseInt(month)]} ${year}`;
     }
 
-    // 🔢 Форматирование даты из ISO в "27.10.2025 в 07:41"
     function formatLastUpdated(isoString) {
       if (!isoString) return '';
       try {
         const date = new Date(isoString);
         if (isNaN(date.getTime())) return '';
 
-        // Форматируем с учётом локального часового пояса
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
 
-        return `🕒 Обновлено: ${day}.${month}.${year} в ${hours}:${minutes}`;
+        return `Обновлено: ${day}.${month}.${year} в ${hours}:${minutes}`;
       } catch (e) {
-        console.warn('Ошибка форматирования даты:', e);
         return '';
       }
     }
@@ -279,7 +271,6 @@
         }
         const data = await res.json();
 
-        // 🔥 Сохраняем lastUpdated
         const lastUpdated = data.lastUpdated || null;
 
         if (!data || !Array.isArray(data.records)) {
@@ -383,16 +374,25 @@
         window.currentSummary = fullSummary;
         renderTable(fullSummary);
 
-        // 🔥 Обновляем время последнего обновления
+        // 🔥 Проверка на устаревание (>24 часов)
         const lastUpdatedEl = document.getElementById('last-updated');
         if (lastUpdated) {
-          lastUpdatedEl.textContent = ' | ' + formatLastUpdated(lastUpdated);
+          const lastDate = new Date(lastUpdated);
+          const now = new Date();
+          const isOutdated = (now - lastDate) > 24 * 60 * 60 * 1000;
+
+          const formatted = formatLastUpdated(lastUpdated);
+          const icon = isOutdated ? '🚨' : '🕒';
+          lastUpdatedEl.textContent = ` | ${icon} ${formatted}`;
+          lastUpdatedEl.className = isOutdated ? 'outdated' : '';
         } else {
           lastUpdatedEl.textContent = ' | данные без отметки времени';
+          lastUpdatedEl.className = 'outdated';
         }
       } catch (err) {
         content.innerHTML = `<div class="error">${err.message}</div>`;
         document.getElementById('last-updated').textContent = '';
+        document.getElementById('last-updated').className = '';
       }
     }
 
@@ -419,9 +419,6 @@
       }
     }
 
-    // ========================
-    // Инициализация
-    // ========================
     document.addEventListener('DOMContentLoaded', () => {
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
