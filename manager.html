@@ -46,7 +46,6 @@
       text-align: right;
     }
 
-    /* 🔴 Подсветка устаревших данных */
     .version .outdated {
       color: #d32f2f !important;
       font-weight: 600;
@@ -179,11 +178,16 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 10.27-1435 <span id="last-updated"></span></div>
+    <div class="version">v 10.28-1205 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
       <select id="month-select">
+        <option value="">Загрузка...</option>
+      </select>
+
+      <label for="department-filter">Отдел:</label>
+      <select id="department-filter">
         <option value="">Загрузка...</option>
       </select>
 
@@ -203,6 +207,42 @@
   <script>
     const AVAILABLE_MONTHS = ["2025-09", "2025-10"];
     let cacheBuster = Date.now();
+
+    // ========================
+    // Загрузка данных о сотрудниках и отделах
+    // ========================
+    async function fetchStaffData() {
+      try {
+        const url = `https://AIP-77.github.io/archive/staff fullData.json?t=${cacheBuster}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error('Неверный формат staff-файла');
+
+        // Создаём карту: ФИО → Отдел
+        const staffMap = {};
+        const departmentsSet = new Set();
+
+        data.forEach(item => {
+          if (item.Сотрудник && item.Отдел) {
+            staffMap[item.Сотрудник] = item.Отдел;
+            departmentsSet.add(item.Отдел);
+          }
+        });
+
+        return {
+          staffMap,
+          departments: Array.from(departmentsSet).sort()
+        };
+      } catch (err) {
+        console.error('Ошибка загрузки staff-данных:', err);
+        return { staffMap: {}, departments: [] };
+      }
+    }
+
+    // ========================
+    // Остальные функции (без изменений, кроме фильтрации)
+    // ========================
 
     function timeToSeconds(timeStr) {
       if (!timeStr || timeStr.trim() === '') return 0;
@@ -263,7 +303,7 @@
       try {
         const baseUrl = `https://AIP-77.github.io/archive/${yyyymm} fullData.json`;
         const url = `${baseUrl}?t=${cacheBuster}`;
-        console.log('Загрузка:', url);
+        console.log('Загрузка данных месяца:', url);
 
         const res = await fetch(url);
         if (!res.ok) {
@@ -321,6 +361,30 @@
         .sort((a, b) => a.Сотрудник.localeCompare(b.Сотрудник, 'ru'));
     }
 
+    // 🔥 Обновлённая функция фильтрации с учётом отдела и поиска
+    function applyFilters() {
+      let data = [...window.currentSummary];
+
+      // Фильтр по отделу
+      const selectedDept = document.getElementById('department-filter').value;
+      if (selectedDept) {
+        data = data.filter(row => {
+          const dept = window.staffMap[row.Сотрудник];
+          return dept === selectedDept;
+        });
+      }
+
+      // Фильтр по поиску
+      const query = document.getElementById('employee-search').value.trim().toLowerCase();
+      if (query) {
+        data = data.filter(row =>
+          row.Сотрудник.toLowerCase().includes(query)
+        );
+      }
+
+      renderTable(data);
+    }
+
     function renderTable(data) {
       const content = document.getElementById('content');
       if (data.length === 0) {
@@ -354,16 +418,6 @@
       content.innerHTML = html;
     }
 
-    function applySearchFilter() {
-      const query = document.getElementById('employee-search').value.trim().toLowerCase();
-      const filtered = query
-        ? window.currentSummary.filter(row =>
-            row.Сотрудник.toLowerCase().includes(query)
-          )
-        : window.currentSummary;
-      renderTable(filtered);
-    }
-
     async function loadAndRender(month) {
       const content = document.getElementById('content');
       content.innerHTML = '<div class="loading">Загрузка...</div>';
@@ -372,15 +426,16 @@
         const { records, lastUpdated } = await fetchRecordsForMonth(month);
         const fullSummary = calculateSummary(records);
         window.currentSummary = fullSummary;
-        renderTable(fullSummary);
 
-        // 🔥 Проверка на устаревание (>24 часов)
+        // Применяем фильтры (включая отдел)
+        applyFilters();
+
+        // Обновляем время
         const lastUpdatedEl = document.getElementById('last-updated');
         if (lastUpdated) {
           const lastDate = new Date(lastUpdated);
           const now = new Date();
           const isOutdated = (now - lastDate) > 24 * 60 * 60 * 1000;
-
           const formatted = formatLastUpdated(lastUpdated);
           const icon = isOutdated ? '🚨' : '🕒';
           lastUpdatedEl.textContent = ` | ${icon} ${formatted}`;
@@ -394,6 +449,19 @@
         document.getElementById('last-updated').textContent = '';
         document.getElementById('last-updated').className = '';
       }
+    }
+
+    // Заполнение списка отделов
+    function populateDepartmentFilter(departments) {
+      const select = document.getElementById('department-filter');
+      select.innerHTML = '<option value="">Все отделы</option>';
+      departments.forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = dept;
+        opt.textContent = dept;
+        select.appendChild(opt);
+      });
+      select.disabled = false;
     }
 
     function initMonthSelector() {
@@ -419,17 +487,28 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // ========================
+    // Инициализация
+    // ========================
+    document.addEventListener('DOMContentLoaded', async () => {
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
       }
 
+      // 🔥 Загружаем данные о сотрудниках и отделах
+      const { staffMap, departments } = await fetchStaffData();
+      window.staffMap = staffMap;
+      populateDepartmentFilter(departments);
+
+      // Обработчики фильтров
+      document.getElementById('department-filter').addEventListener('change', applyFilters);
+
       const searchInput = document.getElementById('employee-search');
       let searchTimeout;
       searchInput.addEventListener('input', () => {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(applySearchFilter, 300);
+        searchTimeout = setTimeout(applyFilters, 300);
       });
 
       document.getElementById('clear-cache-btn').addEventListener('click', () => {
