@@ -178,7 +178,7 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 10.28-1205 <span id="last-updated"></span></div>
+    <div class="version">v 10.28-1215 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -217,13 +217,21 @@
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (!Array.isArray(data)) throw new Error('Неверный формат staff-файла');
 
-        // Создаём карту: ФИО → Отдел
+        let staffArray = [];
+
+        if (Array.isArray(data)) {
+          staffArray = data;
+        } else if (data && Array.isArray(data.records)) {
+          staffArray = data.records;
+        } else {
+          throw new Error('Файл staff не содержит массива сотрудников');
+        }
+
         const staffMap = {};
         const departmentsSet = new Set();
 
-        data.forEach(item => {
+        staffArray.forEach(item => {
           if (item.Сотрудник && item.Отдел) {
             staffMap[item.Сотрудник] = item.Отдел;
             departmentsSet.add(item.Отдел);
