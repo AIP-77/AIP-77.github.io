@@ -2,7 +2,7 @@ name: Update data.json from Google Sheets
 
 on:
   schedule:
-    - cron: '0 5,7,9,11,17 * * *'  # 10:00, 12:00, 14:00, 16:00, 22:00 по ЕКБ (UTC+5)
+    - cron: '0 5,7,9 * * *'  # 10:00, 12:00, 14:00, по ЕКБ (UTC+5)
   workflow_dispatch:
 
 jobs:
@@ -28,11 +28,7 @@ jobs:
       - name: Generate calendar-cache.json
         run: node scripts/generate-calendar-cache.mjs
 
-      - name: Generate staff.json
-        run: node scripts/generate-staff.mjs
-
-      - name: Generate fullData.json
-        run: node scripts/generate-fullData.mjs
+   
 
       - name: Commit and push
         run: |
@@ -48,8 +44,8 @@ jobs:
           # Восстанавливаем изменения (если были)
           git stash pop || true
 
-          # Добавляем все 4 JSON-файла
-          git add current.json calendar-cache.json staff.json fullData.json
+          # Добавляем все 2 JSON-файла
+          git add current.json calendar-cache.json
 
           # Проверяем, есть ли staged изменения
           if ! git diff --staged --quiet; then
