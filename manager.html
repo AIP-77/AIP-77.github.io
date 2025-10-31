@@ -7,7 +7,6 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    /* Стили остаются без изменений */
     :root {
       --tg-bg-color: #f0f2f5;
       --tg-text-color: #1c1e21;
@@ -305,6 +304,56 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const clearCacheBtn = document.getElementById('clearCacheBtn');
 
+    // === ИСПРАВЛЕННЫЕ ФУНКЦИИ РАСЧЕТА ===
+    
+    // Функция для парсинга русских числовых форматов с учетом пробелов
+    function parseRussianNumber(numberStr) {
+        if (!numberStr || numberStr === '0,00 ₽' || numberStr === 'р.0,00') return 0;
+        
+        // Убираем валюту и пробелы тысяч, заменяем запятую на точку
+        const cleanStr = numberStr
+            .replace(/[^\d,\s]/g, '') // Убираем все не-цифры, кроме запятых и пробелов
+            .replace(/\s/g, '') // Убираем пробелы (разделители тысяч)
+            .replace(',', '.'); // Заменяем запятую на точку
+        
+        const result = parseFloat(cleanStr);
+        return isNaN(result) ? 0 : result;
+    }
+
+    // Заработано за день = сумма всех "Расчетная сумма" + сумма всех "Доплата XIS"
+    function calculateDayPay(tasks) {
+        let total = 0;
+        tasks.forEach(task => {
+            const calculatedPay = parseRussianNumber(task['Расчетная сумма'] || '0');
+            const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
+            total += (calculatedPay + xisBonus);
+        });
+        return total;
+    }
+
+    // Сезонная доплата = сумма всех "Доплата XIS"
+    function calculateXisBonus(tasks) {
+        let total = 0;
+        tasks.forEach(task => {
+            const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
+            total += xisBonus;
+        });
+        return total;
+    }
+
+    // Заработано за месяц = сумма всех "Расчетная сумма" за месяц + сумма всех "Доплата XIS" за месяц
+    function calculateMonthlyPay(tasksByDate) {
+        let total = 0;
+        Object.values(tasksByDate).forEach(tasks => {
+            tasks.forEach(task => {
+                const calculatedPay = parseRussianNumber(task['Расчетная сумма'] || '0');
+                const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
+                total += (calculatedPay + xisBonus);
+            });
+        });
+        return total;
+    }
+
     // === ИНИЦИАЛИЗАЦИЯ ===
     async function init() {
       try {
@@ -443,9 +492,9 @@
       const plannedTime = calculateTotalTime(latestTasks, 'Время по табелю');
       
       // ИСПРАВЛЕННЫЕ РАСЧЕТЫ ЗАРАБОТКА
-      const dayPay = calculateDayPay(latestTasks); // Только "Расчетная сумма" за день
-      const xisBonus = calculateXisBonus(latestTasks); // "Доплата XIS" за день
-      const monthlyPay = calculateMonthlyPay(tasksByDate); // Сумма "Расчетная сумма" за весь месяц
+      const dayPay = calculateDayPay(latestTasks); // "Расчетная сумма" + "Доплата XIS" за день
+      const xisBonus = calculateXisBonus(latestTasks); // Только "Доплата XIS" за день
+      const monthlyPay = calculateMonthlyPay(tasksByDate); // "Расчетная сумма" + "Доплата XIS" за месяц
       
       const efficiency = calculateEfficiency(workedTime, plannedTime);
 
@@ -455,9 +504,9 @@
         worked: workedTime,
         planned: plannedTime,
         efficiency: efficiency + '%',
-        payDay: formatCurrency(dayPay + xisBonus), // Общий заработок за день
+        payDay: formatCurrency(dayPay), // Общий заработок за день
         xisBonusDay: formatCurrency(xisBonus), // Только сезонная доплата
-        payMonth: formatCurrency(monthlyPay), // Только "Расчетная сумма" за месяц
+        payMonth: formatCurrency(monthlyPay), // Общий заработок за месяц
         details: formatTaskDetails(latestTasks)
       };
 
@@ -477,31 +526,6 @@
       });
 
       return secondsToTime(totalSeconds);
-    }
-
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ - только "Расчетная сумма" за день
-    function calculateDayPay(tasks) {
-      return tasks.reduce((total, task) => {
-        const pay = parseRussianNumber(task['Расчетная сумма']);
-        return total + pay;
-      }, 0);
-    }
-
-    // "Доплата XIS" за день
-    function calculateXisBonus(tasks) {
-      return tasks.reduce((total, task) => {
-        const bonus = parseRussianNumber(task['Доплата XIS']);
-        return total + bonus;
-      }, 0);
-    }
-
-    // ИСПРАВЛЕННАЯ ФУНКЦИЯ - сумма "Расчетная сумма" за весь месяц
-    function calculateMonthlyPay(tasksByDate) {
-      let total = 0;
-      Object.values(tasksByDate).forEach(tasks => {
-        total += calculateDayPay(tasks); // Только "Расчетная сумма", без XIS
-      });
-      return total;
     }
 
     function calculateEfficiency(worked, planned) {
@@ -552,20 +576,6 @@
       
       // Без секунд, как просили
       return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    }
-
-    // Функция для парсинга русских числовых форматов
-    function parseRussianNumber(numberStr) {
-      if (!numberStr) return 0;
-      
-      // Убираем валюту и пробелы, заменяем запятую на точку
-      const cleanStr = numberStr
-        .replace(/[^\d,.-]/g, '') // Убираем все не-цифры, кроме ,.-
-        .replace(/\s/g, '') // Убираем пробелы
-        .replace(',', '.'); // Заменяем запятую на точку
-      
-      const result = parseFloat(cleanStr);
-      return isNaN(result) ? 0 : result;
     }
 
     function formatCurrency(amount) {
