@@ -166,8 +166,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.11.01-Новая структура данных 1233 🛠)</h4>
-
+     <div class="version">v 10.28-1215 <span id="last-updated"></span></div>
     <div id="banner" class="banner"></div>
 
     <div class="tabs">
@@ -717,6 +716,38 @@
       } else if (tabName === 'manager' && isManager) {
         managerView.classList.remove('hidden');
         tabManager.classList.add('active');
+      }
+    }
+    async function loadAndRender(month) {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">Загрузка...</div>';
+
+      try {
+        const { records, lastUpdated } = await fetchRecordsForMonth(month);
+        const fullSummary = calculateSummary(records);
+        window.currentSummary = fullSummary;
+
+        // Применяем фильтры (включая отдел)
+        applyFilters();
+
+        // Обновляем время
+        const lastUpdatedEl = document.getElementById('last-updated');
+        if (lastUpdated) {
+          const lastDate = new Date(lastUpdated);
+          const now = new Date();
+          const isOutdated = (now - lastDate) > 24 * 60 * 60 * 1000;
+          const formatted = formatLastUpdated(lastUpdated);
+          const icon = isOutdated ? '🚨' : '🕒';
+          lastUpdatedEl.textContent = ` | ${icon} ${formatted}`;
+          lastUpdatedEl.className = isOutdated ? 'outdated' : '';
+        } else {
+          lastUpdatedEl.textContent = ' | данные без отметки времени';
+          lastUpdatedEl.className = 'outdated';
+        }
+      } catch (err) {
+        content.innerHTML = `<div class="error">${err.message}</div>`;
+        document.getElementById('last-updated').textContent = '';
+        document.getElementById('last-updated').className = '';
       }
     }
 
