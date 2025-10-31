@@ -167,13 +167,66 @@
       margin: 5px 0;
       text-align: center;
     }
+    /* Стили для группировки задач */
+    .task-group {
+      margin-bottom: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .task-group-header {
+      background: #f8f9fa;
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+    .task-group-header:hover {
+      background: #e9ecef;
+    }
+    .task-group-content {
+      background: white;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .task-group.expanded .task-group-content {
+      max-height: 1000px;
+    }
+    .task-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+    .task-item:last-child {
+      border-bottom: none;
+    }
+    .task-group-summary {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .expand-icon {
+      transition: transform 0.3s ease;
+    }
+    .task-group.expanded .expand-icon {
+      transform: rotate(180deg);
+    }
+    .task-total {
+      font-weight: bold;
+      color: var(--tg-link-color);
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
-      (🛠 V.11.01-Новая структура данных 🛠)
+      (🛠 V.11.01-Новая структура данных 1726 🛠)
     </div>
 
     <div id="banner" class="banner"></div>
@@ -223,7 +276,7 @@
           <p>Загрузка детализации...</p>
         </div>
         <div id="details-content" class="hidden fade">
-          <pre id="details">Загрузка...</pre>
+          <div id="tasks-grouped"></div>
         </div>
       </div>
     </div>
@@ -289,6 +342,7 @@
     const managerView = document.getElementById('manager-view');
     const banner = document.getElementById('banner');
     const versionInfo = document.getElementById('version-info');
+    const tasksGrouped = document.getElementById('tasks-grouped');
 
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
@@ -352,6 +406,104 @@
             });
         });
         return total;
+    }
+
+    // === ФУНКЦИЯ ДЛЯ ГРУППИРОВКИ ЗАДАЧ ===
+    function groupTasksByType(tasks) {
+        const groups = {};
+        
+        tasks.forEach(task => {
+            const workType = task['Вид работ'] || 'Другие виды работ';
+            if (!groups[workType]) {
+                groups[workType] = {
+                    tasks: [],
+                    totalCount: 0,
+                    totalTime: 0,
+                    totalPay: 0,
+                    totalXisBonus: 0
+                };
+            }
+            
+            const count = parseFloat(task['Количество единиц'] || '0');
+            const time = task['Рабочее время'] || '00:00';
+            const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
+            const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
+            
+            groups[workType].tasks.push({
+                count: count,
+                time: time,
+                pay: pay,
+                xisBonus: xisBonus,
+                calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
+                calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
+            });
+            
+            groups[workType].totalCount += count;
+            groups[workType].totalTime += timeToSeconds(time);
+            groups[workType].totalPay += (pay + xisBonus);
+            groups[workType].totalXisBonus += xisBonus;
+        });
+        
+        return groups;
+    }
+
+    // === ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ ГРУППИРОВАННЫХ ЗАДАЧ ===
+    function renderGroupedTasks(tasks) {
+        if (!tasks || tasks.length === 0) {
+            tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+            return;
+        }
+
+        const groups = groupTasksByType(tasks);
+        let html = '';
+
+        Object.keys(groups).sort().forEach(workType => {
+            const group = groups[workType];
+            const totalTimeFormatted = secondsToTime(group.totalTime);
+            const totalPayFormatted = formatCurrency(group.totalPay);
+            const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
+            
+            html += `
+                <div class="task-group">
+                    <div class="task-group-header" onclick="toggleTaskGroup(this)">
+                        <div>
+                            <div>${workType}</div>
+                            <div class="task-group-summary">
+                                <span>Количество: ${group.totalCount.toFixed(2)}</span>
+                                <span>Время: ${totalTimeFormatted}</span>
+                                <span class="task-total">${totalPayFormatted}</span>
+                            </div>
+                        </div>
+                        <div class="expand-icon">▼</div>
+                    </div>
+                    <div class="task-group-content">
+            `;
+            
+            group.tasks.forEach((task, index) => {
+                html += `
+                    <div class="task-item">
+                        <div>${task.count.toFixed(2)} ед. - ${task.time}</div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-top: 4px;">
+                            <span>Расчет: ${task.calculatedPay}</span>
+                            <span>Сезонная: ${task.calculatedXisBonus}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        });
+
+        tasksGrouped.innerHTML = html;
+    }
+
+    // === ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ГРУПП ===
+    function toggleTaskGroup(header) {
+        const group = header.parentElement;
+        group.classList.toggle('expanded');
     }
 
     // === ИНИЦИАЛИЗАЦИЯ ===
@@ -507,7 +659,7 @@
         payDay: formatCurrency(dayPay), // Общий заработок за день
         xisBonusDay: formatCurrency(xisBonus), // Только сезонная доплата
         payMonth: formatCurrency(monthlyPay), // Общий заработок за месяц
-        details: formatTaskDetails(latestTasks)
+        details: latestTasks
       };
 
       // Обновляем UI
@@ -539,14 +691,15 @@
       return Math.round(efficiency * 100) / 100; // Округляем до 2 знаков
     }
 
-    function formatTaskDetails(tasks) {
-      return tasks.map(task => ({
-        work: task['Вид работ'] || 'Не указано',
-        count: task['Количество единиц'] || '0',
-        time: task['Рабочее время'] || '00:00',
-        pay: task['Расчетная сумма'] || '0,00 ₽',
-        xisBonus: task['Доплата XIS'] || '0,00 ₽'
-      }));
+    function updateDetails() {
+      if (!currentRecord?.details) {
+        tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        return;
+      }
+
+      renderGroupedTasks(currentRecord.details);
+      detailsLoading.classList.add('hidden');
+      detailsContent.classList.remove('hidden');
     }
 
     // Вспомогательные функции для работы со временем
@@ -602,21 +755,6 @@
 
       mainDataLoading.classList.add('hidden');
       mainDataContent.classList.remove('hidden');
-    }
-
-    function updateDetails() {
-      if (!currentRecord?.details) {
-        document.getElementById('details').textContent = 'Нет данных';
-        return;
-      }
-
-      const text = currentRecord.details.map(item => {
-        return `${item.work} (${item.count}): ${item.time}, ${item.pay}, Сезонная доплата: ${item.xisBonus}`;
-      }).join('\n');
-
-      document.getElementById('details').textContent = text;
-      detailsLoading.classList.add('hidden');
-      detailsContent.classList.remove('hidden');
     }
 
     function renderUI() {
