@@ -167,8 +167,7 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.31-W1126-ТЕСТ 🛠)</h4>
-
+    <h4>(🛠 V.11.01-Новая структура данных 🛠)</h4>
 
     <div id="banner" class="banner"></div>
 
@@ -199,6 +198,7 @@
         </div>
         <div id="main-data-content" class="hidden fade">
           <p><span class="label">Сотрудник:</span> <span id="name">—</span></p>
+          <p><span class="label">Отдел:</span> <span id="department">—</span></p>
           <p><span class="label">Дата:</span> <span id="date">—</span></p>
           <p><span class="label">Отработано:</span> <span id="worked">—</span></p>
           <p><span class="label">Рабочее время:</span> <span id="planned">—</span></p>
@@ -305,23 +305,28 @@
     <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
   </div>
   
-    <!-- Кнопка очистки кэша -->
-    <button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
+  <!-- Кнопка очистки кэша -->
+  <button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
   
   <script>
+    // Конфигурация источников данных
+    const DATA_SOURCES = {
+      staff: 'https://AIP-77.github.io/archive/staff%20fullData.json',
+      monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')}%20fullData.json`
+    };
+
     let chatId = null;
     let isManager = false;
     let isAdmin = false;
-    let allUserData = null;
+    let currentUserData = null;
     let currentRecord = null;
     let efficiencyChart = null;
     let earningsChart = null;
-    let calendarCache = null;
-    let currentViewUserId = null;
+    let currentMonthData = null;
     let managedDepartments = [];
     let currentManagerDepartment = null;
 
-    // DOM
+    // DOM элементы
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const employeeView = document.getElementById('employee-view');
@@ -332,107 +337,317 @@
     const tabManager = document.getElementById('tab-manager');
     const tabInfo = document.getElementById('tab-info');
     const tabAdmin = document.getElementById('tab-admin');
+    const tabStatistics = document.getElementById('tab-statistics');
 
     const mainDataLoading = document.getElementById('main-data-loading');
     const mainDataContent = document.getElementById('main-data-content');
     const detailsLoading = document.getElementById('details-loading');
     const detailsContent = document.getElementById('details-content');
-    const efficiencyLoading = document.getElementById('efficiency-loading');
-    const efficiencyContent = document.getElementById('efficiency-content');
-    const earningsLoading = document.getElementById('earnings-loading');
-    const earningsContent = document.getElementById('earnings-content');
-    const calendarLoading = document.getElementById('calendar-loading');
-    const calendarContent = document.getElementById('calendar-content');
 
-    const prevMonthBtn = document.getElementById('prevMonth');
-    const nextMonthBtn = document.getElementById('nextMonth');
-    const currentMonthSpan = document.getElementById('currentMonth');
     const refreshBtn = document.getElementById('refreshBtn');
-
-    // DOM для отдела
-    const changeDepartmentBtn = document.getElementById('change-department-btn');
-    const departmentSelector = document.getElementById('department-selector');
-    const departmentReport = document.getElementById('department-report');
-    const departmentSelect = document.getElementById('departmentSelect');
-
-    const deptDataLoading = document.getElementById('dept-data-loading');
-    const deptDataContent = document.getElementById('dept-data-content');
-    const deptCalendarLoading = document.getElementById('dept-calendar-loading');
-    const deptCalendarContent = document.getElementById('dept-calendar-content');
-    const deptPrevMonthBtn = document.getElementById('dept-prevMonth');
-    const deptNextMonthBtn = document.getElementById('dept-nextMonth');
-    const deptCurrentMonthSpan = document.getElementById('dept-currentMonth');
-    const deptCalendar = document.getElementById('dept-calendar');
-
-    const deptNameSpan = document.getElementById('dept-name');
-    const deptLastUpdate = document.getElementById('dept-last-update');
-
-    let availableMonths = [];
-    let currentMonthIndex = 0;
-    let deptAvailableMonths = [];
-    let deptCurrentMonthIndex = 0;
-
-    // Кнопка очистки кэша
     const clearCacheBtn = document.getElementById('clearCacheBtn');
 
     // === ИНИЦИАЛИЗАЦИЯ ===
-async function init() {
-  try {
-    if (!window.Telegram?.WebApp) {
-      enableTestMode();
-      return;
-    }
-
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-    applyTelegramTheme();
-
-    const user = Telegram.WebApp.initDataUnsafe.user;
-    if (!user?.id) throw new Error('Пользователь не найден');
-    chatId = String(user.id);
-
-    const cached = getFromCache('currentData');
-    if (cached) {
-      restoreFromCache(cached);
-    }
-
-    fetchFreshData()
-      .then(fresh => {
-        saveToCache('currentData', {
-          allUserData: fresh.allUserData,
-          currentRecord: fresh.currentRecord,
-          calendarCache: fresh.calendarCache,
-          isManager: fresh.isManager,
-          isAdmin: fresh.isAdmin,
-          managedDepartments: fresh.managedDepartments,
-          currentManagerDepartment: currentManagerDepartment
-        }, 10 * 60 * 1000);
-
-        if (!cached || fresh.currentRecord.date !== (currentRecord?.date || '') || fresh.currentRecord.worked !== (currentRecord?.worked || '')) {
-          allUserData = fresh.allUserData;
-          currentRecord = fresh.currentRecord;
-          calendarCache = fresh.calendarCache;
-          isManager = fresh.isManager;
-          isAdmin = fresh.isAdmin;
-          managedDepartments = fresh.managedDepartments;
-          renderUI();
-          showBanner('Данные обновлены', 'success', 3000);
+    async function init() {
+      try {
+        if (!window.Telegram?.WebApp) {
+          enableTestMode();
+          return;
         }
-      })
-      .catch(err => {
-        console.warn('Не удалось загрузить свежие данные:', err);
-        if (!cached) {
-          loading.classList.add('hidden');
-          showError('Ошибка загрузки данных: ' + err.message);
+
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        applyTelegramTheme();
+
+        const user = Telegram.WebApp.initDataUnsafe.user;
+        if (!user?.id) throw new Error('Пользователь не найден');
+        chatId = String(user.id);
+
+        await loadUserData();
+        
+      } catch (err) {
+        console.error('Ошибка инициализации:', err);
+        loading.classList.add('hidden');
+        showError('Ошибка: ' + err.message);
+      }
+    }
+
+    async function loadUserData() {
+      try {
+        // Загружаем данные сотрудников
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        
+        // Находим данные текущего пользователя
+        const userRecord = staffData.records.find(record => 
+          String(record['Telegram ID']) === chatId
+        );
+
+        if (!userRecord) {
+          throw new Error('Ваш аккаунт не найден в системе');
+        }
+
+        currentUserData = {
+          name: userRecord['Сотрудник'],
+          department: userRecord['Отдел'],
+          role: userRecord['Роль'],
+          managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
+        };
+
+        isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
+        isAdmin = currentUserData.role.toLowerCase() === 'админ';
+        managedDepartments = currentUserData.managedDepartments;
+
+        // Загружаем данные за текущий месяц
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        
+        currentMonthData = await fetchData(DATA_SOURCES.monthlyData(currentYear, currentMonth));
+        
+        // Формируем персональный отчет
+        await generatePersonalReport();
+
+        renderUI();
+        loading.classList.add('hidden');
+        
+      } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+        throw err;
+      }
+    }
+
+    async function generatePersonalReport() {
+      if (!currentMonthData || !currentUserData) return;
+
+      const userTasks = currentMonthData.records.filter(record => 
+        record['Сотрудник'] === currentUserData.name
+      );
+
+      if (userTasks.length === 0) {
+        showBanner('Нет данных о задачах за текущий месяц', 'info');
+        return;
+      }
+
+      // Группируем задачи по дате
+      const tasksByDate = {};
+      userTasks.forEach(task => {
+        const date = task['Рабочий день'];
+        if (!tasksByDate[date]) tasksByDate[date] = [];
+        tasksByDate[date].push(task);
+      });
+
+      // Получаем последнюю дату с задачами
+      const dates = Object.keys(tasksByDate).sort((a, b) => {
+        const [d1, m1, y1] = a.split('.').map(Number);
+        const [d2, m2, y2] = b.split('.').map(Number);
+        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+      });
+
+      if (dates.length === 0) return;
+
+      const latestDate = dates[0];
+      const latestTasks = tasksByDate[latestDate];
+
+      // Рассчитываем показатели
+      const workedTime = calculateTotalWorkedTime(latestTasks);
+      const plannedTime = '08:00'; // Стандартный рабочий день
+      const totalPay = calculateTotalPay(latestTasks);
+      const xisBonus = calculateXisBonus(latestTasks);
+      const efficiency = calculateEfficiency(workedTime, plannedTime);
+      const monthlyPay = calculateMonthlyPay(tasksByDate);
+
+      // Формируем текущую запись
+      currentRecord = {
+        date: latestDate,
+        worked: workedTime,
+        planned: plannedTime,
+        efficiency: efficiency + '%',
+        payDay: totalPay.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' }),
+        xisBonusDay: xisBonus.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' }),
+        payMonth: monthlyPay.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' }),
+        details: formatTaskDetails(latestTasks)
+      };
+
+      // Обновляем UI
+      updateMainData();
+      updateDetails();
+    }
+
+    function calculateTotalWorkedTime(tasks) {
+      let totalSeconds = 0;
+      
+      tasks.forEach(task => {
+        const startTime = task['Начало задачи'];
+        const endTime = task['Конец задачи'];
+        
+        if (startTime && endTime) {
+          const start = timeToSeconds(startTime);
+          const end = timeToSeconds(endTime);
+          totalSeconds += (end - start);
+        } else if (task['Рабочее время']) {
+          totalSeconds += timeToSeconds(task['Рабочее время']);
         }
       });
 
-  } catch (err) {
-    console.error('Ошибка инициализации:', err);
-    loading.classList.add('hidden');
-    showError('Ошибка: ' + err.message);
-  }
-}
+      return secondsToTime(totalSeconds);
+    }
+
+    function calculateTotalPay(tasks) {
+      return tasks.reduce((total, task) => {
+        const pay = parseFloat(task['Расчетная сумма']?.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        return total + pay;
+      }, 0);
+    }
+
+    function calculateXisBonus(tasks) {
+      return tasks.reduce((total, task) => {
+        const bonus = parseFloat(task['Доплата XIS']?.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        return total + bonus;
+      }, 0);
+    }
+
+    function calculateEfficiency(worked, planned) {
+      const workedSec = timeToSeconds(worked);
+      const plannedSec = timeToSeconds(planned);
+      return plannedSec > 0 ? Math.round((workedSec / plannedSec) * 100) : 0;
+    }
+
+    function calculateMonthlyPay(tasksByDate) {
+      let total = 0;
+      Object.values(tasksByDate).forEach(tasks => {
+        total += calculateTotalPay(tasks);
+      });
+      return total;
+    }
+
+    function formatTaskDetails(tasks) {
+      return tasks.map(task => ({
+        work: task['Вид работ'],
+        count: task['Количество единиц'],
+        time: task['Рабочее время'],
+        pay: task['Расчетная сумма'] || '0,00 ₽',
+        xisBonus: task['Доплата XIS'] || '0,00 ₽'
+      }));
+    }
+
+    // Вспомогательные функции для работы со временем
+    function timeToSeconds(timeStr) {
+      if (!timeStr) return 0;
+      const parts = timeStr.split(':').map(Number);
+      return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+    }
+
+    function secondsToTime(seconds) {
+      const hrs = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+
+    function updateMainData() {
+      if (!currentUserData || !currentRecord) return;
+
+      document.getElementById('name').textContent = currentUserData.name;
+      document.getElementById('department').textContent = currentUserData.department;
+      document.getElementById('date').textContent = currentRecord.date;
+      document.getElementById('worked').textContent = currentRecord.worked;
+      document.getElementById('planned').textContent = currentRecord.planned;
+      document.getElementById('efficiency').textContent = currentRecord.efficiency;
+      document.getElementById('pay-day').textContent = currentRecord.payDay;
+      document.getElementById('xisBonusDay').textContent = currentRecord.xisBonusDay;
+      document.getElementById('pay-month').textContent = currentRecord.payMonth;
+
+      mainDataLoading.classList.add('hidden');
+      mainDataContent.classList.remove('hidden');
+    }
+
+    function updateDetails() {
+      if (!currentRecord?.details) {
+        document.getElementById('details').textContent = 'Нет данных';
+        return;
+      }
+
+      const text = currentRecord.details.map(item => {
+        return `${item.work} (${item.count}): ${item.time}, ${item.pay}, Сезонная доплата: ${item.xisBonus}`;
+      }).join('\n');
+
+      document.getElementById('details').textContent = text;
+      detailsLoading.classList.add('hidden');
+      detailsContent.classList.remove('hidden');
+    }
+
+    function renderUI() {
+      // Показываем соответствующие вкладки
+      if (isManager) {
+        tabManager.classList.remove('hidden');
+      }
+      if (isAdmin) {
+        tabAdmin.classList.remove('hidden');
+      }
+
+      employeeView.classList.remove('hidden');
+      updateLastUpdate();
+
+      // Инициализируем вкладку отдела для менеджеров
+      if (isManager) {
+        initializeManagerView();
+      }
+    }
+
+    async function initializeManagerView() {
+      if (!isManager) return;
+
+      try {
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        
+        // Получаем список отделов, которыми управляет пользователь
+        const departments = new Set();
+        staffData.records.forEach(record => {
+          if (managedDepartments.includes(record['Руководит отделом']) || 
+              (currentUserData.managedDepartments.includes(record['Отдел']) && isManager)) {
+            departments.add(record['Отдел']);
+          }
+        });
+
+        managedDepartments = Array.from(departments);
+
+        if (managedDepartments.length > 0) {
+          renderDepartmentSelector();
+        }
+      } catch (err) {
+        console.error('Ошибка инициализации manager view:', err);
+      }
+    }
+
+    function renderDepartmentSelector() {
+      departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
+      managedDepartments.forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = dept;
+        opt.textContent = dept;
+        departmentSelect.appendChild(opt);
+      });
+
+      departmentSelector.classList.remove('hidden');
+    }
+
+    // Остальные функции (fetchData, showError, showBanner, applyTelegramTheme и т.д.)
+    async function fetchData(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
+      return await response.json();
+    }
+
+    function showError(msg) {
+      loading.classList.add('hidden');
+      error.textContent = msg;
+      error.classList.remove('hidden');
+    }
+
+    function showBanner(message, type = 'info', duration = 5000) {
+      banner.textContent = message;
+      banner.className = `banner show ${type}`;
+      if (duration > 0) setTimeout(() => banner.classList.remove('show'), duration);
+    }
 
     function applyTelegramTheme() {
       if (!window.Telegram?.WebApp) return;
@@ -447,639 +662,31 @@ async function init() {
       root.style.setProperty('--card-bg', theme.bg_color && parseInt(theme.bg_color.replace('#', ''), 16) < 0xffffff/2 ? '#333' : '#ffffff');
     }
 
-    function restoreFromCache(cached) {
-      allUserData = cached.allUserData;
-      currentRecord = cached.currentRecord;
-      calendarCache = cached.calendarCache;
-      isManager = !!cached.isManager;
-      isAdmin = !!cached.isAdmin;
-      currentViewUserId = cached.currentViewUserId || null;
-      managedDepartments = Array.isArray(cached.managedDepartments) ? cached.managedDepartments : [];
-      currentManagerDepartment = cached.currentManagerDepartment || null;
-    }
-
-    function renderUI() {
-      if (!allUserData) {
-        showError('Нет данных пользователей');
-        loading.classList.add('hidden');
-        return;
-      }
-
-      // Показываем вкладки
-      if (isManager) {
-        tabManager.classList.remove('hidden');
-      }
-      if (isAdmin) {
-        tabAdmin.classList.remove('hidden');
-        tabManager.classList.remove('hidden');
-      }
-      if (isManager || isAdmin) {
-         tabStatistics.classList.remove('hidden');
-     }
-
-      // Рендерим основной вид
-      renderEmployeeViewForUser(chatId);
-
-      // Откладываем рендеринг "Отдела", чтобы не блокировать UI
-      if (isManager && Array.isArray(managedDepartments) && managedDepartments.length > 0) {
-        setTimeout(() => {
-          try {
-            renderManagerView();
-          } catch (err) {
-            console.error('Ошибка в renderManagerView:', err);
-          }
-        }, 100);
-      }
-
-      loading.classList.add('hidden');
-      employeeView.classList.remove('hidden');
-    }
-
-    function renderEmployeeViewForUser(userId) {
-      const userData = allUserData[userId];
-      if (!userData || !userData.records?.length) {
-        showError('Нет данных для выбранного пользователя');
-        return;
-      }
-
-      const records = userData.records || [];
-      const sortedRecords = records.sort((a, b) => {
-        const [d1, m1, y1] = a.date.split('.').map(Number);
-        const [d2, m2, y2] = b.date.split('.').map(Number);
-        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-      });
-      const record = sortedRecords[0];
-
-      updateLastUpdate();
-      updateMainData(userData, record);
-      updateDetails(record.details || []);
-
-      if (calendarCache && calendarCache[userId]) {
-        calendarLoading.classList.add('hidden');
-        calendarContent.classList.remove('hidden');
-        renderCalendarFromCache(userId);
-      } else {
-        calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Календарь недоступен</p>';
-      }
-
-      renderCharts(record);
-
-      mainDataLoading.classList.add('hidden');
-      mainDataContent.classList.remove('hidden');
-      detailsLoading.classList.add('hidden');
-      detailsContent.classList.remove('hidden');
-    }
-
-    function renderManagerView() {
-      if (!isManager || !Array.isArray(managedDepartments) || managedDepartments.length === 0) {
-        departmentSelector.classList.add('hidden');
-        departmentReport.classList.add('hidden');
-        return;
-      }
-
-      if (managedDepartments.length === 1) {
-        currentManagerDepartment = managedDepartments[0];
-        departmentSelector.classList.add('hidden');
-        renderDepartmentReport(currentManagerDepartment);
-      } else {
-        departmentSelector.classList.remove('hidden');
-        departmentReport.classList.add('hidden');
-
-        departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
-        managedDepartments.forEach(dept => {
-          const opt = document.createElement('option');
-          opt.value = dept;
-          opt.textContent = dept;
-          departmentSelect.appendChild(opt);
-        });
-
-        if (currentManagerDepartment && managedDepartments.includes(currentManagerDepartment)) {
-          departmentSelect.value = currentManagerDepartment;
-          renderDepartmentReport(currentManagerDepartment);
-        }
-      }
-    }
-
-    function renderDepartmentReport(departmentName) {
-      currentManagerDepartment = departmentName;
-      deptNameSpan.textContent = departmentName;
-
-      const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
-      if (employeesInDept.length === 0) {
-        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет сотрудников в отделе</p>';
-        deptDataLoading.classList.remove('hidden');
-        deptDataContent.classList.add('hidden');
-        departmentSelector.classList.add('hidden');
-        departmentReport.classList.remove('hidden');
-        renderDepartmentCalendar(departmentName);
-        return;
-      }
-
-      let latestDate = null;
-      for (const emp of employeesInDept) {
-        if (emp.records?.length) {
-          const lastRec = emp.records[0];
-          if (!latestDate || lastRec.date > latestDate) {
-            latestDate = lastRec.date;
-          }
-        }
-      }
-
-      if (latestDate) {
-        renderDepartmentReportForDate(departmentName, latestDate);
-      } else {
-        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Нет данных за период</p>';
-        deptDataLoading.classList.remove('hidden');
-        deptDataContent.classList.add('hidden');
-      }
-
-      departmentSelector.classList.add('hidden');
-      departmentReport.classList.remove('hidden');
-      renderDepartmentCalendar(departmentName);
-    }
-
-    async function renderDepartmentReportForDate(departmentName, dateStr) {
-      let staff = {};
-      try {
-        const staffRes = await fetch('staff.json');
-        if (staffRes.ok) staff = await staffRes.json();
-      } catch (e) {
-        console.warn('Не удалось загрузить staff.json:', e);
-      }
-
-      const staffIds = staff[departmentName] || [];
-      const allUsersInDept = Object.entries(allUserData).filter(([id, user]) => user.department === departmentName);
-
-      const staffUsers = staffIds.map(id => ({ id, data: allUserData[id] || { name: 'Без имени' } }));
-      const presentUsers = allUsersInDept.map(([id, data]) => ({ id, data }));
-
-      const allEmployees = [...staffUsers];
-      const staffIdSet = new Set(staffIds);
-      presentUsers.forEach(emp => {
-        if (!staffIdSet.has(emp.id)) allEmployees.push(emp);
-      });
-
-      let presentCount = 0;
-      const presentLines = [];
-      const absentLines = [];
-
-      for (const { id, data } of allEmployees) {
-        const record = data.records?.find(r => r.date === dateStr);
-        const name = data.name || 'Без имени';
-
-        if (record) {
-          presentCount++;
-          const worked = record.worked || '00:00';
-          const planned = record.planned || '08:00';
-          const efficiency = record.efficiency ? record.efficiency.replace('%', '') : '0';
-          const pay = record.payDay || '0,00 ₽';
-
-          let formattedPay = pay;
-          if (typeof pay === 'string') {
-            const cleanPay = pay.replace(/[^\d,.-]/g, '').replace(',', '.');
-            const num = parseFloat(cleanPay);
-            if (!isNaN(num)) {
-              formattedPay = num.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 2 });
-            }
-          }
-
-          const effNum = parseFloat(efficiency.replace(',', '.')) || 0;
-          let effColor = '';
-          if (effNum > 100) effColor = 'color:green;';
-          else if (effNum < 70) effColor = 'color:#e53935;';
-
-          const line = `<span style="font-weight:bold;">${name}</span> - ${worked} / ${planned} <span style="${effColor}">(${efficiency}%)</span> ${formattedPay}`;
-          presentLines.push(line);
-        } else {
-          const line = `<span style="font-weight:bold; color:#e53935;">${name} - ❌ Отсутствовал</span>`;
-          absentLines.push(line);
-        }
-      }
-
-      const totalStaff = allEmployees.length;
-      const absentCount = totalStaff - presentCount;
-      const attendancePercent = totalStaff > 0 ? ((presentCount / totalStaff) * 100).toFixed(1) : '0';
-
-      const [day, month, year] = dateStr.split('.').map(Number);
-      const dateObj = new Date(year, month - 1, day);
-      const days = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-      const dayName = days[dateObj.getDay()];
-      const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-      const formattedDate = `${dayName}, ${day} ${months[month - 1]} ${year}`;
-
-      document.getElementById('dept-report-date').textContent = `Отчёт на дату - ${formattedDate}`;
-      document.getElementById('dept-attendance').textContent = `Сотрудники - ${totalStaff} чел.\nОтсутствуют - ${absentCount} чел.`;
-      document.getElementById('dept-attendance-percent').textContent = `📊 Процент явки: ${presentCount} из ${totalStaff} (${attendancePercent}%)`;
-
-      const allLines = [
-        ...absentLines,
-        absentLines.length > 0 ? '<hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">' : '',
-        ...presentLines
-      ];
-      document.getElementById('dept-employees-list').innerHTML = allLines.join('<br>');
-
-      const validRecords = presentLines.length;
-      const totalEfficiency = presentLines.reduce((sum, line) => {
-        const match = line.match(/\((\d+,\d+)%\)/);
-        if (match) {
-          const eff = parseFloat(match[1].replace(',', '.'));
-          return sum + eff;
-        }
-        return sum;
-      }, 0);
-      const avgEfficiency = validRecords > 0 ? (totalEfficiency / validRecords).toFixed(2).replace('.', ',') : '0,00';
-      document.getElementById('dept-avg-efficiency').textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
-
-      deptDataLoading.classList.add('hidden');
-      deptDataContent.classList.remove('hidden');
-      deptLastUpdate.textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-    }
-
-    function renderDepartmentCalendar(departmentName) {
-      deptCalendarLoading.classList.remove('hidden');
-      deptCalendarContent.classList.add('hidden');
-
-      const allDates = new Set();
-      const employeesInDept = Object.values(allUserData).filter(user => user.department === departmentName);
-      for (const emp of employeesInDept) {
-        if (emp.records?.length) {
-          for (const rec of emp.records) {
-            if (rec.date) allDates.add(rec.date);
-          }
-        }
-      }
-
-      if (allDates.size === 0) {
-        deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        return;
-      }
-
-      const monthMap = {};
-      for (const dateStr of allDates) {
-        const [d, m, y] = dateStr.split('.').map(Number);
-        const monthKey = `${y}-${String(m).padStart(2, '0')}`;
-        if (!monthMap[monthKey]) monthMap[monthKey] = [];
-        monthMap[monthKey].push(dateStr);
-      }
-
-      deptAvailableMonths = Object.keys(monthMap).sort((a, b) => {
-        const [y1, m1] = a.split('-').map(Number);
-        const [y2, m2] = b.split('-').map(Number);
-        return y2 - y1 || m2 - m1;
-      });
-
-      if (deptAvailableMonths.length === 0) {
-        deptCalendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        return;
-      }
-
-      deptCurrentMonthIndex = 0;
-      const [yearStr, monthStr] = deptAvailableMonths[deptCurrentMonthIndex].split('-');
-      const year = Number(yearStr);
-      const month = Number(monthStr);
-      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-      deptCurrentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-      deptPrevMonthBtn.disabled = deptCurrentMonthIndex === deptAvailableMonths.length - 1;
-      deptNextMonthBtn.disabled = deptCurrentMonthIndex === 0;
-
-      renderDeptCalendarGrid(year, month, monthMap[deptAvailableMonths[deptCurrentMonthIndex]]);
-    }
-
-    function renderDeptCalendarGrid(year, monthNum, datesArray) {
-      deptCalendar.innerHTML = '';
-      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      dayNames.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        el.style.backgroundColor = '#f0f0f0';
-        el.style.padding = '6px 0';
-        el.style.borderRadius = '6px';
-        el.style.textAlign = 'center';
-        deptCalendar.appendChild(el);
-      });
-
-      const firstDay = new Date(year, monthNum - 1, 1);
-      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
-      const lastDayNum = new Date(year, monthNum, 0).getDate();
-
-      const availableDays = new Set();
-      if (datesArray && Array.isArray(datesArray)) {
-        datesArray.forEach(dateStr => {
-          const day = dateStr.split('.')[0];
-          availableDays.add(day);
-        });
-      }
-
-      for (let i = 0; i < startDay; i++) {
-        deptCalendar.appendChild(document.createElement('div'));
-      }
-
-      for (let day = 1; day <= lastDayNum; day++) {
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = day;
-        el.style.padding = '8px 0';
-        el.style.borderRadius = '6px';
-        el.style.fontSize = '14px';
-
-        const dayStr = String(day).padStart(2, '0');
-        if (availableDays.has(dayStr)) {
-          el.classList.add('available');
-          el.title = 'Есть данные';
-          el.addEventListener('click', () => loadDepartmentRecordByDate(year, monthNum, day));
-        } else {
-          el.style.color = '#ccc';
-        }
-        deptCalendar.appendChild(el);
-      }
-
-      deptCalendarLoading.classList.add('hidden');
-      deptCalendarContent.classList.remove('hidden');
-    }
-
-    function loadDepartmentRecordByDate(year, month, day) {
-      const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
-      renderDepartmentReportForDate(currentManagerDepartment, dateStr);
-    }
-
-    // === ОСТАЛЬНЫЕ ФУНКЦИИ ===
-    function saveToCache(key, data, maxAgeMs) {
-      const item = { data, timestamp: Date.now(), maxAge: maxAgeMs };
-      try { localStorage.setItem(`miniapp_${key}`, JSON.stringify(item)); } catch (e) {}
-    }
-    function getFromCache(key) {
-      try {
-        const itemStr = localStorage.getItem(`miniapp_${key}`);
-        if (!itemStr) return null;
-        const item = JSON.parse(itemStr);
-        if (Date.now() - item.timestamp > item.maxAge) {
-          localStorage.removeItem(`miniapp_${key}`);
-          return null;
-        }
-        return item.data;
-      } catch (e) { return null; }
-    }
-    function showError(msg) {
-      loading.classList.add('hidden');
-      error.textContent = msg;
-      error.classList.remove('hidden');
-    }
-    function showBanner(message, type = 'info', duration = 5000) {
-      banner.textContent = message;
-      banner.className = `banner show ${type}`;
-      if (duration > 0) setTimeout(() => banner.classList.remove('show'), duration);
-    }
     function updateLastUpdate() {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
       document.getElementById('last-update').textContent = `Последнее обновление: ${timeStr}`;
     }
-    function updateMainData(userData, record) {
-      document.getElementById('name').textContent = userData.name || '—';
-      document.getElementById('date').textContent = record.date || '—';
-      document.getElementById('worked').textContent = record.worked || '—';
-      document.getElementById('planned').textContent = record.planned || '—';
-      document.getElementById('efficiency').textContent = record.efficiency || '—';
-      document.getElementById('pay-day').textContent = record.payDay || '—';
-      document.getElementById('xisBonusDay').textContent = record.xisBonusDay || '—';
-      document.getElementById('pay-month').textContent = record.payMonth || '—';
-    }
-    function updateDetails(details) {
-      if (!details?.length) {
-        document.getElementById('details').textContent = 'Нет данных';
-        return;
-      }
-      const text = details.map(item => {
-        const work = item.work || '—';
-        const count = item.count || 0;
-        const time = item.time || '00:00:00';
-        const pay = item.pay || '0,00 ₽';
-        const xisBonus = item.xisBonus || '0,00 ₽';
-        return `${work} (${count}): ${time}, ${pay}, Сезонная доплата: ${xisBonus}`;
-      }).join('\n');
-      document.getElementById('details').textContent = text;
-    }
 
-  function createEfficiencyChart(data) {
-    const ctx = document.getElementById('efficiencyChart').getContext('2d');
-    if (efficiencyChart) efficiencyChart.destroy();
-    efficiencyChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.map(d => d.day),
-        datasets: [{
-          label: 'Производительность (%)',
-          data: data.map(d => d.value),
-          backgroundColor: 'var(--tg-link-color)'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 100
-          }
-        }
-      }
-    });
-  }
-
-    function createEarningsChart(data) {
-  const ctx = document.getElementById('earningsChart').getContext('2d');
-  if (earningsChart) earningsChart.destroy();
-  earningsChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: data.map(d => d.day),
-      datasets: [{
-        label: 'Заработок (р.)',
-        data: data.map(d => d.pay),
-        borderColor: 'var(--tg-link-color)',
-        backgroundColor: 'rgba(26, 140, 216, 0.2)',
-        fill: true,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top'
-        }
-      }
-    }
-  });
-}
-    
-    function renderCalendarFromCache(telegramId) {
-      const userData = calendarCache[telegramId];
-      if (!userData) {
-        document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        return;
-      }
-      availableMonths = Object.keys(userData).sort((a, b) => {
-        const [y1, m1] = a.split('-').map(Number);
-        const [y2, m2] = b.split('-').map(Number);
-        return y2 - y1 || m2 - m1;
-      });
-      if (availableMonths.length === 0) {
-        document.getElementById('calendar').innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        return;
-      }
-      currentMonthIndex = 0;
-      const [yearStr, monthStr] = availableMonths[currentMonthIndex].split('-');
-      const year = Number(yearStr);
-      const month = Number(monthStr);
-      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-      currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-      prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
-      nextMonthBtn.disabled = currentMonthIndex === 0;
-      renderCalendarGridFromCache(year, month, userData[availableMonths[currentMonthIndex]]);
-    }
-    function renderCalendarGridFromCache(year, monthNum, datesArray) {
-      const container = document.getElementById('calendar');
-      container.innerHTML = '';
-      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-      dayNames.forEach(day => {
-        const el = document.createElement('div');
-        el.textContent = day;
-        el.style.fontWeight = 'bold';
-        el.style.backgroundColor = '#f0f0f0';
-        el.style.padding = '6px 0';
-        el.style.borderRadius = '6px';
-        el.style.textAlign = 'center';
-        container.appendChild(el);
-      });
-      const firstDay = new Date(year, monthNum - 1, 1);
-      const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
-      const lastDayNum = new Date(year, monthNum, 0).getDate();
-      const availableDays = new Set();
-      if (datesArray && Array.isArray(datesArray)) {
-        datesArray.forEach(dateStr => {
-          if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
-            const day = dateStr.split('.')[0];
-            availableDays.add(day);
-          }
-        });
-      }
-      for (let i = 0; i < startDay; i++) {
-        container.appendChild(document.createElement('div'));
-      }
-      for (let day = 1; day <= lastDayNum; day++) {
-        const el = document.createElement('div');
-        el.className = 'day';
-        el.textContent = day;
-        el.style.padding = '8px 0';
-        el.style.borderRadius = '6px';
-        el.style.fontSize = '14px';
-        const dayStr = String(day).padStart(2, '0');
-        if (availableDays.has(dayStr)) {
-          el.classList.add('available');
-          el.title = 'Есть данные';
-          el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
-        } else {
-          el.style.color = '#ccc';
-        }
-        container.appendChild(el);
-      }
-    }
-    async function loadRecordByDate(year, month, day) {
-      mainDataContent.classList.add('fade', 'hidden');
-      detailsContent.classList.add('fade', 'hidden');
-      efficiencyContent.classList.add('fade', 'hidden');
-      earningsContent.classList.add('fade', 'hidden');
-      await new Promise(r => setTimeout(r, 300));
-      const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
-      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-      const actualUserId = chatId;
-      let data, userData;
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      if (year === currentYear && month === currentMonth) {
-        userData = allUserData[actualUserId];
-        data = userData.records.find(r => r.date === dateStr);
-        if (!data) {
-          showBanner(`Данные за ${dateStr} не найдены`, 'error');
-          return;
-        }
-      } else {
+    function enableTestMode() {
+      chatId = '5702919259'; // Тестовый ID
+      setTimeout(async () => {
         try {
-          const response = await fetch(`archive/${monthKey}.json`);
-          if (!response.ok) throw new Error(`Архив ${monthKey} не найден`);
-          const archiveData = await response.json();
-          userData = archiveData[actualUserId];
-          if (!userData) {
-            showBanner(`Пользователь не найден в архиве ${monthKey}`, 'error');
-            return;
-          }
-          data = userData.records.find(r => r.date === dateStr);
-          if (!data) {
-            showBanner(`Данные за ${dateStr} не найдены в архиве`, 'error');
-            return;
-          }
+          await loadUserData();
         } catch (err) {
-          console.error('Ошибка загрузки архива:', err);
-          showBanner(`Ошибка: ${err.message}`, 'error');
-          return;
+          showError('Ошибка тестового режима: ' + err.message);
         }
-      }
-      currentRecord = data;
-      updateMainData(userData, data);
-      updateDetails(data.details || []);
-      try {
-        if (data.efficiencyData?.length) {
-          createEfficiencyChart(data.efficiencyData);
-          efficiencyLoading.classList.add('hidden');
-          efficiencyContent.classList.remove('hidden');
-        } else {
-          efficiencyLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        }
-      } catch (err) {
-        console.error('Ошибка графика эффективности:', err);
-        efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-      }
-      try {
-        if (data.earningsData?.length) {
-          createEarningsChart(data.earningsData);
-          earningsLoading.classList.add('hidden');
-          earningsContent.classList.remove('hidden');
-        } else {
-          earningsLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        }
-      } catch (err) {
-        console.error('Ошибка графика заработка:', err);
-        earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-      }
-      mainDataContent.classList.remove('hidden');
-      detailsContent.classList.remove('hidden');
-      setTimeout(() => {
-        mainDataContent.classList.remove('fade');
-        detailsContent.classList.remove('fade');
-        efficiencyContent.classList.remove('fade');
-        earningsContent.classList.remove('fade');
-      }, 50);
-      updateLastUpdate();
-      showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
+      }, 1000);
     }
+
+    // Обработчики событий
     refreshBtn.addEventListener('click', async () => {
       refreshBtn.disabled = true;
       refreshBtn.textContent = 'Обновление...';
+      
       try {
-        const fresh = await fetchFreshData();
-        allUserData = fresh.allUserData;
-        currentRecord = fresh.currentRecord;
-        calendarCache = fresh.calendarCache;
-        isManager = fresh.isManager;
-        isAdmin = fresh.isAdmin;
-        managedDepartments = fresh.managedDepartments;
-        saveToCache('currentData', { allUserData, currentRecord, calendarCache, isManager, isAdmin, currentViewUserId, managedDepartments, currentManagerDepartment }, 10 * 60 * 1000);
-        renderUI();
-        showBanner('Данные обновлены вручную', 'success', 3000);
+        await loadUserData();
+        showBanner('Данные обновлены', 'success', 3000);
       } catch (err) {
         showBanner('Ошибка обновления: ' + err.message, 'error', 5000);
       } finally {
@@ -1087,225 +694,57 @@ async function init() {
         refreshBtn.textContent = '🔄 Обновить данные';
       }
     });
-    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-    prevMonthBtn.addEventListener('click', () => {
-      if (currentMonthIndex < availableMonths.length - 1) {
-        currentMonthIndex++;
-        const [yearStr, monthStr] = availableMonths[currentMonthIndex].split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
-        nextMonthBtn.disabled = currentMonthIndex === 0;
-        renderCalendarGridFromCache(year, month, calendarCache[chatId][availableMonths[currentMonthIndex]]);
+
+    clearCacheBtn.addEventListener('click', () => {
+      if (confirm('Вы уверены, что хотите очистить кэш?')) {
+        localStorage.clear();
+        showBanner('Кэш очищен', 'success', 2000);
+        setTimeout(() => location.reload(), 1500);
       }
     });
-    nextMonthBtn.addEventListener('click', () => {
-      if (currentMonthIndex > 0) {
-        currentMonthIndex--;
-        const [yearStr, monthStr] = availableMonths[currentMonthIndex].split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        prevMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
-        nextMonthBtn.disabled = currentMonthIndex === 0;
-        renderCalendarGridFromCache(year, month, calendarCache[chatId][availableMonths[currentMonthIndex]]);
+
+    // Переключение вкладок
+    tabEmployee.addEventListener('click', () => switchTab('employee'));
+    tabManager.addEventListener('click', () => switchTab('manager'));
+    tabAdmin.addEventListener('click', () => {
+      if (isAdmin) window.location.href = 'admin.html';
+    });
+    tabStatistics.addEventListener('click', () => {
+      if (isManager || isAdmin) {
+        window.location.href = 'HTML/statistics.html';
       }
     });
-    deptPrevMonthBtn.addEventListener('click', () => {
-      if (deptCurrentMonthIndex < deptAvailableMonths.length - 1) {
-        deptCurrentMonthIndex++;
-        const [yearStr, monthStr] = deptAvailableMonths[deptCurrentMonthIndex].split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        deptCurrentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        deptPrevMonthBtn.disabled = deptCurrentMonthIndex === deptAvailableMonths.length - 1;
-        deptNextMonthBtn.disabled = deptCurrentMonthIndex === 0;
-        const dates = {};
-        const deptKey = deptAvailableMonths[deptCurrentMonthIndex];
-        const employeesInDept = Object.values(allUserData).filter(user => user.department === currentManagerDepartment);
-        employeesInDept.forEach(emp => {
-          emp.records?.forEach(rec => {
-            const [d, m, y] = rec.date.split('.').map(Number);
-            const key = `${y}-${String(m).padStart(2, '0')}`;
-            if (key === deptKey) {
-              if (!dates[deptKey]) dates[deptKey] = [];
-              dates[deptKey].push(rec.date);
-            }
-          });
-        });
-        renderDeptCalendarGrid(year, month, dates[deptKey] || []);
-      }
-    });
-    deptNextMonthBtn.addEventListener('click', () => {
-      if (deptCurrentMonthIndex > 0) {
-        deptCurrentMonthIndex--;
-        const [yearStr, monthStr] = deptAvailableMonths[deptCurrentMonthIndex].split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        deptCurrentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        deptPrevMonthBtn.disabled = deptCurrentMonthIndex === deptAvailableMonths.length - 1;
-        deptNextMonthBtn.disabled = deptCurrentMonthIndex === 0;
-        const dates = {};
-        const deptKey = deptAvailableMonths[deptCurrentMonthIndex];
-        const employeesInDept = Object.values(allUserData).filter(user => user.department === currentManagerDepartment);
-        employeesInDept.forEach(emp => {
-          emp.records?.forEach(rec => {
-            const [d, m, y] = rec.date.split('.').map(Number);
-            const key = `${y}-${String(m).padStart(2, '0')}`;
-            if (key === deptKey) {
-              if (!dates[deptKey]) dates[deptKey] = [];
-              dates[deptKey].push(rec.date);
-            }
-          });
-        });
-        renderDeptCalendarGrid(year, month, dates[deptKey] || []);
-      }
-    });
-    departmentSelect.addEventListener('change', function () {
-      const dept = this.value;
-      if (dept) {
-        renderDepartmentReport(dept);
-        saveToCache('currentData', {
-          allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments, currentManagerDepartment: dept
-        }, 10 * 60 * 1000);
-      }
-    });
-    tabEmployee.addEventListener('click', () => {
-      employeeView.classList.remove('hidden');
+
+    function switchTab(tabName) {
+      // Скрыть все вкладки
+      employeeView.classList.add('hidden');
       managerView.classList.add('hidden');
-      tabEmployee.classList.add('active');
-      tabManager.classList.remove('active');
-      tabAdmin.classList.remove('active');
-    });
-    tabManager.addEventListener('click', () => {
-      if (isManager) {
-        employeeView.classList.add('hidden');
+      
+      // Убрать активный класс со всех вкладок
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      
+      // Показать выбранную вкладку
+      if (tabName === 'employee') {
+        employeeView.classList.remove('hidden');
+        tabEmployee.classList.add('active');
+      } else if (tabName === 'manager' && isManager) {
         managerView.classList.remove('hidden');
         tabManager.classList.add('active');
-        tabEmployee.classList.remove('active');
-        tabAdmin.classList.remove('active');
       }
-    });
-    tabAdmin.addEventListener('click', () => {
-      if (isAdmin) {
-        window.location.href = 'admin.html';
-      }
-    });
-    const tabStatistics = document.getElementById('tab-statistics');
-
-   tabStatistics.addEventListener('click', () => {
-     if (isManager || isAdmin) {
-     window.location.href = 'HTML/statistics.html';
     }
-    });
-    changeDepartmentBtn.addEventListener('click', () => {
-      departmentReport.classList.add('hidden');
-      departmentSelector.classList.remove('hidden');
-    });
 
-    // Кнопка "Очистить кэш"
-    clearCacheBtn.addEventListener('click', () => {
-      if (confirm('Вы уверены, что хотите очистить кэш? Это удалит все локальные данные.')) {
-        localStorage.removeItem('miniapp_currentData');
-        showBanner('Кэш очищен', 'success', 2000);
-        setTimeout(() => {
-          location.reload();
-        }, 1500);
-      }
+    // Глобальные обработчики ошибок
+    window.addEventListener('error', (event) => {
+      console.error('Global error:', event.error);
+      showError(`Ошибка: ${event.message}`);
     });
 
-    async function fetchFreshData() {
-  try {
-    const currentRes = await fetch('current.json');
-    if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
-    const allUserData = await currentRes.json();
-    const userData = allUserData[chatId];
-    if (!userData) throw new Error('Данные не найдены для вашего аккаунта');
-    const userRole = userData.role?.toLowerCase() || '';
-    const isManager = ['менеджер', 'руководитель', 'админ'].includes(userRole);
-    const isAdmin = userRole === 'админ';
-    const managedDepartments = Array.isArray(userData.managedDepartments) ? userData.managedDepartments : [];
-    const records = userData.records || [];
-    if (records.length === 0) throw new Error('Нет записей');
-    const sortedRecords = records.sort((a, b) => {
-      const [d1, m1, y1] = a.date.split('.').map(Number);
-      const [d2, m2, y2] = b.date.split('.').map(Number);
-      return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      showError(`Ошибка: ${event.reason}`);
     });
-    const currentRecord = sortedRecords[0];
-    let calendarCache = {};
-    try {
-      const cacheRes = await fetch('calendar-cache.json');
-      if (cacheRes.ok) {
-        calendarCache = await cacheRes.json();
-      }
-    } catch (err) {
-      console.warn('Ошибка загрузки calendar-cache.json:', err);
-    }
-    return { allUserData, currentRecord, calendarCache, isManager, isAdmin, managedDepartments };
-  } catch (err) {
-    console.error('Ошибка загрузки данных:', err);
-    throw new Error(`Ошибка загрузки данных: ${err.message}`);
-  }
-}
-    function renderCharts(record) {
-      setTimeout(() => {
-        try {
-          if (record.efficiencyData?.length) {
-            createEfficiencyChart(record.efficiencyData);
-            efficiencyLoading.classList.add('hidden');
-            efficiencyContent.classList.remove('hidden');
-          } else {
-            efficiencyLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-          }
-        } catch (err) {
-          console.error('Ошибка графика эффективности:', err);
-          efficiencyLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-        }
-        try {
-          if (record.earningsData?.length) {
-            createEarningsChart(record.earningsData);
-            earningsLoading.classList.add('hidden');
-            earningsContent.classList.remove('hidden');
-          } else {
-            earningsLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-          }
-        } catch (err) {
-          console.error('Ошибка графика заработка:', err);
-          earningsLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка графика</p>';
-        }
-      }, 300);
-    }
-    function enableTestMode() {
-      chatId = '2';
-      setTimeout(async () => {
-        try {
-          const response = await fetch('current.json');
-          allUserData = await response.json();
-          const userData = allUserData[chatId];
-          if (!userData) {
-            showError('Тестовые данные не найдены');
-            return;
-          }
-          currentRecord = userData.records[0];
-          renderUI();
-        } catch (err) {
-          showError('Ошибка тестового режима: ' + err.message);
-        }
-      }, 1000);
-    }
-    // Глобальный обработчик ошибок
-window.addEventListener('unhandledrejection', event => {
-  console.error('Необработанный промис:', event.reason);
-  showError(`Ошибка: ${event.reason || 'Неизвестная ошибка'}`);
-});
 
-window.addEventListener('error', event => {
-  console.error('Глобальная ошибка:', event.message);
-  showError(`Ошибка: ${event.message}`);
-});
-
+    // Запуск приложения
     window.onload = init;
   </script>
 </body>
