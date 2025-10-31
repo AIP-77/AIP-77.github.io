@@ -7,6 +7,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
+    /* Стили остаются без изменений */
     :root {
       --tg-bg-color: #f0f2f5;
       --tg-text-color: #1c1e21;
@@ -166,7 +167,8 @@
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-     <div class="version">v 10.28-1215 <span id="last-updated"></span></div>
+    <h4>(🛠 V.10.31 1508-Новая структура данных 🛠)</h4>
+
     <div id="banner" class="banner"></div>
 
     <div class="tabs">
@@ -397,10 +399,13 @@
       // Рассчитываем показатели согласно требованиям
       const workedTime = calculateTotalTime(latestTasks, 'Рабочее время');
       const plannedTime = calculateTotalTime(latestTasks, 'Время по табелю');
-      const totalPay = calculateTotalPay(latestTasks);
-      const xisBonus = calculateXisBonus(latestTasks);
+      
+      // ИСПРАВЛЕННЫЕ РАСЧЕТЫ ЗАРАБОТКА
+      const dayPay = calculateDayPay(latestTasks); // Только "Расчетная сумма" за день
+      const xisBonus = calculateXisBonus(latestTasks); // "Доплата XIS" за день
+      const monthlyPay = calculateMonthlyPay(tasksByDate); // Сумма "Расчетная сумма" за весь месяц
+      
       const efficiency = calculateEfficiency(workedTime, plannedTime);
-      const monthlyPay = calculateMonthlyPay(tasksByDate);
 
       // Формируем текущую запись
       currentRecord = {
@@ -408,9 +413,9 @@
         worked: workedTime,
         planned: plannedTime,
         efficiency: efficiency + '%',
-        payDay: formatCurrency(totalPay),
-        xisBonusDay: formatCurrency(xisBonus),
-        payMonth: formatCurrency(monthlyPay),
+        payDay: formatCurrency(dayPay + xisBonus), // Общий заработок за день
+        xisBonusDay: formatCurrency(xisBonus), // Только сезонная доплата
+        payMonth: formatCurrency(monthlyPay), // Только "Расчетная сумма" за месяц
         details: formatTaskDetails(latestTasks)
       };
 
@@ -432,25 +437,29 @@
       return secondsToTime(totalSeconds);
     }
 
-    function calculateTotalPay(tasks) {
-      const calculatedSum = tasks.reduce((total, task) => {
-        const pay = parseFloat(task['Расчетная сумма']?.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ - только "Расчетная сумма" за день
+    function calculateDayPay(tasks) {
+      return tasks.reduce((total, task) => {
+        const pay = parseRussianNumber(task['Расчетная сумма']);
         return total + pay;
       }, 0);
-
-      const xisBonus = tasks.reduce((total, task) => {
-        const bonus = parseFloat(task['Доплата XIS']?.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-        return total + bonus;
-      }, 0);
-
-      return calculatedSum + xisBonus;
     }
 
+    // "Доплата XIS" за день
     function calculateXisBonus(tasks) {
       return tasks.reduce((total, task) => {
-        const bonus = parseFloat(task['Доплата XIS']?.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+        const bonus = parseRussianNumber(task['Доплата XIS']);
         return total + bonus;
       }, 0);
+    }
+
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ - сумма "Расчетная сумма" за весь месяц
+    function calculateMonthlyPay(tasksByDate) {
+      let total = 0;
+      Object.values(tasksByDate).forEach(tasks => {
+        total += calculateDayPay(tasks); // Только "Расчетная сумма", без XIS
+      });
+      return total;
     }
 
     function calculateEfficiency(worked, planned) {
@@ -462,14 +471,6 @@
       // Производительность = (Рабочее время / Время по табелю) * 100
       const efficiency = (workedSec / plannedSec) * 100;
       return Math.round(efficiency * 100) / 100; // Округляем до 2 знаков
-    }
-
-    function calculateMonthlyPay(tasksByDate) {
-      let total = 0;
-      Object.values(tasksByDate).forEach(tasks => {
-        total += calculateTotalPay(tasks);
-      });
-      return total;
     }
 
     function formatTaskDetails(tasks) {
@@ -506,13 +507,23 @@
     function secondsToTime(seconds) {
       const hrs = Math.floor(seconds / 3600);
       const mins = Math.floor((seconds % 3600) / 60);
-      const secs = seconds % 60;
       
-      if (secs > 0) {
-        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-      } else {
-        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-      }
+      // Без секунд, как просили
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+
+    // Функция для парсинга русских числовых форматов
+    function parseRussianNumber(numberStr) {
+      if (!numberStr) return 0;
+      
+      // Убираем валюту и пробелы, заменяем запятую на точку
+      const cleanStr = numberStr
+        .replace(/[^\d,.-]/g, '') // Убираем все не-цифры, кроме ,.-
+        .replace(/\s/g, '') // Убираем пробелы
+        .replace(',', '.'); // Заменяем запятую на точку
+      
+      const result = parseFloat(cleanStr);
+      return isNaN(result) ? 0 : result;
     }
 
     function formatCurrency(amount) {
@@ -716,38 +727,6 @@
       } else if (tabName === 'manager' && isManager) {
         managerView.classList.remove('hidden');
         tabManager.classList.add('active');
-      }
-    }
-    async function loadAndRender(month) {
-      const content = document.getElementById('content');
-      content.innerHTML = '<div class="loading">Загрузка...</div>';
-
-      try {
-        const { records, lastUpdated } = await fetchRecordsForMonth(month);
-        const fullSummary = calculateSummary(records);
-        window.currentSummary = fullSummary;
-
-        // Применяем фильтры (включая отдел)
-        applyFilters();
-
-        // Обновляем время
-        const lastUpdatedEl = document.getElementById('last-updated');
-        if (lastUpdated) {
-          const lastDate = new Date(lastUpdated);
-          const now = new Date();
-          const isOutdated = (now - lastDate) > 24 * 60 * 60 * 1000;
-          const formatted = formatLastUpdated(lastUpdated);
-          const icon = isOutdated ? '🚨' : '🕒';
-          lastUpdatedEl.textContent = ` | ${icon} ${formatted}`;
-          lastUpdatedEl.className = isOutdated ? 'outdated' : '';
-        } else {
-          lastUpdatedEl.textContent = ' | данные без отметки времени';
-          lastUpdatedEl.className = 'outdated';
-        }
-      } catch (err) {
-        content.innerHTML = `<div class="error">${err.message}</div>`;
-        document.getElementById('last-updated').textContent = '';
-        document.getElementById('last-updated').className = '';
       }
     }
 
