@@ -162,12 +162,20 @@
     .clear-cache-btn:hover {
       background: #c82333;
     }
+    .version-info {
+      font-size: 12px;
+      color: var(--tg-hint-color);
+      margin: 5px 0;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📊 Персональная панель</h1>
-    <h4>(🛠 V.10.31 1508-Новая структура данных 🛠)</h4>
+    <div id="version-info" class="version-info">
+      (🛠 V.11.01-Новая структура данных 🛠)
+    </div>
 
     <div id="banner" class="banner"></div>
 
@@ -273,6 +281,7 @@
     let currentMonthData = null;
     let managedDepartments = [];
     let currentManagerDepartment = null;
+    let dataLastUpdated = null;
 
     // DOM элементы
     const loading = document.getElementById('loading');
@@ -280,6 +289,7 @@
     const employeeView = document.getElementById('employee-view');
     const managerView = document.getElementById('manager-view');
     const banner = document.getElementById('banner');
+    const versionInfo = document.getElementById('version-info');
 
     const tabEmployee = document.getElementById('tab-employee');
     const tabManager = document.getElementById('tab-manager');
@@ -352,6 +362,12 @@
         
         currentMonthData = await fetchData(DATA_SOURCES.monthlyData(currentYear, currentMonth));
         
+        // Сохраняем дату последнего обновления данных
+        dataLastUpdated = currentMonthData.lastUpdated;
+        
+        // Обновляем информацию о версии с датой данных
+        updateVersionInfo();
+        
         // Формируем персональный отчет
         await generatePersonalReport();
 
@@ -361,6 +377,32 @@
       } catch (err) {
         console.error('Ошибка загрузки данных:', err);
         throw err;
+      }
+    }
+
+    // Функция для обновления информации о версии с датой данных
+    function updateVersionInfo() {
+      if (!dataLastUpdated) {
+        versionInfo.textContent = '(🛠 V.11.01-Новая структура данных 🛠)';
+        return;
+      }
+
+      try {
+        const updateDate = new Date(dataLastUpdated);
+        const formattedDate = updateDate.toLocaleDateString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+        const formattedTime = updateDate.toLocaleTimeString('ru-RU', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        versionInfo.innerHTML = `(🛠 V.11.01-Новая структура данных | Данные актуальны на: ${formattedDate} ${formattedTime} 🛠)`;
+      } catch (err) {
+        console.error('Ошибка форматирования даты:', err);
+        versionInfo.textContent = '(🛠 V.11.01-Новая структура данных 🛠)';
       }
     }
 
