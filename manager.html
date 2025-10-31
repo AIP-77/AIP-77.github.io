@@ -170,24 +170,25 @@
     /* Стили для группировки задач */
     .task-group {
       margin-bottom: 12px;
-      border: 1px solid #e0e0e0;
+      border: 1px solid var(--tg-hint-color);
       border-radius: 8px;
       overflow: hidden;
     }
     .task-group-header {
-      background: #f8f9fa;
+      background: var(--card-bg);
       padding: 12px;
       cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: 600;
+      border-bottom: 1px solid var(--tg-hint-color);
     }
     .task-group-header:hover {
-      background: #e9ecef;
+      background: var(--tg-bg-color);
     }
     .task-group-content {
-      background: white;
+      background: var(--card-bg);
       max-height: 0;
       overflow: hidden;
       transition: max-height 0.3s ease;
@@ -197,7 +198,7 @@
     }
     .task-item {
       padding: 10px 12px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--tg-hint-color);
       font-size: 14px;
     }
     .task-item:last-child {
@@ -208,7 +209,7 @@
       flex-wrap: wrap;
       gap: 12px;
       font-size: 13px;
-      color: #666;
+      color: var(--tg-text-color);
       margin-top: 6px;
     }
     .task-group-summary-item {
@@ -219,6 +220,7 @@
     .expand-icon {
       transition: transform 0.3s ease;
       font-size: 12px;
+      color: var(--tg-text-color);
     }
     .task-group.expanded .expand-icon {
       transform: rotate(180deg);
@@ -226,10 +228,11 @@
     .task-total {
       font-weight: bold;
       color: var(--tg-link-color);
-      background: #fff3cd;
+      background: var(--tg-bg-color);
       padding: 2px 6px;
       border-radius: 4px;
       font-size: 13px;
+      border: 1px solid var(--tg-hint-color);
     }
     .task-detail-row {
       display: flex;
@@ -238,25 +241,25 @@
       font-size: 13px;
     }
     .task-time-info {
-      color: #666;
+      color: var(--tg-text-color);
       font-size: 12px;
       margin-top: 2px;
     }
     .task-payment-info {
       display: flex;
       gap: 12px;
-      color: #666;
+      color: var(--tg-text-color);
     }
     .seasonal-bonus {
       color: #28a745;
       font-weight: 500;
     }
     .task-start-time {
-      background: #e7f3ff;
+      background: var(--tg-button-color);
+      color: var(--tg-button-text-color);
       padding: 1px 4px;
       border-radius: 3px;
       font-size: 11px;
-      color: #0066cc;
     }
   </style>
 </head>
@@ -264,7 +267,7 @@
   <div class="container">
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
-      (🛠 V.11.02-Новая структура данных 🛠)
+      (🛠 V.11.01 1844-Новая структура данных 🛠)
     </div>
 
     <div id="banner" class="banner"></div>
