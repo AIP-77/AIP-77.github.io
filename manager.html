@@ -205,13 +205,20 @@
     }
     .task-group-summary {
       display: flex;
-      justify-content: space-between;
-      font-size: 14px;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
       color: #666;
-      margin-top: 4px;
+      margin-top: 6px;
+    }
+    .task-group-summary-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     .expand-icon {
       transition: transform 0.3s ease;
+      font-size: 12px;
     }
     .task-group.expanded .expand-icon {
       transform: rotate(180deg);
@@ -219,6 +226,37 @@
     .task-total {
       font-weight: bold;
       color: var(--tg-link-color);
+      background: #fff3cd;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .task-detail-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 13px;
+    }
+    .task-time-info {
+      color: #666;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+    .task-payment-info {
+      display: flex;
+      gap: 12px;
+      color: #666;
+    }
+    .seasonal-bonus {
+      color: #28a745;
+      font-weight: 500;
+    }
+    .task-start-time {
+      background: #e7f3ff;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 11px;
+      color: #0066cc;
     }
   </style>
 </head>
@@ -226,7 +264,7 @@
   <div class="container">
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
-      (🛠 V.11.01-Новая структура данных 1726 🛠)
+      (🛠 V.11.02-Новая структура данных 🛠)
     </div>
 
     <div id="banner" class="banner"></div>
@@ -428,12 +466,14 @@
             const time = task['Рабочее время'] || '00:00';
             const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
             const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
+            const startTime = task['Начало задачи'] || '--:--';
             
             groups[workType].tasks.push({
                 count: count,
                 time: time,
                 pay: pay,
                 xisBonus: xisBonus,
+                startTime: startTime,
                 calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
                 calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
             });
@@ -466,12 +506,27 @@
             html += `
                 <div class="task-group">
                     <div class="task-group-header" onclick="toggleTaskGroup(this)">
-                        <div>
+                        <div style="flex: 1;">
                             <div>${workType}</div>
                             <div class="task-group-summary">
-                                <span>Количество: ${group.totalCount.toFixed(2)}</span>
-                                <span>Время: ${totalTimeFormatted}</span>
-                                <span class="task-total">${totalPayFormatted}</span>
+                                <div class="task-group-summary-item">
+                                    <span>📊</span>
+                                    <span>${group.totalCount.toFixed(2)} ед.</span>
+                                </div>
+                                <div class="task-group-summary-item">
+                                    <span>⏱️</span>
+                                    <span>${totalTimeFormatted}</span>
+                                </div>
+                                <div class="task-group-summary-item">
+                                    <span>💰</span>
+                                    <span class="task-total">${totalPayFormatted}</span>
+                                </div>
+                                ${group.totalXisBonus > 0 ? `
+                                <div class="task-group-summary-item">
+                                    <span>🎁</span>
+                                    <span class="seasonal-bonus">${totalXisBonusFormatted}</span>
+                                </div>
+                                ` : ''}
                             </div>
                         </div>
                         <div class="expand-icon">▼</div>
@@ -482,10 +537,20 @@
             group.tasks.forEach((task, index) => {
                 html += `
                     <div class="task-item">
-                        <div>${task.count.toFixed(2)} ед. - ${task.time}</div>
-                        <div style="display: flex; justify-content: space-between; font-size: 13px; color: #666; margin-top: 4px;">
-                            <span>Расчет: ${task.calculatedPay}</span>
-                            <span>Сезонная: ${task.calculatedXisBonus}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <div><strong>${task.count.toFixed(2)} ед.</strong></div>
+                                <div class="task-time-info">
+                                    <span class="task-start-time">Начало: ${task.startTime}</span>
+                                    <span> | Время работы: ${task.time}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="task-payment-info">
+                                    <span>${task.calculatedPay}</span>
+                                    ${task.xisBonus > 0 ? `<span class="seasonal-bonus">${task.calculatedXisBonus}</span>` : ''}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
