@@ -267,7 +267,7 @@
   <div class="container">
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
-      (🛠 V.11.01 1844-Новая структура данных 🛠)
+      (🛠 V.11.01 1844 🛠)
     </div>
 
     <div id="banner" class="banner"></div>
@@ -652,7 +652,7 @@
     // Функция для обновления информации о версии с датой данных
     function updateVersionInfo() {
       if (!dataLastUpdated) {
-        versionInfo.textContent = '(🛠 V.11.01-Новая структура данных 🛠)';
+        versionInfo.textContent = '(🛠 V.11.01-1429 🛠)';
         return;
       }
 
@@ -668,10 +668,10 @@
           minute: '2-digit'
         });
 
-        versionInfo.innerHTML = `(🛠 V.11.01-Новая структура данных | Данные актуальны на: ${formattedDate} ${formattedTime} 🛠)`;
+        versionInfo.innerHTML = `(🛠 V.11.01 | Данные актуальны на: ${formattedDate} ${formattedTime} 🛠)`;
       } catch (err) {
         console.error('Ошибка форматирования даты:', err);
-        versionInfo.textContent = '(🛠 V.11.01-Новая структура данных 🛠)';
+        versionInfo.textContent = '(🛠 V.11.01 🛠)';
       }
     }
 
