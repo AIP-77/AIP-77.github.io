@@ -809,24 +809,60 @@
     }
 
     async function loadUserData() {
-      try {
+    try {
         // Загружаем данные сотрудников
         const staffData = await fetchData(DATA_SOURCES.staff);
         
+        // === ДОБАВЛЕНО ДЛЯ ТЕСТИРОВАНИЯ ===
+        // Если chatId не найден в Telegram WebApp, предлагаем ввести вручную
+        if (!chatId || chatId === 'undefined') {
+            const manualChatId = prompt('Введите Telegram ID для тестирования:', '5702919259');
+            if (manualChatId) {
+                chatId = manualChatId;
+            } else {
+                throw new Error('Telegram ID не указан');
+            }
+        }
+        // === КОНЕЦ ДОБАВЛЕНИЯ ===
+        
         // Находим данные текущего пользователя
         const userRecord = staffData.records.find(record => 
-          String(record['Telegram ID']) === chatId
+            String(record['Telegram ID']) === chatId
         );
 
         if (!userRecord) {
-          throw new Error('Ваш аккаунт не найден в системе');
+            // Показываем доступные ID для тестирования
+            const availableIds = staffData.records
+                .map(record => `${record['Сотрудник']} - ${record['Telegram ID']}`)
+                .join('\n');
+            
+            const newId = prompt(
+                `Ваш ID (${chatId}) не найден в системе.\n\nДоступные ID:\n${availableIds}\n\nВведите правильный Telegram ID:`,
+                '5702919259'
+            );
+            
+            if (newId) {
+                chatId = newId;
+                // Повторяем поиск с новым ID
+                const newUserRecord = staffData.records.find(record => 
+                    String(record['Telegram ID']) === chatId
+                );
+                
+                if (!newUserRecord) {
+                    throw new Error('Указанный Telegram ID также не найден в системе');
+                }
+                
+                userRecord = newUserRecord;
+            } else {
+                throw new Error('Telegram ID не указан');
+            }
         }
 
         currentUserData = {
-          name: userRecord['Сотрудник'],
-          department: userRecord['Отдел'],
-          role: userRecord['Роль'],
-          managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
+            name: userRecord['Сотрудник'],
+            department: userRecord['Отдел'],
+            role: userRecord['Роль'],
+            managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
         };
 
         isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
