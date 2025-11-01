@@ -267,7 +267,7 @@
   <div class="container">
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
-      (🛠 V.11.02-0000 🛠)
+      (🛠 V.11.02 🛠)
     </div>
 
     <div id="banner" class="banner"></div>
@@ -809,14 +809,14 @@
     }
 
     async function loadUserData() {
-    try {
+      try {
         // Загружаем данные сотрудников
         const staffData = await fetchData(DATA_SOURCES.staff);
         
         // === ДОБАВЛЕНО ДЛЯ ТЕСТИРОВАНИЯ ===
         // Если chatId не найден в Telegram WebApp, предлагаем ввести вручную
-        if (!chatId || chatId === 'undefined') {
-            const manualChatId = prompt('Введите Telegram ID для тестирования:', '7691264756');
+        if (!chatId || chatId === 'undefined' || chatId === 'null') {
+            const manualChatId = prompt('Введите Telegram ID для тестирования:', '5702919259');
             if (manualChatId) {
                 chatId = manualChatId;
             } else {
@@ -826,44 +826,45 @@
         // === КОНЕЦ ДОБАВЛЕНИЯ ===
         
         // Находим данные текущего пользователя
-        const userRecord = staffData.records.find(record => 
-            String(record['Telegram ID']) === chatId
+        let userRecord = staffData.records.find(record => 
+          String(record['Telegram ID']) === chatId
         );
 
         if (!userRecord) {
             // Показываем доступные ID для тестирования
             const availableIds = staffData.records
+                .slice(0, 10) // Показываем только первые 10 для удобства
                 .map(record => `${record['Сотрудник']} - ${record['Telegram ID']}`)
                 .join('\n');
             
             const newId = prompt(
-                `Ваш ID (${chatId}) не найден в системе.\n\nДоступные ID:\n${availableIds}\n\nВведите правильный Telegram ID:`,
+                `Ваш ID (${chatId}) не найден в системе.\n\nДоступные ID (первые 10):\n${availableIds}\n\nВведите правильный Telegram ID:`,
                 '5702919259'
             );
             
             if (newId) {
                 chatId = newId;
                 // Повторяем поиск с новым ID
-                const newUserRecord = staffData.records.find(record => 
+                userRecord = staffData.records.find(record => 
                     String(record['Telegram ID']) === chatId
                 );
                 
-                if (!newUserRecord) {
+                if (!userRecord) {
                     throw new Error('Указанный Telegram ID также не найден в системе');
                 }
-                
-                userRecord = newUserRecord;
             } else {
                 throw new Error('Telegram ID не указан');
             }
         }
 
         currentUserData = {
-            name: userRecord['Сотрудник'],
-            department: userRecord['Отдел'],
-            role: userRecord['Роль'],
-            managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
+          name: userRecord['Сотрудник'],
+          department: userRecord['Отдел'],
+          role: userRecord['Роль'],
+          managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
         };
+
+        console.log('Загружен пользователь:', currentUserData.name, 'ID:', chatId);
 
         isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
         isAdmin = currentUserData.role.toLowerCase() === 'админ';
@@ -1172,7 +1173,7 @@
     }
 
     function enableTestMode() {
-      chatId = '5702919259'; // Тестовый ID
+      chatId = null; // Сбрасываем chatId для тестирования
       setTimeout(async () => {
         try {
           await loadUserData();
