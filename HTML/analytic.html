@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Аналитика</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f5f5f5;
+      padding: 12px;
+      color: #000;
+      line-height: 1.4;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header {
+      padding: 16px;
+      background: #0088cc;
+      color: white;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .version {
+      padding: 6px 16px;
+      background: #e0f7fa;
+      font-size: 12px;
+      color: #006064;
+      text-align: right;
+    }
+
+    .version .outdated {
+      color: #d32f2f !important;
+      font-weight: 600;
+    }
+
+    .controls {
+      padding: 12px 16px;
+      background: #f9f9f9;
+      border-bottom: 1px solid #eee;
+    }
+
+    .controls label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .controls select,
+    .controls input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      background: white;
+    }
+
+    /* Стили для множественного выбора */
+    .controls select[multiple] {
+      height: 120px;
+      padding: 8px;
+    }
+
+    .controls select[multiple] option {
+      padding: 6px 8px;
+      margin: 2px 0;
+      border-radius: 4px;
+    }
+
+    .controls select[multiple] option:checked {
+      background: #0088cc linear-gradient(0deg, #0088cc 0%, #0088cc 100%);
+      color: white;
+    }
+
+    .selected-departments {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    /* 🔥 СТИЛИ ДЛЯ ЦВЕТНОЙ ЭФФЕКТИВНОСТИ */
+    .efficiency-cell {
+      font-weight: 600;
+      text-align: center;
+      border-radius: 4px;
+      padding: 4px 8px;
+    }
+
+    .efficiency-poor {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .efficiency-average {
+      background-color: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .efficiency-good {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    .efficiency-high {
+      background-color: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .efficiency-abnormal {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px 8px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background-color: #fafafa;
+      font-weight: 600;
+      color: #333;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover {
+      background-color: #fcfcfc;
+    }
+
+    /* Убран перенос для суммы */
+    .amount-cell {
+      white-space: nowrap;
+      font-weight: 600;
+      color: #2e7d32;
+    }
+
+    .loading, .error {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      font-size: 16px;
+    }
+
+    .error {
+      color: #d32f2f;
+    }
+
+    /* 🔥 СТИЛИ ДЛЯ АНАЛИТИКИ */
+    .analytics-panel {
+      padding: 12px 16px;
+      background: #f0f7ff;
+      border-bottom: 1px solid #ddd;
+      font-size: 14px;
+    }
+
+    .analytics-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .stat-item {
+      padding: 8px;
+      background: white;
+      border-radius: 6px;
+      border-left: 4px solid #0088cc;
+    }
+
+    .stat-value {
+      font-weight: 600;
+      font-size: 16px;
+      color: #0088cc;
+    }
+
+    .efficiency-distribution {
+      display: flex;
+      height: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .distribution-segment {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: white;
+      font-weight: 600;
+    }
+
+    .footer-actions {
+      padding: 16px;
+      text-align: center;
+      background: #fafafa;
+      border-top: 1px solid #eee;
+    }
+
+    .footer-actions button {
+      background: #ff5722;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: auto;
+      min-width: 180px;
+    }
+
+    .footer-actions button:hover {
+      background: #e64a19;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 8px;
+      }
+
+      .header {
+        font-size: 16px;
+        padding: 14px 12px;
+      }
+
+      th, td {
+        padding: 8px 6px;
+        font-size: 13px;
+      }
+
+      .controls select,
+      .controls input {
+        font-size: 16px;
+        padding: 10px;
+      }
+
+      .footer-actions button {
+        padding: 10px 16px;
+        font-size: 15px;
+        min-width: 140px;
+      }
+
+      .analytics-stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Аналитика заработков</div>
+    <div class="version">v 11.01-2034 <span id="last-updated"></span></div>
+
+    <div class="controls">
+      <label for="month-select">Месяц:</label>
+      <select id="month-select">
+        <option value="">Загрузка...</option>
+      </select>
+
+      <label for="department-filter">Отделы (выбор нескольких):</label>
+      <select id="department-filter" multiple>
+        <option value="">Загрузка...</option>
+      </select>
+      <div class="selected-departments" id="selected-departments">Выбрано: все отделы</div>
+
+      <label for="employee-search">Поиск по сотруднику:</label>
+      <input type="text" id="employee-search" placeholder="Введите ФИО или часть имени...">
+    </div>
+
+    <!-- 🔥 ПАНЕЛЬ АНАЛИТИКИ -->
+    <div class="analytics-panel" id="analytics-panel" style="display: none;">
+      <div class="analytics-stats" id="analytics-stats"></div>
+      <div>Распределение эффективности:</div>
+      <div class="efficiency-distribution" id="efficiency-distribution"></div>
+    </div>
+
+    <div id="content">
+      <div class="loading">Загрузка данных...</div>
+    </div>
+
+    <div class="footer-actions">
+      <button id="clear-cache-btn">🔄 Сбросить кэш</button>
+    </div>
+  </div>
+
+  <script>
+    const AVAILABLE_MONTHS = ["2025-09", "2025-10", "2025-11"];
+    let cacheBuster = Date.now();
+
+    // 🔥 ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ ЦВЕТА ЭФФЕКТИВНОСТИ
+    function getEfficiencyClass(efficiencyPercent) {
+      const percent = parseFloat(efficiencyPercent.replace(',', '.'));
+      
+      if (percent < 60) return 'efficiency-poor';        // Плохо
+      if (percent <= 79) return 'efficiency-average';    // Средне
+      if (percent <= 110) return 'efficiency-good';      // Нормально
+      return 'efficiency-abnormal';                      // Выше нормы
+    }
+
+    // 🔥 ФУНКЦИЯ ДЛЯ РАСЧЕТА АНАЛИТИКИ
+    function calculateAnalytics(data) {
+      if (!data || data.length === 0) return null;
+
+      const stats = {
+        totalEmployees: data.length,
+        totalTasks: data.reduce((sum, row) => sum + row["Кол-во задач"], 0),
+        totalUnits: data.reduce((sum, row) => sum + row["Количество единиц"], 0),
+        totalAmount: data.reduce((sum, row) => sum + row["Расчетная сумма"], 0),
+        avgEfficiency: 0,
+        efficiencyDistribution: {
+          poor: 0,      // < 60%
+          average: 0,   // 60-79%
+          good: 0,      // 80-110%
+          high: 0       // > 110%
+        }
+      };
+
+      let totalEfficiency = 0;
+      let efficiencyCount = 0;
+
+      data.forEach(row => {
+        const efficiencyStr = row["Эффективность сотрудника"];
+        const percent = parseFloat(efficiencyStr.replace(',', '.').replace('%', '')) || 0;
+        
+        if (percent > 0) {
+          totalEfficiency += percent;
+          efficiencyCount++;
+        }
+
+        // Распределение по категориям эффективности
+        if (percent < 60) stats.efficiencyDistribution.poor++;
+        else if (percent <= 79) stats.efficiencyDistribution.average++;
+        else if (percent <= 110) stats.efficiencyDistribution.good++;
+        else stats.efficiencyDistribution.high++;
+      });
+
+      stats.avgEfficiency = efficiencyCount > 0 ? totalEfficiency / efficiencyCount : 0;
+
+      return stats;
+    }
+
+    // 🔥 ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ АНАЛИТИКИ
+    function renderAnalytics(stats) {
+      const panel = document.getElementById('analytics-panel');
+      const statsContainer = document.getElementById('analytics-stats');
+      const distributionContainer = document.getElementById('efficiency-distribution');
+
+      if (!stats) {
+        panel.style.display = 'none';
+        return;
+      }
+
+      // Основная статистика
+      statsContainer.innerHTML = `
+        <div class="stat-item">
+          <div>Сотрудников</div>
+          <div class="stat-value">${stats.totalEmployees}</div>
+        </div>
+        <div class="stat-item">
+          <div>Всего задач</div>
+          <div class="stat-value">${stats.totalTasks}</div>
+        </div>
+        <div class="stat-item">
+          <div>Всего единиц</div>
+          <div class="stat-value">${stats.totalUnits.toLocaleString('ru-RU')}</div>
+        </div>
+        <div class="stat-item">
+          <div>Общая сумма</div>
+          <div class="stat-value">р.${formatMoneyNumber(stats.totalAmount)}</div>
+        </div>
+        <div class="stat-item">
+          <div>Средняя эффективность</div>
+          <div class="stat-value">${stats.avgEfficiency.toFixed(2).replace('.', ',')}%</div>
+        </div>
+      `;
+
+      // Распределение эффективности
+      const total = stats.totalEmployees;
+      const distribution = stats.efficiencyDistribution;
+      
+      distributionContainer.innerHTML = `
+        <div class="distribution-segment efficiency-poor" 
+             style="width: ${(distribution.poor / total) * 100}%" 
+             title="<60%: ${distribution.poor} сотрудников">
+          ${distribution.poor}
+        </div>
+        <div class="distribution-segment efficiency-average" 
+             style="width: ${(distribution.average / total) * 100}%" 
+             title="60-79%: ${distribution.average} сотрудников">
+          ${distribution.average}
+        </div>
+        <div class="distribution-segment efficiency-good" 
+             style="width: ${(distribution.good / total) * 100}%" 
+             title="80-110%: ${distribution.good} сотрудников">
+          ${distribution.good}
+        </div>
+        <div class="distribution-segment efficiency-abnormal" 
+             style="width: ${(distribution.high / total) * 100}%" 
+             title=">110%: ${distribution.high} сотрудников">
+          ${distribution.high}
+        </div>
+      `;
+
+      panel.style.display = 'block';
+    }
+
+    // Остальные функции остаются без изменений, кроме renderTable
+    async function fetchStaffData() {
+      try {
+        const url = `https://AIP-77.github.io/archive/staff fullData.json?t=${cacheBuster}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        let staffArray = [];
+
+        if (Array.isArray(data)) {
+          staffArray = data;
+        } else if (data && Array.isArray(data.records)) {
+          staffArray = data.records;
+        } else {
+          throw new Error('Файл staff не содержит массива сотрудников');
+        }
+
+        const staffMap = {};
+        const departmentsSet = new Set();
+
+        staffArray.forEach(item => {
+          if (item.Сотрудник && item.Отдел) {
+            staffMap[item.Сотрудник] = item.Отдел;
+            departmentsSet.add(item.Отдел);
+          }
+        });
+
+        return {
+          staffMap,
+          departments: Array.from(departmentsSet).sort()
+        };
+      } catch (err) {
+        console.error('Ошибка загрузки staff-данных:', err);
+        return { staffMap: {}, departments: [] };
+      }
+    }
+
+    function timeToSeconds(timeStr) {
+      if (!timeStr || timeStr.trim() === '') return 0;
+      const parts = timeStr.split(':').map(Number);
+      const [h = 0, m = 0, s = 0] = parts;
+      return h * 3600 + m * 60 + s;
+    }
+
+    function secondsToTime(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function formatMoneyNumber(num) {
+      if (typeof num !== 'number' || isNaN(num)) return '0,00';
+      return num
+        .toFixed(2)
+        .replace('.', ',')
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    function parseMoney(str) {
+      if (!str || str.trim() === '') return 0;
+      const cleaned = str.replace(/[^\d,]/g, '').replace(',', '.');
+      return parseFloat(cleaned) || 0;
+    }
+
+    function getMonthLabel(yyyymm) {
+      const [year, month] = yyyymm.split('-');
+      const monthNames = [
+        '', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+      ];
+      return `${monthNames[parseInt(month)]} ${year}`;
+    }
+
+    function formatLastUpdated(isoString) {
+      if (!isoString) return '';
+      try {
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return '';
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `Обновлено: ${day}.${month}.${year} в ${hours}:${minutes}`;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    async function fetchRecordsForMonth(yyyymm) {
+      try {
+        const baseUrl = `https://AIP-77.github.io/archive/${yyyymm} fullData.json`;
+        const url = `${baseUrl}?t=${cacheBuster}`;
+        console.log('Загрузка данных месяца:', url);
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+
+        const lastUpdated = data.lastUpdated || null;
+
+        if (!data || !Array.isArray(data.records)) {
+          throw new Error('Неверный формат: ожидается { "records": [...] }');
+        }
+
+        return { records: data.records, lastUpdated };
+      } catch (err) {
+        console.error('Ошибка:', err);
+        throw new Error(`Не удалось загрузить данные за ${getMonthLabel(yyyymm)}`);
+      }
+    }
+
+    function calculateSummary(records) {
+      const summary = {};
+
+      records.forEach(record => {
+        const name = record["Сотрудник"];
+        if (!summary[name]) {
+          summary[name] = {
+            tasks: 0,
+            units: 0,
+            effectiveTime: 0,
+            workTime: 0,
+            totalSum: 0
+          };
+        }
+
+        summary[name].tasks += 1;
+        summary[name].units += parseFloat(record["Количество единиц"]) || 0;
+        summary[name].effectiveTime += timeToSeconds(record["Рабочее время"]);
+        summary[name].workTime += timeToSeconds(record["Время по табелю"]);
+        summary[name].totalSum += parseMoney(record["Расчетная сумма"]) + parseMoney(record["Доплата XIS"]);
+      });
+
+      return Object.entries(summary)
+        .map(([name, data]) => {
+          const efficiency = data.workTime > 0
+            ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
+            : '0,00%';
+
+          return {
+            Сотрудник: name,
+            "Кол-во задач": data.tasks,
+            "Количество единиц": Math.round(data.units),
+            "Эффективное время": secondsToTime(data.effectiveTime),
+            "Рабочее время": secondsToTime(data.workTime),
+            "Эффективность сотрудника": efficiency,
+            "Расчетная сумма": data.totalSum
+          };
+        })
+        .sort((a, b) => a.Сотрудник.localeCompare(b.Сотрудник, 'ru'));
+    }
+
+    function applyFilters() {
+      let data = [...window.currentSummary];
+
+      const departmentSelect = document.getElementById('department-filter');
+      const selectedDepartments = Array.from(departmentSelect.selectedOptions)
+        .map(option => option.value)
+        .filter(value => value !== '');
+
+      if (selectedDepartments.length > 0) {
+        data = data.filter(row => {
+          const dept = window.staffMap[row.Сотрудник];
+          return selectedDepartments.includes(dept);
+        });
+      }
+
+      const query = document.getElementById('employee-search').value.trim().toLowerCase();
+      if (query) {
+        data = data.filter(row =>
+          row.Сотрудник.toLowerCase().includes(query)
+        );
+      }
+
+      updateSelectedDepartmentsInfo(selectedDepartments);
+      
+      // 🔥 РАСЧЕТ И ОТОБРАЖЕНИЕ АНАЛИТИКИ
+      const analytics = calculateAnalytics(data);
+      renderAnalytics(analytics);
+
+      renderTable(data);
+    }
+
+    function updateSelectedDepartmentsInfo(selectedDepartments) {
+      const infoElement = document.getElementById('selected-departments');
+      
+      if (selectedDepartments.length === 0) {
+        infoElement.textContent = 'Выбрано: все отделы';
+      } else {
+        const selectedNames = selectedDepartments.map(dept => {
+          const option = Array.from(document.getElementById('department-filter').options)
+            .find(opt => opt.value === dept);
+          return option ? option.textContent : dept;
+        });
+        infoElement.textContent = `Выбрано: ${selectedNames.join(', ')}`;
+      }
+    }
+
+    function renderTable(data) {
+      const content = document.getElementById('content');
+      if (data.length === 0) {
+        content.innerHTML = '<div class="error">Нет данных для отображения</div>';
+        return;
+      }
+
+      let html = `<table><thead><tr>
+        <th>Сотрудник</th>
+        <th>Кол-во задач</th>
+        <th>Единиц</th>
+        <th>Эфф. время</th>
+        <th>Раб. время</th>
+        <th>Эффективность</th>
+        <th>Сумма</th>
+      </tr></thead><tbody>`;
+
+      data.forEach(row => {
+        const formattedAmount = `р.${formatMoneyNumber(row["Расчетная сумма"])}`;
+        const efficiencyClass = getEfficiencyClass(row["Эффективность сотрудника"]);
+        
+        html += `<tr>
+          <td>${row.Сотрудник}</td>
+          <td>${row["Кол-во задач"]}</td>
+          <td>${row["Количество единиц"]}</td>
+          <td>${row["Эффективное время"]}</td>
+          <td>${row["Рабочее время"]}</td>
+          <td class="efficiency-cell ${efficiencyClass}">${row["Эффективность сотрудника"]}</td>
+          <td class="amount-cell">${formattedAmount}</td>
+        </tr>`;
+      });
+
+      html += `</tbody></table>`;
+      content.innerHTML = html;
+    }
+
+    async function loadAndRender(month) {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">Загрузка...</div>';
+
+      try {
+        const { records, lastUpdated } = await fetchRecordsForMonth(month);
+        const fullSummary = calculateSummary(records);
+        window.currentSummary = fullSummary;
+
+        applyFilters();
+
+        const lastUpdatedEl = document.getElementById('last-updated');
+        if (lastUpdated) {
+          const lastDate = new Date(lastUpdated);
+          const now = new Date();
+          const isOutdated = (now - lastDate) > 24 * 60 * 60 * 1000;
+          const formatted = formatLastUpdated(lastUpdated);
+          const icon = isOutdated ? '🚨' : '🕒';
+          lastUpdatedEl.textContent = ` | ${icon} ${formatted}`;
+          lastUpdatedEl.className = isOutdated ? 'outdated' : '';
+        } else {
+          lastUpdatedEl.textContent = ' | данные без отметки времени';
+          lastUpdatedEl.className = 'outdated';
+        }
+      } catch (err) {
+        content.innerHTML = `<div class="error">${err.message}</div>`;
+        document.getElementById('last-updated').textContent = '';
+        document.getElementById('last-updated').className = '';
+      }
+    }
+
+    function populateDepartmentFilter(departments) {
+      const select = document.getElementById('department-filter');
+      select.innerHTML = '';
+      
+      const allOption = document.createElement('option');
+      allOption.value = '';
+      allOption.textContent = 'Все отделы';
+      select.appendChild(allOption);
+
+      departments.forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = dept;
+        opt.textContent = dept;
+        select.appendChild(opt);
+      });
+
+      select.disabled = false;
+      allOption.selected = true;
+    }
+
+    function initMonthSelector() {
+      const select = document.getElementById('month-select');
+      select.innerHTML = '';
+
+      const sorted = [...AVAILABLE_MONTHS].sort((a, b) => b.localeCompare(a));
+      sorted.forEach(yyyymm => {
+        const opt = document.createElement('option');
+        opt.value = yyyymm;
+        opt.textContent = getMonthLabel(yyyymm);
+        select.appendChild(opt);
+      });
+
+      if (sorted.length > 0) {
+        select.value = sorted[0];
+        select.addEventListener('change', (e) => {
+          if (e.target.value) loadAndRender(e.target.value);
+        });
+        loadAndRender(sorted[0]);
+      } else {
+        document.getElementById('content').innerHTML = '<div class="error">Нет доступных месяцев</div>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (window.Telegram?.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+      }
+
+      const { staffMap, departments } = await fetchStaffData();
+      window.staffMap = staffMap;
+      populateDepartmentFilter(departments);
+
+      document.getElementById('department-filter').addEventListener('change', applyFilters);
+
+      const searchInput = document.getElementById('employee-search');
+      let searchTimeout;
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(applyFilters, 300);
+      });
+
+      document.getElementById('clear-cache-btn').addEventListener('click', () => {
+        cacheBuster = Date.now();
+        const currentMonth = document.getElementById('month-select').value;
+        if (currentMonth) {
+          loadAndRender(currentMonth);
+        }
+        if (window.Telegram?.WebApp) {
+          Telegram.WebApp.showPopup({
+            title: "Кэш сброшен",
+            message: "Данные загружены заново."
+          });
+        }
+      });
+
+      initMonthSelector();
+    });
+  </script>
+</body>
+</html>
