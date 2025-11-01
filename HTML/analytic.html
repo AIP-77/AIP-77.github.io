@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Аналитика</title>
+  <title>Ведомость ЗП</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * {
@@ -21,7 +21,7 @@
     }
 
     .container {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
       background: white;
       border-radius: 12px;
@@ -98,7 +98,7 @@
       color: #666;
     }
 
-    /* 🔥 СТИЛИ ДЛЯ ЦВЕТНОЙ ЭФФЕКТИВНОСТИ */
+    /* 🔥 УЛУЧШЕННЫЕ СТИЛИ ДЛЯ ЦВЕТНОЙ ЭФФЕКТИВНОСТИ */
     .efficiency-cell {
       font-weight: 600;
       text-align: center;
@@ -109,26 +109,25 @@
     .efficiency-poor {
       background-color: #ffebee;
       color: #c62828;
+      border: 1px solid #ffcdd2;
     }
 
     .efficiency-average {
       background-color: #fff3e0;
       color: #ef6c00;
+      border: 1px solid #ffe0b2;
     }
 
     .efficiency-good {
       background-color: #e8f5e8;
       color: #2e7d32;
-    }
-
-    .efficiency-high {
-      background-color: #e3f2fd;
-      color: #1565c0;
+      border: 1px solid #c8e6c9;
     }
 
     .efficiency-abnormal {
       background-color: #f3e5f5;
       color: #7b1fa2;
+      border: 1px solid #e1bee7;
     }
 
     table {
@@ -149,6 +148,21 @@
       color: #333;
       position: sticky;
       top: 0;
+      cursor: pointer;
+    }
+
+    th:hover {
+      background-color: #f0f0f0;
+    }
+
+    th.sorted-asc::after {
+      content: " ↑";
+      color: #0088cc;
+    }
+
+    th.sorted-desc::after {
+      content: " ↓";
+      color: #0088cc;
     }
 
     tr:hover {
@@ -201,12 +215,15 @@
       color: #0088cc;
     }
 
+    /* 🔥 УЛУЧШЕННАЯ ВИЗУАЛЬНАЯ ШКАЛА */
     .efficiency-distribution {
       display: flex;
-      height: 20px;
-      border-radius: 10px;
+      height: 24px;
+      border-radius: 12px;
       overflow: hidden;
       margin-top: 8px;
+      border: 1px solid #ddd;
+      background: #f5f5f5;
     }
 
     .distribution-segment {
@@ -214,9 +231,120 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
-      color: white;
+      font-size: 11px;
       font-weight: 600;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .distribution-segment:hover {
+      transform: scale(1.05);
+      z-index: 2;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+
+    /* 🔥 ТЕМНЫЕ ЦВЕТА ДЛЯ ЛУЧШЕЙ ЧИТАЕМОСТИ */
+    .distribution-poor {
+      background: linear-gradient(135deg, #ff5252, #d32f2f);
+      color: white !important;
+    }
+
+    .distribution-average {
+      background: linear-gradient(135deg, #ff9800, #f57c00);
+      color: white !important;
+    }
+
+    .distribution-good {
+      background: linear-gradient(135deg, #4caf50, #2e7d32);
+      color: white !important;
+    }
+
+    .distribution-abnormal {
+      background: linear-gradient(135deg, #7b1fa2, #4a148c);
+      color: white !important;
+    }
+
+    /* 🔥 ГРАФИКИ И ДОПОЛНИТЕЛЬНАЯ АНАЛИТИКА */
+    .charts-panel {
+      padding: 16px;
+      background: #f9f9f9;
+      border-bottom: 1px solid #eee;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .chart-container {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .chart-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .chart-bar {
+      height: 20px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .chart-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0088cc, #00bcd4);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+
+    .chart-label {
+      display: flex;
+      justify-content: between;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .comparison-table {
+      width: 100%;
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    .comparison-table td {
+      padding: 4px 8px;
+      border: 1px solid #eee;
+    }
+
+    .positive-change {
+      color: #2e7d32;
+      font-weight: 600;
+    }
+
+    .negative-change {
+      color: #c62828;
+      font-weight: 600;
+    }
+
+    .rating-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #0088cc;
+      color: white;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 6px;
     }
 
     .footer-actions {
@@ -273,13 +401,17 @@
       .analytics-stats {
         grid-template-columns: 1fr;
       }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">Аналитика заработков</div>
-    <div class="version">v 11.01-2034 <span id="last-updated"></span></div>
+    <div class="header">Ведомость заработной платы</div>
+    <div class="version">v 10.28-1215 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -304,6 +436,24 @@
       <div class="efficiency-distribution" id="efficiency-distribution"></div>
     </div>
 
+    <!-- 🔥 ГРАФИКИ И ДОПОЛНИТЕЛЬНАЯ АНАЛИТИКА -->
+    <div class="charts-panel" id="charts-panel" style="display: none;">
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="chart-title">Эффективность по отделам</div>
+          <div id="department-efficiency-chart"></div>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">Сравнение с предыдущим месяцем</div>
+          <div id="month-comparison-chart"></div>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">Топ-10 сотрудников по эффективности</div>
+          <div id="top-employees-chart"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="content">
       <div class="loading">Загрузка данных...</div>
     </div>
@@ -316,15 +466,16 @@
   <script>
     const AVAILABLE_MONTHS = ["2025-09", "2025-10", "2025-11"];
     let cacheBuster = Date.now();
+    let currentSort = { column: null, direction: 'asc' };
 
     // 🔥 ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ ЦВЕТА ЭФФЕКТИВНОСТИ
     function getEfficiencyClass(efficiencyPercent) {
       const percent = parseFloat(efficiencyPercent.replace(',', '.'));
       
-      if (percent < 60) return 'efficiency-poor';        // Плохо
-      if (percent <= 79) return 'efficiency-average';    // Средне
-      if (percent <= 110) return 'efficiency-good';      // Нормально
-      return 'efficiency-abnormal';                      // Выше нормы
+      if (percent < 60) return 'efficiency-poor';
+      if (percent <= 79) return 'efficiency-average';
+      if (percent <= 110) return 'efficiency-good';
+      return 'efficiency-abnormal';
     }
 
     // 🔥 ФУНКЦИЯ ДЛЯ РАСЧЕТА АНАЛИТИКИ
@@ -338,11 +489,12 @@
         totalAmount: data.reduce((sum, row) => sum + row["Расчетная сумма"], 0),
         avgEfficiency: 0,
         efficiencyDistribution: {
-          poor: 0,      // < 60%
-          average: 0,   // 60-79%
-          good: 0,      // 80-110%
-          high: 0       // > 110%
-        }
+          poor: 0,
+          average: 0,
+          good: 0,
+          high: 0
+        },
+        byDepartment: {}
       };
 
       let totalEfficiency = 0;
@@ -352,6 +504,19 @@
         const efficiencyStr = row["Эффективность сотрудника"];
         const percent = parseFloat(efficiencyStr.replace(',', '.').replace('%', '')) || 0;
         
+        // Статистика по отделам
+        const dept = window.staffMap[row.Сотрудник] || 'Неизвестно';
+        if (!stats.byDepartment[dept]) {
+          stats.byDepartment[dept] = {
+            employees: 0,
+            totalEfficiency: 0,
+            totalAmount: 0
+          };
+        }
+        stats.byDepartment[dept].employees++;
+        stats.byDepartment[dept].totalEfficiency += percent;
+        stats.byDepartment[dept].totalAmount += row["Расчетная сумма"];
+
         if (percent > 0) {
           totalEfficiency += percent;
           efficiencyCount++;
@@ -362,6 +527,13 @@
         else if (percent <= 79) stats.efficiencyDistribution.average++;
         else if (percent <= 110) stats.efficiencyDistribution.good++;
         else stats.efficiencyDistribution.high++;
+      });
+
+      // Расчет средних значений по отделам
+      Object.keys(stats.byDepartment).forEach(dept => {
+        const deptStats = stats.byDepartment[dept];
+        deptStats.avgEfficiency = deptStats.totalEfficiency / deptStats.employees;
+        deptStats.avgAmount = deptStats.totalAmount / deptStats.employees;
       });
 
       stats.avgEfficiency = efficiencyCount > 0 ? totalEfficiency / efficiencyCount : 0;
@@ -380,7 +552,6 @@
         return;
       }
 
-      // Основная статистика
       statsContainer.innerHTML = `
         <div class="stat-item">
           <div>Сотрудников</div>
@@ -404,27 +575,26 @@
         </div>
       `;
 
-      // Распределение эффективности
       const total = stats.totalEmployees;
       const distribution = stats.efficiencyDistribution;
       
       distributionContainer.innerHTML = `
-        <div class="distribution-segment efficiency-poor" 
+        <div class="distribution-segment distribution-poor" 
              style="width: ${(distribution.poor / total) * 100}%" 
              title="<60%: ${distribution.poor} сотрудников">
           ${distribution.poor}
         </div>
-        <div class="distribution-segment efficiency-average" 
+        <div class="distribution-segment distribution-average" 
              style="width: ${(distribution.average / total) * 100}%" 
              title="60-79%: ${distribution.average} сотрудников">
           ${distribution.average}
         </div>
-        <div class="distribution-segment efficiency-good" 
+        <div class="distribution-segment distribution-good" 
              style="width: ${(distribution.good / total) * 100}%" 
              title="80-110%: ${distribution.good} сотрудников">
           ${distribution.good}
         </div>
-        <div class="distribution-segment efficiency-abnormal" 
+        <div class="distribution-segment distribution-abnormal" 
              style="width: ${(distribution.high / total) * 100}%" 
              title=">110%: ${distribution.high} сотрудников">
           ${distribution.high}
@@ -434,7 +604,146 @@
       panel.style.display = 'block';
     }
 
-    // Остальные функции остаются без изменений, кроме renderTable
+    // 🔥 ФУНКЦИИ ДЛЯ ГРАФИКОВ
+    function renderCharts(stats, currentData) {
+      const chartsPanel = document.getElementById('charts-panel');
+      
+      if (!stats || !currentData || currentData.length === 0) {
+        chartsPanel.style.display = 'none';
+        return;
+      }
+
+      renderDepartmentEfficiencyChart(stats);
+      renderTopEmployeesChart(currentData);
+      
+      chartsPanel.style.display = 'block';
+    }
+
+    function renderDepartmentEfficiencyChart(stats) {
+      const container = document.getElementById('department-efficiency-chart');
+      const departments = Object.keys(stats.byDepartment).sort((a, b) => 
+        stats.byDepartment[b].avgEfficiency - stats.byDepartment[a].avgEfficiency
+      );
+
+      let html = '';
+      departments.forEach(dept => {
+        const deptStats = stats.byDepartment[dept];
+        const efficiency = deptStats.avgEfficiency;
+        const width = Math.min(efficiency, 150); // Ограничиваем максимальную ширину
+        
+        html += `
+          <div class="chart-label">
+            <span>${dept}</span>
+            <span>${efficiency.toFixed(1)}%</span>
+          </div>
+          <div class="chart-bar">
+            <div class="chart-fill" style="width: ${width}%"></div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderTopEmployeesChart(data) {
+      const container = document.getElementById('top-employees-chart');
+      
+      // Сортируем по эффективности и берем топ-10
+      const topEmployees = [...data]
+        .sort((a, b) => {
+          const aEff = parseFloat(a["Эффективность сотрудника"].replace(',', '.'));
+          const bEff = parseFloat(b["Эффективность сотрудника"].replace(',', '.'));
+          return bEff - aEff;
+        })
+        .slice(0, 10);
+
+      let html = '';
+      topEmployees.forEach((employee, index) => {
+        const efficiency = parseFloat(employee["Эффективность сотрудника"].replace(',', '.'));
+        const width = Math.min(efficiency, 150);
+        
+        html += `
+          <div class="chart-label">
+            <span>${index + 1}. ${employee.Сотрудник}</span>
+            <span>${efficiency.toFixed(1)}%</span>
+          </div>
+          <div class="chart-bar">
+            <div class="chart-fill" style="width: ${width}%"></div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // 🔥 ФУНКЦИЯ СОРТИРОВКИ
+    function sortTable(columnName) {
+      if (!window.currentSummary) return;
+
+      const data = [...window.currentSummary];
+      
+      // Определяем направление сортировки
+      if (currentSort.column === columnName) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = columnName;
+        currentSort.direction = 'asc';
+      }
+
+      data.sort((a, b) => {
+        let aValue = a[columnName];
+        let bValue = b[columnName];
+
+        // Специальная обработка для разных типов данных
+        if (columnName === "Эффективность сотрудника") {
+          aValue = parseFloat(aValue.replace(',', '.')) || 0;
+          bValue = parseFloat(bValue.replace(',', '.')) || 0;
+        } else if (columnName === "Расчетная сумма") {
+          aValue = aValue;
+          bValue = bValue;
+        } else if (columnName === "Количество единиц" || columnName === "Кол-во задач") {
+          aValue = parseInt(aValue) || 0;
+          bValue = parseInt(bValue) || 0;
+        }
+
+        if (currentSort.direction === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
+      window.currentSummary = data;
+      applyFilters();
+      
+      // Обновляем индикаторы сортировки в заголовках
+      updateSortIndicators(columnName);
+    }
+
+    function updateSortIndicators(sortedColumn) {
+      const headers = document.querySelectorAll('th');
+      headers.forEach(header => {
+        header.classList.remove('sorted-asc', 'sorted-desc');
+        if (header.textContent.includes(getHeaderText(sortedColumn))) {
+          header.classList.add(`sorted-${currentSort.direction}`);
+        }
+      });
+    }
+
+    function getHeaderText(columnName) {
+      const mapping = {
+        "Сотрудник": "Сотрудник",
+        "Кол-во задач": "Кол-во задач",
+        "Количество единиц": "Единиц",
+        "Эффективное время": "Эфф. время",
+        "Рабочее время": "Раб. время",
+        "Эффективность сотрудника": "Эффективность",
+        "Расчетная сумма": "Сумма"
+      };
+      return mapping[columnName] || columnName;
+    }
+
+    // Остальные функции (fetchStaffData, timeToSeconds, и т.д.) остаются без изменений
     async function fetchStaffData() {
       try {
         const url = `https://AIP-77.github.io/archive/staff fullData.json?t=${cacheBuster}`;
@@ -617,9 +926,10 @@
 
       updateSelectedDepartmentsInfo(selectedDepartments);
       
-      // 🔥 РАСЧЕТ И ОТОБРАЖЕНИЕ АНАЛИТИКИ
+      // Расчет и отображение аналитики
       const analytics = calculateAnalytics(data);
       renderAnalytics(analytics);
+      renderCharts(analytics, data);
 
       renderTable(data);
     }
@@ -647,21 +957,22 @@
       }
 
       let html = `<table><thead><tr>
-        <th>Сотрудник</th>
-        <th>Кол-во задач</th>
-        <th>Единиц</th>
-        <th>Эфф. время</th>
-        <th>Раб. время</th>
-        <th>Эффективность</th>
-        <th>Сумма</th>
+        <th onclick="sortTable('Сотрудник')">Сотрудник</th>
+        <th onclick="sortTable('Кол-во задач')">Кол-во задач</th>
+        <th onclick="sortTable('Количество единиц')">Единиц</th>
+        <th onclick="sortTable('Эффективное время')">Эфф. время</th>
+        <th onclick="sortTable('Рабочее время')">Раб. время</th>
+        <th onclick="sortTable('Эффективность сотрудника')">Эффективность</th>
+        <th onclick="sortTable('Расчетная сумма')">Сумма</th>
       </tr></thead><tbody>`;
 
-      data.forEach(row => {
+      data.forEach((row, index) => {
         const formattedAmount = `р.${formatMoneyNumber(row["Расчетная сумма"])}`;
         const efficiencyClass = getEfficiencyClass(row["Эффективность сотрудника"]);
+        const rating = index < 10 ? `<span class="rating-badge">${index + 1}</span>` : '';
         
         html += `<tr>
-          <td>${row.Сотрудник}</td>
+          <td>${row.Сотрудник}${index < 3 ? rating : ''}</td>
           <td>${row["Кол-во задач"]}</td>
           <td>${row["Количество единиц"]}</td>
           <td>${row["Эффективное время"]}</td>
@@ -673,6 +984,11 @@
 
       html += `</tbody></table>`;
       content.innerHTML = html;
+      
+      // Обновляем индикаторы сортировки
+      if (currentSort.column) {
+        updateSortIndicators(currentSort.column);
+      }
     }
 
     async function loadAndRender(month) {
