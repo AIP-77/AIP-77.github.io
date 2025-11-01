@@ -267,7 +267,7 @@
   <div class="container">
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
-      (🛠 V.11.01-Новая структура данных 🛠)
+      (🛠 V.11.01-2330 🛠)
     </div>
 
     <div id="banner" class="banner"></div>
@@ -742,11 +742,25 @@
                 return;
             }
 
+            // Группируем все задачи сотрудника за выбранный месяц для расчета заработка за месяц
+            const allUserTasksInMonth = monthData.records.filter(record => 
+                record['Сотрудник'] === currentUserData.name
+            );
+
+            // Группируем задачи по дате для расчета месячного заработка
+            const tasksByDate = {};
+            allUserTasksInMonth.forEach(task => {
+                const taskDate = task['Рабочий день'];
+                if (!tasksByDate[taskDate]) tasksByDate[taskDate] = [];
+                tasksByDate[taskDate].push(task);
+            });
+
             // Рассчитываем показатели для выбранной даты
             const workedTime = calculateTotalTime(userTasks, 'Рабочее время');
             const plannedTime = calculateTotalTime(userTasks, 'Время по табелю');
             const dayPay = calculateDayPay(userTasks);
             const xisBonus = calculateXisBonus(userTasks);
+            const monthlyPay = calculateMonthlyPay(tasksByDate); // Заработок за ВЫБРАННЫЙ месяц
             const efficiency = calculateEfficiency(workedTime, plannedTime);
 
             // Обновляем основную информацию
@@ -756,6 +770,7 @@
             document.getElementById('efficiency').textContent = efficiency + '%';
             document.getElementById('pay-day').textContent = formatCurrency(dayPay);
             document.getElementById('xisBonusDay').textContent = formatCurrency(xisBonus);
+            document.getElementById('pay-month').textContent = formatCurrency(monthlyPay);
 
             // Обновляем детализацию
             renderGroupedTasks(userTasks);
