@@ -75,6 +75,29 @@
       background: white;
     }
 
+    /* Стили для множественного выбора */
+    .controls select[multiple] {
+      height: 120px;
+      padding: 8px;
+    }
+
+    .controls select[multiple] option {
+      padding: 6px 8px;
+      margin: 2px 0;
+      border-radius: 4px;
+    }
+
+    .controls select[multiple] option:checked {
+      background: #0088cc linear-gradient(0deg, #0088cc 0%, #0088cc 100%);
+      color: white;
+    }
+
+    .selected-departments {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #666;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -97,6 +120,13 @@
 
     tr:hover {
       background-color: #fcfcfc;
+    }
+
+    /* 🔥 УБРАН ПЕРЕНОС ДЛЯ СУММЫ */
+    .amount-cell {
+      white-space: nowrap;
+      font-weight: 600;
+      color: #2e7d32;
     }
 
     .loading, .error {
@@ -178,7 +208,7 @@
 <body>
   <div class="container">
     <div class="header">Ведомость заработной платы</div>
-    <div class="version">v 10.28-1215 <span id="last-updated"></span></div>
+    <div class="version">v 11.01-2006 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -186,10 +216,11 @@
         <option value="">Загрузка...</option>
       </select>
 
-      <label for="department-filter">Отдел:</label>
-      <select id="department-filter">
+      <label for="department-filter">Отделы (выбор нескольких):</label>
+      <select id="department-filter" multiple>
         <option value="">Загрузка...</option>
       </select>
+      <div class="selected-departments" id="selected-departments">Выбрано: все отделы</div>
 
       <label for="employee-search">Поиск по сотруднику:</label>
       <input type="text" id="employee-search" placeholder="Введите ФИО или часть имени...">
@@ -205,6 +236,7 @@
   </div>
 
   <script>
+    // 🔥 ДОБАВЛЕН НОЯБРЬ 2025
     const AVAILABLE_MONTHS = ["2025-09", "2025-10", "2025-11"];
     let cacheBuster = Date.now();
 
@@ -249,7 +281,7 @@
     }
 
     // ========================
-    // Остальные функции (без изменений, кроме фильтрации)
+    // Вспомогательные функции
     // ========================
 
     function timeToSeconds(timeStr) {
@@ -364,21 +396,25 @@
           "Эффективность сотрудника": data.workTime > 0
             ? ((data.effectiveTime / data.workTime) * 100).toFixed(2).replace('.', ',') + '%'
             : '0,00%',
-          "Расчетная сумма": `р.${formatMoneyNumber(data.totalSum)}`
+          "Расчетная сумма": data.totalSum // 🔥 Теперь храним как число для сортировки
         }))
         .sort((a, b) => a.Сотрудник.localeCompare(b.Сотрудник, 'ru'));
     }
 
-    // 🔥 Обновлённая функция фильтрации с учётом отдела и поиска
+    // 🔥 ОБНОВЛЁННАЯ ФУНКЦИЯ ФИЛЬТРАЦИИ С МНОЖЕСТВЕННЫМ ВЫБОРОМ ОТДЕЛОВ
     function applyFilters() {
       let data = [...window.currentSummary];
 
-      // Фильтр по отделу
-      const selectedDept = document.getElementById('department-filter').value;
-      if (selectedDept) {
+      // Фильтр по отделам (множественный выбор)
+      const departmentSelect = document.getElementById('department-filter');
+      const selectedDepartments = Array.from(departmentSelect.selectedOptions)
+        .map(option => option.value)
+        .filter(value => value !== '');
+
+      if (selectedDepartments.length > 0) {
         data = data.filter(row => {
           const dept = window.staffMap[row.Сотрудник];
-          return dept === selectedDept;
+          return selectedDepartments.includes(dept);
         });
       }
 
@@ -390,13 +426,32 @@
         );
       }
 
+      // Обновляем информацию о выбранных отделах
+      updateSelectedDepartmentsInfo(selectedDepartments);
+
       renderTable(data);
+    }
+
+    // 🔥 ФУНКЦИЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ О ВЫБРАННЫХ ОТДЕЛАХ
+    function updateSelectedDepartmentsInfo(selectedDepartments) {
+      const infoElement = document.getElementById('selected-departments');
+      
+      if (selectedDepartments.length === 0) {
+        infoElement.textContent = 'Выбрано: все отделы';
+      } else {
+        const selectedNames = selectedDepartments.map(dept => {
+          const option = Array.from(document.getElementById('department-filter').options)
+            .find(opt => opt.value === dept);
+          return option ? option.textContent : dept;
+        });
+        infoElement.textContent = `Выбрано: ${selectedNames.join(', ')}`;
+      }
     }
 
     function renderTable(data) {
       const content = document.getElementById('content');
       if (data.length === 0) {
-        content.innerHTML = '<div class="error">Нет данных</div>';
+        content.innerHTML = '<div class="error">Нет данных для отображения</div>';
         return;
       }
 
@@ -411,6 +466,9 @@
       </tr></thead><tbody>`;
 
       data.forEach(row => {
+        // 🔥 СУММА ТЕПЕРЬ В ОДНУ СТРОКУ БЕЗ ПЕРЕНОСОВ
+        const formattedAmount = `р.${formatMoneyNumber(row["Расчетная сумма"])}`;
+        
         html += `<tr>
           <td>${row.Сотрудник}</td>
           <td>${row["Кол-во задач"]}</td>
@@ -418,7 +476,7 @@
           <td>${row["Эффективное время"]}</td>
           <td>${row["Рабочее время"]}</td>
           <td>${row["Эффективность сотрудника"]}</td>
-          <td>${row["Расчетная сумма"]}</td>
+          <td class="amount-cell">${formattedAmount}</td>
         </tr>`;
       });
 
@@ -435,7 +493,7 @@
         const fullSummary = calculateSummary(records);
         window.currentSummary = fullSummary;
 
-        // Применяем фильтры (включая отдел)
+        // Применяем фильтры
         applyFilters();
 
         // Обновляем время
@@ -459,17 +517,29 @@
       }
     }
 
-    // Заполнение списка отделов
+    // 🔥 ОБНОВЛЁННАЯ ФУНКЦИЯ ЗАПОЛНЕНИЯ ФИЛЬТРА ОТДЕЛОВ
     function populateDepartmentFilter(departments) {
       const select = document.getElementById('department-filter');
-      select.innerHTML = '<option value="">Все отделы</option>';
+      select.innerHTML = '';
+      
+      // Добавляем опцию "Все отделы"
+      const allOption = document.createElement('option');
+      allOption.value = '';
+      allOption.textContent = 'Все отделы';
+      select.appendChild(allOption);
+
+      // Добавляем отделы
       departments.forEach(dept => {
         const opt = document.createElement('option');
         opt.value = dept;
         opt.textContent = dept;
         select.appendChild(opt);
       });
+
       select.disabled = false;
+      
+      // По умолчанию выбираем "Все отделы"
+      allOption.selected = true;
     }
 
     function initMonthSelector() {
@@ -504,7 +574,7 @@
         Telegram.WebApp.expand();
       }
 
-      // 🔥 Загружаем данные о сотрудниках и отделах
+      // Загружаем данные о сотрудниках и отделах
       const { staffMap, departments } = await fetchStaffData();
       window.staffMap = staffMap;
       populateDepartmentFilter(departments);
