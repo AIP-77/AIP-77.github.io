@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Статистика работ</title>
   <style>
-    /* ... стили без изменений ... */
     body {
       font-family: Arial, sans-serif;
       padding: 16px;
@@ -13,7 +12,7 @@
       color: #333;
     }
     .container {
-      max-width: 600px;
+      max-width: 800px;
       margin: 0 auto;
       background: white;
       padding: 20px;
@@ -65,6 +64,8 @@
     .calendar-title {
       font-size: 18px;
       font-weight: bold;
+      margin: 0 10px;
+      text-align: center;
     }
     .calendar-nav-btn {
       background: #2196f3;
@@ -73,6 +74,9 @@
       padding: 8px 16px;
       border-radius: 4px;
       cursor: pointer;
+      min-width: 100px;
+      text-align: center;
+      font-weight: bold;
     }
     .calendar-days {
       display: grid;
@@ -113,21 +117,32 @@
     .report-item {
       margin: 8px 0;
     }
-    .day-group, .hour-group {
+    .day-group, .worktype-group, .hour-group {
       margin: 12px 0;
       padding: 10px;
       background: #e3f2fd;
       border-radius: 4px;
       cursor: pointer;
     }
-    .hour-group {
+    .worktype-group {
       background: #bbdefb;
+      margin-left: 10px;
+    }
+    .hour-group {
+      background: #90caf9;
       margin-left: 20px;
     }
     .detail-group {
-      margin-left: 40px;
+      margin-left: 30px;
       padding: 10px;
       background: #e1f5fe;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+    .brigade-group {
+      margin-left: 40px;
+      padding: 10px;
+      background: #f3e5f5;
       border-radius: 4px;
       margin-top: 8px;
     }
@@ -187,46 +202,53 @@
       font-weight: bold;
       color: #2e7d32;
     }
+    .work-type-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .work-type-buttons button {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 24.10-1909 <span>🕒</span></div>
+    <div class="version">v 11.01-2144 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
     <div id="error" class="error hidden"></div>
 
     <div id="controls" class="hidden">
-       <!-- ВИДЫ РАБОТ + ПЛАН -->
+      <!-- ВИДЫ РАБОТ + ПЛАН -->
       <label for="work-type-select">Выберите виды работ:</label>
-      <select id="work-type-select" multiple size="3"></select>
-      <button id="select-all">Выбрать все</button>
-      <button id="clear-all">Очистить выбор</button>
+      <select id="work-type-select" multiple size="5"></select>
+      <div class="work-type-buttons">
+        <button id="select-all">Выбрать все</button>
+        <button id="clear-all">Очистить выбор</button>
+      </div>
 
       <!-- КАЛЕНДАРЬ -->
       <div class="calendar-container">
         <div class="calendar-header">
-          <button class="calendar-nav-btn" id="prev-month">◀</button>
+          <button class="calendar-nav-btn" id="prev-month">◀ Назад</button>
           <div class="calendar-title" id="calendar-title">Октябрь 2025</div>
-          <button class="calendar-nav-btn" id="next-month">▶</button>
+          <button class="calendar-nav-btn" id="next-month">Вперёд ▶</button>
         </div>
         <div class="calendar-days" id="calendar-days">
           <!-- Заполняется JS -->
         </div>
       </div>
 
-     
       <label for="plan-input">План (шт/час):</label>
       <input type="number" id="plan-input" placeholder="Например: 80" step="0.1" min="0">
-
-   
 
       <div id="report" class="report hidden"></div>
 
       <!-- КНОПКИ ВНИЗУ -->
-      <button id="export-excel">📊 Экспорт данных  </button>
+      <button id="export-excel">📊 Экспорт данных</button>
       <div class="action-buttons">
         <button id="clear-cache-btn">🗑️ Очистить кэш</button>
         <button id="toggle-auto-reload">🔄 Автообновление: ВКЛ</button>
@@ -236,22 +258,11 @@
 
   <!-- ВСТРОЕННАЯ БИБЛИОТЕКА SHEETJS (минималистичная) -->
   <script>
-    /* 
-     * SheetJS Community Edition v0.18.5 (минимум для XLSX.writeFile)
-     * Источник: https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.mini.min.js
-     */
-    !function(e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(e=e(),(t="XLSX")in window?window[t]=e:window[t]=e)}(function(){/* ... мини-версия SheetJS ... */return{utils:{aoa_to_sheet:function(d){var s={};return d.forEach(function(r,e){r.forEach(function(c,n){var a=String.fromCharCode(65+n)+String(e+1);s[a]=c})}),s["!ref"]="A1:"+String.fromCharCode(64+d[0].length)+String(d.length),s},book_new:function(){return{SheetNames:[],Sheets:{}}},book_append_sheet:function(e,n,t){e.SheetNames.push(t),e.Sheets[t]=n}},writeFile:function(e,n){var t=window.XLSX||{},r=t.utils.sheet_to_csv||function(){return""},a=r(e.Sheets[e.SheetNames[0]]),o=new Blob([a],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(o),l.download=n,document.body.appendChild(l),l.click(),document.body.removeChild(l)}}});
+    !function(e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(e=e(),(t="XLSX")in window?window[t]=e:window[t]=e)}(function(){return{utils:{aoa_to_sheet:function(d){var s={};return d.forEach(function(r,e){r.forEach(function(c,n){var a=String.fromCharCode(65+n)+String(e+1);s[a]=c})}),s["!ref"]="A1:"+String.fromCharCode(64+d[0].length)+String(d.length),s},book_new:function(){return{SheetNames:[],Sheets:{}}},book_append_sheet:function(e,n,t){e.SheetNames.push(t),e.Sheets[t]=n}},writeFile:function(e,n){var t=window.XLSX||{},r=t.utils.sheet_to_csv||function(){return""},a=r(e.Sheets[e.SheetNames[0]]),o=new Blob([a],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");l.href=URL.createObjectURL(o),l.download=n,document.body.appendChild(l),l.click(),document.body.removeChild(l)}}});
   </script>
 
   <script>
-    const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/refs/heads/main/archive/2025-10 fullData.json';
-    let autoReloadTimer = null;
-    let autoReloadEnabled = true;
-    let currentMonth = new Date();
-    currentMonth.setDate(1);
-
-    // ... (все функции parseTime, formatTime и т.д. — без изменений) ...
-
+    // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
     function parseTime(timeStr) {
       if (!timeStr) return 0;
       const parts = timeStr.split(':').map(Number);
@@ -302,12 +313,21 @@
       return units / hours;
     }
 
+    // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
     let records = [];
     let selectedDate = '';
     let selectedWorkTypes = new Set();
     let planNormative = 0;
     let allWorkTypes = [];
+    let currentMonth = new Date();
+    currentMonth.setDate(1);
 
+    let autoReloadTimer = null;
+    let autoReloadEnabled = true;
+    let currentArchive = null; // Например: "2025-10"
+    let uiInitialized = false;
+
+    // DOM элементы
     const loadingDiv = document.getElementById('loading');
     const errorDiv = document.getElementById('error');
     const controlsDiv = document.getElementById('controls');
@@ -325,17 +345,41 @@
     const nextMonthBtn = document.getElementById('next-month');
     const calendarDaysContainer = document.getElementById('calendar-days');
 
+    // === ФУНКЦИИ ===
+    function getArchiveNameForDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      return `${year}-${month}`;
+    }
+
+    function getArchiveUrl(archiveName) {
+      const encodedName = encodeURIComponent(`${archiveName} fullData.json`);
+      return `${window.location.origin}/archive/${encodedName}`;
+    }
+
     async function loadData() {
+      if (!currentArchive) {
+        errorDiv.textContent = 'Не определён архив';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      const url = getArchiveUrl(currentArchive);
       try {
-        loadingDiv.textContent = 'Загрузка данных...';
-        const urlWithCacheBust = `${DATA_URL}?t=${Date.now()}`;
+        loadingDiv.textContent = `Загрузка данных (${currentArchive})...`;
+        const urlWithCacheBust = `${url}?t=${Date.now()}`;
         const response = await fetch(urlWithCacheBust);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error(`Архив за ${currentArchive} не найден. Проверьте наличие файла в папке /archive/`);
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
         if (!Array.isArray(data.records)) throw new Error('Неверный формат данных: records не массив');
         records = data.records;
         allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
-        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())}`;
+        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive}`;
         initUI();
       } catch (err) {
         console.error('Ошибка загрузки данных:', err);
@@ -352,6 +396,7 @@
 
       renderCalendar();
 
+      // Обновляем список видов работ
       workTypeSelect.innerHTML = '';
       allWorkTypes.forEach(type => {
         const opt = document.createElement('option');
@@ -360,8 +405,20 @@
         workTypeSelect.appendChild(opt);
       });
 
-      // ... (события без изменений) ...
+      // Инициализируем UI-события один раз
+      if (!uiInitialized) {
+        setupEventListeners();
+        uiInitialized = true;
+      }
 
+      const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
+      if (uniqueDates.length > 0 && !selectedDate) {
+        selectedDate = uniqueDates[0];
+      }
+      renderReport();
+    }
+
+    function setupEventListeners() {
       workTypeSelect.addEventListener('change', () => {
         selectedWorkTypes.clear();
         Array.from(workTypeSelect.selectedOptions).forEach(opt => {
@@ -407,23 +464,31 @@
 
       exportExcelBtn.addEventListener('click', exportToExcel);
 
+      // Обработчики кнопок календаря
       prevMonthBtn.addEventListener('click', () => {
         currentMonth.setMonth(currentMonth.getMonth() - 1);
-        renderCalendar();
+        const targetArchive = getArchiveNameForDate(currentMonth);
+        if (currentArchive !== targetArchive) {
+          currentArchive = targetArchive;
+          selectedDate = '';
+          loadData();
+        } else {
+          renderCalendar();
+        }
       });
+
       nextMonthBtn.addEventListener('click', () => {
         currentMonth.setMonth(currentMonth.getMonth() + 1);
-        renderCalendar();
+        const targetArchive = getArchiveNameForDate(currentMonth);
+        if (currentArchive !== targetArchive) {
+          currentArchive = targetArchive;
+          selectedDate = '';
+          loadData();
+        } else {
+          renderCalendar();
+        }
       });
-
-      const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
-      if (uniqueDates.length > 0) {
-        selectedDate = uniqueDates[0];
-        renderReport();
-      }
     }
-
-    // ... (renderCalendar, createEmptyDay — без изменений) ...
 
     function renderCalendar() {
       const year = currentMonth.getFullYear();
@@ -479,8 +544,6 @@
       empty.className = 'calendar-day disabled';
       return empty;
     }
-
-    // ... (renderReport — без изменений) ...
 
     function renderReport() {
       if (!selectedDate || selectedWorkTypes.size === 0) {
@@ -542,294 +605,374 @@
 
       html += `</div>`;
 
-      const hourlyGroups = {};
+      // Группировка по видам работ
+      const workTypeGroups = {};
       allRecords.forEach(r => {
-        const hour = getHourFromTime(r['Начало задачи']);
-        if (hour === null) return;
-        const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-        if (!hourlyGroups[key]) {
-          hourlyGroups[key] = { hours: key, rawRecords: [] };
+        const workType = r['Вид работ'] || 'Без вида работ';
+        if (!workTypeGroups[workType]) {
+          workTypeGroups[workType] = { rawRecords: [] };
         }
-        hourlyGroups[key].rawRecords.push(r);
+        workTypeGroups[workType].rawRecords.push(r);
       });
 
-      const sortedHours = Object.keys(hourlyGroups).sort();
-      html += `<div id="hours-${selectedDate}" class="hidden">`;
+      html += `<div id="worktypes-${selectedDate}" class="hidden">`;
 
-      sortedHours.forEach(hourKey => {
-        const g = hourlyGroups[hourKey];
-        const hourRecords = g.rawRecords;
-        const responsiblesInHour = [...new Set(
-          hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
-        )];
-
-        const hourResponsibleRecords = hourRecords.filter(r => isResponsible(r['Должность']));
-        let hourUnits = 0, hourTimeSec = 0, hourTasks = 0, hourAmount = 0;
-        hourResponsibleRecords.forEach(r => {
-          hourUnits += parseInt(r['Количество единиц']) || 0;
-          hourTimeSec += parseTime(r['Рабочее время']);
-          hourTasks++;
+      Object.keys(workTypeGroups).sort().forEach(workType => {
+        const workTypeRecords = workTypeGroups[workType].rawRecords;
+        const workTypeResponsibleRecords = workTypeRecords.filter(r => isResponsible(r['Должность']));
+        
+        let workTypeUnits = 0, workTypeTimeSec = 0, workTypeTasks = 0, workTypeAmount = 0;
+        workTypeResponsibleRecords.forEach(r => {
+          workTypeUnits += parseInt(r['Количество единиц']) || 0;
+          workTypeTimeSec += parseTime(r['Рабочее время']);
+          workTypeTasks++;
         });
-        hourRecords.forEach(r => {
-          hourAmount += parseCurrency(r['Расчетная сумма']);
+        workTypeRecords.forEach(r => {
+          workTypeAmount += parseCurrency(r['Расчетная сумма']);
         });
-        const hourFactNorm = calculateNormative(hourUnits, hourTimeSec);
+        const workTypeFactNorm = calculateNormative(workTypeUnits, workTypeTimeSec);
 
         html += `
-          <div class="hour-group" data-hour="${hourKey}" data-date="${selectedDate}">
+          <div class="worktype-group" data-worktype="${workType}" data-date="${selectedDate}">
             <span class="toggle-icon">▶</span>
-            <strong>Часовой интервал: ${hourKey}</strong>
-            <div class="report-item">Количество задач: ${hourTasks}</div>
-            <div class="report-item">Количество бригад: ${responsiblesInHour.length}</div>
-            <div class="report-item">Единиц: ${hourUnits}</div>
-            <div class="report-item">Сумма: р.${hourAmount.toFixed(2)}</div>
-            <div class="report-item">Время: ${formatTime(hourTimeSec)}</div>
-            <div class="report-item">Норматив: ${hourFactNorm > 0 ? hourFactNorm.toFixed(1) : '0.0'} шт/час</div>
+            <strong>Вид работ: ${workType}</strong>
+            <div class="report-item">Количество задач: ${workTypeTasks}</div>
+            <div class="report-item">Единиц: ${workTypeUnits}</div>
+            <div class="report-item">Сумма: р.${workTypeAmount.toFixed(2)}</div>
+            <div class="report-item">Время: ${formatTime(workTypeTimeSec)}</div>
+            <div class="report-item">Норматив: ${workTypeFactNorm > 0 ? workTypeFactNorm.toFixed(1) : '0.0'} шт/час</div>
           </div>
 
-          <div id="detail-${selectedDate}-${hourKey}" class="detail-group hidden">
+          <div id="worktype-hours-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}" class="hidden">
         `;
 
-        responsiblesInHour.forEach((respName, idx) => {
-          const tasksMap = {};
-          hourRecords.forEach(r => {
-            const taskKey = `${r['Поставка'] || 'Без поставки'}|${r['Начало задачи'] || 'Без времени'}`;
-            if (!tasksMap[taskKey]) {
-              tasksMap[taskKey] = { responsible: null, helpers: [] };
-            }
-            if (isResponsible(r['Должность'])) {
-              tasksMap[taskKey].responsible = r;
-            } else {
-              tasksMap[taskKey].helpers.push(r);
-            }
-          });
-
-          const filteredTasks = Object.values(tasksMap).filter(task => 
-            task.responsible && task.responsible['Сотрудник'] === respName
-          );
-
-          filteredTasks.sort((a, b) => {
-            const timeA = a.responsible['Начало задачи'] || '';
-            const timeB = b.responsible['Начало задачи'] || '';
-            return timeA.localeCompare(timeB);
-          });
-
-          html += `<div style="margin: 12px 0; padding: 10px; background: #bbdefb; border-radius: 6px;">
-            <strong>Бригада ${idx + 1}: ${respName}</strong>`;
-
-          filteredTasks.forEach(task => {
-            const resp = task.responsible;
-            const units = parseInt(resp['Количество единиц']) || 0;
-            const amount = parseCurrency(resp['Расчетная сумма']);
-            const time = resp['Рабочее время'] || '00:00:00';
-
-            html += `
-              <div style="margin: 8px 0; padding: 8px; background: #ffffff; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                <div><strong>Поставка:</strong> ${resp['Поставка'] || '—'}</div>
-                <div>Ед.: <strong>${units}</strong>, 
-                     Время: ${time}, 
-                     Сумма: р.${amount.toFixed(2)}</div>
-            `;
-
-            if (task.helpers.length > 0) {
-              html += `<div style="margin-top:6px; font-size:14px;"><strong>Помощники:</strong></div>`;
-              task.helpers.forEach(helper => {
-                const helperAmount = parseCurrency(helper['Расчетная сумма']);
-                html += `
-                  <div style="margin-left:15px; font-size:14px;">
-                    • ${helper['Сотрудник']} — 
-                      <span style="font-weight:bold;">р.${helperAmount.toFixed(2)}</span>
-                  </div>
-                `;
-              });
-            }
-            html += `</div>`;
-          });
-          html += `</div>`;
+        // Группировка по часовым интервалам внутри вида работ
+        const hourlyGroups = {};
+        workTypeRecords.forEach(r => {
+          const hour = getHourFromTime(r['Начало задачи']);
+          if (hour === null) return;
+          const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
+          if (!hourlyGroups[key]) {
+            hourlyGroups[key] = { hours: key, rawRecords: [] };
+          }
+          hourlyGroups[key].rawRecords.push(r);
         });
 
-        html += `</div>`;
+        const sortedHours = Object.keys(hourlyGroups).sort();
+        
+        sortedHours.forEach(hourKey => {
+          const g = hourlyGroups[hourKey];
+          const hourRecords = g.rawRecords;
+          const responsiblesInHour = [...new Set(
+            hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
+          )];
+
+          const hourResponsibleRecords = hourRecords.filter(r => isResponsible(r['Должность']));
+          let hourUnits = 0, hourTimeSec = 0, hourTasks = 0, hourAmount = 0;
+          hourResponsibleRecords.forEach(r => {
+            hourUnits += parseInt(r['Количество единиц']) || 0;
+            hourTimeSec += parseTime(r['Рабочее время']);
+            hourTasks++;
+          });
+          hourRecords.forEach(r => {
+            hourAmount += parseCurrency(r['Расчетная сумма']);
+          });
+          const hourFactNorm = calculateNormative(hourUnits, hourTimeSec);
+
+          html += `
+            <div class="hour-group" data-hour="${hourKey}" data-worktype="${workType}" data-date="${selectedDate}">
+              <span class="toggle-icon">▶</span>
+              <strong>Часовой интервал: ${hourKey}</strong>
+              <div class="report-item">Количество задач: ${hourTasks}</div>
+              <div class="report-item">Количество бригад: ${responsiblesInHour.length}</div>
+              <div class="report-item">Единиц: ${hourUnits}</div>
+              <div class="report-item">Сумма: р.${hourAmount.toFixed(2)}</div>
+              <div class="report-item">Время: ${formatTime(hourTimeSec)}</div>
+              <div class="report-item">Норматив: ${hourFactNorm > 0 ? hourFactNorm.toFixed(1) : '0.0'} шт/час</div>
+            </div>
+
+            <div id="detail-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}-${hourKey}" class="detail-group hidden">
+          `;
+
+          // Детали по бригадам внутри часового интервала
+          responsiblesInHour.forEach((respName, idx) => {
+            const tasksMap = {};
+            hourRecords.forEach(r => {
+              const taskKey = `${r['Поставка'] || 'Без поставки'}|${r['Начало задачи'] || 'Без времени'}`;
+              if (!tasksMap[taskKey]) {
+                tasksMap[taskKey] = { responsible: null, helpers: [] };
+              }
+              if (isResponsible(r['Должность'])) {
+                tasksMap[taskKey].responsible = r;
+              } else {
+                tasksMap[taskKey].helpers.push(r);
+              }
+            });
+
+            const filteredTasks = Object.values(tasksMap).filter(task => 
+              task.responsible && task.responsible['Сотрудник'] === respName
+            );
+
+            filteredTasks.sort((a, b) => {
+              const timeA = a.responsible['Начало задачи'] || '';
+              const timeB = b.responsible['Начало задачи'] || '';
+              return timeA.localeCompare(timeB);
+            });
+
+            html += `<div class="brigade-group">
+              <strong>Бригада ${idx + 1}: ${respName}</strong>`;
+
+            filteredTasks.forEach(task => {
+              const resp = task.responsible;
+              const units = parseInt(resp['Количество единиц']) || 0;
+              const amount = parseCurrency(resp['Расчетная сумма']);
+              const time = resp['Рабочее время'] || '00:00:00';
+
+              html += `
+                <div style="margin: 8px 0; padding: 8px; background: #ffffff; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                  <div><strong>Поставка:</strong> ${resp['Поставка'] || '—'}</div>
+                  <div>Ед.: <strong>${units}</strong>, 
+                       Время: ${time}, 
+                       Сумма: р.${amount.toFixed(2)}</div>
+              `;
+
+              if (task.helpers.length > 0) {
+                html += `<div style="margin-top:6px; font-size:14px;"><strong>Помощники:</strong></div>`;
+                task.helpers.forEach(helper => {
+                  const helperAmount = parseCurrency(helper['Расчетная сумма']);
+                  html += `
+                    <div style="margin-left:15px; font-size:14px;">
+                      • ${helper['Сотрудник']} — 
+                        <span style="font-weight:bold;">р.${helperAmount.toFixed(2)}</span>
+                    </div>
+                  `;
+                });
+              }
+              html += `</div>`;
+            });
+            html += `</div>`;
+          });
+
+          html += `</div>`; // закрываем detail-group
+        });
+
+        html += `</div>`; // закрываем worktype-hours
       });
 
-      html += `</div>`;
+      html += `</div>`; // закрываем worktypes
       reportDiv.innerHTML = html;
       reportDiv.classList.remove('hidden');
 
       // Обработчики кликов
       document.querySelector(`.day-group[data-date="${selectedDate}"]`)?.addEventListener('click', function() {
-        const hoursDiv = document.getElementById(`hours-${selectedDate}`);
+        const worktypesDiv = document.getElementById(`worktypes-${selectedDate}`);
         const icon = this.querySelector('.toggle-icon');
-        if (hoursDiv?.classList.contains('hidden')) {
-          hoursDiv.classList.remove('hidden');
+        if (worktypesDiv?.classList.contains('hidden')) {
+          worktypesDiv.classList.remove('hidden');
           icon.textContent = '▼';
         } else {
-          hoursDiv?.classList.add('hidden');
+          worktypesDiv?.classList.add('hidden');
           icon.textContent = '▶';
         }
       });
 
-      sortedHours.forEach(hourKey => {
-        const hourEl = document.querySelector(`.hour-group[data-hour="${hourKey}"][data-date="${selectedDate}"]`);
-        if (hourEl) {
-          hourEl.addEventListener('click', function() {
-            const detailDiv = document.getElementById(`detail-${selectedDate}-${hourKey}`);
+      Object.keys(workTypeGroups).forEach(workType => {
+        const workTypeEl = document.querySelector(`.worktype-group[data-worktype="${workType}"][data-date="${selectedDate}"]`);
+        if (workTypeEl) {
+          workTypeEl.addEventListener('click', function() {
+            const workTypeHoursDiv = document.getElementById(`worktype-hours-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}`);
             const icon = this.querySelector('.toggle-icon');
-            if (detailDiv?.classList.contains('hidden')) {
-              detailDiv.classList.remove('hidden');
+            if (workTypeHoursDiv?.classList.contains('hidden')) {
+              workTypeHoursDiv.classList.remove('hidden');
               icon.textContent = '▼';
             } else {
-              detailDiv?.classList.add('hidden');
+              workTypeHoursDiv?.classList.add('hidden');
               icon.textContent = '▶';
             }
           });
         }
       });
-    }
 
-    // === ЭКСПОРТ В EXCEL (с защитой от ошибок) ===
-function exportToExcel() {
-  try {
-    if (!selectedDate || selectedWorkTypes.size === 0) {
-      alert('Выберите день и виды работ');
-      return;
-    }
-
-    const allRecords = records.filter(r =>
-      r['Рабочий день'] === selectedDate &&
-      selectedWorkTypes.has(r['Вид работ'])
-    );
-
-    if (allRecords.length === 0) {
-      alert('Нет данных для экспорта');
-      return;
-    }
-
-    // Собираем данные
-    const rows = [];
-    rows.push([
-      "Дата", "Час", "Бригада", "Ответственный", "Поставка", 
-      "Ед.", "Время", "Сумма (Отв.)", "Помощники", "Сумма (Помощники)"
-    ]);
-
-    const hourlyGroups = {};
-    allRecords.forEach(r => {
-      const hour = getHourFromTime(r['Начало задачи']);
-      if (hour === null) return;
-      const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-      if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
-      hourlyGroups[key].rawRecords.push(r);
-    });
-
-    let brigadeCounter = 1;
-    Object.keys(hourlyGroups).sort().forEach(hourKey => {
-      const hourRecords = hourlyGroups[hourKey].rawRecords;
-      const responsibles = [...new Set(
-        hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
-      )];
-
-      responsibles.forEach(respName => {
-        const tasksMap = {};
-        hourRecords.forEach(r => {
-          const taskKey = `${r['Поставка'] || ''}|${r['Начало задачи'] || ''}`;
-          if (!tasksMap[taskKey]) tasksMap[taskKey] = { responsible: null, helpers: [] };
-          if (isResponsible(r['Должность'])) tasksMap[taskKey].responsible = r;
-          else tasksMap[taskKey].helpers.push(r);
+      Object.keys(workTypeGroups).forEach(workType => {
+        const hourlyGroups = {};
+        workTypeGroups[workType].rawRecords.forEach(r => {
+          const hour = getHourFromTime(r['Начало задачи']);
+          if (hour === null) return;
+          const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
+          if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
+          hourlyGroups[key].rawRecords.push(r);
         });
 
-        const tasks = Object.values(tasksMap).filter(t => t.responsible?.['Сотрудник'] === respName);
-        tasks.forEach(task => {
-          const resp = task.responsible;
-          const helperNames = task.helpers.map(h => h['Сотрудник'] || '').join("; ");
-          const helperAmounts = task.helpers.map(h => parseCurrency(h['Расчетная сумма']).toFixed(2)).join("; ");
-          rows.push([
-            selectedDate,
-            hourKey,  // ← Час — строка, не время
-            `Бригада ${brigadeCounter}`,
-            respName,
-            resp['Поставка'] || '',
-            resp['Количество единиц'] || '',
-            resp['Рабочее время'] || '',  // ← Время — строка
-            parseCurrency(resp['Расчетная сумма']).toFixed(2),  // ← Сумма — число с двумя знаками
-            helperNames,
-            helperAmounts  // ← Суммы помощников — строки
-          ]);
+        Object.keys(hourlyGroups).forEach(hourKey => {
+          const hourEl = document.querySelector(`.hour-group[data-hour="${hourKey}"][data-worktype="${workType}"][data-date="${selectedDate}"]`);
+          if (hourEl) {
+            hourEl.addEventListener('click', function() {
+              const detailDiv = document.getElementById(`detail-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}-${hourKey}`);
+              const icon = this.querySelector('.toggle-icon');
+              if (detailDiv?.classList.contains('hidden')) {
+                detailDiv.classList.remove('hidden');
+                icon.textContent = '▼';
+              } else {
+                detailDiv?.classList.add('hidden');
+                icon.textContent = '▶';
+              }
+            });
+          }
         });
-        brigadeCounter++;
       });
-    });
+    }
 
-    // Форматируем как TSV (табуляция)
-    const tsvContent = rows.map(row => row.join('\t')).join('\n');
+    function exportToExcel() {
+      try {
+        if (!selectedDate || selectedWorkTypes.size === 0) {
+          alert('Выберите день и виды работ');
+          return;
+        }
 
-    // Создаём модальное окно
-    const modal = document.createElement('div');
-    modal.style.position = 'fixed';
-    modal.style.top = '0';
-    modal.style.left = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
-    modal.style.display = 'flex';
-    modal.style.justifyContent = 'center';
-    modal.style.alignItems = 'center';
-    modal.style.zIndex = '10000';
+        const allRecords = records.filter(r =>
+          r['Рабочий день'] === selectedDate &&
+          selectedWorkTypes.has(r['Вид работ'])
+        );
 
-    const content = document.createElement('div');
-    content.style.backgroundColor = 'white';
-    content.style.padding = '20px';
-    content.style.borderRadius = '8px';
-    content.style.maxWidth = '90%';
-    content.style.maxHeight = '80%';
-    content.style.overflow = 'auto';
+        if (allRecords.length === 0) {
+          alert('Нет данных для экспорта');
+          return;
+        }
 
-    const title = document.createElement('h3');
-    title.textContent = 'Данные для Excel';
-    title.style.marginTop = '0';
+        const rows = [];
+        rows.push([
+          "Дата", "Вид работ", "Час", "Бригада", "Ответственный", "Поставка", 
+          "Ед.", "Время", "Сумма (Отв.)", "Помощники", "Сумма (Помощники)"
+        ]);
 
-    const textarea = document.createElement('textarea');
-    textarea.value = tsvContent;
-    textarea.style.width = '100%';
-    textarea.style.height = '300px';
-    textarea.style.fontFamily = 'monospace';
-    textarea.style.fontSize = '14px';
-    textarea.readOnly = true;
+        const workTypeGroups = {};
+        allRecords.forEach(r => {
+          const workType = r['Вид работ'] || 'Без вида работ';
+          if (!workTypeGroups[workType]) workTypeGroups[workType] = { rawRecords: [] };
+          workTypeGroups[workType].rawRecords.push(r);
+        });
 
-    const instructions = document.createElement('p');
-    instructions.innerHTML = `
-      <strong>Как вставить в Excel:</strong><br>
-      1. Нажмите Ctrl+A (или выделите всё)<br>
-      2. Скопируйте (Ctrl+C)<br>
-      3. В Excel: ПКМ → «Вставить» → «Текст»<br>
-      4. При вставке выберите: <strong>«Текст с разделителями»</strong><br>
-      5. Разделитель: <strong>табуляция</strong><br>
-      6. Готово!
-    `;
-    instructions.style.marginTop = '10px';
+        let brigadeCounter = 1;
+        Object.keys(workTypeGroups).sort().forEach(workType => {
+          const workTypeRecords = workTypeGroups[workType].rawRecords;
+          
+          const hourlyGroups = {};
+          workTypeRecords.forEach(r => {
+            const hour = getHourFromTime(r['Начало задачи']);
+            if (hour === null) return;
+            const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
+            if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
+            hourlyGroups[key].rawRecords.push(r);
+          });
 
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Закрыть';
-    closeBtn.style.marginTop = '10px';
-    closeBtn.style.padding = '8px 16px';
-    closeBtn.addEventListener('click', () => {
-      document.body.removeChild(modal);
-    });
+          Object.keys(hourlyGroups).sort().forEach(hourKey => {
+            const hourRecords = hourlyGroups[hourKey].rawRecords;
+            const responsibles = [...new Set(
+              hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
+            )];
 
-    content.appendChild(title);
-    content.appendChild(textarea);
-    content.appendChild(instructions);
-    content.appendChild(closeBtn);
-    modal.appendChild(content);
-    document.body.appendChild(modal);
+            responsibles.forEach(respName => {
+              const tasksMap = {};
+              hourRecords.forEach(r => {
+                const taskKey = `${r['Поставка'] || ''}|${r['Начало задачи'] || ''}`;
+                if (!tasksMap[taskKey]) tasksMap[taskKey] = { responsible: null, helpers: [] };
+                if (isResponsible(r['Должность'])) tasksMap[taskKey].responsible = r;
+                else tasksMap[taskKey].helpers.push(r);
+              });
 
-    // Автофокус
-    setTimeout(() => {
-      textarea.select();
-    }, 100);
-  } catch (err) {
-    console.error('Ошибка экспорта:', err);
-    alert('Ошибка при подготовке данных: ' + err.message);
-  }
-}
+              const tasks = Object.values(tasksMap).filter(t => t.responsible?.['Сотрудник'] === respName);
+              tasks.forEach(task => {
+                const resp = task.responsible;
+                const helperNames = task.helpers.map(h => h['Сотрудник'] || '').join("; ");
+                const helperAmounts = task.helpers.map(h => parseCurrency(h['Расчетная сумма']).toFixed(2)).join("; ");
+                rows.push([
+                  selectedDate,
+                  workType,
+                  hourKey,
+                  `Бригада ${brigadeCounter}`,
+                  respName,
+                  resp['Поставка'] || '',
+                  resp['Количество единиц'] || '',
+                  resp['Рабочее время'] || '',
+                  parseCurrency(resp['Расчетная сумма']).toFixed(2),
+                  helperNames,
+                  helperAmounts
+                ]);
+              });
+              brigadeCounter++;
+            });
+          });
+        });
+
+        const tsvContent = rows.map(row => row.join('\t')).join('\n');
+
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        modal.style.display = 'flex';
+        modal.style.justifyContent = 'center';
+        modal.style.alignItems = 'center';
+        modal.style.zIndex = '10000';
+
+        const content = document.createElement('div');
+        content.style.backgroundColor = 'white';
+        content.style.padding = '20px';
+        content.style.borderRadius = '8px';
+        content.style.maxWidth = '90%';
+        content.style.maxHeight = '80%';
+        content.style.overflow = 'auto';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Данные для Excel';
+        title.style.marginTop = '0';
+
+        const textarea = document.createElement('textarea');
+        textarea.value = tsvContent;
+        textarea.style.width = '100%';
+        textarea.style.height = '300px';
+        textarea.style.fontFamily = 'monospace';
+        textarea.style.fontSize = '14px';
+        textarea.readOnly = true;
+
+        const instructions = document.createElement('p');
+        instructions.innerHTML = `
+          <strong>Как вставить в Excel:</strong><br>
+          1. Нажмите Ctrl+A (или выделите всё)<br>
+          2. Скопируйте (Ctrl+C)<br>
+          3. В Excel: ПКМ → «Вставить» → «Текст»<br>
+          4. При вставке выберите: <strong>«Текст с разделителями»</strong><br>
+          5. Разделитель: <strong>табуляция</strong><br>
+          6. Готово!
+        `;
+        instructions.style.marginTop = '10px';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Закрыть';
+        closeBtn.style.marginTop = '10px';
+        closeBtn.style.padding = '8px 16px';
+        closeBtn.addEventListener('click', () => {
+          document.body.removeChild(modal);
+        });
+
+        content.appendChild(title);
+        content.appendChild(textarea);
+        content.appendChild(instructions);
+        content.appendChild(closeBtn);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        setTimeout(() => {
+          textarea.select();
+        }, 100);
+      } catch (err) {
+        console.error('Ошибка экспорта:', err);
+        alert('Ошибка при подготовке данных: ' + err.message);
+      }
+    }
 
     function startAutoReload() {
       if (autoReloadTimer) clearInterval(autoReloadTimer);
@@ -837,8 +980,12 @@ function exportToExcel() {
       autoReloadTimer = setInterval(() => loadData(), 5 * 60 * 1000);
     }
 
+    // === ИНИЦИАЛИЗАЦИЯ ===
+    currentArchive = getArchiveNameForDate(new Date());
+
     loadData();
     startAutoReload();
+
     window.addEventListener('beforeunload', () => {
       if (autoReloadTimer) clearInterval(autoReloadTimer);
     });
