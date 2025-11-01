@@ -267,7 +267,7 @@
   <div class="container">
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
-      (🛠 V.11.01 1844 🛠)
+      (🛠 V.11.01-Новая структура данных 🛠)
     </div>
 
     <div id="banner" class="banner"></div>
@@ -318,6 +318,23 @@
         </div>
         <div id="details-content" class="hidden fade">
           <div id="tasks-grouped"></div>
+        </div>
+      </div>
+      
+      <!-- Календарь посещаемости -->
+      <div class="card">
+        <h2>📅 Календарь посещаемости</h2>
+        <div id="calendar-loading" class="loading">
+          <div class="spinner"></div>
+          <p>Загрузка календаря...</p>
+        </div>
+        <div id="calendar-content" class="hidden">
+          <div class="month-selector">
+            <button id="prevMonth">◀</button>
+            <span id="currentMonth">Загрузка...</span>
+            <button id="nextMonth">▶</button>
+          </div>
+          <div class="calendar" id="calendar"></div>
         </div>
       </div>
     </div>
@@ -375,6 +392,8 @@
     let managedDepartments = [];
     let currentManagerDepartment = null;
     let dataLastUpdated = null;
+    let availableMonths = [];
+    let currentMonthIndex = 0;
 
     // DOM элементы
     const loading = document.getElementById('loading');
@@ -395,9 +414,15 @@
     const mainDataContent = document.getElementById('main-data-content');
     const detailsLoading = document.getElementById('details-loading');
     const detailsContent = document.getElementById('details-content');
+    const calendarLoading = document.getElementById('calendar-loading');
+    const calendarContent = document.getElementById('calendar-content');
 
     const refreshBtn = document.getElementById('refreshBtn');
     const clearCacheBtn = document.getElementById('clearCacheBtn');
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    const currentMonthSpan = document.getElementById('currentMonth');
+    const calendar = document.getElementById('calendar');
 
     // === ИСПРАВЛЕННЫЕ ФУНКЦИИ РАСЧЕТА ===
     
@@ -574,6 +599,175 @@
         group.classList.toggle('expanded');
     }
 
+    // === ФУНКЦИИ ДЛЯ КАЛЕНДАРЯ ===
+    async function loadCalendarData() {
+        try {
+            calendarLoading.classList.remove('hidden');
+            calendarContent.classList.add('hidden');
+
+            // Получаем список доступных месяцев
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            
+            // Создаем список месяцев за последние 6 месяцев
+            availableMonths = [];
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(currentYear, currentMonth - 1 - i, 1);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const monthKey = `${year}-${month.toString().padStart(2, '0')}`;
+                availableMonths.push(monthKey);
+            }
+
+            if (availableMonths.length === 0) {
+                calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+                return;
+            }
+
+            currentMonthIndex = availableMonths.length - 1; // Текущий месяц
+            await renderCalendarForMonth(availableMonths[currentMonthIndex]);
+            
+        } catch (err) {
+            console.error('Ошибка загрузки календаря:', err);
+            calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка загрузки календаря</p>';
+        }
+    }
+
+    async function renderCalendarForMonth(monthKey) {
+        try {
+            const [yearStr, monthStr] = monthKey.split('-');
+            const year = Number(yearStr);
+            const month = Number(monthStr);
+            
+            // Загружаем данные за выбранный месяц
+            const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
+            
+            // Получаем даты, по которым есть данные для текущего сотрудника
+            const userDates = new Set();
+            if (monthData && monthData.records) {
+                monthData.records.forEach(record => {
+                    if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
+                        userDates.add(record['Рабочий день']);
+                    }
+                });
+            }
+
+            // Отображаем календарь
+            renderCalendarGrid(year, month, userDates);
+            
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+            
+            // Обновляем состояние кнопок
+            prevMonthBtn.disabled = currentMonthIndex === 0;
+            nextMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
+
+            calendarLoading.classList.add('hidden');
+            calendarContent.classList.remove('hidden');
+            
+        } catch (err) {
+            console.error('Ошибка рендеринга календаря:', err);
+            calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка загрузки данных</p>';
+        }
+    }
+
+    function renderCalendarGrid(year, monthNum, userDates) {
+        calendar.innerHTML = '';
+        
+        // Добавляем заголовки дней недели
+        const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        dayNames.forEach(day => {
+            const el = document.createElement('div');
+            el.textContent = day;
+            el.style.fontWeight = 'bold';
+            el.style.backgroundColor = 'var(--tg-bg-color)';
+            el.style.padding = '6px 0';
+            el.style.borderRadius = '6px';
+            el.style.textAlign = 'center';
+            calendar.appendChild(el);
+        });
+
+        const firstDay = new Date(year, monthNum - 1, 1);
+        const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+        const lastDayNum = new Date(year, monthNum, 0).getDate();
+
+        // Добавляем пустые ячейки для начала месяца
+        for (let i = 0; i < startDay; i++) {
+            calendar.appendChild(document.createElement('div'));
+        }
+
+        // Добавляем дни месяца
+        for (let day = 1; day <= lastDayNum; day++) {
+            const el = document.createElement('div');
+            el.className = 'day';
+            el.textContent = day;
+            el.style.padding = '8px 0';
+            el.style.borderRadius = '6px';
+            el.style.fontSize = '14px';
+
+            // Проверяем, есть ли данные за этот день
+            const dayStr = String(day).padStart(2, '0');
+            const monthStr = String(monthNum).padStart(2, '0');
+            const dateStr = `${dayStr}.${monthStr}.${year}`;
+            
+            if (userDates.has(dateStr)) {
+                el.classList.add('available');
+                el.title = 'Есть данные за этот день';
+                el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
+            } else {
+                el.style.color = 'var(--tg-hint-color)';
+                el.style.cursor = 'default';
+            }
+            
+            calendar.appendChild(el);
+        }
+    }
+
+    async function loadRecordByDate(year, month, day) {
+        try {
+            const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
+            const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+            
+            // Загружаем данные за выбранный месяц
+            const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
+            
+            // Находим задачи сотрудника за выбранную дату
+            const userTasks = monthData.records.filter(record => 
+                record['Сотрудник'] === currentUserData.name && record['Рабочий день'] === dateStr
+            );
+
+            if (userTasks.length === 0) {
+                showBanner(`Нет данных за ${dateStr}`, 'info', 3000);
+                return;
+            }
+
+            // Рассчитываем показатели для выбранной даты
+            const workedTime = calculateTotalTime(userTasks, 'Рабочее время');
+            const plannedTime = calculateTotalTime(userTasks, 'Время по табелю');
+            const dayPay = calculateDayPay(userTasks);
+            const xisBonus = calculateXisBonus(userTasks);
+            const efficiency = calculateEfficiency(workedTime, plannedTime);
+
+            // Обновляем основную информацию
+            document.getElementById('date').textContent = dateStr;
+            document.getElementById('worked').textContent = workedTime;
+            document.getElementById('planned').textContent = plannedTime;
+            document.getElementById('efficiency').textContent = efficiency + '%';
+            document.getElementById('pay-day').textContent = formatCurrency(dayPay);
+            document.getElementById('xisBonusDay').textContent = formatCurrency(xisBonus);
+
+            // Обновляем детализацию
+            renderGroupedTasks(userTasks);
+            
+            showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
+            
+        } catch (err) {
+            console.error('Ошибка загрузки данных по дате:', err);
+            showBanner(`Ошибка загрузки данных: ${err.message}`, 'error', 5000);
+        }
+    }
+
     // === ИНИЦИАЛИЗАЦИЯ ===
     async function init() {
       try {
@@ -640,6 +834,9 @@
         // Формируем персональный отчет
         await generatePersonalReport();
 
+        // Загружаем календарь
+        await loadCalendarData();
+
         renderUI();
         loading.classList.add('hidden');
         
@@ -652,7 +849,7 @@
     // Функция для обновления информации о версии с датой данных
     function updateVersionInfo() {
       if (!dataLastUpdated) {
-        versionInfo.textContent = '(🛠 V.11.01-1429 🛠)';
+        versionInfo.textContent = '(🛠 V.11.01-Новая структура данных 🛠)';
         return;
       }
 
@@ -668,10 +865,10 @@
           minute: '2-digit'
         });
 
-        versionInfo.innerHTML = `(🛠 V.11.01 | Данные актуальны на: ${formattedDate} ${formattedTime} 🛠)`;
+        versionInfo.innerHTML = `(🛠 V.11.01-Новая структура данных | Данные актуальны на: ${formattedDate} ${formattedTime} 🛠)`;
       } catch (err) {
         console.error('Ошибка форматирования даты:', err);
-        versionInfo.textContent = '(🛠 V.11.01 🛠)';
+        versionInfo.textContent = '(🛠 V.11.01-Новая структура данных 🛠)';
       }
     }
 
@@ -933,6 +1130,21 @@
         }
       }, 1000);
     }
+
+    // Обработчики событий для календаря
+    prevMonthBtn.addEventListener('click', async () => {
+      if (currentMonthIndex > 0) {
+        currentMonthIndex--;
+        await renderCalendarForMonth(availableMonths[currentMonthIndex]);
+      }
+    });
+
+    nextMonthBtn.addEventListener('click', async () => {
+      if (currentMonthIndex < availableMonths.length - 1) {
+        currentMonthIndex++;
+        await renderCalendarForMonth(availableMonths[currentMonthIndex]);
+      }
+    });
 
     // Обработчики событий
     refreshBtn.addEventListener('click', async () => {
