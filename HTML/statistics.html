@@ -210,12 +210,22 @@
     .work-type-buttons button {
       flex: 1;
     }
+    .night-interval {
+      background: #5c6bc0 !important;
+      color: white;
+    }
+    .next-day-label {
+      font-size: 12px;
+      color: #666;
+      margin-left: 5px;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>Статистика работ</h2>
-    <div class="version">v 11.01-2144 <span>🕒</span></div>
+    <div class="version">v 11.01-2217 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">Загрузка данных...</div>
@@ -311,6 +321,36 @@
       if (seconds <= 0) return 0;
       const hours = seconds / 3600;
       return units / hours;
+    }
+
+    // === НОВАЯ ФУНКЦИЯ: Получение часового интервала для суточного цикла 9:00-9:00 ===
+    function getHourIntervalForWorkDay(timeStr, workDate) {
+      if (!timeStr) return null;
+      
+      const hour = getHourFromTime(timeStr);
+      if (hour === null) return null;
+      
+      // Если время с 0:00 до 8:59 - это ночная смена предыдущего дня
+      if (hour < 9) {
+        // Для ночных часов показываем как "21-06", "22-07" и т.д.
+        const nightHour = hour + 24; // Преобразуем в 24-33
+        const endHour = nightHour + 1;
+        return {
+          key: `${String(hour).padStart(2, '0')}-${String(endHour - 24).padStart(2, '0')}`,
+          display: `${String(hour).padStart(2, '0')}-${String(endHour - 24).padStart(2, '0')} (ночь)`,
+          isNight: true,
+          sortKey: nightHour // Для правильной сортировки
+        };
+      } else {
+        // Дневные часы с 9:00 до 23:59
+        const endHour = hour + 1;
+        return {
+          key: `${String(hour).padStart(2, '0')}-${String(endHour).padStart(2, '0')}`,
+          display: `${String(hour).padStart(2, '0')}-${String(endHour).padStart(2, '0')}`,
+          isNight: false,
+          sortKey: hour
+        };
+      }
     }
 
     // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
@@ -646,23 +686,30 @@
           <div id="worktype-hours-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}" class="hidden">
         `;
 
-        // Группировка по часовым интервалам внутри вида работ
+        // Группировка по часовым интервалам внутри вида работ с учетом суточного цикла
         const hourlyGroups = {};
         workTypeRecords.forEach(r => {
-          const hour = getHourFromTime(r['Начало задачи']);
-          if (hour === null) return;
-          const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-          if (!hourlyGroups[key]) {
-            hourlyGroups[key] = { hours: key, rawRecords: [] };
+          const interval = getHourIntervalForWorkDay(r['Начало задачи'], selectedDate);
+          if (interval === null) return;
+          
+          if (!hourlyGroups[interval.key]) {
+            hourlyGroups[interval.key] = { 
+              interval: interval,
+              rawRecords: [] 
+            };
           }
-          hourlyGroups[key].rawRecords.push(r);
+          hourlyGroups[interval.key].rawRecords.push(r);
         });
 
-        const sortedHours = Object.keys(hourlyGroups).sort();
+        // Сортируем интервалы: сначала ночные (0-8), потом дневные (9-23)
+        const sortedIntervals = Object.keys(hourlyGroups).sort((a, b) => {
+          return hourlyGroups[a].interval.sortKey - hourlyGroups[b].interval.sortKey;
+        });
         
-        sortedHours.forEach(hourKey => {
-          const g = hourlyGroups[hourKey];
+        sortedIntervals.forEach(intervalKey => {
+          const g = hourlyGroups[intervalKey];
           const hourRecords = g.rawRecords;
+          const interval = g.interval;
           const responsiblesInHour = [...new Set(
             hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
           )];
@@ -679,10 +726,12 @@
           });
           const hourFactNorm = calculateNormative(hourUnits, hourTimeSec);
 
+          const hourClass = interval.isNight ? 'hour-group night-interval' : 'hour-group';
+          
           html += `
-            <div class="hour-group" data-hour="${hourKey}" data-worktype="${workType}" data-date="${selectedDate}">
+            <div class="${hourClass}" data-hour="${intervalKey}" data-worktype="${workType}" data-date="${selectedDate}">
               <span class="toggle-icon">▶</span>
-              <strong>Часовой интервал: ${hourKey}</strong>
+              <strong>Часовой интервал: ${interval.display}</strong>
               <div class="report-item">Количество задач: ${hourTasks}</div>
               <div class="report-item">Количество бригад: ${responsiblesInHour.length}</div>
               <div class="report-item">Единиц: ${hourUnits}</div>
@@ -691,7 +740,7 @@
               <div class="report-item">Норматив: ${hourFactNorm > 0 ? hourFactNorm.toFixed(1) : '0.0'} шт/час</div>
             </div>
 
-            <div id="detail-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}-${hourKey}" class="detail-group hidden">
+            <div id="detail-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}-${intervalKey}" class="detail-group hidden">
           `;
 
           // Детали по бригадам внутри часового интервала
@@ -796,18 +845,17 @@
       Object.keys(workTypeGroups).forEach(workType => {
         const hourlyGroups = {};
         workTypeGroups[workType].rawRecords.forEach(r => {
-          const hour = getHourFromTime(r['Начало задачи']);
-          if (hour === null) return;
-          const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-          if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
-          hourlyGroups[key].rawRecords.push(r);
+          const interval = getHourIntervalForWorkDay(r['Начало задачи'], selectedDate);
+          if (interval === null) return;
+          if (!hourlyGroups[interval.key]) hourlyGroups[interval.key] = { rawRecords: [] };
+          hourlyGroups[interval.key].rawRecords.push(r);
         });
 
-        Object.keys(hourlyGroups).forEach(hourKey => {
-          const hourEl = document.querySelector(`.hour-group[data-hour="${hourKey}"][data-worktype="${workType}"][data-date="${selectedDate}"]`);
+        Object.keys(hourlyGroups).forEach(intervalKey => {
+          const hourEl = document.querySelector(`.hour-group[data-hour="${intervalKey}"][data-worktype="${workType}"][data-date="${selectedDate}"]`);
           if (hourEl) {
             hourEl.addEventListener('click', function() {
-              const detailDiv = document.getElementById(`detail-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}-${hourKey}`);
+              const detailDiv = document.getElementById(`detail-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}-${intervalKey}`);
               const icon = this.querySelector('.toggle-icon');
               if (detailDiv?.classList.contains('hidden')) {
                 detailDiv.classList.remove('hidden');
@@ -841,7 +889,7 @@
 
         const rows = [];
         rows.push([
-          "Дата", "Вид работ", "Час", "Бригада", "Ответственный", "Поставка", 
+          "Дата", "Вид работ", "Часовой интервал", "Бригада", "Ответственный", "Поставка", 
           "Ед.", "Время", "Сумма (Отв.)", "Помощники", "Сумма (Помощники)"
         ]);
 
@@ -858,15 +906,20 @@
           
           const hourlyGroups = {};
           workTypeRecords.forEach(r => {
-            const hour = getHourFromTime(r['Начало задачи']);
-            if (hour === null) return;
-            const key = `${hour.toString().padStart(2, '0')}-${(hour + 1).toString().padStart(2, '0')}`;
-            if (!hourlyGroups[key]) hourlyGroups[key] = { rawRecords: [] };
-            hourlyGroups[key].rawRecords.push(r);
+            const interval = getHourIntervalForWorkDay(r['Начало задачи'], selectedDate);
+            if (interval === null) return;
+            if (!hourlyGroups[interval.key]) hourlyGroups[interval.key] = { rawRecords: [] };
+            hourlyGroups[interval.key].rawRecords.push(r);
           });
 
-          Object.keys(hourlyGroups).sort().forEach(hourKey => {
-            const hourRecords = hourlyGroups[hourKey].rawRecords;
+          // Сортируем интервалы
+          const sortedIntervals = Object.keys(hourlyGroups).sort((a, b) => {
+            return hourlyGroups[a].interval.sortKey - hourlyGroups[b].interval.sortKey;
+          });
+
+          sortedIntervals.forEach(intervalKey => {
+            const hourRecords = hourlyGroups[intervalKey].rawRecords;
+            const interval = hourlyGroups[intervalKey].interval;
             const responsibles = [...new Set(
               hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
             )];
@@ -888,7 +941,7 @@
                 rows.push([
                   selectedDate,
                   workType,
-                  hourKey,
+                  interval.display,
                   `Бригада ${brigadeCounter}`,
                   respName,
                   resp['Поставка'] || '',
