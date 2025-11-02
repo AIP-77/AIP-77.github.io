@@ -154,7 +154,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 11.03-0034</p>
+<p class="version">Версия:  11.03-0130</p>
 <p id="dataSource" class="data-source">Данные: загрузка...</p>
 
 <div id="errorMessage" class="error"></div>
@@ -451,7 +451,13 @@
 
     showDebug(`Найдено задач: ${tasks.length}`);
 
-    // Определяем минимальное и максимальное время с точностью до миллисекунд
+    // Базовое время для выбранной даты
+    const baseDate = parseDate(date);
+    const baseDateMs = baseDate.getTime();
+
+    // Определяем временной диапазон для отображения
+    // Начало: время начала первой задачи в выбранную дату
+    // Конец: время окончания последней задачи, начатой в выбранную дату (даже если она заканчивается на следующий день)
     let minTimeMs = Infinity;
     let maxTimeMs = -Infinity;
 
@@ -465,19 +471,29 @@
       const startMs = start.getTime();
       const endMs = end.getTime();
 
-      minTimeMs = Math.min(minTimeMs, startMs);
-      maxTimeMs = Math.max(maxTimeMs, endMs);
+      // Для минимального времени берем только задачи, начатые в выбранную дату
+      const taskNormDate = normalizeDate(task['Рабочий день'], task['Начало задачи']);
+      const taskFormatted = `${String(taskNormDate.getDate()).padStart(2,'0')}.${String(taskNormDate.getMonth() + 1).padStart(2,'0')}.${taskNormDate.getFullYear()}`;
+      
+      if (taskFormatted === date) {
+        minTimeMs = Math.min(minTimeMs, startMs);
+      }
+
+      // Для максимального времени берем окончание всех задач, начатых в выбранную дату
+      if (taskFormatted === date) {
+        maxTimeMs = Math.max(maxTimeMs, endMs);
+      }
     });
 
     // Если не удалось определить времена — используем стандартные 8:00–20:00
     if (minTimeMs === Infinity) {
-      const baseDate = parseDate(date);
-      minTimeMs = baseDate.getTime() + 8 * 3600000;
-      maxTimeMs = baseDate.getTime() + 20 * 3600000;
+      minTimeMs = baseDateMs + 8 * 3600000;
+    }
+    if (maxTimeMs === -Infinity) {
+      maxTimeMs = baseDateMs + 20 * 3600000;
     }
 
     // Округляем до часа для отображения шкалы
-    const baseDateMs = parseDate(date).getTime();
     const minTimeRelative = minTimeMs - baseDateMs;
     const maxTimeRelative = maxTimeMs - baseDateMs;
 
@@ -487,12 +503,22 @@
     // Создаём временные точки с интервалом 1 час
     timePoints = [];
     for (let ms = roundedMin; ms <= roundedMax; ms += 3600000) {
-      const h = Math.floor(ms / 3600000) % 24;
-      const m = Math.floor((ms % 3600000) / 60000);
+      const absoluteMs = baseDateMs + ms;
+      const dateObj = new Date(absoluteMs);
+      const h = dateObj.getHours();
+      const m = dateObj.getMinutes();
+      
+      // Определяем, нужно ли показывать дату (если время переходит на следующий день)
+      let label = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+      if (dateObj.getDate() !== baseDate.getDate()) {
+        const nextDay = `${dateObj.getDate().toString().padStart(2,'0')}.${(dateObj.getMonth() + 1).toString().padStart(2,'0')}`;
+        label += ` (${nextDay})`;
+      }
+      
       timePoints.push({
-        label: `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`,
+        label: label,
         ms: ms,
-        absoluteMs: baseDateMs + ms // Абсолютное время для точных расчетов
+        absoluteMs: absoluteMs
       });
     }
 
@@ -564,6 +590,7 @@
       </table>
     `;
 
+    showDebug(`Диапазон: ${new Date(minTimeMs).toLocaleString()} - ${new Date(maxTimeMs).toLocaleString()}`);
     showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
   }
 
@@ -603,11 +630,6 @@
       // Абсолютное время в миллисекундах
       const startMs = start.getTime();
       const endMs = end.getTime();
-
-      // Логирование времён для отладки
-      console.log(`Задача: ${task['Вид работ']} (${task['Поставка']})`);
-      console.log(`  Начало: ${startMs} → ${start.toLocaleTimeString()}`);
-      console.log(`  Конец: ${endMs} → ${end.toLocaleTimeString()}`);
 
       // Определяем, в какие ячейки попадает задача
       for (let i = 0; i < timePoints.length - 1; i++) {
@@ -655,11 +677,14 @@
           // Подсказка при наведении
           block.addEventListener('mouseenter', (e) => {
             const tooltip = document.getElementById('tooltip');
+            const startDate = new Date(startMs);
+            const endDate = new Date(endMs);
+            
             tooltip.innerHTML = `
               <strong>${task['Вид работ']}</strong><br>
               Поставка: ${task['Поставка'] || '—'}<br>
-              Начало: ${task['Начало задачи']}<br>
-              Конец: ${task['Конец задачи'] || '—'}<br>
+              Начало: ${startDate.toLocaleString()}<br>
+              Конец: ${endDate.toLocaleString()}<br>
               Должность: ${task['Должность'] || '—'}
             `;
             tooltip.style.opacity = 1;
@@ -702,8 +727,8 @@
         block.classList.add('conflict');
 
         console.log(`❗ Пересечение: ${block.textContent} с ${other['Поставка'] || 'Без номера'}`);
-        console.log(`   Задача 1: ${new Date(startMs).toLocaleTimeString()} → ${new Date(endMs).toLocaleTimeString()}`);
-        console.log(`   Задача 2: ${new Date(otherStartMs).toLocaleTimeString()} → ${new Date(otherEndMs).toLocaleTimeString()}`);
+        console.log(`   Задача 1: ${new Date(startMs).toLocaleString()} → ${new Date(endMs).toLocaleString()}`);
+        console.log(`   Задача 2: ${new Date(otherStartMs).toLocaleString()} → ${new Date(otherEndMs).toLocaleString()}`);
         
         break;
       }
