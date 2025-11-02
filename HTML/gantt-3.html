@@ -12,6 +12,7 @@
     button { cursor: pointer; }
     .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
     .version { font-size: 0.85em; color: #555; margin-top: -10px; }
+    .data-source { font-size: 0.85em; color: #777; margin-top: -5px; margin-bottom: 15px; }
     .debug { font-size: 0.9em; color: #333; background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
 
     /* Таблица */
@@ -153,7 +154,8 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия: 21.10-2140</p>
+<p class="version">Версия: 11.03-0034</p>
+<p id="dataSource" class="data-source">Данные: загрузка...</p>
 
 <div id="errorMessage" class="error"></div>
 <div id="debugInfo" class="debug"></div>
@@ -190,6 +192,7 @@
   let allData = [];
   let currentTasks = [];
   let timePoints = [];
+  let currentDataSource = '';
 
   // Цвета для видов работ (динамически)
   const workTypeColors = {};
@@ -215,6 +218,44 @@
     el.textContent = "🔍 " + msg;
     el.style.display = 'block';
     console.log(msg);
+  }
+
+  function formatDateTime(isoString) {
+    try {
+      const date = new Date(isoString);
+      
+      // Проверяем, что дата валидна
+      if (isNaN(date.getTime())) {
+        return isoString; // Возвращаем оригинальную строку если невалидна
+      }
+      
+      // Форматируем в русский региональный формат
+      const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      };
+      
+      return date.toLocaleString('ru-RU', options);
+    } catch (error) {
+      console.error('Ошибка форматирования даты:', error);
+      return isoString; // Возвращаем оригинальную строку в случае ошибки
+    }
+  }
+
+  function updateDataSourceInfo(lastUpdated) {
+    const dataSourceEl = document.getElementById('dataSource');
+    if (lastUpdated) {
+      currentDataSource = lastUpdated;
+      const formattedDate = formatDateTime(lastUpdated);
+      dataSourceEl.textContent = `Данные: ${formattedDate}`;
+    } else {
+      dataSourceEl.textContent = 'Данные: информация недоступна';
+    }
   }
 
   function parseDate(dateStr) {
@@ -270,6 +311,14 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       const text = await res.text();
       const data = JSON.parse(text);
+      
+      // Обновляем информацию о данных
+      if (data.lastUpdated) {
+        updateDataSourceInfo(data.lastUpdated);
+      } else {
+        updateDataSourceInfo(`файл ${month} fullData.json`);
+      }
+      
       if (!data.records || !Array.isArray(data.records)) {
         throw new Error('Нет records[]');
       }
@@ -279,6 +328,7 @@
     } catch (err) {
       showError(`Ошибка загрузки данных за ${month}: ${err.message}`);
       showDebug(`Проверьте URL: ${url}`);
+      updateDataSourceInfo(`ошибка загрузки данных`);
     }
   }
 
@@ -401,39 +451,48 @@
 
     showDebug(`Найдено задач: ${tasks.length}`);
 
-    // Определяем минимальное и максимальное время
+    // Определяем минимальное и максимальное время с точностью до миллисекунд
     let minTimeMs = Infinity;
     let maxTimeMs = -Infinity;
 
     tasks.forEach(task => {
       const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
-      const end = buildDateTime(task['Рабочий день'], task['Конец задачи']); // Берём из данных
+      const end = buildDateTime(task['Рабочий день'], task['Конец задачи']);
 
       if (!start || !end) return;
 
-      const startMs = start.getTime() - parseDate(task['Рабочий день']).getTime();
-      const endMs = end.getTime() - parseDate(task['Рабочий день']).getTime();
+      // Получаем абсолютное время в миллисекундах
+      const startMs = start.getTime();
+      const endMs = end.getTime();
 
       minTimeMs = Math.min(minTimeMs, startMs);
       maxTimeMs = Math.max(maxTimeMs, endMs);
     });
 
     // Если не удалось определить времена — используем стандартные 8:00–20:00
-    if (minTimeMs === Infinity) minTimeMs = 8 * 3600000;
-    if (maxTimeMs === -Infinity) maxTimeMs = 20 * 3600000;
+    if (minTimeMs === Infinity) {
+      const baseDate = parseDate(date);
+      minTimeMs = baseDate.getTime() + 8 * 3600000;
+      maxTimeMs = baseDate.getTime() + 20 * 3600000;
+    }
 
-    // Округляем до часа
-    minTimeMs = Math.floor(minTimeMs / 3600000) * 3600000;
-    maxTimeMs = Math.ceil(maxTimeMs / 3600000) * 3600000;
+    // Округляем до часа для отображения шкалы
+    const baseDateMs = parseDate(date).getTime();
+    const minTimeRelative = minTimeMs - baseDateMs;
+    const maxTimeRelative = maxTimeMs - baseDateMs;
+
+    const roundedMin = Math.floor(minTimeRelative / 3600000) * 3600000;
+    const roundedMax = Math.ceil(maxTimeRelative / 3600000) * 3600000;
 
     // Создаём временные точки с интервалом 1 час
     timePoints = [];
-    for (let ms = minTimeMs; ms <= maxTimeMs; ms += 3600000) {
+    for (let ms = roundedMin; ms <= roundedMax; ms += 3600000) {
       const h = Math.floor(ms / 3600000) % 24;
       const m = Math.floor((ms % 3600000) / 60000);
       timePoints.push({
         label: `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`,
-        ms: ms
+        ms: ms,
+        absoluteMs: baseDateMs + ms // Абсолютное время для точных расчетов
       });
     }
 
@@ -463,13 +522,13 @@
 
     // Выводим "Рабочее время" первой строкой
     if (grouped['Рабочее время']) {
-      renderRow(container, 'Рабочее время', grouped['Рабочее время'], true, date, tasks); // isWorkTime: true, allTasks: tasks
-      delete grouped['Рабочее время']; // Удаляем, чтобы не дублировать
+      renderRow(container, 'Рабочее время', grouped['Рабочее время'], true, date, tasks);
+      delete grouped['Рабочее время'];
     }
 
     // Выводим остальные строки
     Object.keys(grouped).forEach(workType => {
-      renderRow(container, workType, grouped[workType], false, date, tasks); // isWorkTime: false, allTasks: tasks
+      renderRow(container, workType, grouped[workType], false, date, tasks);
     });
 
     // Создаём легенду
@@ -527,37 +586,42 @@
 
     container.appendChild(row);
 
+    // Базовое время для расчетов (начало выбранной даты)
+    const baseDate = parseDate(date);
+    const baseDateMs = baseDate.getTime();
+
     // Добавляем задачи в ячейки
     tasks.forEach(task => {
       const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
-      const end = buildDateTime(task['Рабочий день'], task['Конец задачи']); // Берём из данных
+      const end = buildDateTime(task['Рабочий день'], task['Конец задачи']);
 
       if (!start || !end) {
         console.warn('Пропущена задача (нет времени):', task);
         return;
       }
 
-      const startMs = start.getTime() - parseDate(task['Рабочий день']).getTime();
-      const endMs = end.getTime() - parseDate(task['Рабочий день']).getTime();
+      // Абсолютное время в миллисекундах
+      const startMs = start.getTime();
+      const endMs = end.getTime();
 
       // Логирование времён для отладки
       console.log(`Задача: ${task['Вид работ']} (${task['Поставка']})`);
-      console.log(`  Начало: ${startMs} ms → ${new Date(startMs + parseDate(task['Рабочий день']).getTime()).toLocaleTimeString()}`);
-      console.log(`  Конец: ${endMs} ms → ${new Date(endMs + parseDate(task['Рабочий день']).getTime()).toLocaleTimeString()}`);
+      console.log(`  Начало: ${startMs} → ${start.toLocaleTimeString()}`);
+      console.log(`  Конец: ${endMs} → ${end.toLocaleTimeString()}`);
 
       // Определяем, в какие ячейки попадает задача
       for (let i = 0; i < timePoints.length - 1; i++) {
-        const fromMs = timePoints[i].ms;
-        const toMs = timePoints[i + 1].ms;
+        const fromMs = timePoints[i].absoluteMs;
+        const toMs = timePoints[i + 1].absoluteMs;
 
         if (startMs < toMs && endMs > fromMs) {
           // Задача пересекается с этой ячейкой
-          const cell = row.children[i + 1]; // +1 потому что первая ячейка — название
+          const cell = row.children[i + 1];
 
           const block = document.createElement('div');
           block.className = 'task-block';
           block.textContent = task['Поставка'] || 'Без номера';
-          block.taskId = task.id; // Уникальный идентификатор
+          block.taskId = task.id;
 
           // Цвет по типу работы
           let bgColor = getColorForWorkType(workType);
@@ -565,24 +629,27 @@
           // Если это "Рабочее время" — делаем оттенки
           if (workType === 'Рабочее время') {
             if (task['Вид работ'] === 'Рабочий день') {
-              bgColor = 'hsl(120, 70%, 60%)'; // светло-зелёный
+              bgColor = 'hsl(120, 70%, 60%)';
             } else if (task['Вид работ'] === 'Дополнительное время для работ') {
-              bgColor = 'hsl(120, 70%, 40%)'; // тёмно-зелёный
+              bgColor = 'hsl(120, 70%, 40%)';
             }
           }
 
           block.style.backgroundColor = bgColor;
 
-          // Позиционирование
-          const leftPct = Math.max(0, (startMs - fromMs) / (toMs - fromMs)) * 100;
-          const widthPct = Math.min(100, (endMs - startMs) / (toMs - fromMs) * 100);
+          // Позиционирование относительно текущей ячейки
+          const cellStart = Math.max(startMs, fromMs);
+          const cellEnd = Math.min(endMs, toMs);
+          
+          const leftPct = ((cellStart - fromMs) / (toMs - fromMs)) * 100;
+          const widthPct = ((cellEnd - cellStart) / (toMs - fromMs)) * 100;
 
           block.style.left = `${leftPct}%`;
           block.style.width = `${widthPct}%`;
 
           // Проверка пересечений — только если НЕ "Рабочее время"
           if (!isWorkTime) {
-            checkConflicts(block, startMs, endMs, allTasks, task['Рабочий день'], isWorkTime);
+            checkConflicts(block, startMs, endMs, allTasks, task['Рабочий день']);
           }
 
           // Подсказка при наведении
@@ -610,41 +677,35 @@
     });
   }
 
-  function checkConflicts(block, startMs, endMs, allTasks, date, isWorkTime) {
-    // Проверяем пересечения с другими задачами
+  function checkConflicts(block, startMs, endMs, allTasks, date) {
+    // Проверяем пересечения с другими задачами с точностью до миллисекунд
     for (const other of allTasks) {
-      if (other.id === block.taskId) continue; // Не сравниваем с собой
+      if (other.id === block.taskId) continue;
 
-      // Пропускаем "Рабочий день" и "Дополнительное время для работ" — они не должны участвовать в пересечениях
+      // Пропускаем "Рабочий день" и "Дополнительное время для работ"
       const otherWorkType = other['Вид работ'];
       if (otherWorkType === 'Рабочий день' || otherWorkType === 'Дополнительное время для работ') {
-        continue; // Пропускаем
+        continue;
       }
 
       const otherStart = buildDateTime(other['Рабочий день'], other['Начало задачи']);
-      const otherEnd = buildDateTime(other['Рабочий день'], other['Конец задачи']); // Берём из данных
+      const otherEnd = buildDateTime(other['Рабочий день'], other['Конец задачи']);
 
       if (!otherStart || !otherEnd) continue;
 
-      const otherStartMs = otherStart.getTime() - parseDate(other['Рабочий день']).getTime();
-      const otherEndMs = otherEnd.getTime() - parseDate(other['Рабочий день']).getTime();
+      const otherStartMs = otherStart.getTime();
+      const otherEndMs = otherEnd.getTime();
 
-      // Определяем зазор (например, 1 минута)
-      const gapMs = 60000; // 1 минута
-
-      // Проверяем пересечение с учётом зазора
-      // Если задачи перекрываются или стыкуются с зазором < 1 минуты — считаем конфликтом
-      if (startMs < otherEndMs + gapMs && endMs > otherStartMs - gapMs) {
+      // Проверяем пересечение с точностью до миллисекунд (0 секунд зазора)
+      if (startMs < otherEndMs && endMs > otherStartMs) {
         // Есть пересечение — подкрашиваем красным
         block.classList.add('conflict');
 
-        // Логирование пересечения
         console.log(`❗ Пересечение: ${block.textContent} с ${other['Поставка'] || 'Без номера'}`);
-        console.log(`   Задача 1: ${startMs} → ${endMs}`);
-        console.log(`   Задача 2: ${otherStartMs} → ${otherEndMs}`);
-        console.log(`   Зазор: ${gapMs} ms`);
-
-        break; // Достаточно одного пересечения
+        console.log(`   Задача 1: ${new Date(startMs).toLocaleTimeString()} → ${new Date(endMs).toLocaleTimeString()}`);
+        console.log(`   Задача 2: ${new Date(otherStartMs).toLocaleTimeString()} → ${new Date(otherEndMs).toLocaleTimeString()}`);
+        
+        break;
       }
     }
   }
