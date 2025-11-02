@@ -319,7 +319,7 @@
         chatId = String(user.id);
 
         // Загружаем данные
-        const currentRes = await fetch('2025-10.json');
+        const currentRes = await fetch('archive/2025-10.json');
         if (!currentRes.ok) throw new Error('Не удалось загрузить current.json');
         allUserData = await currentRes.json();
 
