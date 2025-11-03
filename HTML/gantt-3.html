@@ -154,7 +154,7 @@
 <body>
 
 <h2>Диаграмма занятости сотрудника</h2>
-<p class="version">Версия:  11.03-0130</p>
+<p class="version">Версия: 11.03-2229</p>
 <p id="dataSource" class="data-source">Данные: загрузка...</p>
 
 <div id="errorMessage" class="error"></div>
@@ -631,6 +631,8 @@
       const startMs = start.getTime();
       const endMs = end.getTime();
 
+      console.log(`Обрабатываем задачу: ${task['Вид работ']}`, startMs, endMs);
+
       // Определяем, в какие ячейки попадает задача
       for (let i = 0; i < timePoints.length - 1; i++) {
         const fromMs = timePoints[i].absoluteMs;
@@ -642,7 +644,16 @@
 
           const block = document.createElement('div');
           block.className = 'task-block';
-          block.textContent = task['Поставка'] || 'Без номера';
+          
+          // Для задач "Рабочий день" показываем специальный текст
+          if (task['Вид работ'] === 'Рабочий день') {
+            block.textContent = 'Рабочий день';
+          } else if (task['Вид работ'] === 'Дополнительное время для работ') {
+            block.textContent = 'Доп. время';
+          } else {
+            block.textContent = task['Поставка'] || 'Без номера';
+          }
+          
           block.taskId = task.id;
 
           // Цвет по типу работы
@@ -651,9 +662,9 @@
           // Если это "Рабочее время" — делаем оттенки
           if (workType === 'Рабочее время') {
             if (task['Вид работ'] === 'Рабочий день') {
-              bgColor = 'hsl(120, 70%, 60%)';
+              bgColor = 'hsl(120, 70%, 60%)'; // светло-зелёный
             } else if (task['Вид работ'] === 'Дополнительное время для работ') {
-              bgColor = 'hsl(120, 70%, 40%)';
+              bgColor = 'hsl(120, 70%, 40%)'; // тёмно-зелёный
             }
           }
 
@@ -682,10 +693,11 @@
             
             tooltip.innerHTML = `
               <strong>${task['Вид работ']}</strong><br>
-              Поставка: ${task['Поставка'] || '—'}<br>
+              ${task['Поставка'] ? 'Поставка: ' + task['Поставка'] + '<br>' : ''}
               Начало: ${startDate.toLocaleString()}<br>
               Конец: ${endDate.toLocaleString()}<br>
-              Должность: ${task['Должность'] || '—'}
+              ${task['Должность'] ? 'Должность: ' + task['Должность'] + '<br>' : ''}
+              ${task['Рабочее время'] ? 'Рабочее время: ' + task['Рабочее время'] : ''}
             `;
             tooltip.style.opacity = 1;
             tooltip.style.left = `${e.pageX + 10}px`;
