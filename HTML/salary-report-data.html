@@ -34,8 +34,25 @@
       background: #0088cc;
       color: white;
       text-align: center;
+      position: relative;
+    }
+
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .header-title {
       font-size: 18px;
       font-weight: 600;
+    }
+
+    .header-subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+      font-weight: 500;
     }
 
     .version {
@@ -44,11 +61,19 @@
       font-size: 12px;
       color: #006064;
       text-align: right;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .version .outdated {
       color: #d32f2f !important;
       font-weight: 600;
+    }
+
+    .current-month {
+      font-weight: 600;
+      color: #006064;
     }
 
     .controls {
@@ -97,6 +122,7 @@
       color: #666;
     }
 
+    /* Остальные стили остаются без изменений */
     /* Стили для раскрывающихся списков */
     .employee-row {
       cursor: pointer;
@@ -638,8 +664,25 @@
       }
 
       .header {
-        font-size: 16px;
         padding: 14px 12px;
+      }
+
+      .header-title {
+        font-size: 16px;
+      }
+
+      .header-subtitle {
+        font-size: 13px;
+      }
+
+      .version {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-end;
+      }
+
+      .current-month {
+        font-size: 11px;
       }
 
       .employee-header, .date-row, .summary-row, .stats-row, .employee-stats, .date-stats {
@@ -741,8 +784,16 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">Детализация заработной платы</div>
-    <div class="version">v 11.05-1930 <span id="last-updated"></span></div>
+    <div class="header">
+      <div class="header-content">
+        <div class="header-title">Детализация заработной платы</div>
+        <div class="header-subtitle" id="current-month-display">Загрузка...</div>
+      </div>
+    </div>
+    <div class="version">
+      <div class="current-month" id="current-month-full"></div>
+      <div>v 11.05-1939 <span id="last-updated"></span></div>
+    </div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -808,6 +859,23 @@
   <script>
     const AVAILABLE_MONTHS = ["2025-09", "2025-10", "2025-11"];
     let cacheBuster = Date.now();
+    let currentMonth = '';
+
+    // 🔥 ФУНКЦИЯ ОБНОВЛЕНИЯ ОТОБРАЖЕНИЯ МЕСЯЦА
+    function updateMonthDisplay(monthValue) {
+      const monthDisplay = document.getElementById('current-month-display');
+      const monthFull = document.getElementById('current-month-full');
+      
+      if (monthValue) {
+        const monthLabel = getMonthLabel(monthValue);
+        currentMonth = monthValue;
+        monthDisplay.textContent = monthLabel;
+        monthFull.textContent = monthLabel;
+      } else {
+        monthDisplay.textContent = 'Месяц не выбран';
+        monthFull.textContent = 'Месяц не выбран';
+      }
+    }
 
     async function fetchStaffData() {
       try {
@@ -1499,12 +1567,20 @@
 
       if (sorted.length > 0) {
         select.value = sorted[0];
+        // 🔥 ОБНОВЛЯЕМ ОТОБРАЖЕНИЕ МЕСЯЦА ПРИ ИНИЦИАЛИЗАЦИИ
+        updateMonthDisplay(sorted[0]);
+        
         select.addEventListener('change', (e) => {
-          if (e.target.value) loadAndRender(e.target.value);
+          if (e.target.value) {
+            // 🔥 ОБНОВЛЯЕМ ОТОБРАЖЕНИЕ МЕСЯЦА ПРИ ИЗМЕНЕНИИ
+            updateMonthDisplay(e.target.value);
+            loadAndRender(e.target.value);
+          }
         });
         loadAndRender(sorted[0]);
       } else {
         document.getElementById('content').innerHTML = '<div class="error">Нет доступных месяцев</div>';
+        updateMonthDisplay('');
       }
     }
 
