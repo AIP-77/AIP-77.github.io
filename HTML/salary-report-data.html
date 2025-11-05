@@ -293,6 +293,32 @@
       color: #333;
       margin: 8px 16px 8px 32px;
       border-left: 4px solid #0088cc;
+      cursor: pointer;
+    }
+
+    .compact-summary.date:hover {
+      background-color: #f8f9fa;
+    }
+
+    .date-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .date-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: #1565c0;
+    }
+
+    .date-amount {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 15px;
     }
 
     .summary-item {
@@ -470,13 +496,26 @@
       .summary-amount {
         font-size: 14px;
       }
+
+      .date-card-header {
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+      }
+
+      .date-title {
+        font-size: 14px;
+      }
+
+      .date-amount {
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">Детализация заработной платы</div>
-    <div class="version">v 11.05-1835 <span id="last-updated"></span></div>
+    <div class="version">v 11.03-1721 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -825,31 +864,59 @@
       return `<span class="${efficiencyClass}">${efficiencyText}</span>`;
     }
 
-    function createCompactSummary(data, type = 'employee') {
+    function createCompactSummary(data, type = 'employee', date = '') {
       const efficiencyValue = calculateEfficiency(data.totalEffectiveTime, data.totalWorkTime);
       
-      return `
-        <div class="compact-summary ${type}">
-          <div>
-            <div class="summary-item">
-              <span class="summary-icon">📋</span>Задач: <span class="summary-value">${data.totalTasks}</span>
+      if (type === 'date') {
+        return `
+          <div class="compact-summary ${type}" data-date="${date}">
+            <div class="date-card-header">
+              <div class="date-title">${formatDate(date)}</div>
+              <div class="date-amount">р.${formatMoneyNumber(data.totalAmount)}</div>
             </div>
-            <div class="summary-item">
-              <span class="summary-icon">📦</span>Единиц: <span class="summary-value">${Math.round(data.totalUnits)}</span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-icon">⏱️</span>Эфф. время: <span class="summary-value">${secondsToTime(data.totalEffectiveTime)}</span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-icon">🕒</span>Раб. время: <span class="summary-value">${secondsToTime(data.totalWorkTime)}</span>
-            </div>
-            <div class="summary-item">
-              <span class="summary-icon">📊</span>Эффективность: <span class="summary-value">${formatEfficiency(efficiencyValue)}</span>
+            <div>
+              <div class="summary-item">
+                <span class="summary-icon">📋</span>Задач: <span class="summary-value">${data.totalTasks}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📦</span>Единиц: <span class="summary-value">${Math.round(data.totalUnits)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">⏱️</span>Эфф. время: <span class="summary-value">${secondsToTime(data.totalEffectiveTime)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">🕒</span>Раб. время: <span class="summary-value">${secondsToTime(data.totalWorkTime)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📊</span>Эффективность: <span class="summary-value">${formatEfficiency(efficiencyValue)}</span>
+              </div>
             </div>
           </div>
-          <div class="summary-amount">Сумма: р.${formatMoneyNumber(data.totalAmount)}</div>
-        </div>
-      `;
+        `;
+      } else {
+        return `
+          <div class="compact-summary ${type}">
+            <div>
+              <div class="summary-item">
+                <span class="summary-icon">📋</span>Задач: <span class="summary-value">${data.totalTasks}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📦</span>Единиц: <span class="summary-value">${Math.round(data.totalUnits)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">⏱️</span>Эфф. время: <span class="summary-value">${secondsToTime(data.totalEffectiveTime)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">🕒</span>Раб. время: <span class="summary-value">${secondsToTime(data.totalWorkTime)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📊</span>Эффективность: <span class="summary-value">${formatEfficiency(efficiencyValue)}</span>
+              </div>
+            </div>
+            <div class="summary-amount">Сумма: р.${formatMoneyNumber(data.totalAmount)}</div>
+          </div>
+        `;
+      }
     }
 
     function renderGroupedTable(groupedData, filteredEmployees) {
@@ -881,11 +948,7 @@
           const dateData = employeeData.dates[date];
             
           html += `
-            <div class="date-row">
-              <div class="date-header">${formatDate(date)}</div>
-              <div class="amount-cell">р.${formatMoneyNumber(dateData.totalAmount)}</div>
-            </div>
-            ${createCompactSummary(dateData, 'date')}
+            ${createCompactSummary(dateData, 'date', date)}
             <div class="date-details">
               <!-- ДЕТАЛИЗАЦИЯ РАБОТ ЗА ДЕНЬ -->
               <table class="works-table">
@@ -936,7 +999,7 @@
       addExpandHandlers();
     }
 
-    // 🔥 ИСПРАВЛЕННЫЕ ОБРАБОТЧИКИ СОБЫТИЙ
+    // 🔥 ОБНОВЛЕННЫЕ ОБРАБОТЧИКИ СОБЫТИЙ
     function addExpandHandlers() {
       // Обработчики для сотрудников
       document.querySelectorAll('.employee-row').forEach(row => {
@@ -950,17 +1013,13 @@
         });
       });
       
-      // Обработчики для дат
-      document.querySelectorAll('.date-row').forEach(row => {
-        row.addEventListener('click', function(e) {
+      // Обработчики для дат (теперь клик по карточке)
+      document.querySelectorAll('.compact-summary.date').forEach(card => {
+        card.addEventListener('click', function(e) {
           e.stopPropagation();
-          // Ищем следующий элемент после date-row и compact-summary
+          const date = this.getAttribute('data-date');
+          // Ищем следующий элемент после карточки (date-details)
           let nextElement = this.nextElementSibling;
-          // Пропускаем compact-summary если он есть
-          if (nextElement && nextElement.classList.contains('compact-summary')) {
-            nextElement = nextElement.nextElementSibling;
-          }
-          // Теперь nextElement должен быть date-details
           if (nextElement && nextElement.classList.contains('date-details')) {
             const isVisible = nextElement.style.display === 'block';
             nextElement.style.display = isVisible ? 'none' : 'block';
