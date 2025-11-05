@@ -75,7 +75,6 @@
       background: white;
     }
 
-    /* Стили для множественного выбора */
     .controls select[multiple] {
       height: 120px;
       padding: 8px;
@@ -117,10 +116,69 @@
       font-weight: 600;
     }
 
+    .employee-stats {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background-color: #f8f9fa;
+      border-top: 1px solid #e9ecef;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .employee-stat-item {
+      text-align: center;
+      flex: 1;
+    }
+
+    .employee-stat-value {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .date-stats {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 16px 8px 32px;
+      background-color: #f0f0f0;
+      border-top: 1px solid #e0e0e0;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .date-stat-item {
+      text-align: center;
+      flex: 1;
+    }
+
+    .date-stat-value {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .efficiency-low {
+      color: #d32f2f !important;
+      font-weight: 700;
+    }
+
+    .efficiency-medium {
+      color: #f57c00 !important;
+      font-weight: 600;
+    }
+
+    .efficiency-good {
+      color: #2e7d32 !important;
+      font-weight: 600;
+    }
+
+    .efficiency-high {
+      color: #1976d2 !important;
+      font-weight: 700;
+    }
+
     .employee-details {
       display: none;
       background-color: #f9f9f9;
-      border-top: 1px solid #eee;
     }
 
     .date-row {
@@ -143,34 +201,76 @@
     .date-details {
       display: none;
       background-color: white;
-      border-top: 1px solid #e5e5e5;
     }
 
-    .work-row {
-      padding: 8px 16px 8px 48px;
+    /* ДЕТАЛИЗАЦИЯ РАБОТ ЗА ДЕНЬ */
+    .works-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .works-table th {
+      background-color: #e3f2fd;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #1565c0;
+      border-bottom: 2px solid #bbdefb;
+    }
+
+    .works-table td {
+      padding: 8px 12px;
       border-bottom: 1px solid #f0f0f0;
-      display: flex;
-      justify-content: space-between;
     }
 
-    .work-row:nth-child(even) {
+    .works-table tr:nth-child(even) {
       background-color: #fafafa;
     }
 
+    .works-table tr:hover {
+      background-color: #f5f5f5;
+    }
+
     .work-type {
-      flex: 2;
+      font-weight: 500;
+    }
+
+    .delivery-number {
+      font-size: 11px;
+      color: #666;
+      font-style: italic;
+      margin-top: 2px;
     }
 
     .work-units {
-      flex: 1;
       text-align: center;
+      font-weight: 600;
+    }
+
+    .work-time {
+      text-align: center;
+      font-family: 'Courier New', monospace;
     }
 
     .work-amount {
-      flex: 1;
       text-align: right;
       font-weight: 600;
+    }
+
+    .work-base-amount {
       color: #2e7d32;
+    }
+
+    .work-bonus {
+      color: #ff9800;
+      font-size: 11px;
+    }
+
+    .work-total-amount {
+      color: #d32f2f;
+      font-weight: 700;
     }
 
     .summary-row {
@@ -180,6 +280,26 @@
       font-weight: 600;
       display: flex;
       justify-content: space-between;
+    }
+
+    .stats-row {
+      padding: 8px 16px;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #e9ecef;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stats-label {
+      flex: 2;
+      color: #666;
+    }
+
+    .stats-value {
+      flex: 1;
+      text-align: right;
+      color: #333;
     }
 
     .summary-label {
@@ -242,7 +362,7 @@
         padding: 14px 12px;
       }
 
-      .employee-header, .date-row, .work-row, .summary-row {
+      .employee-header, .date-row, .summary-row, .stats-row, .employee-stats, .date-stats {
         padding-left: 12px;
         padding-right: 12px;
       }
@@ -251,33 +371,35 @@
         padding-left: 24px;
       }
 
-      .work-row {
-        padding-left: 36px;
+      .date-stats {
+        padding-left: 24px;
+      }
+
+      .employee-stats {
+        font-size: 12px;
+      }
+
+      .date-stats {
+        font-size: 11px;
+      }
+
+      .stats-row {
+        font-size: 12px;
+      }
+
+      .works-table {
+        font-size: 12px;
+      }
+
+      .works-table th,
+      .works-table td {
+        padding: 6px 8px;
       }
 
       .footer-actions button {
         padding: 10px 16px;
         font-size: 15px;
         min-width: 140px;
-      }
-    }
-
-    @media (max-width: 400px) {
-      .employee-header, .date-row, .work-row, .summary-row {
-        padding: 8px 10px;
-      }
-
-      .date-row {
-        padding-left: 20px;
-      }
-
-      .work-row {
-        padding-left: 30px;
-      }
-
-      .footer-actions button {
-        font-size: 14px;
-        padding: 8px 12px;
       }
     }
   </style>
@@ -313,13 +435,9 @@
   </div>
 
   <script>
-    // 🔥 ДОБАВЛЕН НОЯБРЬ 2025
     const AVAILABLE_MONTHS = ["2025-09", "2025-10", "2025-11"];
     let cacheBuster = Date.now();
 
-    // ========================
-    // Загрузка данных о сотрудниках и отделах
-    // ========================
     async function fetchStaffData() {
       try {
         const url = `https://AIP-77.github.io/archive/staff fullData.json?t=${cacheBuster}`;
@@ -356,10 +474,6 @@
         return { staffMap: {}, departments: [] };
       }
     }
-
-    // ========================
-    // Вспомогательные функции
-    // ========================
 
     function timeToSeconds(timeStr) {
       if (!timeStr || timeStr.trim() === '') return 0;
@@ -441,13 +555,14 @@
       }
     }
 
-    // 🔥 НОВАЯ ФУНКЦИЯ: Группировка данных по сотрудникам и датам
     function groupDataByEmployeeAndDate(records) {
       const grouped = {};
       
       records.forEach(record => {
         const employee = record["Сотрудник"];
-        const date = record["Дата"];
+        const date = record["Рабочий день"];
+        
+        if (!employee || !date) return;
         
         if (!grouped[employee]) {
           grouped[employee] = {
@@ -471,70 +586,63 @@
           };
         }
         
-        // Добавляем работу за день
         const work = {
-          type: record["Вид работ"],
+          type: record["Вид работ"] || "Не указан",
           units: parseFloat(record["Количество единиц"]) || 0,
           effectiveTime: timeToSeconds(record["Рабочее время"]),
           workTime: timeToSeconds(record["Время по табелю"]),
-          amount: parseMoney(record["Расчетная сумма"]) + parseMoney(record["Доплата XIS"])
+          baseAmount: parseMoney(record["Расчетная сумма"]),
+          bonusAmount: parseMoney(record["Доплата XIS"]),
+          totalAmount: parseMoney(record["Расчетная сумма"]) + parseMoney(record["Доплата XIS"]),
+          deliveryNumber: record["Поставка"] || ""
         };
         
         grouped[employee].dates[date].works.push(work);
         
-        // Обновляем статистику за день
         grouped[employee].dates[date].totalTasks += 1;
         grouped[employee].dates[date].totalUnits += work.units;
         grouped[employee].dates[date].totalEffectiveTime += work.effectiveTime;
         grouped[employee].dates[date].totalWorkTime += work.workTime;
-        grouped[employee].dates[date].totalAmount += work.amount;
+        grouped[employee].dates[date].totalAmount += work.totalAmount;
         
-        // Обновляем общую статистику по сотруднику
         grouped[employee].totalTasks += 1;
         grouped[employee].totalUnits += work.units;
         grouped[employee].totalEffectiveTime += work.effectiveTime;
         grouped[employee].totalWorkTime += work.workTime;
-        grouped[employee].totalAmount += work.amount;
+        grouped[employee].totalAmount += work.totalAmount;
       });
       
       return grouped;
     }
 
-    // 🔥 ОБНОВЛЁННАЯ ФУНКЦИЯ ФИЛЬТРАЦИИ С МНОЖЕСТВЕННЫМ ВЫБОРОМ ОТДЕЛОВ
     function applyFilters() {
       const groupedData = window.currentGroupedData;
       if (!groupedData) return;
       
-      // Фильтр по отделам (множественный выбор)
       const departmentSelect = document.getElementById('department-filter');
       const selectedDepartments = Array.from(departmentSelect.selectedOptions)
         .map(option => option.value)
         .filter(value => value !== '');
 
-      // Фильтр по поиску
       const query = document.getElementById('employee-search').value.trim().toLowerCase();
       
-      // Фильтруем сотрудников
       const filteredEmployees = Object.keys(groupedData).filter(employee => {
-        // Фильтр по отделу
         if (selectedDepartments.length > 0) {
           const dept = window.staffMap[employee];
           if (!selectedDepartments.includes(dept)) return false;
         }
         
-        // Фильтр по поиску
         if (query && !employee.toLowerCase().includes(query)) return false;
         
         return true;
       });
 
-      // Обновляем информацию о выбранных отделах
-      updateSelectedDepartmentsInfo(selectedDepartments);
+      filteredEmployees.sort((a, b) => a.localeCompare(b, 'ru'));
 
+      updateSelectedDepartmentsInfo(selectedDepartments);
       renderGroupedTable(groupedData, filteredEmployees);
     }
 
-    // 🔥 ФУНКЦИЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ О ВЫБРАННЫХ ОТДЕЛАХ
     function updateSelectedDepartmentsInfo(selectedDepartments) {
       const infoElement = document.getElementById('selected-departments');
       
@@ -550,7 +658,104 @@
       }
     }
 
-    // 🔥 НОВАЯ ФУНКЦИЯ: Рендеринг группированной таблицы
+    function formatDate(dateStr) {
+      if (!dateStr) return 'Дата не указана';
+      
+      try {
+        let date;
+        
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          date = new Date(dateStr);
+        }
+        else if (dateStr.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+          const [day, month, year] = dateStr.split('.');
+          date = new Date(`${year}-${month}-${day}`);
+        }
+        else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+          const [day, month, year] = dateStr.split('/');
+          date = new Date(`${year}-${month}-${day}`);
+        }
+        else {
+          date = new Date(dateStr);
+        }
+        
+        if (isNaN(date.getTime())) {
+          return dateStr;
+        }
+        
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function sortDatesDesc(dates) {
+      return dates.sort((a, b) => {
+        try {
+          const dateA = parseDate(a);
+          const dateB = parseDate(b);
+          
+          if (dateA && dateB) {
+            return dateB - dateA;
+          }
+          
+          if (dateA && !dateB) return -1;
+          if (!dateA && dateB) return 1;
+          
+          return b.localeCompare(a);
+        } catch (e) {
+          return b.localeCompare(a);
+        }
+      });
+    }
+
+    function parseDate(dateStr) {
+      if (!dateStr) return null;
+      
+      try {
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return new Date(dateStr);
+        }
+        else if (dateStr.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+          const [day, month, year] = dateStr.split('.');
+          return new Date(`${year}-${month}-${day}`);
+        }
+        else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+          const [day, month, year] = dateStr.split('/');
+          return new Date(`${year}-${month}-${day}`);
+        }
+        else {
+          const date = new Date(dateStr);
+          return isNaN(date.getTime()) ? null : date;
+        }
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function calculateEfficiency(effectiveTime, workTime) {
+      if (workTime === 0) return 0;
+      return (effectiveTime / workTime) * 100;
+    }
+
+    function getEfficiencyClass(efficiency) {
+      if (efficiency <= 60) return 'efficiency-low';
+      if (efficiency <= 79) return 'efficiency-medium';
+      if (efficiency <= 110) return 'efficiency-good';
+      return 'efficiency-high';
+    }
+
+    function formatEfficiency(efficiency) {
+      const efficiencyValue = typeof efficiency === 'number' ? efficiency : calculateEfficiency(efficiency.effectiveTime, efficiency.workTime);
+      const efficiencyText = efficiencyValue.toFixed(2).replace('.', ',') + '%';
+      const efficiencyClass = getEfficiencyClass(efficiencyValue);
+      
+      return `<span class="${efficiencyClass}">${efficiencyText}</span>`;
+    }
+
     function renderGroupedTable(groupedData, filteredEmployees) {
       const content = document.getElementById('content');
       
@@ -563,9 +768,7 @@
       
       filteredEmployees.forEach(employee => {
         const employeeData = groupedData[employee];
-        const efficiency = employeeData.totalWorkTime > 0 
-          ? ((employeeData.totalEffectiveTime / employeeData.totalWorkTime) * 100).toFixed(2).replace('.', ',') + '%'
-          : '0,00%';
+        const efficiencyValue = calculateEfficiency(employeeData.totalEffectiveTime, employeeData.totalWorkTime);
           
         html += `
           <div class="employee-row">
@@ -573,61 +776,136 @@
               <span>${employee}</span>
               <span class="amount-cell">р.${formatMoneyNumber(employeeData.totalAmount)}</span>
             </div>
+            <div class="employee-stats">
+              <div class="employee-stat-item">
+                <div>Задач</div>
+                <div class="employee-stat-value">${employeeData.totalTasks}</div>
+              </div>
+              <div class="employee-stat-item">
+                <div>Единиц</div>
+                <div class="employee-stat-value">${Math.round(employeeData.totalUnits)}</div>
+              </div>
+              <div class="employee-stat-item">
+                <div>Эфф. время</div>
+                <div class="employee-stat-value">${secondsToTime(employeeData.totalEffectiveTime)}</div>
+              </div>
+              <div class="employee-stat-item">
+                <div>Раб. время</div>
+                <div class="employee-stat-value">${secondsToTime(employeeData.totalWorkTime)}</div>
+              </div>
+              <div class="employee-stat-item">
+                <div>Эффективность</div>
+                <div class="employee-stat-value">${formatEfficiency(efficiencyValue)}</div>
+              </div>
+            </div>
             <div class="employee-details">
         `;
         
-        // Сортируем даты по убыванию (самые новые сверху)
-        const sortedDates = Object.keys(employeeData.dates).sort((a, b) => 
-          new Date(b) - new Date(a)
-        );
+        const sortedDates = sortDatesDesc(Object.keys(employeeData.dates));
         
         sortedDates.forEach(date => {
           const dateData = employeeData.dates[date];
-          const dateEfficiency = dateData.totalWorkTime > 0 
-            ? ((dateData.totalEffectiveTime / dateData.totalWorkTime) * 100).toFixed(2).replace('.', ',') + '%'
-            : '0,00%';
+          const dateEfficiencyValue = calculateEfficiency(dateData.totalEffectiveTime, dateData.totalWorkTime);
             
           html += `
             <div class="date-row">
               <div class="date-header">${formatDate(date)}</div>
               <div class="amount-cell">р.${formatMoneyNumber(dateData.totalAmount)}</div>
             </div>
+            <div class="date-stats">
+              <div class="date-stat-item">
+                <div>Задач</div>
+                <div class="date-stat-value">${dateData.totalTasks}</div>
+              </div>
+              <div class="date-stat-item">
+                <div>Единиц</div>
+                <div class="date-stat-value">${Math.round(dateData.totalUnits)}</div>
+              </div>
+              <div class="date-stat-item">
+                <div>Эфф. время</div>
+                <div class="date-stat-value">${secondsToTime(dateData.totalEffectiveTime)}</div>
+              </div>
+              <div class="date-stat-item">
+                <div>Раб. время</div>
+                <div class="date-stat-value">${secondsToTime(dateData.totalWorkTime)}</div>
+              </div>
+              <div class="date-stat-item">
+                <div>Эффективность</div>
+                <div class="date-stat-value">${formatEfficiency(dateEfficiencyValue)}</div>
+              </div>
+            </div>
             <div class="date-details">
+              <!-- ДЕТАЛИЗАЦИЯ РАБОТ ЗА ДЕНЬ -->
+              <table class="works-table">
+                <thead>
+                  <tr>
+                    <th>Вид работ / Поставка</th>
+                    <th>Единиц</th>
+                    <th>Время работы</th>
+                    <th>Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
           `;
           
-          // Отображаем работы за день
           dateData.works.forEach(work => {
             html += `
-              <div class="work-row">
-                <div class="work-type">${work.type}</div>
-                <div class="work-units">${Math.round(work.units)} ед.</div>
-                <div class="work-amount">р.${formatMoneyNumber(work.amount)}</div>
+                  <tr>
+                    <td>
+                      <div class="work-type">${work.type}</div>
+                      ${work.deliveryNumber ? `<div class="delivery-number">${work.deliveryNumber}</div>` : ''}
+                    </td>
+                    <td class="work-units">${Math.round(work.units)}</td>
+                    <td class="work-time">${secondsToTime(work.effectiveTime)}</td>
+                    <td class="work-amount">
+                      <div class="work-base-amount">р.${formatMoneyNumber(work.baseAmount)}</div>
+                      ${work.bonusAmount > 0 ? `<div class="work-bonus">+ р.${formatMoneyNumber(work.bonusAmount)}</div>` : ''}
+                      <div class="work-total-amount">р.${formatMoneyNumber(work.totalAmount)}</div>
+                    </td>
+                  </tr>
+            `;
+          });
+          
+          html += `
+                </tbody>
+              </table>
+          `;
+          
+          dateData.works.forEach(work => {
+            const workEfficiencyValue = calculateEfficiency(work.effectiveTime, work.workTime);
+            const deliveryInfo = work.deliveryNumber ? ` (${work.deliveryNumber})` : '';
+            html += `
+              <div class="stats-row">
+                <div class="stats-label">${work.type}${deliveryInfo}:</div>
+                <div class="stats-value">
+                  ${Math.round(work.units)} ед., 
+                  ${secondsToTime(work.effectiveTime)} / ${secondsToTime(work.workTime)} 
+                  (${formatEfficiency(workEfficiencyValue)})
+                </div>
               </div>
             `;
           });
           
-          // Итоги за день
           html += `
               <div class="summary-row">
                 <div class="summary-label">Итого за ${formatDate(date)}:</div>
                 <div class="summary-value">
                   ${dateData.totalTasks} задач, ${Math.round(dateData.totalUnits)} ед., 
                   ${secondsToTime(dateData.totalEffectiveTime)} / ${secondsToTime(dateData.totalWorkTime)} 
-                  (${dateEfficiency})
+                  (${formatEfficiency(dateEfficiencyValue)})
                 </div>
               </div>
             </div>
           `;
         });
         
-        // Общие итоги по сотруднику
         html += `
               <div class="summary-row">
                 <div class="summary-label">Итого по сотруднику:</div>
                 <div class="summary-value">
                   ${employeeData.totalTasks} задач, ${Math.round(employeeData.totalUnits)} ед., 
                   ${secondsToTime(employeeData.totalEffectiveTime)} / ${secondsToTime(employeeData.totalWorkTime)} 
-                  (${efficiency})
+                  (${formatEfficiency(efficiencyValue)})
                 </div>
               </div>
             </div>
@@ -637,30 +915,19 @@
       
       content.innerHTML = html;
       
-      // Добавляем обработчики событий для раскрытия/сворачивания
       addExpandHandlers();
     }
 
-    // 🔥 ФУНКЦИЯ ФОРМАТИРОВАНИЯ ДАТЫ
-    function formatDate(dateStr) {
-      const date = new Date(dateStr);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}.${month}.${year}`;
-    }
-
-    // 🔥 ФУНКЦИЯ ДОБАВЛЕНИЯ ОБРАБОТЧИКОВ РАСКРЫТИЯ
+    // 🔥 ИСПРАВЛЕННЫЕ ОБРАБОТЧИКИ СОБЫТИЙ
     function addExpandHandlers() {
       // Обработчики для сотрудников
       document.querySelectorAll('.employee-row').forEach(row => {
-        row.addEventListener('click', function(e) {
-          // Не срабатывает при клике на дочерние элементы
-          if (e.target.closest('.employee-details')) return;
-          
-          const details = this.querySelector('.employee-details');
+        const header = row.querySelector('.employee-header');
+        const details = row.querySelector('.employee-details');
+        
+        header.addEventListener('click', function(e) {
+          e.stopPropagation();
           const isVisible = details.style.display === 'block';
-          
           details.style.display = isVisible ? 'none' : 'block';
         });
       });
@@ -668,12 +935,18 @@
       // Обработчики для дат
       document.querySelectorAll('.date-row').forEach(row => {
         row.addEventListener('click', function(e) {
-          e.stopPropagation(); // Предотвращаем всплытие до сотрудника
-          
-          const details = this.nextElementSibling;
-          const isVisible = details.style.display === 'block';
-          
-          details.style.display = isVisible ? 'none' : 'block';
+          e.stopPropagation();
+          // Ищем следующий элемент после date-row и date-stats
+          let nextElement = this.nextElementSibling;
+          // Пропускаем date-stats если он есть
+          if (nextElement && nextElement.classList.contains('date-stats')) {
+            nextElement = nextElement.nextElementSibling;
+          }
+          // Теперь nextElement должен быть date-details
+          if (nextElement && nextElement.classList.contains('date-details')) {
+            const isVisible = nextElement.style.display === 'block';
+            nextElement.style.display = isVisible ? 'none' : 'block';
+          }
         });
       });
     }
@@ -687,10 +960,8 @@
         const groupedData = groupDataByEmployeeAndDate(records);
         window.currentGroupedData = groupedData;
 
-        // Применяем фильтры
         applyFilters();
 
-        // Обновляем время
         const lastUpdatedEl = document.getElementById('last-updated');
         if (lastUpdated) {
           const lastDate = new Date(lastUpdated);
@@ -711,18 +982,15 @@
       }
     }
 
-    // 🔥 ОБНОВЛЁННАЯ ФУНКЦИЯ ЗАПОЛНЕНИЯ ФИЛЬТРА ОТДЕЛОВ
     function populateDepartmentFilter(departments) {
       const select = document.getElementById('department-filter');
       select.innerHTML = '';
       
-      // Добавляем опцию "Все отделы"
       const allOption = document.createElement('option');
       allOption.value = '';
       allOption.textContent = 'Все отделы';
       select.appendChild(allOption);
 
-      // Добавляем отделы
       departments.forEach(dept => {
         const opt = document.createElement('option');
         opt.value = dept;
@@ -731,8 +999,6 @@
       });
 
       select.disabled = false;
-      
-      // По умолчанию выбираем "Все отделы"
       allOption.selected = true;
     }
 
@@ -759,21 +1025,16 @@
       }
     }
 
-    // ========================
-    // Инициализация
-    // ========================
     document.addEventListener('DOMContentLoaded', async () => {
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
       }
 
-      // Загружаем данные о сотрудниках и отделах
       const { staffMap, departments } = await fetchStaffData();
       window.staffMap = staffMap;
       populateDepartmentFilter(departments);
 
-      // Обработчики фильтров
       document.getElementById('department-filter').addEventListener('change', applyFilters);
 
       const searchInput = document.getElementById('employee-search');
