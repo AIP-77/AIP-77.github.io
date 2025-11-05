@@ -407,7 +407,7 @@
 <body>
   <div class="container">
     <div class="header">Детализация заработной платы</div>
-    <div class="version">v 11.03-1721 <span id="last-updated"></span></div>
+    <div class="version">v 11.05-1755 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -869,32 +869,6 @@
           html += `
                 </tbody>
               </table>
-          `;
-          
-          dateData.works.forEach(work => {
-            const workEfficiencyValue = calculateEfficiency(work.effectiveTime, work.workTime);
-            const deliveryInfo = work.deliveryNumber ? ` (${work.deliveryNumber})` : '';
-            html += `
-              <div class="stats-row">
-                <div class="stats-label">${work.type}${deliveryInfo}:</div>
-                <div class="stats-value">
-                  ${Math.round(work.units)} ед., 
-                  ${secondsToTime(work.effectiveTime)} / ${secondsToTime(work.workTime)} 
-                  (${formatEfficiency(workEfficiencyValue)})
-                </div>
-              </div>
-            `;
-          });
-          
-          html += `
-              <div class="summary-row">
-                <div class="summary-label">Итого за ${formatDate(date)}:</div>
-                <div class="summary-value">
-                  ${dateData.totalTasks} задач, ${Math.round(dateData.totalUnits)} ед., 
-                  ${secondsToTime(dateData.totalEffectiveTime)} / ${secondsToTime(dateData.totalWorkTime)} 
-                  (${formatEfficiency(dateEfficiencyValue)})
-                </div>
-              </div>
             </div>
           `;
         });
