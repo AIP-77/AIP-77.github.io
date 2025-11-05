@@ -300,6 +300,27 @@
       background-color: #f8f9fa;
     }
 
+    .employee-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .employee-name {
+      font-weight: 700;
+      font-size: 16px;
+      color: #1565c0;
+    }
+
+    .employee-total-amount {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 16px;
+    }
+
     .date-card-header {
       display: flex;
       justify-content: space-between;
@@ -497,15 +518,18 @@
         font-size: 14px;
       }
 
+      .employee-card-header,
       .date-card-header {
         margin-bottom: 6px;
         padding-bottom: 6px;
       }
 
-      .date-title {
+      .employee-name,
+      .employee-total-amount {
         font-size: 14px;
       }
 
+      .date-title,
       .date-amount {
         font-size: 14px;
       }
@@ -679,7 +703,8 @@
             totalUnits: 0,
             totalEffectiveTime: 0,
             totalWorkTime: 0,
-            totalAmount: 0
+            totalAmount: 0,
+            shiftsCount: 0  // Добавляем счетчик смен
           };
         }
         
@@ -692,6 +717,7 @@
             totalWorkTime: 0,
             totalAmount: 0
           };
+          grouped[employee].shiftsCount += 1;  // Считаем уникальные даты
         }
         
         const work = {
@@ -864,7 +890,7 @@
       return `<span class="${efficiencyClass}">${efficiencyText}</span>`;
     }
 
-    function createCompactSummary(data, type = 'employee', date = '') {
+    function createCompactSummary(data, type = 'employee', date = '', employeeName = '') {
       const efficiencyValue = calculateEfficiency(data.totalEffectiveTime, data.totalWorkTime);
       
       if (type === 'date') {
@@ -896,7 +922,14 @@
       } else {
         return `
           <div class="compact-summary ${type}">
+            <div class="employee-card-header">
+              <div class="employee-name">${employeeName}</div>
+              <div class="employee-total-amount">р.${formatMoneyNumber(data.totalAmount)}</div>
+            </div>
             <div>
+              <div class="summary-item">
+                <span class="summary-icon">📅</span>Смен: <span class="summary-value">${data.shiftsCount}</span>
+              </div>
               <div class="summary-item">
                 <span class="summary-icon">📋</span>Задач: <span class="summary-value">${data.totalTasks}</span>
               </div>
@@ -913,7 +946,6 @@
                 <span class="summary-icon">📊</span>Эффективность: <span class="summary-value">${formatEfficiency(efficiencyValue)}</span>
               </div>
             </div>
-            <div class="summary-amount">Сумма: р.${formatMoneyNumber(data.totalAmount)}</div>
           </div>
         `;
       }
@@ -938,7 +970,7 @@
               <span>${employee}</span>
               <span class="amount-cell">р.${formatMoneyNumber(employeeData.totalAmount)}</span>
             </div>
-            ${createCompactSummary(employeeData, 'employee')}
+            ${createCompactSummary(employeeData, 'employee', '', employee)}
             <div class="employee-details">
         `;
         
