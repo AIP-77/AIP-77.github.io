@@ -114,6 +114,17 @@
       justify-content: space-between;
       padding: 12px 16px;
       font-weight: 600;
+      align-items: center;
+    }
+
+    .expand-icon {
+      font-size: 18px;
+      color: #666;
+      transition: transform 0.2s;
+    }
+
+    .employee-row.expanded .expand-icon {
+      transform: rotate(180deg);
     }
 
     .employee-stats {
@@ -286,6 +297,11 @@
     .compact-summary.employee {
       background-color: #f8f9fa;
       color: #333;
+      cursor: pointer;
+    }
+
+    .compact-summary.employee:hover {
+      background-color: #e9ecef;
     }
 
     .compact-summary.date {
@@ -430,11 +446,13 @@
       text-align: center;
       background: #fafafa;
       border-top: 1px solid #eee;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .footer-actions button {
-      background: #ff5722;
-      color: white;
       border: none;
       padding: 10px 20px;
       border-radius: 6px;
@@ -443,10 +461,175 @@
       cursor: pointer;
       width: auto;
       min-width: 180px;
+      transition: background-color 0.2s;
     }
 
-    .footer-actions button:hover {
+    #clear-cache-btn {
+      background: #ff5722;
+      color: white;
+    }
+
+    #clear-cache-btn:hover {
       background: #e64a19;
+    }
+
+    #print-btn {
+      background: #4caf50;
+      color: white;
+    }
+
+    #print-btn:hover {
+      background: #45a049;
+    }
+
+    /* Стили для диалога печати */
+    .print-dialog {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .print-dialog-content {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .print-dialog h3 {
+      margin-bottom: 16px;
+      color: #333;
+      text-align: center;
+    }
+
+    .print-option-group {
+      margin-bottom: 20px;
+    }
+
+    .print-option-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .print-option-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .print-checkbox-group {
+      margin: 15px 0;
+    }
+
+    .print-checkbox {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .print-checkbox input {
+      margin-right: 8px;
+    }
+
+    .print-dialog-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .print-dialog-actions button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #print-cancel-btn {
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    #print-confirm-btn {
+      background: #4caf50;
+      color: white;
+    }
+
+    /* Стили для печати */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      
+      .container {
+        max-width: none;
+        border-radius: 0;
+        box-shadow: none;
+        margin: 0;
+      }
+      
+      .controls,
+      .footer-actions,
+      .version,
+      .employee-header,
+      .print-dialog {
+        display: none !important;
+      }
+      
+      .employee-details,
+      .date-details {
+        display: block !important;
+      }
+      
+      .compact-summary {
+        break-inside: avoid;
+        margin: 8px 0;
+      }
+      
+      .works-table {
+        font-size: 11px;
+      }
+      
+      .employee-row {
+        break-inside: avoid;
+        border-bottom: 2px solid #333;
+      }
+
+      /* Скрываем детализацию если выбрана опция без деталей */
+      .no-details .date-details,
+      .no-details .works-table {
+        display: none !important;
+      }
+
+      .no-details .compact-summary.date {
+        display: none !important;
+      }
+
+      /* Скрываем карточки дат если выбрана опция только итогов */
+      .summary-only .compact-summary.date {
+        display: none !important;
+      }
+
+      .summary-only .employee-details {
+        display: none !important;
+      }
     }
 
     @media (max-width: 600px) {
@@ -493,10 +676,17 @@
         padding: 6px 8px;
       }
 
+      .footer-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+
       .footer-actions button {
         padding: 10px 16px;
         font-size: 15px;
         min-width: 140px;
+        width: 100%;
+        max-width: 200px;
       }
 
       .compact-summary {
@@ -533,13 +723,26 @@
       .date-amount {
         font-size: 14px;
       }
+
+      .print-dialog-content {
+        padding: 16px;
+        width: 95%;
+      }
+
+      .print-dialog-actions {
+        flex-direction: column;
+      }
+
+      .print-dialog-actions button {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">Детализация заработной платы</div>
-    <div class="version">v 11.03-1721 <span id="last-updated"></span></div>
+    <div class="version">v 11.05-1930 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -562,7 +765,43 @@
     </div>
 
     <div class="footer-actions">
+      <button id="print-btn">🖨️ Печать</button>
       <button id="clear-cache-btn">🔄 Сбросить кэш</button>
+    </div>
+  </div>
+
+  <!-- Диалог выбора опций печати -->
+  <div class="print-dialog" id="print-dialog">
+    <div class="print-dialog-content">
+      <h3>Настройки печати</h3>
+      
+      <div class="print-option-group">
+        <label for="print-scope">Область печати:</label>
+        <select id="print-scope">
+          <option value="all">Все сотрудники</option>
+          <option value="filtered">Текущий отфильтрованный список</option>
+          <option value="selected">Выбранные сотрудники</option>
+        </select>
+      </div>
+
+      <div class="print-option-group">
+        <label for="print-detail">Детализация:</label>
+        <select id="print-detail">
+          <option value="summary">Только итоговые карточки сотрудников</option>
+          <option value="dates">С карточками дней (без детализации работ)</option>
+          <option value="full">Полная детализация (с работами)</option>
+        </select>
+      </div>
+
+      <div class="print-checkbox-group" id="employee-selection" style="display: none;">
+        <label>Выберите сотрудников для печати:</label>
+        <div id="employee-checkboxes"></div>
+      </div>
+
+      <div class="print-dialog-actions">
+        <button id="print-cancel-btn">Отмена</button>
+        <button id="print-confirm-btn">Печать</button>
+      </div>
     </div>
   </div>
 
@@ -704,7 +943,7 @@
             totalEffectiveTime: 0,
             totalWorkTime: 0,
             totalAmount: 0,
-            shiftsCount: 0  // Добавляем счетчик смен
+            shiftsCount: 0
           };
         }
         
@@ -717,7 +956,7 @@
             totalWorkTime: 0,
             totalAmount: 0
           };
-          grouped[employee].shiftsCount += 1;  // Считаем уникальные даты
+          grouped[employee].shiftsCount += 1;
         }
         
         const work = {
@@ -968,7 +1207,7 @@
           <div class="employee-row">
             <div class="employee-header">
               <span>${employee}</span>
-              <span class="amount-cell">р.${formatMoneyNumber(employeeData.totalAmount)}</span>
+              <span class="expand-icon">▼</span>
             </div>
             ${createCompactSummary(employeeData, 'employee', '', employee)}
             <div class="employee-details">
@@ -1042,6 +1281,7 @@
           e.stopPropagation();
           const isVisible = details.style.display === 'block';
           details.style.display = isVisible ? 'none' : 'block';
+          row.classList.toggle('expanded', !isVisible);
         });
       });
       
@@ -1058,6 +1298,140 @@
           }
         });
       });
+    }
+
+    // 🔥 ФУНКЦИОНАЛ ПЕЧАТИ С ВЫБОРОМ ОПЦИЙ
+    function setupPrintFunctionality() {
+      const printDialog = document.getElementById('print-dialog');
+      const printBtn = document.getElementById('print-btn');
+      const printCancelBtn = document.getElementById('print-cancel-btn');
+      const printConfirmBtn = document.getElementById('print-confirm-btn');
+      const printScopeSelect = document.getElementById('print-scope');
+      const printDetailSelect = document.getElementById('print-detail');
+      const employeeSelection = document.getElementById('employee-selection');
+      const employeeCheckboxes = document.getElementById('employee-checkboxes');
+
+      // Показываем диалог печати
+      printBtn.addEventListener('click', function() {
+        updateEmployeeCheckboxes();
+        printDialog.style.display = 'flex';
+      });
+
+      // Скрываем диалог
+      printCancelBtn.addEventListener('click', function() {
+        printDialog.style.display = 'none';
+      });
+
+      // Обработка выбора области печати
+      printScopeSelect.addEventListener('change', function() {
+        if (this.value === 'selected') {
+          employeeSelection.style.display = 'block';
+        } else {
+          employeeSelection.style.display = 'none';
+        }
+      });
+
+      // Подтверждение печати
+      printConfirmBtn.addEventListener('click', function() {
+        const scope = printScopeSelect.value;
+        const detail = printDetailSelect.value;
+        
+        printWithOptions(scope, detail);
+        printDialog.style.display = 'none';
+      });
+
+      // Обновление списка сотрудников для выбора
+      function updateEmployeeCheckboxes() {
+        const employees = document.querySelectorAll('.employee-row');
+        employeeCheckboxes.innerHTML = '';
+        
+        employees.forEach(row => {
+          const employeeName = row.querySelector('.employee-name').textContent;
+          const checkbox = document.createElement('div');
+          checkbox.className = 'print-checkbox';
+          checkbox.innerHTML = `
+            <input type="checkbox" value="${employeeName}" checked>
+            <label>${employeeName}</label>
+          `;
+          employeeCheckboxes.appendChild(checkbox);
+        });
+      }
+
+      // Функция печати с опциями
+      function printWithOptions(scope, detail) {
+        // Добавляем классы для управления отображением при печати
+        document.body.classList.remove('summary-only', 'no-details');
+        
+        if (detail === 'summary') {
+          document.body.classList.add('summary-only');
+        } else if (detail === 'dates') {
+          document.body.classList.add('no-details');
+        }
+
+        // Управление видимостью сотрудников в зависимости от выбранной области
+        const employees = document.querySelectorAll('.employee-row');
+        
+        employees.forEach(row => {
+          const employeeName = row.querySelector('.employee-name').textContent;
+          let shouldPrint = false;
+          
+          switch (scope) {
+            case 'all':
+              shouldPrint = true;
+              break;
+            case 'filtered':
+              shouldPrint = true; // Все отфильтрованные сотрудники видны
+              break;
+            case 'selected':
+              const checkbox = document.querySelector(`input[value="${employeeName}"]`);
+              shouldPrint = checkbox && checkbox.checked;
+              break;
+          }
+          
+          if (!shouldPrint) {
+            row.style.display = 'none';
+          } else {
+            row.style.display = 'block';
+          }
+        });
+
+        // Автоматически раскрываем нужные детали для печати
+        if (detail === 'full') {
+          document.querySelectorAll('.employee-details').forEach(details => {
+            details.style.display = 'block';
+          });
+          document.querySelectorAll('.date-details').forEach(details => {
+            details.style.display = 'block';
+          });
+        } else if (detail === 'dates') {
+          document.querySelectorAll('.employee-details').forEach(details => {
+            details.style.display = 'block';
+          });
+          document.querySelectorAll('.date-details').forEach(details => {
+            details.style.display = 'none';
+          });
+        }
+
+        // Ждем немного перед печатью
+        setTimeout(() => {
+          window.print();
+          
+          // Восстанавливаем исходное состояние после печати
+          setTimeout(() => {
+            document.body.classList.remove('summary-only', 'no-details');
+            employees.forEach(row => {
+              row.style.display = 'block';
+            });
+            // Закрываем все раскрытые детали
+            document.querySelectorAll('.employee-details').forEach(details => {
+              details.style.display = 'none';
+            });
+            document.querySelectorAll('.date-details').forEach(details => {
+              details.style.display = 'none';
+            });
+          }, 500);
+        }, 500);
+      }
     }
 
     async function loadAndRender(month) {
@@ -1167,6 +1541,7 @@
         }
       });
 
+      setupPrintFunctionality();
       initMonthSelector();
     });
   </script>
