@@ -273,6 +273,56 @@
       font-weight: 700;
     }
 
+    /* ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ КОМПАКТНЫХ ИТОГОВ */
+    .compact-summary {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 1px solid #e0e0e0;
+    }
+
+    .compact-summary.employee {
+      background-color: #f8f9fa;
+      color: #333;
+    }
+
+    .compact-summary.date {
+      background-color: #ffffff;
+      color: #333;
+      margin: 8px 16px 8px 32px;
+      border-left: 4px solid #0088cc;
+    }
+
+    .summary-item {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 15px;
+      margin-bottom: 4px;
+    }
+
+    .summary-icon {
+      margin-right: 6px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .summary-value {
+      font-weight: 600;
+      margin-left: 4px;
+      color: #000;
+    }
+
+    .summary-amount {
+      font-weight: 700;
+      font-size: 16px;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #e0e0e0;
+      color: #2e7d32;
+    }
+
     .summary-row {
       padding: 10px 16px;
       background-color: #e8f5e9;
@@ -401,13 +451,32 @@
         font-size: 15px;
         min-width: 140px;
       }
+
+      .compact-summary {
+        font-size: 12px;
+        padding: 10px 12px;
+      }
+
+      .summary-item {
+        margin-right: 10px;
+        margin-bottom: 3px;
+      }
+
+      .summary-icon {
+        font-size: 12px;
+        margin-right: 4px;
+      }
+
+      .summary-amount {
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">Детализация заработной платы</div>
-    <div class="version">v 11.05-1812 <span id="last-updated"></span></div>
+    <div class="version">v 11.05-1835 <span id="last-updated"></span></div>
 
     <div class="controls">
       <label for="month-select">Месяц:</label>
@@ -756,6 +825,33 @@
       return `<span class="${efficiencyClass}">${efficiencyText}</span>`;
     }
 
+    function createCompactSummary(data, type = 'employee') {
+      const efficiencyValue = calculateEfficiency(data.totalEffectiveTime, data.totalWorkTime);
+      
+      return `
+        <div class="compact-summary ${type}">
+          <div>
+            <div class="summary-item">
+              <span class="summary-icon">📋</span>Задач: <span class="summary-value">${data.totalTasks}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">📦</span>Единиц: <span class="summary-value">${Math.round(data.totalUnits)}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">⏱️</span>Эфф. время: <span class="summary-value">${secondsToTime(data.totalEffectiveTime)}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">🕒</span>Раб. время: <span class="summary-value">${secondsToTime(data.totalWorkTime)}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">📊</span>Эффективность: <span class="summary-value">${formatEfficiency(efficiencyValue)}</span>
+            </div>
+          </div>
+          <div class="summary-amount">Сумма: р.${formatMoneyNumber(data.totalAmount)}</div>
+        </div>
+      `;
+    }
+
     function renderGroupedTable(groupedData, filteredEmployees) {
       const content = document.getElementById('content');
       
@@ -768,7 +864,6 @@
       
       filteredEmployees.forEach(employee => {
         const employeeData = groupedData[employee];
-        const efficiencyValue = calculateEfficiency(employeeData.totalEffectiveTime, employeeData.totalWorkTime);
           
         html += `
           <div class="employee-row">
@@ -776,28 +871,7 @@
               <span>${employee}</span>
               <span class="amount-cell">р.${formatMoneyNumber(employeeData.totalAmount)}</span>
             </div>
-            <div class="employee-stats">
-              <div class="employee-stat-item">
-                <div>Задач</div>
-                <div class="employee-stat-value">${employeeData.totalTasks}</div>
-              </div>
-              <div class="employee-stat-item">
-                <div>Единиц</div>
-                <div class="employee-stat-value">${Math.round(employeeData.totalUnits)}</div>
-              </div>
-              <div class="employee-stat-item">
-                <div>Эфф. время</div>
-                <div class="employee-stat-value">${secondsToTime(employeeData.totalEffectiveTime)}</div>
-              </div>
-              <div class="employee-stat-item">
-                <div>Раб. время</div>
-                <div class="employee-stat-value">${secondsToTime(employeeData.totalWorkTime)}</div>
-              </div>
-              <div class="employee-stat-item">
-                <div>Эффективность</div>
-                <div class="employee-stat-value">${formatEfficiency(efficiencyValue)}</div>
-              </div>
-            </div>
+            ${createCompactSummary(employeeData, 'employee')}
             <div class="employee-details">
         `;
         
@@ -805,35 +879,13 @@
         
         sortedDates.forEach(date => {
           const dateData = employeeData.dates[date];
-          const dateEfficiencyValue = calculateEfficiency(dateData.totalEffectiveTime, dateData.totalWorkTime);
             
           html += `
             <div class="date-row">
               <div class="date-header">${formatDate(date)}</div>
               <div class="amount-cell">р.${formatMoneyNumber(dateData.totalAmount)}</div>
             </div>
-            <div class="date-stats">
-              <div class="date-stat-item">
-                <div>Задач</div>
-                <div class="date-stat-value">${dateData.totalTasks}</div>
-              </div>
-              <div class="date-stat-item">
-                <div>Единиц</div>
-                <div class="date-stat-value">${Math.round(dateData.totalUnits)}</div>
-              </div>
-              <div class="date-stat-item">
-                <div>Эфф. время</div>
-                <div class="date-stat-value">${secondsToTime(dateData.totalEffectiveTime)}</div>
-              </div>
-              <div class="date-stat-item">
-                <div>Раб. время</div>
-                <div class="date-stat-value">${secondsToTime(dateData.totalWorkTime)}</div>
-              </div>
-              <div class="date-stat-item">
-                <div>Эффективность</div>
-                <div class="date-stat-value">${formatEfficiency(dateEfficiencyValue)}</div>
-              </div>
-            </div>
+            ${createCompactSummary(dateData, 'date')}
             <div class="date-details">
               <!-- ДЕТАЛИЗАЦИЯ РАБОТ ЗА ДЕНЬ -->
               <table class="works-table">
@@ -874,14 +926,6 @@
         });
         
         html += `
-              <div class="summary-row">
-                <div class="summary-label">Итого по сотруднику:</div>
-                <div class="summary-value">
-                  ${employeeData.totalTasks} задач, ${Math.round(employeeData.totalUnits)} ед., 
-                  ${secondsToTime(employeeData.totalEffectiveTime)} / ${secondsToTime(employeeData.totalWorkTime)} 
-                  (${formatEfficiency(efficiencyValue)})
-                </div>
-              </div>
             </div>
           </div>
         `;
@@ -910,10 +954,10 @@
       document.querySelectorAll('.date-row').forEach(row => {
         row.addEventListener('click', function(e) {
           e.stopPropagation();
-          // Ищем следующий элемент после date-row и date-stats
+          // Ищем следующий элемент после date-row и compact-summary
           let nextElement = this.nextElementSibling;
-          // Пропускаем date-stats если он есть
-          if (nextElement && nextElement.classList.contains('date-stats')) {
+          // Пропускаем compact-summary если он есть
+          if (nextElement && nextElement.classList.contains('compact-summary')) {
             nextElement = nextElement.nextElementSibling;
           }
           // Теперь nextElement должен быть date-details
