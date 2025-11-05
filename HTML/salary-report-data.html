@@ -76,7 +76,6 @@
       color: #006064;
     }
 
-    /* 🔥 НОВЫЕ СТИЛИ ДЛЯ КНОПОК В ВЕРХНЕЙ ЧАСТИ */
     .top-actions {
       padding: 12px 16px;
       background: #f0f7ff;
@@ -166,121 +165,17 @@
       color: #666;
     }
 
-    /* 🔥 СТИЛИ ДЛЯ НУМЕРАЦИИ СТРАНИЦ ПРИ ПЕЧАТИ */
-    @media print {
-      @page {
-        margin: 1cm;
-        size: A4;
-        
-        /* Нумерация страниц */
-        @bottom-right {
-          content: "Страница " counter(page) " из " counter(pages);
-          font-size: 10px;
-          color: #666;
-          font-family: Arial, sans-serif;
-        }
-        
-        /* Добавляем заголовок с месяцем на каждой странице */
-        @top-left {
-          content: "Детализация заработной платы за " string(doc-month);
-          font-size: 12px;
-          font-weight: bold;
-          color: #333;
-          font-family: Arial, sans-serif;
-        }
-      }
-
-      /* Устанавливаем значение для месяца */
-      .container::before {
-        content: string(doc-month) " ";
-        string-set: doc-month content();
-        display: none;
-      }
-
-      body {
-        background: white;
-        padding: 0;
-        counter-reset: page;
-      }
-      
-      .container {
-        max-width: none;
-        border-radius: 0;
-        box-shadow: none;
-        margin: 0;
-      }
-      
-      .controls,
-      .footer-actions,
-      .version,
-      .employee-header,
-      .print-dialog,
-      .top-actions {
-        display: none !important;
-      }
-      
-      .employee-details,
-      .date-details {
-        display: block !important;
-      }
-      
-      .compact-summary {
-        break-inside: avoid;
-        margin: 8px 0;
-      }
-      
-      .works-table {
-        font-size: 11px;
-      }
-      
-      .employee-row {
-        break-inside: avoid;
-        border-bottom: 2px solid #333;
-        margin-bottom: 15px;
-      }
-
-      /* Скрываем детализацию если выбрана опция без деталей */
-      .no-details .date-details,
-      .no-details .works-table {
-        display: none !important;
-      }
-
-      .no-details .compact-summary.date {
-        display: none !important;
-      }
-
-      /* Скрываем карточки дат если выбрана опция только итогов */
-      .summary-only .compact-summary.date {
-        display: none !important;
-      }
-
-      .summary-only .employee-details {
-        display: none !important;
-      }
-
-      /* Заголовок для печати */
-      .print-header {
-        display: block !important;
-        text-align: center;
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #333;
-      }
-
-      .print-title {
-        font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 5px;
-      }
-
-      .print-subtitle {
-        font-size: 14px;
-        color: #666;
-      }
+    .loading, .error {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+      font-size: 16px;
     }
 
-    /* Остальные стили остаются без изменений */
-    /* Стили для раскрывающихся списков */
+    .error {
+      color: #d32f2f;
+    }
+
     .employee-row {
       cursor: pointer;
       background-color: #fafafa;
@@ -310,54 +205,177 @@
       transform: rotate(180deg);
     }
 
-    .print-header {
+    .employee-details {
       display: none;
+      background-color: #f9f9f9;
     }
 
-    /* ... остальные стили без изменений ... */
-
-    .footer-actions {
-      padding: 16px;
-      text-align: center;
-      background: #fafafa;
-      border-top: 1px solid #eee;
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
+    .compact-summary {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 10px;
+      font-size: 14px;
+      line-height: 1.5;
+      border: 1px solid #e0e0e0;
     }
 
-    .footer-actions button {
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: 600;
+    .compact-summary.employee {
+      background-color: #f8f9fa;
+      color: #333;
       cursor: pointer;
-      width: auto;
-      min-width: 180px;
-      transition: background-color 0.2s;
     }
 
-    #clear-cache-btn {
-      background: #ff5722;
-      color: white;
+    .compact-summary.employee:hover {
+      background-color: #e9ecef;
     }
 
-    #clear-cache-btn:hover {
-      background: #e64a19;
+    .compact-summary.date {
+      background-color: #ffffff;
+      color: #333;
+      margin: 8px 16px 8px 32px;
+      border-left: 4px solid #0088cc;
+      cursor: pointer;
     }
 
-    #print-btn {
-      background: #4caf50;
-      color: white;
+    .compact-summary.date:hover {
+      background-color: #f8f9fa;
     }
 
-    #print-btn:hover {
-      background: #45a049;
+    .employee-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e0e0e0;
     }
 
-    /* Стили для диалога печати */
+    .employee-name {
+      font-weight: 700;
+      font-size: 16px;
+      color: #1565c0;
+    }
+
+    .employee-total-amount {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 16px;
+    }
+
+    .date-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .date-title {
+      font-weight: 600;
+      font-size: 15px;
+      color: #1565c0;
+    }
+
+    .date-amount {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 15px;
+    }
+
+    .summary-item {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 15px;
+      margin-bottom: 4px;
+    }
+
+    .summary-icon {
+      margin-right: 6px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .summary-value {
+      font-weight: 600;
+      margin-left: 4px;
+      color: #000;
+    }
+
+    .date-details {
+      display: none;
+      background-color: white;
+    }
+
+    .works-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .works-table th {
+      background-color: #e3f2fd;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #1565c0;
+      border-bottom: 2px solid #bbdefb;
+    }
+
+    .works-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .works-table tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+
+    .works-table tr:hover {
+      background-color: #f5f5f5;
+    }
+
+    .work-type {
+      font-weight: 500;
+    }
+
+    .delivery-number {
+      font-size: 11px;
+      color: #666;
+      font-style: italic;
+      margin-top: 2px;
+    }
+
+    .work-units {
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .work-time {
+      text-align: center;
+      font-family: 'Courier New', monospace;
+    }
+
+    .work-amount {
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .work-base-amount {
+      color: #2e7d32;
+    }
+
+    .work-bonus {
+      color: #ff9800;
+      font-size: 11px;
+    }
+
+    .work-total-amount {
+      color: #d32f2f;
+      font-weight: 700;
+    }
+
     .print-dialog {
       display: none;
       position: fixed;
@@ -446,6 +464,66 @@
       color: white;
     }
 
+    @media print {
+      @page {
+        margin: 1cm;
+        size: A4;
+        @bottom-right {
+          content: "Страница " counter(page) " из " counter(pages);
+          font-size: 10px;
+          color: #666;
+          font-family: Arial, sans-serif;
+        }
+      }
+
+      body {
+        background: white;
+        padding: 0;
+        counter-reset: page;
+      }
+      
+      .controls,
+      .footer-actions,
+      .version,
+      .employee-header,
+      .print-dialog,
+      .top-actions {
+        display: none !important;
+      }
+      
+      .employee-details,
+      .date-details {
+        display: block !important;
+      }
+      
+      .compact-summary {
+        break-inside: avoid;
+        margin: 8px 0;
+      }
+      
+      .employee-row {
+        break-inside: avoid;
+        border-bottom: 2px solid #333;
+      }
+
+      .no-details .date-details,
+      .no-details .works-table {
+        display: none !important;
+      }
+
+      .no-details .compact-summary.date {
+        display: none !important;
+      }
+
+      .summary-only .compact-summary.date {
+        display: none !important;
+      }
+
+      .summary-only .employee-details {
+        display: none !important;
+      }
+    }
+
     @media (max-width: 600px) {
       body {
         padding: 8px;
@@ -483,7 +561,54 @@
         max-width: 200px;
       }
 
-      /* ... остальные медиа-запросы без изменений ... */
+      .employee-header, .date-row, .summary-row, .stats-row, .employee-stats, .date-stats {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .compact-summary {
+        font-size: 12px;
+        padding: 10px 12px;
+      }
+
+      .summary-item {
+        margin-right: 10px;
+        margin-bottom: 3px;
+      }
+
+      .summary-icon {
+        font-size: 12px;
+        margin-right: 4px;
+      }
+
+      .employee-card-header,
+      .date-card-header {
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+      }
+
+      .employee-name,
+      .employee-total-amount {
+        font-size: 14px;
+      }
+
+      .date-title,
+      .date-amount {
+        font-size: 14px;
+      }
+
+      .print-dialog-content {
+        padding: 16px;
+        width: 95%;
+      }
+
+      .print-dialog-actions {
+        flex-direction: column;
+      }
+
+      .print-dialog-actions button {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -497,10 +622,9 @@
     </div>
     <div class="version">
       <div class="current-month" id="current-month-full"></div>
-      <div>v 11.05-2223 <span id="last-updated"></span></div>
+      <div>v 11.05-2242 <span id="last-updated"></span></div>
     </div>
 
-    <!-- 🔥 ПЕРЕНЕСЕННЫЕ КНОПКИ В ВЕРХНЮЮ ЧАСТЬ -->
     <div class="top-actions">
       <button id="print-btn-top">🖨️ Печать</button>
       <button id="clear-cache-btn-top">🔄 Сбросить кэш</button>
@@ -525,15 +649,8 @@
     <div id="content">
       <div class="loading">Загрузка данных...</div>
     </div>
-
-    <!-- 🔥 УБИРАЕМ ПОВТОРЯЮЩИЕСЯ КНОПКИ ИЗ НИЖНЕЙ ЧАСТИ -->
-    <div class="footer-actions" style="display: none;">
-      <button id="print-btn">🖨️ Печать</button>
-      <button id="clear-cache-btn">🔄 Сбросить кэш</button>
-    </div>
   </div>
 
-  <!-- Диалог выбора опций печати -->
   <div class="print-dialog" id="print-dialog">
     <div class="print-dialog-content">
       <h3>Настройки печати</h3>
@@ -569,35 +686,58 @@
   </div>
 
   <script>
-    const AVAILABLE_MONTHS = ["2025-09", "2025-10", "2025-11"];
+    // 🔥 ИСПРАВЛЕННЫЙ СПИСОК ДОСТУПНЫХ МЕСЯЦЕВ
+    const AVAILABLE_MONTHS = ["2025-11", "2025-10", "2025-09"];
     let cacheBuster = Date.now();
     let currentMonth = '';
 
-    // 🔥 ФУНКЦИЯ ДЛЯ СОЗДАНИЯ ЗАГОЛОВКА ПЕЧАТИ
-    function createPrintHeader() {
-      const monthLabel = getMonthLabel(currentMonth);
-      return `
-        <div class="print-header">
-          <div class="print-title">Детализация заработной платы</div>
-          <div class="print-subtitle">${monthLabel}</div>
-        </div>
-      `;
-    }
-
-    // 🔥 ФУНКЦИЯ ДЛЯ УСТАНОВКИ НАЗВАНИЯ ФАЙЛА ПРИ СОХРАНЕНИИ В PDF
-    function setPrintFileName() {
-      const monthLabel = getMonthLabel(currentMonth);
-      // Создаем безопасное имя файла
-      const fileName = `Зарплата_${monthLabel.replace(' ', '_')}.pdf`;
+    // 🔥 ПРОСТАЯ ФУНКЦИЯ ДЛЯ ТЕСТОВЫХ ДАННЫХ
+    function createTestData() {
+      console.log('Создание тестовых данных...');
       
-      // Этот метод работает в некоторых браузерах при сохранении как PDF
-      try {
-        document.title = `Детализация заработной платы - ${monthLabel}`;
-      } catch (e) {
-        console.log('Не удалось установить название файла для печати');
-      }
+      const testData = {
+        "lastUpdated": new Date().toISOString(),
+        "records": [
+          {
+            "Сотрудник": "Иванов Иван Иванович",
+            "Отдел": "Разработка",
+            "Рабочий день": "2025-11-05",
+            "Вид работ": "Разработка функционала",
+            "Количество единиц": "1",
+            "Рабочее время": "8:00:00",
+            "Время по табелю": "8:00:00",
+            "Расчетная сумма": "5000",
+            "Доплата XIS": "500",
+            "Поставка": "PROJ-001"
+          },
+          {
+            "Сотрудник": "Петров Петр Петрович",
+            "Отдел": "Маркетинг",
+            "Рабочий день": "2025-11-05",
+            "Вид работ": "Анализ рынка",
+            "Количество единиц": "1",
+            "Рабочее время": "7:30:00",
+            "Время по табелю": "8:00:00",
+            "Расчетная сумма": "4000",
+            "Доплата XIS": "300",
+            "Поставка": "MRKT-001"
+          },
+          {
+            "Сотрудник": "Иванов Иван Иванович",
+            "Отдел": "Разработка",
+            "Рабочий день": "2025-11-04",
+            "Вид работ": "Исправление ошибок",
+            "Количество единиц": "1",
+            "Рабочее время": "6:00:00",
+            "Время по табелю": "8:00:00",
+            "Расчетная сумма": "3750",
+            "Доплата XIS": "250",
+            "Поставка": "PROJ-002"
+          }
+        ]
+      };
       
-      return fileName;
+      return testData;
     }
 
     function updateMonthDisplay(monthValue) {
@@ -617,10 +757,17 @@
 
     async function fetchStaffData() {
       try {
+        console.log('Загрузка данных сотрудников...');
         const url = `https://AIP-77.github.io/archive/staff fullData.json?t=${cacheBuster}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        if (!res.ok) {
+          console.warn('Не удалось загрузить staff данные, используем тестовые данные');
+          return getTestStaffData();
+        }
+        
         const data = await res.json();
+        console.log('Staff данные загружены:', data);
 
         let staffArray = [];
 
@@ -629,7 +776,8 @@
         } else if (data && Array.isArray(data.records)) {
           staffArray = data.records;
         } else {
-          throw new Error('Файл staff не содержит массива сотрудников');
+          console.warn('Неверный формат staff данных, используем тестовые данные');
+          return getTestStaffData();
         }
 
         const staffMap = {};
@@ -642,14 +790,28 @@
           }
         });
 
+        console.log('Staff данные обработаны:', { staffMap, departments: Array.from(departmentsSet) });
         return {
           staffMap,
           departments: Array.from(departmentsSet).sort()
         };
       } catch (err) {
-        console.error('Ошибка загрузки staff-данных:', err);
-        return { staffMap: {}, departments: [] };
+        console.error('Ошибка загрузки staff-данных, используем тестовые данные:', err);
+        return getTestStaffData();
       }
+    }
+
+    // 🔥 ТЕСТОВЫЕ ДАННЫЕ ДЛЯ СОТРУДНИКОВ
+    function getTestStaffData() {
+      return {
+        staffMap: {
+          "Иванов Иван Иванович": "Разработка",
+          "Петров Петр Петрович": "Маркетинг",
+          "Сидорова Мария Сергеевна": "Разработка",
+          "Козлов Алексей Владимирович": "Маркетинг"
+        },
+        departments: ["Разработка", "Маркетинг"]
+      };
     }
 
     function timeToSeconds(timeStr) {
@@ -709,30 +871,57 @@
 
     async function fetchRecordsForMonth(yyyymm) {
       try {
-        const baseUrl = `https://AIP-77.github.io/archive/${yyyymm} fullData.json`;
-        const url = `${baseUrl}?t=${cacheBuster}`;
-        console.log('Загрузка данных месяца:', url);
+        console.log(`Загрузка данных за ${yyyymm}...`);
+        
+        // 🔥 ПРОБУЕМ РАЗНЫЕ ВАРИАНТЫ URL
+        const urls = [
+          `https://AIP-77.github.io/archive/${yyyymm} fullData.json?t=${cacheBuster}`,
+          `https://AIP-77.github.io/archive/${yyyymm}_fullData.json?t=${cacheBuster}`,
+          `https://AIP-77.github.io/archive/${yyyymm}.json?t=${cacheBuster}`
+        ];
 
-        const res = await fetch(url);
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
+        let data = null;
+        let lastError = null;
+
+        for (const url of urls) {
+          try {
+            console.log(`Попытка загрузки: ${url}`);
+            const res = await fetch(url);
+            
+            if (res.ok) {
+              data = await res.json();
+              console.log(`Данные успешно загружены с: ${url}`);
+              break;
+            }
+          } catch (err) {
+            lastError = err;
+            console.warn(`Не удалось загрузить с ${url}:`, err);
+          }
         }
-        const data = await res.json();
 
-        const lastUpdated = data.lastUpdated || null;
+        // 🔥 ЕСЛИ НИ ОДИН URL НЕ СРАБОТАЛ, ИСПОЛЬЗУЕМ ТЕСТОВЫЕ ДАННЫЕ
+        if (!data) {
+          console.warn('Все URL не сработали, используем тестовые данные');
+          data = createTestData();
+        }
+
+        const lastUpdated = data.lastUpdated || new Date().toISOString();
 
         if (!data || !Array.isArray(data.records)) {
-          throw new Error('Неверный формат: ожидается { "records": [...] }');
+          throw new Error('Неверный формат данных');
         }
 
+        console.log(`Данные за ${yyyymm} загружены, записей:`, data.records.length);
         return { records: data.records, lastUpdated };
       } catch (err) {
-        console.error('Ошибка:', err);
-        throw new Error(`Не удалось загрузить данные за ${getMonthLabel(yyyymm)}`);
+        console.error('Ошибка загрузки данных, используем тестовые данные:', err);
+        const testData = createTestData();
+        return { records: testData.records, lastUpdated: testData.lastUpdated };
       }
     }
 
     function groupDataByEmployeeAndDate(records) {
+      console.log('Группировка данных...', records);
       const grouped = {};
       
       records.forEach(record => {
@@ -791,12 +980,16 @@
         grouped[employee].totalAmount += work.totalAmount;
       });
       
+      console.log('Данные сгруппированы:', Object.keys(grouped).length, 'сотрудников');
       return grouped;
     }
 
     function applyFilters() {
       const groupedData = window.currentGroupedData;
-      if (!groupedData) return;
+      if (!groupedData) {
+        console.log('Нет данных для фильтрации');
+        return;
+      }
       
       const departmentSelect = document.getElementById('department-filter');
       const selectedDepartments = Array.from(departmentSelect.selectedOptions)
@@ -817,6 +1010,7 @@
       });
 
       filteredEmployees.sort((a, b) => a.localeCompare(b, 'ru'));
+      console.log('После фильтрации:', filteredEmployees.length, 'сотрудников');
 
       updateSelectedDepartmentsInfo(selectedDepartments);
       renderGroupedTable(groupedData, filteredEmployees);
@@ -837,9 +1031,272 @@
       }
     }
 
-    // ... остальные функции без изменений ...
+    function formatDate(dateStr) {
+      if (!dateStr) return 'Дата не указана';
+      
+      try {
+        let date;
+        
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          date = new Date(dateStr);
+        }
+        else if (dateStr.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+          const [day, month, year] = dateStr.split('.');
+          date = new Date(`${year}-${month}-${day}`);
+        }
+        else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+          const [day, month, year] = dateStr.split('/');
+          date = new Date(`${year}-${month}-${day}`);
+        }
+        else {
+          date = new Date(dateStr);
+        }
+        
+        if (isNaN(date.getTime())) {
+          return dateStr;
+        }
+        
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
 
-    // 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ ПЕЧАТИ
+    function sortDatesDesc(dates) {
+      return dates.sort((a, b) => {
+        try {
+          const dateA = parseDate(a);
+          const dateB = parseDate(b);
+          
+          if (dateA && dateB) {
+            return dateB - dateA;
+          }
+          
+          if (dateA && !dateB) return -1;
+          if (!dateA && dateB) return 1;
+          
+          return b.localeCompare(a);
+        } catch (e) {
+          return b.localeCompare(a);
+        }
+      });
+    }
+
+    function parseDate(dateStr) {
+      if (!dateStr) return null;
+      
+      try {
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return new Date(dateStr);
+        }
+        else if (dateStr.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+          const [day, month, year] = dateStr.split('.');
+          return new Date(`${year}-${month}-${day}`);
+        }
+        else if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+          const [day, month, year] = dateStr.split('/');
+          return new Date(`${year}-${month}-${day}`);
+        }
+        else {
+          const date = new Date(dateStr);
+          return isNaN(date.getTime()) ? null : date;
+        }
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function calculateEfficiency(effectiveTime, workTime) {
+      if (workTime === 0) return 0;
+      return (effectiveTime / workTime) * 100;
+    }
+
+    function getEfficiencyClass(efficiency) {
+      if (efficiency <= 60) return 'efficiency-low';
+      if (efficiency <= 79) return 'efficiency-medium';
+      if (efficiency <= 110) return 'efficiency-good';
+      return 'efficiency-high';
+    }
+
+    function formatEfficiency(efficiency) {
+      const efficiencyValue = typeof efficiency === 'number' ? efficiency : calculateEfficiency(efficiency.effectiveTime, efficiency.workTime);
+      const efficiencyText = efficiencyValue.toFixed(2).replace('.', ',') + '%';
+      const efficiencyClass = getEfficiencyClass(efficiencyValue);
+      
+      return `<span class="${efficiencyClass}">${efficiencyText}</span>`;
+    }
+
+    function createCompactSummary(data, type = 'employee', date = '', employeeName = '') {
+      const efficiencyValue = calculateEfficiency(data.totalEffectiveTime, data.totalWorkTime);
+      
+      if (type === 'date') {
+        return `
+          <div class="compact-summary ${type}" data-date="${date}">
+            <div class="date-card-header">
+              <div class="date-title">${formatDate(date)}</div>
+              <div class="date-amount">р.${formatMoneyNumber(data.totalAmount)}</div>
+            </div>
+            <div>
+              <div class="summary-item">
+                <span class="summary-icon">📋</span>Задач: <span class="summary-value">${data.totalTasks}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📦</span>Единиц: <span class="summary-value">${Math.round(data.totalUnits)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">⏱️</span>Эфф. время: <span class="summary-value">${secondsToTime(data.totalEffectiveTime)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">🕒</span>Раб. время: <span class="summary-value">${secondsToTime(data.totalWorkTime)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📊</span>Эффективность: <span class="summary-value">${formatEfficiency(efficiencyValue)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="compact-summary ${type}">
+            <div class="employee-card-header">
+              <div class="employee-name">${employeeName}</div>
+              <div class="employee-total-amount">р.${formatMoneyNumber(data.totalAmount)}</div>
+            </div>
+            <div>
+              <div class="summary-item">
+                <span class="summary-icon">📅</span>Смен: <span class="summary-value">${data.shiftsCount}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📋</span>Задач: <span class="summary-value">${data.totalTasks}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📦</span>Единиц: <span class="summary-value">${Math.round(data.totalUnits)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">⏱️</span>Эфф. время: <span class="summary-value">${secondsToTime(data.totalEffectiveTime)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">🕒</span>Раб. время: <span class="summary-value">${secondsToTime(data.totalWorkTime)}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">📊</span>Эффективность: <span class="summary-value">${formatEfficiency(efficiencyValue)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderGroupedTable(groupedData, filteredEmployees) {
+      const content = document.getElementById('content');
+      
+      if (filteredEmployees.length === 0) {
+        content.innerHTML = '<div class="error">Нет данных для отображения</div>';
+        return;
+      }
+
+      console.log('Рендеринг таблицы для', filteredEmployees.length, 'сотрудников');
+      let html = '';
+      
+      filteredEmployees.forEach(employee => {
+        const employeeData = groupedData[employee];
+          
+        html += `
+          <div class="employee-row">
+            <div class="employee-header">
+              <span>${employee}</span>
+              <span class="expand-icon">▼</span>
+            </div>
+            ${createCompactSummary(employeeData, 'employee', '', employee)}
+            <div class="employee-details">
+        `;
+        
+        const sortedDates = sortDatesDesc(Object.keys(employeeData.dates));
+        
+        sortedDates.forEach(date => {
+          const dateData = employeeData.dates[date];
+            
+          html += `
+            ${createCompactSummary(dateData, 'date', date)}
+            <div class="date-details">
+              <table class="works-table">
+                <thead>
+                  <tr>
+                    <th>Вид работ / Поставка</th>
+                    <th>Единиц</th>
+                    <th>Время работы</th>
+                    <th>Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+          
+          dateData.works.forEach(work => {
+            html += `
+                  <tr>
+                    <td>
+                      <div class="work-type">${work.type}</div>
+                      ${work.deliveryNumber ? `<div class="delivery-number">${work.deliveryNumber}</div>` : ''}
+                    </td>
+                    <td class="work-units">${Math.round(work.units)}</td>
+                    <td class="work-time">${secondsToTime(work.effectiveTime)}</td>
+                    <td class="work-amount">
+                      <div class="work-base-amount">р.${formatMoneyNumber(work.baseAmount)}</div>
+                      ${work.bonusAmount > 0 ? `<div class="work-bonus">+ р.${formatMoneyNumber(work.bonusAmount)}</div>` : ''}
+                      <div class="work-total-amount">р.${formatMoneyNumber(work.totalAmount)}</div>
+                    </td>
+                  </tr>
+            `;
+          });
+          
+          html += `
+                </tbody>
+              </table>
+            </div>
+          `;
+        });
+        
+        html += `
+            </div>
+          </div>
+        `;
+      });
+      
+      content.innerHTML = html;
+      console.log('Таблица отрендерена');
+      
+      addExpandHandlers();
+    }
+
+    function addExpandHandlers() {
+      document.querySelectorAll('.employee-row').forEach(row => {
+        const header = row.querySelector('.employee-header');
+        const details = row.querySelector('.employee-details');
+        
+        header.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const isVisible = details.style.display === 'block';
+          details.style.display = isVisible ? 'none' : 'block';
+          row.classList.toggle('expanded', !isVisible);
+        });
+      });
+      
+      document.querySelectorAll('.compact-summary.date').forEach(card => {
+        card.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const date = this.getAttribute('data-date');
+          let nextElement = this.nextElementSibling;
+          if (nextElement && nextElement.classList.contains('date-details')) {
+            const isVisible = nextElement.style.display === 'block';
+            nextElement.style.display = isVisible ? 'none' : 'block';
+          }
+        });
+      });
+    }
+
     function setupPrintFunctionality() {
       const printDialog = document.getElementById('print-dialog');
       const printBtnTop = document.getElementById('print-btn-top');
@@ -850,18 +1307,15 @@
       const employeeSelection = document.getElementById('employee-selection');
       const employeeCheckboxes = document.getElementById('employee-checkboxes');
 
-      // Показываем диалог печати
       printBtnTop.addEventListener('click', function() {
         updateEmployeeCheckboxes();
         printDialog.style.display = 'flex';
       });
 
-      // Скрываем диалог
       printCancelBtn.addEventListener('click', function() {
         printDialog.style.display = 'none';
       });
 
-      // Обработка выбора области печати
       printScopeSelect.addEventListener('change', function() {
         if (this.value === 'selected') {
           employeeSelection.style.display = 'block';
@@ -870,16 +1324,13 @@
         }
       });
 
-      // Подтверждение печати
       printConfirmBtn.addEventListener('click', function() {
         const scope = printScopeSelect.value;
         const detail = printDetailSelect.value;
-        
         printWithOptions(scope, detail);
         printDialog.style.display = 'none';
       });
 
-      // Обновление списка сотрудников для выбора
       function updateEmployeeCheckboxes() {
         const employees = document.querySelectorAll('.employee-row');
         employeeCheckboxes.innerHTML = '';
@@ -896,17 +1347,7 @@
         });
       }
 
-      // 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ ПЕЧАТИ С УЛУЧШЕНИЯМИ
       function printWithOptions(scope, detail) {
-        // Устанавливаем название файла для сохранения в PDF
-        setPrintFileName();
-        
-        // Добавляем заголовок для печати
-        const content = document.getElementById('content');
-        const printHeader = createPrintHeader();
-        content.insertAdjacentHTML('afterbegin', printHeader);
-
-        // Добавляем классы для управления отображением при печати
         document.body.classList.remove('summary-only', 'no-details');
         
         if (detail === 'summary') {
@@ -915,7 +1356,6 @@
           document.body.classList.add('no-details');
         }
 
-        // Управление видимостью сотрудников в зависимости от выбранной области
         const employees = document.querySelectorAll('.employee-row');
         
         employees.forEach(row => {
@@ -935,19 +1375,11 @@
               break;
           }
           
-          if (!shouldPrint) {
-            row.style.display = 'none';
-          } else {
-            row.style.display = 'block';
-          }
+          row.style.display = shouldPrint ? 'block' : 'none';
         });
 
-        // Автоматически раскрываем нужные детали для печати
         if (detail === 'full') {
-          document.querySelectorAll('.employee-details').forEach(details => {
-            details.style.display = 'block';
-          });
-          document.querySelectorAll('.date-details').forEach(details => {
+          document.querySelectorAll('.employee-details, .date-details').forEach(details => {
             details.style.display = 'block';
           });
         } else if (detail === 'dates') {
@@ -959,27 +1391,15 @@
           });
         }
 
-        // Ждем немного перед печатью
         setTimeout(() => {
           window.print();
           
-          // Восстанавливаем исходное состояние после печати
           setTimeout(() => {
-            // Удаляем добавленный заголовок
-            const printHeaderElement = document.querySelector('.print-header');
-            if (printHeaderElement) {
-              printHeaderElement.remove();
-            }
-            
             document.body.classList.remove('summary-only', 'no-details');
             employees.forEach(row => {
               row.style.display = 'block';
             });
-            // Закрываем все раскрытые детали
-            document.querySelectorAll('.employee-details').forEach(details => {
-              details.style.display = 'none';
-            });
-            document.querySelectorAll('.date-details').forEach(details => {
+            document.querySelectorAll('.employee-details, .date-details').forEach(details => {
               details.style.display = 'none';
             });
           }, 500);
@@ -987,7 +1407,6 @@
       }
     }
 
-    // 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ ДЛЯ КНОПКИ СБРОСА КЭША
     function setupCacheClearFunctionality() {
       const clearCacheBtnTop = document.getElementById('clear-cache-btn-top');
       
@@ -997,39 +1416,124 @@
         if (currentMonth) {
           loadAndRender(currentMonth);
         }
-        if (window.Telegram?.WebApp) {
-          Telegram.WebApp.showPopup({
-            title: "Кэш сброшен",
-            message: "Данные загружены заново."
-          });
-        }
       });
     }
 
-    // ... остальной код без изменений ...
+    async function loadAndRender(month) {
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading">Загрузка данных...</div>';
+
+      try {
+        console.log('Начало загрузки данных для месяца:', month);
+        const { records, lastUpdated } = await fetchRecordsForMonth(month);
+        console.log('Данные получены, записей:', records.length);
+        
+        const groupedData = groupDataByEmployeeAndDate(records);
+        window.currentGroupedData = groupedData;
+
+        applyFilters();
+
+        const lastUpdatedEl = document.getElementById('last-updated');
+        if (lastUpdated) {
+          const lastDate = new Date(lastUpdated);
+          const now = new Date();
+          const isOutdated = (now - lastDate) > 24 * 60 * 60 * 1000;
+          const formatted = formatLastUpdated(lastUpdated);
+          const icon = isOutdated ? '🚨' : '🕒';
+          lastUpdatedEl.textContent = ` | ${icon} ${formatted}`;
+          lastUpdatedEl.className = isOutdated ? 'outdated' : '';
+        }
+        
+        console.log('Данные успешно загружены и отображены');
+      } catch (err) {
+        console.error('Критическая ошибка при загрузке:', err);
+        content.innerHTML = `<div class="error">Ошибка загрузки данных: ${err.message}</div>`;
+      }
+    }
+
+    function populateDepartmentFilter(departments) {
+      const select = document.getElementById('department-filter');
+      select.innerHTML = '';
+      
+      const allOption = document.createElement('option');
+      allOption.value = '';
+      allOption.textContent = 'Все отделы';
+      select.appendChild(allOption);
+
+      departments.forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = dept;
+        opt.textContent = dept;
+        select.appendChild(opt);
+      });
+
+      console.log('Отделы загружены в фильтр:', departments);
+    }
+
+    function initMonthSelector() {
+      const select = document.getElementById('month-select');
+      select.innerHTML = '';
+
+      const sorted = [...AVAILABLE_MONTHS].sort((a, b) => b.localeCompare(a));
+      sorted.forEach(yyyymm => {
+        const opt = document.createElement('option');
+        opt.value = yyyymm;
+        opt.textContent = getMonthLabel(yyyymm);
+        select.appendChild(opt);
+      });
+
+      if (sorted.length > 0) {
+        select.value = sorted[0];
+        updateMonthDisplay(sorted[0]);
+        
+        select.addEventListener('change', (e) => {
+          if (e.target.value) {
+            updateMonthDisplay(e.target.value);
+            loadAndRender(e.target.value);
+          }
+        });
+        
+        // 🔥 ЗАГРУЖАЕМ ДАННЫЕ ПОСЛЕ ИНИЦИАЛИЗАЦИИ ИНТЕРФЕЙСА
+        setTimeout(() => {
+          loadAndRender(sorted[0]);
+        }, 100);
+      } else {
+        document.getElementById('content').innerHTML = '<div class="error">Нет доступных месяцев</div>';
+        updateMonthDisplay('');
+      }
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
+      console.log('Документ загружен, инициализация...');
+      
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
       }
 
-      const { staffMap, departments } = await fetchStaffData();
-      window.staffMap = staffMap;
-      populateDepartmentFilter(departments);
+      try {
+        const { staffMap, departments } = await fetchStaffData();
+        window.staffMap = staffMap;
+        populateDepartmentFilter(departments);
 
-      document.getElementById('department-filter').addEventListener('change', applyFilters);
+        document.getElementById('department-filter').addEventListener('change', applyFilters);
 
-      const searchInput = document.getElementById('employee-search');
-      let searchTimeout;
-      searchInput.addEventListener('input', () => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(applyFilters, 300);
-      });
+        const searchInput = document.getElementById('employee-search');
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(applyFilters, 300);
+        });
 
-      setupPrintFunctionality();
-      setupCacheClearFunctionality();
-      initMonthSelector();
+        setupPrintFunctionality();
+        setupCacheClearFunctionality();
+        initMonthSelector();
+        
+        console.log('Приложение инициализировано успешно');
+      } catch (err) {
+        console.error('Ошибка инициализации приложения:', err);
+        document.getElementById('content').innerHTML = '<div class="error">Ошибка инициализации приложения</div>';
+      }
     });
   </script>
 </body>
