@@ -1,0 +1,1897 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Аналитика по видам работ</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 16px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .version {
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 15px;
+    }
+    .last-updated {
+      text-align: center;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 15px;
+      font-style: italic;
+    }
+    .selected-date {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      color: #1976d2;
+      margin: 15px 0;
+      padding: 10px;
+      background: #e3f2fd;
+      border-radius: 6px;
+    }
+    .calendar-container {
+      margin: 15px 0;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .calendar-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 0 10px;
+      text-align: center;
+    }
+    .calendar-nav-btn {
+      background: #2196f3;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      min-width: 100px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .calendar-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+    .calendar-day-header {
+      text-align: center;
+      font-weight: bold;
+      padding: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+    }
+    .calendar-day {
+      text-align: center;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .calendar-day.has-data {
+      background: #2196f3;
+      color: white;
+    }
+    .calendar-day.selected {
+      background: #ff9800;
+      color: white;
+      font-weight: bold;
+    }
+    .calendar-day.disabled {
+      color: #aaa;
+      cursor: not-allowed;
+    }
+    .toggle-icon {
+      display: inline-block;
+      width: 16px;
+      text-align: center;
+      margin-right: 6px;
+    }
+    .hidden {
+      display: none;
+    }
+    .loading {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+    }
+    .error {
+      color: #d32f2f;
+      background: #ffebee;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+
+    /* СТИЛИ ДЛЯ ИНДИКАТОРА ЗАГРУЗКИ */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #2196f3;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-progress {
+      background: linear-gradient(90deg, #2196f3, #1976d2);
+      height: 3px;
+      width: 0%;
+      transition: width 0.3s ease;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+    }
+    
+    .loading-dots:after {
+      content: '';
+      animation: dots 1.5s steps(5, end) infinite;
+    }
+    
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
+    /* СТИЛИ ДЛЯ АНАЛИТИКИ */
+    .analytics-section {
+      margin-top: 20px;
+      padding: 20px;
+      background: #fff3e0;
+      border-radius: 8px;
+      border-left: 4px solid #ff9800;
+    }
+    
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .analytics-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #e65100;
+      margin: 0;
+    }
+    
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .analytics-card {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-left: 3px solid #2196f3;
+    }
+    
+    .analytics-card h4 {
+      margin: 0 0 10px 0;
+      color: #1976d2;
+      font-size: 14px;
+    }
+    
+    .analytics-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin: 5px 0;
+    }
+    
+    .analytics-label {
+      font-size: 12px;
+      color: #666;
+      margin: 0;
+    }
+
+    /* СТИЛИ ДЛЯ СРАВНЕНИЯ С ПРЕДЫДУЩИМИ ДНЯМИ */
+    .comparison-section {
+      margin-top: 20px;
+      padding: 20px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      border-left: 4px solid #4caf50;
+    }
+    
+    .comparison-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .comparison-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #2e7d32;
+      margin: 0;
+    }
+    
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .comparison-card {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .comparison-card h4 {
+      margin: 0 0 10px 0;
+      color: #388e3c;
+      font-size: 14px;
+    }
+    
+    .trend-up {
+      color: #4caf50;
+    }
+    
+    .trend-down {
+      color: #f44336;
+    }
+
+    /* СТИЛИ ДЛЯ СТАТИСТИКИ ПО ВРЕМЕНИ СУТОК */
+    .time-statistics {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f3e5f5;
+      border-radius: 8px;
+      border-left: 4px solid #9c27b0;
+    }
+    
+    .time-statistics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .time-statistics-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #7b1fa2;
+      margin: 0;
+    }
+    
+    .time-chart {
+      margin-top: 15px;
+    }
+    
+    .time-bar {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      height: 25px;
+    }
+    
+    .time-label {
+      width: 100px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .time-bar-inner {
+      flex: 1;
+      height: 15px;
+      background: #e1bee7;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .time-bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #ab47bc, #8e24aa);
+    }
+    
+    .time-value {
+      width: 100px;
+      text-align: right;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    /* СТИЛИ ДЛЯ ГРУППИРОВОК */
+    .grouping-section {
+      margin-top: 20px;
+      padding: 20px;
+      background: #e3f2fd;
+      border-radius: 8px;
+      border-left: 4px solid #1976d2;
+    }
+    
+    .grouping-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .grouping-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0d47a1;
+      margin: 0;
+    }
+    
+    .grouping-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .group-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-left: 4px solid #2196f3;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .group-card:hover {
+      transform: translateY(-2px);
+    }
+    
+    .group-card h4 {
+      margin: 0 0 10px 0;
+      color: #1976d2;
+      font-size: 14px;
+    }
+    
+    .group-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    
+    .group-stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 6px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+    
+    .group-stat-value {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .group-stat-label {
+      font-size: 10px;
+      color: #666;
+      text-align: center;
+    }
+
+    /* СТИЛИ ДЛЯ АНАЛИТИКИ ПО ВИДАМ РАБОТ */
+    .work-types-analytics {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #17a2b8;
+    }
+    
+    .work-types-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .work-types-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0c5460;
+      margin: 0;
+    }
+    
+    .work-types-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .work-type-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-left: 4px solid #17a2b8;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .work-type-card:hover {
+      transform: translateY(-2px);
+    }
+    
+    .work-type-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .work-type-name {
+      font-size: 16px;
+      font-weight: bold;
+      color: #495057;
+      margin: 0;
+    }
+    
+    .work-type-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+    
+    .stat-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      color: #666;
+      text-align: center;
+    }
+    
+    .performance-indicator {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    
+    .performance-good {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .performance-average {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .performance-poor {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    /* СТИЛИ ДЛЯ ДЕТАЛИЗАЦИИ */
+    .detail-section {
+      margin: 10px 0;
+      padding: 15px;
+      background: #f1f8e9;
+      border-radius: 6px;
+      border-left: 3px solid #7cb342;
+    }
+    
+    .hour-group, .brigade-group {
+      margin: 10px 0;
+      padding: 10px;
+      background: #e8f5e8;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .brigade-group {
+      background: #f3e5f5;
+      margin-left: 20px;
+    }
+    
+    .supply-details {
+      margin-left: 40px;
+      padding: 8px;
+      background: #fff3e0;
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+
+    .night-interval {
+      background: #5c6bc0 !important;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- Индикатор прогресса -->
+  <div id="loading-progress" class="loading-progress"></div>
+
+  <div class="container">
+    <h2>Аналитика по видам работ</h2>
+    <div class="version">v 11.01-2303 <span>🕒</span></div>
+    <div class="last-updated" id="last-updated">Обновлено: —</div>
+
+    <div id="selected-date" class="selected-date hidden">
+      📅 Данные за: <span id="current-date"></span>
+    </div>
+
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <span>Загрузка данных<span class="loading-dots"></span></span>
+    </div>
+    <div id="error" class="error hidden"></div>
+
+    <div id="controls" class="hidden">
+      <!-- КАЛЕНДАРЬ -->
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="calendar-nav-btn" id="prev-month">◀ Назад</button>
+          <div class="calendar-title" id="calendar-title">Октябрь 2025</div>
+          <button class="calendar-nav-btn" id="next-month">Вперёд ▶</button>
+        </div>
+        <div class="calendar-days" id="calendar-days">
+          <!-- Заполняется JS -->
+        </div>
+      </div>
+
+      <!-- УРОВЕНЬ 1: РУКОВОДИТЕЛЬ ПРЕДПРИЯТИЯ -->
+      <div id="level-1" class="hidden">
+        <!-- 📊 Общая аналитика за день -->
+        <div id="analytics" class="analytics-section">
+          <div class="analytics-header" id="analytics-toggle">
+            <h3 class="analytics-title">📊 Общая аналитика за день</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="analytics-content">
+            <!-- Контент аналитики -->
+          </div>
+        </div>
+
+        <!-- 📈 Сравнение с предыдущими днями -->
+        <div id="comparison" class="comparison-section">
+          <div class="comparison-header" id="comparison-toggle">
+            <h3 class="comparison-title">📈 Сравнение с предыдущими днями</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="comparison-content">
+            <!-- Контент сравнения -->
+          </div>
+        </div>
+
+        <!-- ⏰ Общая статистика по времени -->
+        <div id="time-statistics" class="time-statistics">
+          <div class="time-statistics-header" id="time-statistics-toggle">
+            <h3 class="time-statistics-title">⏰ Общая статистика по времени</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="time-statistics-content">
+            <!-- Контент статистики по времени -->
+          </div>
+        </div>
+
+        <!-- 📊 Статистика по направлениям -->
+        <div id="directions-stats" class="grouping-section">
+          <div class="grouping-header" id="directions-toggle">
+            <h3 class="grouping-title">📊 Статистика по направлениям</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="directions-content">
+            <!-- Контент по направлениям -->
+          </div>
+        </div>
+
+        <!-- 🏛️ Статистика по отделам -->
+        <div id="departments-stats" class="grouping-section">
+          <div class="grouping-header" id="departments-toggle">
+            <h3 class="grouping-title">🏛️ Статистика по отделам</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="departments-content">
+            <!-- Контент по отделам -->
+          </div>
+        </div>
+      </div>
+
+      <!-- УРОВЕНЬ 2: НАЧАЛЬНИК СМЕНЫ -->
+      <div id="level-2" class="hidden">
+        <div id="directions-analytics" class="grouping-section">
+          <div class="grouping-header" id="directions-analytics-toggle">
+            <h3 class="grouping-title">🎯 Аналитика по направлениям (Начальник смены)</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="directions-analytics-content">
+            <!-- Детальная аналитика по направлениям -->
+          </div>
+        </div>
+      </div>
+
+      <!-- УРОВЕНЬ 3: РУКОВОДИТЕЛЬ ОТДЕЛА -->
+      <div id="level-3" class="hidden">
+        <div id="departments-analytics" class="grouping-section">
+          <div class="grouping-header" id="departments-analytics-toggle">
+            <h3 class="grouping-title">👔 Аналитика по отделам (Руководитель отдела)</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="departments-analytics-content">
+            <!-- Детальная аналитика по отделам -->
+          </div>
+        </div>
+      </div>
+
+      <!-- УРОВЕНЬ 4: БРИГАДИР -->
+      <div id="level-4" class="hidden">
+        <div id="work-types-analytics" class="work-types-analytics">
+          <div class="work-types-header" id="work-types-toggle">
+            <h3 class="work-types-title">🔍 Аналитика по видам работ (Бригадир)</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="work-types-content">
+            <!-- Контент аналитики по видам работ -->
+          </div>
+        </div>
+      </div>
+
+      <!-- КНОПКА ЭКСПОРТА -->
+      <button id="export-excel" style="margin-top: 20px;">📊 Экспорт данных</button>
+    </div>
+  </div>
+
+  <script>
+    // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+    function parseTime(timeStr) {
+      if (!timeStr) return 0;
+      const parts = timeStr.split(':').map(Number);
+      if (parts.length !== 3) return 0;
+      const [h, m, s] = parts;
+      return (h || 0) * 3600 + (m || 0) * 60 + (s || 0);
+    }
+
+    function formatTime(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function parseCurrency(str) {
+      if (!str || typeof str !== 'string') return 0;
+      let clean = str.trim().replace(/^р\.\s*/i, '');
+      clean = clean.replace(',', '.');
+      const num = parseFloat(clean);
+      return isNaN(num) ? 0 : num;
+    }
+
+    function getHourFromTime(timeStr) {
+      if (!timeStr) return null;
+      const [h] = timeStr.split(':');
+      return parseInt(h) || 0;
+    }
+
+    function isResponsible(position) {
+      return position === 'Ответственный' || position === 'Ответсвенный';
+    }
+
+    function formatDateTime(date) {
+      return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(date);
+    }
+
+    function calculateNormative(units, seconds) {
+      if (seconds <= 0) return 0;
+      const hours = seconds / 3600;
+      return units / hours;
+    }
+
+    function parseDate(dateStr) {
+      const [day, month, year] = dateStr.split('.').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDate(date) {
+      return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+    }
+
+    // === ФУНКЦИИ ДЛЯ АРХИВОВ ===
+    function getArchiveNameForDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      return `${year}-${month}`;
+    }
+
+    function getArchiveUrl(archiveName) {
+      const encodedName = encodeURIComponent(`${archiveName} fullData.json`);
+      return `${window.location.origin}/archive/${encodedName}`;
+    }
+
+    // === ФУНКЦИЯ ДЛЯ ЧАСОВЫХ ИНТЕРВАЛОВ ===
+    function getHourIntervalForWorkDay(timeStr, workDate) {
+      if (!timeStr) return null;
+      
+      const hour = getHourFromTime(timeStr);
+      if (hour === null) return null;
+      
+      if (hour < 9) {
+        const nightHour = hour + 24;
+        const endHour = nightHour + 1;
+        return {
+          key: `${String(hour).padStart(2, '0')}-${String(endHour - 24).padStart(2, '0')}`,
+          display: `${String(hour).padStart(2, '0')}-${String(endHour - 24).padStart(2, '0')} (ночь)`,
+          isNight: true,
+          sortKey: nightHour
+        };
+      } else {
+        const endHour = hour + 1;
+        return {
+          key: `${String(hour).padStart(2, '0')}-${String(endHour).padStart(2, '0')}`,
+          display: `${String(hour).padStart(2, '0')}-${String(endHour).padStart(2, '0')}`,
+          isNight: false,
+          sortKey: hour
+        };
+      }
+    }
+
+    // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+    let records = [];
+    let standards = [];
+    let selectedDate = '';
+    let allWorkTypes = [];
+    let currentMonth = new Date();
+    currentMonth.setDate(1);
+
+    let currentArchive = null;
+    let uiInitialized = false;
+
+    // DOM элементы
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const controlsDiv = document.getElementById('controls');
+    const selectedDateDiv = document.getElementById('selected-date');
+    const currentDateSpan = document.getElementById('current-date');
+    const lastUpdatedDiv = document.getElementById('last-updated');
+    const exportExcelBtn = document.getElementById('export-excel');
+    const calendarTitle = document.getElementById('calendar-title');
+    const prevMonthBtn = document.getElementById('prev-month');
+    const nextMonthBtn = document.getElementById('next-month');
+    const calendarDaysContainer = document.getElementById('calendar-days');
+    const loadingProgress = document.getElementById('loading-progress');
+
+    // === ФУНКЦИИ ЗАГРУЗКИ ===
+    function updateProgress(percent) {
+      if (loadingProgress) {
+        loadingProgress.style.width = percent + '%';
+      }
+    }
+
+    async function loadStandards() {
+      const standardsUrl = `${window.location.origin}/archive/standard%20fullData.json`;
+      
+      try {
+        console.log('Загрузка нормативов из:', standardsUrl);
+        const response = await fetch(`${standardsUrl}?t=${Date.now()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        if (Array.isArray(data.records)) {
+          standards = data.records.filter(record => 
+            isResponsible(record['Должность']) && record['Норматив 1']
+          );
+          console.log('Загружено нормативов:', standards.length);
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки нормативов:', err);
+        // Создаем тестовые нормативы
+        standards = [
+          {
+            "Направление": "Входящие",
+            "Отдел": "Приемка",
+            "Вид работ": "Разгрузка",
+            "Группа товара": "Все",
+            "Норматив 1": "120"
+          },
+          {
+            "Направление": "Входящие",
+            "Отдел": "Приемка", 
+            "Вид работ": "Сортировка",
+            "Группа товара": "Все",
+            "Норматив 1": "80"
+          },
+          {
+            "Направление": "Исходящие",
+            "Отдел": "Отгрузка",
+            "Вид работ": "Погрузка",
+            "Группа товара": "Все",
+            "Норматив 1": "100"
+          }
+        ];
+      }
+    }
+
+    function getStandardForWork(workType, productGroup = null) {
+      if (productGroup) {
+        const specificStandard = standards.find(standard =>
+          standard['Вид работ'] === workType &&
+          standard['Группа товара'] === productGroup
+        );
+        if (specificStandard) return parseFloat(specificStandard['Норматив 1']);
+      }
+      
+      const generalStandard = standards.find(standard =>
+        standard['Вид работ'] === workType
+      );
+      
+      return generalStandard ? parseFloat(generalStandard['Норматив 1']) : 0;
+    }
+
+    function getDirectionAndDepartment(workType) {
+      const standard = standards.find(s => s['Вид работ'] === workType);
+      return {
+        direction: standard?.['Направление'] || 'Не указано',
+        department: standard?.['Отдел'] || 'Не указано'
+      };
+    }
+
+    // Функция для создания тестовых данных
+    function createTestData() {
+      console.log('Создаем тестовые данные...');
+      const testRecords = [];
+      const workTypes = ['Погрузка', 'Разгрузка', 'Сортировка', 'Упаковка'];
+      const employees = ['Иванов И.И.', 'Петров П.П.', 'Сидоров С.С.'];
+      const productGroups = ['Диски', 'Шины', 'Аккумуляторы'];
+      
+      const today = new Date();
+      
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - dayOffset);
+        const dateStr = formatDate(date);
+        
+        for (let i = 0; i < 20; i++) {
+          const workType = workTypes[i % workTypes.length];
+          const { direction, department } = getDirectionAndDepartment(workType);
+          
+          testRecords.push({
+            'Рабочий день': dateStr,
+            'Начало задачи': `${8 + (i % 10)}:${String(i % 60).padStart(2, '0')}:00`,
+            'Вид работ': workType,
+            'Группа товара': productGroups[i % productGroups.length],
+            'Должность': i % 3 === 0 ? 'Ответственный' : 'Помощник',
+            'Сотрудник': employees[i % employees.length],
+            'Поставка': `Поставка ${Math.floor(i / 3) + 1}`,
+            'Количество единиц': (Math.random() * 100 + 50).toFixed(0),
+            'Рабочее время': '01:00:00',
+            'Расчетная сумма': `р.${(Math.random() * 1000 + 500).toFixed(2)}`,
+            'Направление': direction,
+            'Отдел': department
+          });
+        }
+      }
+      
+      return testRecords;
+    }
+
+    async function loadData() {
+      if (!currentArchive) {
+        currentArchive = getArchiveNameForDate(new Date());
+      }
+
+      const url = getArchiveUrl(currentArchive);
+      
+      try {
+        loadingDiv.classList.remove('hidden');
+        errorDiv.classList.add('hidden');
+        controlsDiv.classList.add('hidden');
+        updateProgress(10);
+
+        await Promise.all([loadStandards()]);
+
+        loadingDiv.innerHTML = `
+          <div class="loading-spinner"></div>
+          <span>Загрузка данных архива ${currentArchive}<span class="loading-dots"></span></span>
+        `;
+
+        console.log('Пытаемся загрузить данные из:', url);
+        const urlWithCacheBust = `${url}?t=${Date.now()}`;
+        updateProgress(30);
+        
+        const response = await fetch(urlWithCacheBust);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+        
+        updateProgress(60);
+        const data = await response.json();
+        
+        if (!Array.isArray(data.records)) {
+          throw new Error('Неверный формат данных');
+        }
+        
+        updateProgress(80);
+        records = data.records;
+        records.forEach(record => {
+          const { direction, department } = getDirectionAndDepartment(record['Вид работ']);
+          record['Направление'] = direction;
+          record['Отдел'] = department;
+        });
+        
+        allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
+        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive} | Нормативов: ${standards.length}`;
+        
+        updateProgress(100);
+        setTimeout(() => {
+          initUI();
+          updateProgress(0);
+        }, 500);
+        
+      } catch (err) {
+        console.error('Ошибка загрузки, используем тестовые данные:', err);
+        
+        records = createTestData();
+        allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
+        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length}`;
+        
+        errorDiv.textContent = `⚠️ Не удалось загрузить данные: ${err.message}. Используются тестовые данные.`;
+        errorDiv.classList.remove('hidden');
+        
+        updateProgress(100);
+        setTimeout(() => {
+          initUI();
+          updateProgress(0);
+        }, 500);
+      }
+    }
+
+    // === ОСНОВНЫЕ ФУНКЦИИ ===
+    function initUI() {
+      loadingDiv.classList.add('hidden');
+      errorDiv.classList.add('hidden');
+      controlsDiv.classList.remove('hidden');
+
+      renderCalendar();
+
+      if (!uiInitialized) {
+        setupEventListeners();
+        uiInitialized = true;
+      }
+
+      const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
+      if (uniqueDates.length > 0 && !selectedDate) {
+        selectedDate = uniqueDates[0];
+        renderReport();
+      }
+    }
+
+    function setupEventListeners() {
+      exportExcelBtn.addEventListener('click', exportToExcel);
+
+      prevMonthBtn.addEventListener('click', () => {
+        currentMonth.setMonth(currentMonth.getMonth() - 1);
+        const targetArchive = getArchiveNameForDate(currentMonth);
+        if (currentArchive !== targetArchive) {
+          currentArchive = targetArchive;
+          selectedDate = '';
+          loadData();
+        } else {
+          renderCalendar();
+        }
+      });
+
+      nextMonthBtn.addEventListener('click', () => {
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+        const targetArchive = getArchiveNameForDate(currentMonth);
+        if (currentArchive !== targetArchive) {
+          currentArchive = targetArchive;
+          selectedDate = '';
+          loadData();
+        } else {
+          renderCalendar();
+        }
+      });
+
+      // Обработчики для сворачивания/разворачивания секций
+      setupToggleHandler('analytics-toggle', 'analytics-content');
+      setupToggleHandler('comparison-toggle', 'comparison-content');
+      setupToggleHandler('time-statistics-toggle', 'time-statistics-content');
+      setupToggleHandler('directions-toggle', 'directions-content');
+      setupToggleHandler('departments-toggle', 'departments-content');
+      setupToggleHandler('directions-analytics-toggle', 'directions-analytics-content');
+      setupToggleHandler('departments-analytics-toggle', 'departments-analytics-content');
+      setupToggleHandler('work-types-toggle', 'work-types-content');
+    }
+
+    function setupToggleHandler(toggleId, contentId) {
+      const toggle = document.getElementById(toggleId);
+      const content = document.getElementById(contentId);
+      if (toggle && content) {
+        toggle.addEventListener('click', function() {
+          const icon = this.querySelector('.toggle-icon');
+          if (content.classList.contains('hidden')) {
+            content.classList.remove('hidden');
+            icon.textContent = '▼';
+          } else {
+            content.classList.add('hidden');
+            icon.textContent = '▶';
+          }
+        });
+      }
+    }
+
+    function renderCalendar() {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      calendarTitle.textContent = `${monthNames[month]} ${year}`;
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const daysInMonth = lastDay.getDate();
+      const firstDayOfWeek = firstDay.getDay();
+
+      calendarDaysContainer.innerHTML = '';
+      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+      dayNames.forEach(name => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = name;
+        calendarDaysContainer.appendChild(header);
+      });
+
+      for (let i = 0; i < (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1); i++) {
+        const empty = document.createElement('div');
+        empty.className = 'calendar-day disabled';
+        calendarDaysContainer.appendChild(empty);
+      }
+
+      const availableDates = new Set(records.map(r => r['Рабочий день']));
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
+        const hasData = availableDates.has(dateStr);
+        const dayEl = document.createElement('div');
+        dayEl.className = `calendar-day${hasData ? ' has-data' : ''}${dateStr === selectedDate ? ' selected' : ''}`;
+        dayEl.textContent = day;
+        if (hasData) {
+          dayEl.addEventListener('click', () => {
+            selectedDate = dateStr;
+            renderReport();
+          });
+        } else {
+          dayEl.classList.add('disabled');
+        }
+        calendarDaysContainer.appendChild(dayEl);
+      }
+
+      const lastDayOfWeek = lastDay.getDay();
+      const remaining = 6 - (lastDayOfWeek === 0 ? 6 : lastDayOfWeek - 1);
+      for (let i = 0; i < remaining; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'calendar-day disabled';
+        calendarDaysContainer.appendChild(empty);
+      }
+    }
+
+    function renderReport() {
+      if (!selectedDate) {
+        selectedDateDiv.classList.add('hidden');
+        hideAllLevels();
+        return;
+      }
+
+      const allRecords = records.filter(r => r['Рабочий день'] === selectedDate);
+      
+      if (allRecords.length === 0) {
+        selectedDateDiv.classList.add('hidden');
+        hideAllLevels();
+        return;
+      }
+
+      // Показываем выбранную дату
+      selectedDateDiv.classList.remove('hidden');
+      currentDateSpan.textContent = selectedDate;
+
+      // Показываем все уровни аналитики
+      showAllLevels();
+
+      // Обновляем аналитику для всех уровней
+      renderLevel1Analytics(allRecords);
+      renderLevel2Analytics(allRecords);
+      renderLevel3Analytics(allRecords);
+      renderLevel4Analytics(allRecords);
+    }
+
+    function hideAllLevels() {
+      document.getElementById('level-1').classList.add('hidden');
+      document.getElementById('level-2').classList.add('hidden');
+      document.getElementById('level-3').classList.add('hidden');
+      document.getElementById('level-4').classList.add('hidden');
+    }
+
+    function showAllLevels() {
+      document.getElementById('level-1').classList.remove('hidden');
+      document.getElementById('level-2').classList.remove('hidden');
+      document.getElementById('level-3').classList.remove('hidden');
+      document.getElementById('level-4').classList.remove('hidden');
+    }
+
+    function renderLevel1Analytics(allRecords) {
+      const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
+      
+      // 📊 Общая аналитика за день
+      renderGeneralAnalytics(allRecords, responsibleRecords);
+      
+      // 📈 Сравнение с предыдущими днями
+      renderComparisonAnalytics(selectedDate);
+      
+      // ⏰ Общая статистика по времени
+      renderOverallTimeStatistics(allRecords);
+      
+      // 📊 Статистика по направлениям
+      renderDirectionsStatistics(allRecords);
+      
+      // 🏛️ Статистика по отделам
+      renderDepartmentsStatistics(allRecords);
+    }
+
+    function renderGeneralAnalytics(allRecords, responsibleRecords) {
+      let totalUnits = 0, totalTimeSec = 0, totalTasks = 0, totalAmount = 0;
+      const uniqueResponsibles = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
+
+      responsibleRecords.forEach(r => {
+        totalUnits += parseInt(r['Количество единиц']) || 0;
+        totalTimeSec += parseTime(r['Рабочее время']);
+        totalTasks++;
+      });
+
+      allRecords.forEach(r => {
+        totalAmount += parseCurrency(r['Расчетная сумма']);
+      });
+
+      const factNormative = calculateNormative(totalUnits, totalTimeSec);
+      const totalHours = totalTimeSec / 3600;
+      const avgRevenuePerHour = totalHours > 0 ? totalAmount / totalHours : 0;
+      const uniqueWorkTypes = [...new Set(allRecords.map(r => r['Вид работ']))].filter(Boolean);
+      const uniqueBrigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
+      const uniqueDirections = [...new Set(allRecords.map(r => r['Направление']))].filter(Boolean);
+      const uniqueDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
+      
+      let html = `
+        <div class="analytics-grid">
+          <div class="analytics-card">
+            <h4>📦 Производство</h4>
+            <div class="analytics-value">${totalUnits}</div>
+            <p class="analytics-label">Обработано единиц</p>
+            
+            <div class="analytics-value">${totalTasks}</div>
+            <p class="analytics-label">Выполнено задач</p>
+          </div>
+
+          <div class="analytics-card">
+            <h4>⚡ Эффективность</h4>
+            <div class="analytics-value">${factNormative.toFixed(1)}</div>
+            <p class="analytics-label">Норматив (шт/час)</p>
+            
+            <div class="analytics-value">${formatTime(totalTimeSec)}</div>
+            <p class="analytics-label">Общее время работы</p>
+          </div>
+
+          <div class="analytics-card">
+            <h4>💰 Финансы</h4>
+            <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
+            <p class="analytics-label">Общая выручка</p>
+            
+            <div class="analytics-value">р.${avgRevenuePerHour.toFixed(2)}</div>
+            <p class="analytics-label">Выручка в час</p>
+          </div>
+
+          <div class="analytics-card">
+            <h4>👥 Персонал</h4>
+            <div class="analytics-value">${uniqueBrigades.length}</div>
+            <p class="analytics-label">Работало бригад</p>
+            
+            <div class="analytics-value">${allRecords.length}</div>
+            <p class="analytics-label">Всего операций</p>
+          </div>
+
+          <div class="analytics-card">
+            <h4>🏢 Структура</h4>
+            <div class="analytics-value">${uniqueDirections.length}</div>
+            <p class="analytics-label">Направлений</p>
+            
+            <div class="analytics-value">${uniqueDepartments.length}</div>
+            <p class="analytics-label">Отделов</p>
+          </div>
+
+          <div class="analytics-card">
+            <h4>🔧 Виды работ</h4>
+            <div class="analytics-value">${uniqueWorkTypes.length}</div>
+            <p class="analytics-label">Видов работ</p>
+            
+            <div class="analytics-value">-</div>
+            <p class="analytics-label">Групп товаров</p>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('analytics-content').innerHTML = html;
+    }
+
+    function renderComparisonAnalytics(currentDate) {
+      const currentDateObj = parseDate(currentDate);
+      const previousDates = [];
+      
+      for (let i = 1; i <= 7; i++) {
+        const date = new Date(currentDateObj);
+        date.setDate(currentDateObj.getDate() - i);
+        const dateStr = formatDate(date);
+        previousDates.push({ date: dateStr, records: records.filter(r => r['Рабочий день'] === dateStr) });
+      }
+
+      const currentDayRecords = records.filter(r => r['Рабочий день'] === currentDate);
+      const currentResponsibleRecords = currentDayRecords.filter(r => isResponsible(r['Должность']));
+      
+      let currentUnits = 0, currentTime = 0, currentAmount = 0;
+      currentResponsibleRecords.forEach(r => {
+        currentUnits += parseInt(r['Количество единиц']) || 0;
+        currentTime += parseTime(r['Рабочее время']);
+      });
+      currentDayRecords.forEach(r => {
+        currentAmount += parseCurrency(r['Расчетная сумма']);
+      });
+
+      const currentNormative = calculateNormative(currentUnits, currentTime);
+
+      let html = '<div class="comparison-grid">';
+      
+      const previousUnits = previousDates.map(d => {
+        const respRecords = d.records.filter(r => isResponsible(r['Должность']));
+        return respRecords.reduce((sum, r) => sum + (parseInt(r['Количество единиц']) || 0), 0);
+      }).filter(val => val > 0);
+      
+      const avgUnits = previousUnits.length > 0 ? previousUnits.reduce((a, b) => a + b) / previousUnits.length : 0;
+      const unitsTrend = currentUnits - avgUnits;
+      const unitsPercent = avgUnits > 0 ? ((unitsTrend / avgUnits) * 100).toFixed(1) : 0;
+      
+      html += `
+        <div class="comparison-card">
+          <h4>📦 Единицы</h4>
+          <div class="analytics-value">${currentUnits}</div>
+          <p class="analytics-label">Сегодня</p>
+          <div class="analytics-value ${unitsTrend >= 0 ? 'trend-up' : 'trend-down'}">
+            ${unitsTrend >= 0 ? '↗' : '↘'} ${Math.abs(unitsPercent)}%
+          </div>
+          <p class="analytics-label">Среднее: ${avgUnits.toFixed(0)}</p>
+        </div>
+      `;
+
+      const previousNorms = previousDates.map(d => {
+        const respRecords = d.records.filter(r => isResponsible(r['Должность']));
+        const units = respRecords.reduce((sum, r) => sum + (parseInt(r['Количество единиц']) || 0), 0);
+        const time = respRecords.reduce((sum, r) => sum + parseTime(r['Рабочее время']), 0);
+        return calculateNormative(units, time);
+      }).filter(val => val > 0);
+      
+      const avgNorm = previousNorms.length > 0 ? previousNorms.reduce((a, b) => a + b) / previousNorms.length : 0;
+      const normTrend = currentNormative - avgNorm;
+      const normPercent = avgNorm > 0 ? ((normTrend / avgNorm) * 100).toFixed(1) : 0;
+      
+      html += `
+        <div class="comparison-card">
+          <h4>⚡ Норматив</h4>
+          <div class="analytics-value">${currentNormative.toFixed(1)}</div>
+          <p class="analytics-label">Сегодня (шт/час)</p>
+          <div class="analytics-value ${normTrend >= 0 ? 'trend-up' : 'trend-down'}">
+            ${normTrend >= 0 ? '↗' : '↘'} ${Math.abs(normPercent)}%
+          </div>
+          <p class="analytics-label">Среднее: ${avgNorm.toFixed(1)}</p>
+        </div>
+      `;
+
+      const previousAmounts = previousDates.map(d => 
+        d.records.reduce((sum, r) => sum + parseCurrency(r['Расчетная сумма']), 0)
+      ).filter(val => val > 0);
+      
+      const avgAmount = previousAmounts.length > 0 ? previousAmounts.reduce((a, b) => a + b) / previousAmounts.length : 0;
+      const amountTrend = currentAmount - avgAmount;
+      const amountPercent = avgAmount > 0 ? ((amountTrend / avgAmount) * 100).toFixed(1) : 0;
+      
+      html += `
+        <div class="comparison-card">
+          <h4>💰 Выручка</h4>
+          <div class="analytics-value">р.${currentAmount.toFixed(0)}</div>
+          <p class="analytics-label">Сегодня</p>
+          <div class="analytics-value ${amountTrend >= 0 ? 'trend-up' : 'trend-down'}">
+            ${amountTrend >= 0 ? '↗' : '↘'} ${Math.abs(amountPercent)}%
+          </div>
+          <p class="analytics-label">Среднее: р.${avgAmount.toFixed(0)}</p>
+        </div>
+      `;
+
+      html += '</div>';
+      document.getElementById('comparison-content').innerHTML = html;
+    }
+
+    function renderOverallTimeStatistics(allRecords) {
+      const timeStats = {};
+      
+      allRecords.forEach(record => {
+        const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
+        if (!interval) return;
+        
+        if (!timeStats[interval.key]) {
+          timeStats[interval.key] = {
+            interval: interval,
+            units: 0,
+            amount: 0,
+            tasks: 0,
+            time: 0
+          };
+        }
+        
+        const stats = timeStats[interval.key];
+        if (isResponsible(record['Должность'])) {
+          stats.units += parseInt(record['Количество единиц']) || 0;
+          stats.time += parseTime(record['Рабочее время']);
+        }
+        stats.amount += parseCurrency(record['Расчетная сумма']);
+        stats.tasks++;
+      });
+
+      let html = '<div class="time-chart">';
+      
+      const sortedIntervals = Object.values(timeStats).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
+      const maxUnits = Math.max(...sortedIntervals.map(s => s.units));
+      
+      sortedIntervals.forEach(stats => {
+        const unitsPercent = maxUnits > 0 ? (stats.units / maxUnits) * 100 : 0;
+        const normative = stats.time > 0 ? calculateNormative(stats.units, stats.time) : 0;
+        
+        html += `
+          <div class="time-bar">
+            <div class="time-label">${stats.interval.display}</div>
+            <div class="time-bar-inner">
+              <div class="time-bar-fill" style="width: ${unitsPercent}%"></div>
+            </div>
+            <div class="time-value">
+              ${stats.units} ед.
+            </div>
+          </div>
+          <div style="font-size: 11px; color: #666; margin-left: 100px;">
+            Задач: ${stats.tasks} | Выручка: р.${stats.amount.toFixed(0)} | Норматив: ${normative.toFixed(1)} шт/час
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      document.getElementById('time-statistics-content').innerHTML = html;
+    }
+
+    function renderDirectionsStatistics(allRecords) {
+      const directionStats = {};
+      
+      allRecords.forEach(record => {
+        const direction = record['Направление'] || 'Не указано';
+        if (!directionStats[direction]) {
+          directionStats[direction] = {
+            totalUnits: 0,
+            totalTime: 0,
+            totalAmount: 0,
+            tasks: 0,
+            workTypes: new Set(),
+            departments: new Set(),
+            brigades: new Set()
+          };
+        }
+        
+        const stats = directionStats[direction];
+        if (isResponsible(record['Должность'])) {
+          stats.totalUnits += parseInt(record['Количество единиц']) || 0;
+          stats.totalTime += parseTime(record['Рабочее время']);
+        }
+        stats.totalAmount += parseCurrency(record['Расчетная сумма']);
+        stats.tasks++;
+        stats.workTypes.add(record['Вид работ']);
+        stats.departments.add(record['Отдел']);
+        if (record['Сотрудник']) {
+          stats.brigades.add(record['Сотрудник']);
+        }
+      });
+
+      let html = '<div class="grouping-grid">';
+      
+      Object.entries(directionStats).forEach(([direction, stats]) => {
+        const totalHours = stats.totalTime / 3600;
+        const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
+        const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        
+        html += `
+          <div class="group-card">
+            <h4>${direction}</h4>
+            <div class="group-stats">
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.totalUnits}</div>
+                <div class="group-stat-label">Единиц</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.tasks}</div>
+                <div class="group-stat-label">Задач</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.workTypes.size}</div>
+                <div class="group-stat-label">Видов работ</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.departments.size}</div>
+                <div class="group-stat-label">Отделов</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.brigades.size}</div>
+                <div class="group-stat-label">Бригад</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${normative.toFixed(1)}</div>
+                <div class="group-stat-label">Норматив</div>
+              </div>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #666;">
+              Выручка: р.${stats.totalAmount.toFixed(0)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      document.getElementById('directions-content').innerHTML = html;
+    }
+
+    function renderDepartmentsStatistics(allRecords) {
+      const departmentStats = {};
+      
+      allRecords.forEach(record => {
+        const department = record['Отдел'] || 'Не указано';
+        if (!departmentStats[department]) {
+          departmentStats[department] = {
+            totalUnits: 0,
+            totalTime: 0,
+            totalAmount: 0,
+            tasks: 0,
+            workTypes: new Set(),
+            directions: new Set(),
+            brigades: new Set()
+          };
+        }
+        
+        const stats = departmentStats[department];
+        if (isResponsible(record['Должность'])) {
+          stats.totalUnits += parseInt(record['Количество единиц']) || 0;
+          stats.totalTime += parseTime(record['Рабочее время']);
+        }
+        stats.totalAmount += parseCurrency(record['Расчетная сумма']);
+        stats.tasks++;
+        stats.workTypes.add(record['Вид работ']);
+        stats.directions.add(record['Направление']);
+        if (record['Сотрудник']) {
+          stats.brigades.add(record['Сотрудник']);
+        }
+      });
+
+      let html = '<div class="grouping-grid">';
+      
+      Object.entries(departmentStats).forEach(([department, stats]) => {
+        const totalHours = stats.totalTime / 3600;
+        const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
+        const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        
+        html += `
+          <div class="group-card">
+            <h4>${department}</h4>
+            <div class="group-stats">
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.totalUnits}</div>
+                <div class="group-stat-label">Единиц</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.tasks}</div>
+                <div class="group-stat-label">Задач</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.workTypes.size}</div>
+                <div class="group-stat-label">Видов работ</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.directions.size}</div>
+                <div class="group-stat-label">Направлений</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.brigades.size}</div>
+                <div class="group-stat-label">Бригад</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${normative.toFixed(1)}</div>
+                <div class="group-stat-label">Норматив</div>
+              </div>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #666;">
+              Выручка: р.${stats.totalAmount.toFixed(0)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      document.getElementById('departments-content').innerHTML = html;
+    }
+
+    function renderLevel2Analytics(allRecords) {
+      // Аналитика по направлениям для начальника смены
+      const directionStats = {};
+      
+      allRecords.forEach(record => {
+        const direction = record['Направление'] || 'Не указано';
+        if (!directionStats[direction]) {
+          directionStats[direction] = {
+            totalUnits: 0,
+            totalTime: 0,
+            totalAmount: 0,
+            tasks: 0,
+            workTypes: new Set(),
+            departments: new Set(),
+            brigades: new Set(),
+            records: []
+          };
+        }
+        
+        const stats = directionStats[direction];
+        stats.records.push(record);
+        if (isResponsible(record['Должность'])) {
+          stats.totalUnits += parseInt(record['Количество единиц']) || 0;
+          stats.totalTime += parseTime(record['Рабочее время']);
+        }
+        stats.totalAmount += parseCurrency(record['Расчетная сумма']);
+        stats.tasks++;
+        stats.workTypes.add(record['Вид работ']);
+        stats.departments.add(record['Отдел']);
+        if (record['Сотрудник']) {
+          stats.brigades.add(record['Сотрудник']);
+        }
+      });
+
+      let html = '<div class="grouping-grid">';
+      
+      Object.entries(directionStats).forEach(([direction, stats]) => {
+        const totalHours = stats.totalTime / 3600;
+        const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
+        const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        
+        html += `
+          <div class="group-card" onclick="showDirectionDetails('${direction}')">
+            <h4>🎯 ${direction}</h4>
+            <div class="group-stats">
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.totalUnits}</div>
+                <div class="group-stat-label">Единиц</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.tasks}</div>
+                <div class="group-stat-label">Задач</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.workTypes.size}</div>
+                <div class="group-stat-label">Видов работ</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.departments.size}</div>
+                <div class="group-stat-label">Отделов</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.brigades.size}</div>
+                <div class="group-stat-label">Бригад</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${normative.toFixed(1)}</div>
+                <div class="group-stat-label">Норматив</div>
+              </div>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #666;">
+              Выручка: р.${stats.totalAmount.toFixed(0)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      document.getElementById('directions-analytics-content').innerHTML = html;
+    }
+
+    function renderLevel3Analytics(allRecords) {
+      // Аналитика по отделам для руководителя отдела
+      const departmentStats = {};
+      
+      allRecords.forEach(record => {
+        const department = record['Отдел'] || 'Не указано';
+        if (!departmentStats[department]) {
+          departmentStats[department] = {
+            totalUnits: 0,
+            totalTime: 0,
+            totalAmount: 0,
+            tasks: 0,
+            workTypes: new Set(),
+            directions: new Set(),
+            brigades: new Set(),
+            records: []
+          };
+        }
+        
+        const stats = departmentStats[department];
+        stats.records.push(record);
+        if (isResponsible(record['Должность'])) {
+          stats.totalUnits += parseInt(record['Количество единиц']) || 0;
+          stats.totalTime += parseTime(record['Рабочее время']);
+        }
+        stats.totalAmount += parseCurrency(record['Расчетная сумма']);
+        stats.tasks++;
+        stats.workTypes.add(record['Вид работ']);
+        stats.directions.add(record['Направление']);
+        if (record['Сотрудник']) {
+          stats.brigades.add(record['Сотрудник']);
+        }
+      });
+
+      let html = '<div class="grouping-grid">';
+      
+      Object.entries(departmentStats).forEach(([department, stats]) => {
+        const totalHours = stats.totalTime / 3600;
+        const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
+        const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        
+        html += `
+          <div class="group-card" onclick="showDepartmentDetails('${department}')">
+            <h4>👔 ${department}</h4>
+            <div class="group-stats">
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.totalUnits}</div>
+                <div class="group-stat-label">Единиц</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.tasks}</div>
+                <div class="group-stat-label">Задач</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.workTypes.size}</div>
+                <div class="group-stat-label">Видов работ</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.directions.size}</div>
+                <div class="group-stat-label">Направлений</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.brigades.size}</div>
+                <div class="group-stat-label">Бригад</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${normative.toFixed(1)}</div>
+                <div class="group-stat-label">Норматив</div>
+              </div>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #666;">
+              Выручка: р.${stats.totalAmount.toFixed(0)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      document.getElementById('departments-analytics-content').innerHTML = html;
+    }
+
+    function renderLevel4Analytics(allRecords) {
+      // Аналитика по видам работ для бригадира
+      const workTypeStats = {};
+      
+      allRecords.forEach(record => {
+        const workType = record['Вид работ'] || 'Без вида работ';
+        const productGroup = record['Группа товара'] || 'Все';
+        
+        if (!workTypeStats[workType]) {
+          workTypeStats[workType] = {
+            totalUnits: 0,
+            totalTime: 0,
+            totalAmount: 0,
+            tasks: 0,
+            responsibleTasks: 0,
+            brigades: new Set(),
+            productGroups: new Set(),
+            standard: getStandardForWork(workType, productGroup),
+            records: []
+          };
+        }
+        
+        const stats = workTypeStats[workType];
+        stats.records.push(record);
+        
+        if (isResponsible(record['Должность'])) {
+          stats.totalUnits += parseInt(record['Количество единиц']) || 0;
+          stats.totalTime += parseTime(record['Рабочее время']);
+          stats.responsibleTasks++;
+          if (record['Сотрудник']) {
+            stats.brigades.add(record['Сотрудник']);
+          }
+        }
+        
+        stats.totalAmount += parseCurrency(record['Расчетная сумма']);
+        stats.tasks++;
+        if (productGroup && productGroup !== 'Все') {
+          stats.productGroups.add(productGroup);
+        }
+      });
+
+      let html = '';
+      
+      html += '<div class="work-types-grid">';
+      
+      Object.entries(workTypeStats).forEach(([workType, stats]) => {
+        const totalHours = stats.totalTime / 3600;
+        const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
+        const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        const avgRevenuePerTask = stats.tasks > 0 ? stats.totalAmount / stats.tasks : 0;
+        
+        let performanceClass = 'performance-poor';
+        let performanceText = 'Низкая';
+        if (stats.standard > 0) {
+          const percentage = (normative / stats.standard) * 100;
+          if (percentage >= 90) {
+            performanceClass = 'performance-good';
+            performanceText = 'Высокая';
+          } else if (percentage >= 70) {
+            performanceClass = 'performance-average';
+            performanceText = 'Средняя';
+          }
+          performanceText += ` (${percentage.toFixed(0)}%)`;
+        }
+
+        html += `
+          <div class="work-type-card" onclick="showWorkTypeDetails('${workType}')">
+            <div class="work-type-header">
+              <h4 class="work-type-name">${workType}</h4>
+              <div class="${performanceClass} performance-indicator">
+                ${performanceText}
+              </div>
+            </div>
+            
+            <div class="work-type-stats">
+              <div class="stat-item">
+                <div class="stat-value">${stats.totalUnits}</div>
+                <div class="stat-label">Единиц</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${stats.tasks}</div>
+                <div class="stat-label">Задач</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${stats.brigades.size}</div>
+                <div class="stat-label">Бригад</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${formatTime(stats.totalTime)}</div>
+                <div class="stat-label">Время</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${normative.toFixed(1)}</div>
+                <div class="stat-label">Норматив</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">р.${stats.totalAmount.toFixed(0)}</div>
+                <div class="stat-label">Сумма</div>
+              </div>
+            </div>
+            
+            <div style="margin-top: 10px; font-size: 11px; color: #666;">
+              ${stats.standard > 0 ? `План: ${stats.standard} шт/час | ` : ''}
+              Выручка/час: р.${revenuePerHour.toFixed(2)} | 
+              Группы товаров: ${stats.productGroups.size}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      document.getElementById('work-types-content').innerHTML = html;
+    }
+
+    // Функции для детализации (упрощенные версии)
+    function showDirectionDetails(direction) {
+      alert(`Детализация по направлению: ${direction}\n\nЗдесь будет подробная аналитика по выбранному направлению с разбивкой по отделам и видам работ.`);
+    }
+
+    function showDepartmentDetails(department) {
+      alert(`Детализация по отделу: ${department}\n\nЗдесь будет подробная аналитика по выбранному отделу с разбивкой по бригадам и поставкам.`);
+    }
+
+    function showWorkTypeDetails(workType) {
+      alert(`Детализация по виду работ: ${workType}\n\nЗдесь будет:\n- Детализация по часовым интервалам\n- Детализация по бригадам\n- Детализация по поставкам\n- Статистика по группам товаров`);
+    }
+
+    function exportToExcel() {
+      alert('Функция экспорта будет реализована позже');
+    }
+
+    // === ИНИЦИАЛИЗАЦИЯ ===
+    document.addEventListener('DOMContentLoaded', function() {
+      currentArchive = getArchiveNameForDate(new Date());
+      loadData();
+    });
+  </script>
+</body>
+</html>
