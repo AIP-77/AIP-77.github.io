@@ -911,7 +911,7 @@
   </div>
   <div class="container">
     <h2>Аналитика по видам работ</h2>
-    <div class="version">v3-11.08.0050 <span>🕒</span></div>
+    <div class="version">v3-11.08.0214 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
     <div id="controls" class="hidden">
       <div class="calendar-container">
@@ -1982,72 +1982,75 @@
       document.getElementById('charts-content').innerHTML = html;
     }
     function renderWorkTypeCharts(allRecords, responsibleRecords) {
-      const workTypeTimeStats = {};
-      allRecords.forEach(record => {
-        if (!isResponsible(record['Должность'])) return;
-        const workType = record['Вид работ'] || 'Без вида работ';
-        if (!workTypeTimeStats[workType]) {
-          workTypeTimeStats[workType] = {
-            totalUnits: 0,
-            timeIntervals: {}
-          };
-        }
-        workTypeTimeStats[workType].totalUnits += parseInt(record['Количество единиц']) || 0;
-      });
-      allRecords.forEach(record => {
-        if (!isResponsible(record['Должность'])) return;
-        const workType = record['Вид работ'] || 'Без вида работ';
-        const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
-        if (!interval) return;
-        if (!workTypeTimeStats[workType].timeIntervals[interval.key]) {
-          workTypeTimeStats[workType].timeIntervals[interval.key] = {
-            interval: interval,
-            units: 0
-          };
-        }
-        workTypeTimeStats[workType].timeIntervals[interval.key].units += parseInt(record['Количество единиц']) || 0;
-      });
-      let html = '<div class="charts-grid">';
-      Object.entries(workTypeTimeStats).forEach(([workType, stats]) => {
-        if (stats.totalUnits === 0) return;
-        const sortedIntervals = Object.values(stats.timeIntervals).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
-        const maxUnits = Math.max(...sortedIntervals.map(timeStat => timeStat.units));
-        html += `
-          <div class="chart-container">
-            <h4 class="chart-title">${chartLabels.workTypes[workType] || workType}</h4>
-            <div class="chart-real">
-              <div class="chart-bar">
-        `;
-        sortedIntervals.forEach(timeStat => {
-          const heightPercent = maxUnits > 0 ? (timeStat.units / maxUnits) * 100 : 0;
-          const percentage = (timeStat.units / stats.totalUnits) * 100;
-          html += `
-            <div class="chart-bar-item" 
-                 style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
-                 title="${timeStat.interval.display}: ${timeStat.units} ед. (${percentage.toFixed(1)}%)">
-            </div>
-          `;
-        });
-        html += `
-              </div>
-              <div class="chart-bar-labels">
-        `;
-        sortedIntervals.forEach(timeStat => {
-          const label = timeStat.interval.shortDisplay;
-          html += `<div class="chart-bar-label">${label}</div>`;
-        });
-        html += `
-              </div>
-              <div style="text-align: center; font-size: 11px; color: #666; margin-top: 5px;">
-                Всего: ${stats.totalUnits} ед.
-              </div>
-            </div>
-          </div>
-        `;
-      });
-      html += '</div>';
-      document.getElementById('work-type-charts-content').innerHTML = html;
+  const workTypeTimeStats = {};
+  allRecords.forEach(record => {
+    if (!isResponsible(record['Должность'])) return;
+    const workType = record['Вид работ'] || 'Без вида работ';
+    if (!workTypeTimeStats[workType]) {
+      workTypeTimeStats[workType] = {
+        totalUnits: 0,
+        timeIntervals: {}
+      };
     }
+    workTypeTimeStats[workType].totalUnits += parseInt(record['Количество единиц']) || 0;
+  });
+  allRecords.forEach(record => {
+    if (!isResponsible(record['Должность'])) return;
+    const workType = record['Вид работ'] || 'Без вида работ';
+    const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
+    if (!interval) return;
+    if (!workTypeTimeStats[workType].timeIntervals[interval.key]) {
+      workTypeTimeStats[workType].timeIntervals[interval.key] = {
+        interval: interval,
+        units: 0
+      };
+    }
+    workTypeTimeStats[workType].timeIntervals[interval.key].units += parseInt(record['Количество единиц']) || 0;
+  });
+
+  let html = '<div class="charts-grid">';
+  Object.entries(workTypeTimeStats).forEach(([workType, stats]) => {
+    if (stats.totalUnits === 0) return;
+    const sortedIntervals = Object.values(stats.timeIntervals).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
+    const maxUnits = Math.max(...sortedIntervals.map(timeStat => timeStat.units));
+
+    html += `
+      <div class="chart-container">
+        <h4 class="chart-title">${chartLabels.workTypes[workType] || workType}</h4>
+        <div class="chart-real">
+          <div class="chart-bar">
+    `;
+    sortedIntervals.forEach(timeStat => {
+      const heightPercent = maxUnits > 0 ? (timeStat.units / maxUnits) * 100 : 0;
+      const percentage = (timeStat.units / stats.totalUnits) * 100;
+      html += `
+        <div class="chart-bar-item" 
+             style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
+             title="${timeStat.interval.display}: ${timeStat.units} ед. (${percentage.toFixed(1)}%)">
+        </div>
+      `;
+    });
+    html += `
+          </div>
+          <!-- ИСПРАВЛЕННЫЙ БЛОК ПОДПИСЕЙ -->
+          <div class="chart-bar-labels" style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: #666; text-align: center;">
+    `;
+    sortedIntervals.forEach(timeStat => {
+      const label = timeStat.interval.shortDisplay; // Используем shortDisplay для чистой метки
+      html += `<div style="flex: 1; min-width: 0; word-break: break-all;">${label}</div>`;
+    });
+    html += `
+          </div>
+          <div style="text-align: center; font-size: 11px; color: #666; margin-top: 5px;">
+            Всего: ${stats.totalUnits} ед.
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  document.getElementById('work-type-charts-content').innerHTML = html;
+}
     function renderWorkTypeChart(workTypeData) {
       const sortedWorkTypes = Object.entries(workTypeData)
         .sort((a, b) => b[1].units - a[1].units)
@@ -2076,28 +2079,34 @@
       return html;
     }
     function renderTimeDistributionChart(timeDistribution) {
-      const sortedIntervals = Object.values(timeDistribution)
-        .sort((a, b) => a.interval.sortKey - b.interval.sortKey);
-      const maxUnits = Math.max(...sortedIntervals.map(stats => stats.units));
-      let html = '<div class="chart-bar">';
-      sortedIntervals.forEach(stats => {
-        const heightPercent = maxUnits > 0 ? (stats.units / maxUnits) * 100 : 0;
-        const color = stats.interval.isNight ? '#5c6bc0' : '#2196f3';
-        html += `
-          <div class="chart-bar-item" 
-               style="height: ${heightPercent}%; background-color: ${color}"
-               title="${stats.interval.display}: ${stats.units} ед.">
-          </div>
-        `;
-      });
-      html += '</div><div class="chart-bar-labels">';
-      sortedIntervals.forEach(stats => {
-        const label = stats.interval.shortDisplay;
-        html += `<div class="chart-bar-label">${label}</div>`;
-      });
-      html += '</div>';
-      return html;
-    }
+  const sortedIntervals = Object.values(timeDistribution)
+    .sort((a, b) => a.interval.sortKey - b.interval.sortKey);
+  const maxUnits = Math.max(...sortedIntervals.map(stats => stats.units));
+  let html = '<div class="chart-bar">';
+  sortedIntervals.forEach(stats => {
+    const heightPercent = maxUnits > 0 ? (stats.units / maxUnits) * 100 : 0;
+    const color = stats.interval.isNight ? '#5c6bc0' : '#2196f3';
+    html += `
+      <div class="chart-bar-item" 
+           style="height: ${heightPercent}%; background-color: ${color}"
+           title="${stats.interval.display}: ${stats.units} ед.">
+      </div>
+    `;
+  });
+  html += `
+  </div>
+  <!-- ИСПРАВЛЕННЫЙ БЛОК ПОДПИСЕЙ -->
+  <div class="chart-bar-labels" style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: #666; text-align: center;">
+  `;
+  sortedIntervals.forEach(stats => {
+    const label = stats.interval.shortDisplay; // Используем shortDisplay для чистой метки
+    html += `<div style="flex: 1; min-width: 0; word-break: break-all;">${label}</div>`;
+  });
+  html += `
+  </div>
+  `;
+  return html;
+}
     function renderDepartmentChart(departmentData) {
       const sortedDepartments = Object.entries(departmentData)
         .filter(([dept]) => dept !== 'Не указано')
