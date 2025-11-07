@@ -203,14 +203,6 @@
       font-weight: bold;
       color: #2e7d32;
     }
-    .work-type-buttons {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-    .work-type-buttons button {
-      flex: 1;
-    }
     .night-interval {
       background: #5c6bc0 !important;
       color: white;
@@ -313,7 +305,7 @@
       margin: 0;
     }
 
-    /* НОВЫЕ СТИЛИ ДЛЯ АНАЛИТИКИ ПО ВИДАМ РАБОТ */
+    /* СТИЛИ ДЛЯ АНАЛИТИКИ ПО ВИДАМ РАБОТ */
     .work-types-analytics {
       margin-top: 30px;
       padding: 20px;
@@ -475,6 +467,124 @@
       text-align: center;
       font-weight: bold;
     }
+
+    /* СТИЛИ ДЛЯ СРАВНЕНИЯ С ПРЕДЫДУЩИМИ ДНЯМИ */
+    .comparison-section {
+      margin-top: 30px;
+      padding: 20px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      border-left: 4px solid #4caf50;
+    }
+    
+    .comparison-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .comparison-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #2e7d32;
+      margin: 0;
+    }
+    
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .comparison-card {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .comparison-card h4 {
+      margin: 0 0 10px 0;
+      color: #388e3c;
+      font-size: 14px;
+    }
+    
+    .trend-up {
+      color: #4caf50;
+    }
+    
+    .trend-down {
+      color: #f44336;
+    }
+    
+    .trend-neutral {
+      color: #ff9800;
+    }
+
+    /* СТИЛИ ДЛЯ СТАТИСТИКИ ПО ВРЕМЕНИ СУТОК */
+    .time-statistics {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f3e5f5;
+      border-radius: 8px;
+      border-left: 4px solid #9c27b0;
+    }
+    
+    .time-statistics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .time-statistics-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #7b1fa2;
+      margin: 0;
+    }
+    
+    .time-chart {
+      margin-top: 15px;
+    }
+    
+    .time-bar {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      height: 25px;
+    }
+    
+    .time-label {
+      width: 100px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .time-bar-inner {
+      flex: 1;
+      height: 15px;
+      background: #e1bee7;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .time-bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #ab47bc, #8e24aa);
+    }
+    
+    .time-value {
+      width: 100px;
+      text-align: right;
+      font-size: 12px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -483,7 +593,7 @@
 
   <div class="container">
     <h2>Аналитика по видам работ</h2>
-    <div class="version">v 11.01-2303 <span>🕒</span></div>
+    <div class="version">v 11.07-1209 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="loading" class="loading">
@@ -493,14 +603,6 @@
     <div id="error" class="error hidden"></div>
 
     <div id="controls" class="hidden">
-      <!-- ВИДЫ РАБОТ + ПЛАН -->
-      <label for="work-type-select">Выберите виды работ:</label>
-      <select id="work-type-select" multiple size="5"></select>
-      <div class="work-type-buttons">
-        <button id="select-all">Выбрать все</button>
-        <button id="clear-all">Очистить выбор</button>
-      </div>
-
       <!-- КАЛЕНДАРЬ -->
       <div class="calendar-container">
         <div class="calendar-header">
@@ -512,9 +614,6 @@
           <!-- Заполняется JS -->
         </div>
       </div>
-
-      <label for="plan-input">План (шт/час):</label>
-      <input type="number" id="plan-input" placeholder="Например: 80" step="0.1" min="0">
 
       <div id="report" class="report hidden"></div>
 
@@ -530,7 +629,31 @@
         </div>
       </div>
 
-      <!-- НОВАЯ СЕКЦИЯ: АНАЛИТИКА ПО ВИДАМ РАБОТ -->
+      <!-- СЕКЦИЯ СРАВНЕНИЯ С ПРЕДЫДУЩИМИ ДНЯМИ -->
+      <div id="comparison" class="comparison-section hidden">
+        <div class="comparison-header" id="comparison-toggle">
+          <h3 class="comparison-title">📈 Сравнение с предыдущими днями</h3>
+          <span class="toggle-icon">▼</span>
+        </div>
+        
+        <div id="comparison-content" class="hidden">
+          <!-- Контент сравнения -->
+        </div>
+      </div>
+
+      <!-- СЕКЦИЯ СТАТИСТИКИ ПО ВРЕМЕНИ СУТОК -->
+      <div id="time-statistics" class="time-statistics hidden">
+        <div class="time-statistics-header" id="time-statistics-toggle">
+          <h3 class="time-statistics-title">⏰ Статистика по времени суток</h3>
+          <span class="toggle-icon">▼</span>
+        </div>
+        
+        <div id="time-statistics-content" class="hidden">
+          <!-- Контент статистики по времени -->
+        </div>
+      </div>
+
+      <!-- СЕКЦИЯ АНАЛИТИКИ ПО ВИДАМ РАБОТ -->
       <div id="work-types-analytics" class="work-types-analytics hidden">
         <div class="work-types-header" id="work-types-toggle">
           <h3 class="work-types-title">🔍 Аналитика по видам работ</h3>
@@ -603,6 +726,15 @@
       return units / hours;
     }
 
+    function parseDate(dateStr) {
+      const [day, month, year] = dateStr.split('.').map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDate(date) {
+      return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+    }
+
     // === ФУНКЦИИ ДЛЯ АРХИВОВ ===
     function getArchiveNameForDate(date) {
       const year = date.getFullYear();
@@ -644,9 +776,8 @@
 
     // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
     let records = [];
+    let standards = [];
     let selectedDate = '';
-    let selectedWorkTypes = new Set();
-    let planNormative = 0;
     let allWorkTypes = [];
     let currentMonth = new Date();
     currentMonth.setDate(1);
@@ -660,10 +791,6 @@
     const loadingDiv = document.getElementById('loading');
     const errorDiv = document.getElementById('error');
     const controlsDiv = document.getElementById('controls');
-    const workTypeSelect = document.getElementById('work-type-select');
-    const planInput = document.getElementById('plan-input');
-    const selectAllBtn = document.getElementById('select-all');
-    const clearAllBtn = document.getElementById('clear-all');
     const reportDiv = document.getElementById('report');
     const lastUpdatedDiv = document.getElementById('last-updated');
     const clearCacheBtn = document.getElementById('clear-cache-btn');
@@ -678,6 +805,10 @@
     const analyticsContent = document.getElementById('analytics-content');
     const workTypesAnalyticsSection = document.getElementById('work-types-analytics');
     const workTypesContent = document.getElementById('work-types-content');
+    const comparisonSection = document.getElementById('comparison');
+    const comparisonContent = document.getElementById('comparison-content');
+    const timeStatisticsSection = document.getElementById('time-statistics');
+    const timeStatisticsContent = document.getElementById('time-statistics-content');
 
     // === ФУНКЦИИ ЗАГРУЗКИ ===
     function updateProgress(percent) {
@@ -686,28 +817,94 @@
       }
     }
 
-    // Функция для создания тестовых данных (на случай если сервер недоступен)
+    async function loadStandards() {
+      const standardsUrl = `${window.location.origin}/archive/standard%20fullData.json`;
+      
+      try {
+        console.log('Загрузка нормативов из:', standardsUrl);
+        const response = await fetch(`${standardsUrl}?t=${Date.now()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        if (Array.isArray(data.records)) {
+          standards = data.records.filter(record => 
+            isResponsible(record['Должность']) && record['Норматив 1']
+          );
+          console.log('Загружено нормативов:', standards.length);
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки нормативов:', err);
+        // Создаем тестовые нормативы
+        standards = [
+          {
+            "Вид работ": "Погрузка",
+            "Группа товара": "Все",
+            "Норматив 1": "100"
+          },
+          {
+            "Вид работ": "Разгрузка", 
+            "Группа товара": "Все",
+            "Норматив 1": "120"
+          },
+          {
+            "Вид работ": "Сортировка",
+            "Группа товара": "Все", 
+            "Норматив 1": "80"
+          }
+        ];
+      }
+    }
+
+    function getStandardForWork(workType, productGroup = null) {
+      // Сначала ищем по виду работ и группе товара
+      if (productGroup) {
+        const specificStandard = standards.find(standard =>
+          standard['Вид работ'] === workType &&
+          standard['Группа товара'] === productGroup
+        );
+        if (specificStandard) return parseFloat(specificStandard['Норматив 1']);
+      }
+      
+      // Затем ищем только по виду работ
+      const generalStandard = standards.find(standard =>
+        standard['Вид работ'] === workType
+      );
+      
+      return generalStandard ? parseFloat(generalStandard['Норматив 1']) : 0;
+    }
+
+    // Функция для создания тестовых данных
     function createTestData() {
       console.log('Создаем тестовые данные...');
       const testRecords = [];
       const workTypes = ['Погрузка', 'Разгрузка', 'Сортировка', 'Упаковка', 'Маркировка'];
       const employees = ['Иванов И.И.', 'Петров П.П.', 'Сидоров С.С.', 'Кузнецов А.В.', 'Смирнов Д.К.'];
+      const productGroups = ['Диски', 'Шины', 'Аккумуляторы', 'Масла', 'Фильтры'];
       
       const today = new Date();
-      const dateStr = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
       
-      for (let i = 0; i < 25; i++) {
-        testRecords.push({
-          'Рабочий день': dateStr,
-          'Начало задачи': `${8 + (i % 10)}:${String(i % 60).padStart(2, '0')}:00`,
-          'Вид работ': workTypes[i % workTypes.length],
-          'Должность': i % 3 === 0 ? 'Ответственный' : 'Помощник',
-          'Сотрудник': employees[i % employees.length],
-          'Поставка': `Поставка ${Math.floor(i / 3) + 1}`,
-          'Количество единиц': (Math.random() * 100 + 50).toFixed(0),
-          'Рабочее время': '01:00:00',
-          'Расчетная сумма': `р.${(Math.random() * 1000 + 500).toFixed(2)}`
-        });
+      // Создаем данные за последние 7 дней
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - dayOffset);
+        const dateStr = formatDate(date);
+        
+        for (let i = 0; i < 15; i++) {
+          testRecords.push({
+            'Рабочий день': dateStr,
+            'Начало задачи': `${8 + (i % 10)}:${String(i % 60).padStart(2, '0')}:00`,
+            'Вид работ': workTypes[i % workTypes.length],
+            'Группа товара': productGroups[i % productGroups.length],
+            'Должность': i % 3 === 0 ? 'Ответственный' : 'Помощник',
+            'Сотрудник': employees[i % employees.length],
+            'Поставка': `Поставка ${Math.floor(i / 3) + 1}`,
+            'Количество единиц': (Math.random() * 100 + 50).toFixed(0),
+            'Рабочее время': '01:00:00',
+            'Расчетная сумма': `р.${(Math.random() * 1000 + 500).toFixed(2)}`
+          });
+        }
       }
       
       return testRecords;
@@ -725,6 +922,9 @@
         errorDiv.classList.add('hidden');
         controlsDiv.classList.add('hidden');
         updateProgress(10);
+
+        // Загружаем нормативы параллельно с основными данными
+        await Promise.all([loadStandards()]);
 
         loadingDiv.innerHTML = `
           <div class="loading-spinner"></div>
@@ -750,7 +950,7 @@
         updateProgress(80);
         records = data.records;
         allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
-        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive}`;
+        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive} | Нормативов: ${standards.length}`;
         
         updateProgress(100);
         setTimeout(() => {
@@ -764,7 +964,7 @@
         // Используем тестовые данные
         records = createTestData();
         allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
-        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ`;
+        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length}`;
         
         errorDiv.textContent = `⚠️ Не удалось загрузить данные: ${err.message}. Используются тестовые данные.`;
         errorDiv.classList.remove('hidden');
@@ -785,14 +985,6 @@
 
       renderCalendar();
 
-      workTypeSelect.innerHTML = '';
-      allWorkTypes.forEach(type => {
-        const opt = document.createElement('option');
-        opt.value = type;
-        opt.textContent = type;
-        workTypeSelect.appendChild(opt);
-      });
-
       if (!uiInitialized) {
         setupEventListeners();
         uiInitialized = true;
@@ -806,31 +998,6 @@
     }
 
     function setupEventListeners() {
-      workTypeSelect.addEventListener('change', () => {
-        selectedWorkTypes.clear();
-        Array.from(workTypeSelect.selectedOptions).forEach(opt => {
-          selectedWorkTypes.add(opt.value);
-        });
-        renderReport();
-      });
-
-      planInput.addEventListener('input', () => {
-        planNormative = parseFloat(planInput.value) || 0;
-        renderReport();
-      });
-
-      selectAllBtn.addEventListener('click', () => {
-        Array.from(workTypeSelect.options).forEach(opt => opt.selected = true);
-        selectedWorkTypes = new Set(Array.from(workTypeSelect.selectedOptions).map(o => o.value));
-        renderReport();
-      });
-
-      clearAllBtn.addEventListener('click', () => {
-        Array.from(workTypeSelect.options).forEach(opt => opt.selected = false);
-        selectedWorkTypes.clear();
-        renderReport();
-      });
-
       clearCacheBtn.addEventListener('click', () => {
         localStorage.clear();
         window.location.reload();
@@ -873,29 +1040,28 @@
         }
       });
 
-      document.getElementById('analytics-toggle')?.addEventListener('click', function() {
-        const content = document.getElementById('analytics-content');
-        const icon = this.querySelector('.toggle-icon');
-        if (content.classList.contains('hidden')) {
-          content.classList.remove('hidden');
-          icon.textContent = '▼';
-        } else {
-          content.classList.add('hidden');
-          icon.textContent = '▶';
-        }
-      });
+      // Обработчики для сворачивания/разворачивания секций
+      setupToggleHandler('analytics-toggle', 'analytics-content');
+      setupToggleHandler('work-types-toggle', 'work-types-content');
+      setupToggleHandler('comparison-toggle', 'comparison-content');
+      setupToggleHandler('time-statistics-toggle', 'time-statistics-content');
+    }
 
-      document.getElementById('work-types-toggle')?.addEventListener('click', function() {
-        const content = document.getElementById('work-types-content');
-        const icon = this.querySelector('.toggle-icon');
-        if (content.classList.contains('hidden')) {
-          content.classList.remove('hidden');
-          icon.textContent = '▼';
-        } else {
-          content.classList.add('hidden');
-          icon.textContent = '▶';
-        }
-      });
+    function setupToggleHandler(toggleId, contentId) {
+      const toggle = document.getElementById(toggleId);
+      const content = document.getElementById(contentId);
+      if (toggle && content) {
+        toggle.addEventListener('click', function() {
+          const icon = this.querySelector('.toggle-icon');
+          if (content.classList.contains('hidden')) {
+            content.classList.remove('hidden');
+            icon.textContent = '▼';
+          } else {
+            content.classList.add('hidden');
+            icon.textContent = '▶';
+          }
+        });
+      }
     }
 
     function renderCalendar() {
@@ -952,28 +1118,44 @@
     }
 
     function renderReport() {
-      if (!selectedDate || selectedWorkTypes.size === 0) {
+      if (!selectedDate) {
         reportDiv.classList.add('hidden');
         analyticsSection.classList.add('hidden');
         workTypesAnalyticsSection.classList.add('hidden');
+        comparisonSection.classList.add('hidden');
+        timeStatisticsSection.classList.add('hidden');
         return;
       }
 
-      const allRecords = records.filter(r =>
-        r['Рабочий день'] === selectedDate &&
-        selectedWorkTypes.has(r['Вид работ'])
-      );
-
+      const allRecords = records.filter(r => r['Рабочий день'] === selectedDate);
       const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
 
       if (allRecords.length === 0) {
-        reportDiv.innerHTML = '<p>Нет данных по выбранным критериям.</p>';
+        reportDiv.innerHTML = '<p>Нет данных по выбранной дате.</p>';
         reportDiv.classList.remove('hidden');
         analyticsSection.classList.add('hidden');
         workTypesAnalyticsSection.classList.add('hidden');
+        comparisonSection.classList.add('hidden');
+        timeStatisticsSection.classList.add('hidden');
         return;
       }
 
+      // Основная аналитика
+      renderSimpleAnalytics(allRecords, responsibleRecords);
+      
+      // Сравнение с предыдущими днями
+      renderComparisonAnalytics(selectedDate);
+      
+      // Статистика по времени суток
+      renderTimeStatistics(allRecords);
+      
+      // Аналитика по видам работ
+      renderWorkTypesAnalytics(allRecords, selectedDate);
+
+      reportDiv.classList.remove('hidden');
+    }
+
+    function renderSimpleAnalytics(allRecords, responsibleRecords) {
       let totalUnits = 0, totalTimeSec = 0, totalTasks = 0, totalAmount = 0;
       const uniqueResponsibles = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
 
@@ -988,239 +1170,10 @@
       });
 
       const factNormative = calculateNormative(totalUnits, totalTimeSec);
-      let html = `<h3>Отчёт за ${selectedDate}</h3>`;
-
-      html += `
-        <div class="day-group" data-date="${selectedDate}">
-          <span class="toggle-icon">▼</span>
-          <strong>Итог за день</strong>
-          <div class="report-item">Всего задач: ${totalTasks}</div>
-          <div class="report-item">Количество бригад: ${uniqueResponsibles.length}</div>
-          <div class="report-item">Всего единиц: ${totalUnits}</div>
-          <div class="report-item">Общая сумма: р.${totalAmount.toFixed(2)}</div>
-          <div class="report-item">Общее время: ${formatTime(totalTimeSec)}</div>
-          <div class="report-item">Норматив: ${factNormative > 0 ? factNormative.toFixed(1) : '0.0'} шт/час</div>
-      `;
-
-      if (planNormative > 0) {
-        const percent = factNormative > 0 ? (factNormative / planNormative * 100).toFixed(1) : 0;
-        const status = parseFloat(percent) >= 100 ? '✅ Выполнено' : '⚠️ Не выполнено';
-        html += `
-          <div class="plan-comparison">
-            План: ${planNormative.toFixed(1)} шт/час | 
-            Выполнение: ${percent}% | ${status}
-          </div>
-        `;
-      }
-
-      html += `</div>`;
-
-      // Группировка по видам работ
-      const workTypeGroups = {};
-      allRecords.forEach(r => {
-        const workType = r['Вид работ'] || 'Без вида работ';
-        if (!workTypeGroups[workType]) {
-          workTypeGroups[workType] = { rawRecords: [] };
-        }
-        workTypeGroups[workType].rawRecords.push(r);
-      });
-
-      html += `<div id="worktypes-${selectedDate}" class="hidden">`;
-
-      Object.keys(workTypeGroups).sort().forEach(workType => {
-        const workTypeRecords = workTypeGroups[workType].rawRecords;
-        const workTypeResponsibleRecords = workTypeRecords.filter(r => isResponsible(r['Должность']));
-        
-        let workTypeUnits = 0, workTypeTimeSec = 0, workTypeTasks = 0, workTypeAmount = 0;
-        workTypeResponsibleRecords.forEach(r => {
-          workTypeUnits += parseInt(r['Количество единиц']) || 0;
-          workTypeTimeSec += parseTime(r['Рабочее время']);
-          workTypeTasks++;
-        });
-        workTypeRecords.forEach(r => {
-          workTypeAmount += parseCurrency(r['Расчетная сумма']);
-        });
-        const workTypeFactNorm = calculateNormative(workTypeUnits, workTypeTimeSec);
-
-        html += `
-          <div class="worktype-group" data-worktype="${workType}" data-date="${selectedDate}">
-            <span class="toggle-icon">▶</span>
-            <strong>Вид работ: ${workType}</strong>
-            <div class="report-item">Количество задач: ${workTypeTasks}</div>
-            <div class="report-item">Единиц: ${workTypeUnits}</div>
-            <div class="report-item">Сумма: р.${workTypeAmount.toFixed(2)}</div>
-            <div class="report-item">Время: ${formatTime(workTypeTimeSec)}</div>
-            <div class="report-item">Норматив: ${workTypeFactNorm > 0 ? workTypeFactNorm.toFixed(1) : '0.0'} шт/час</div>
-          </div>
-
-          <div id="worktype-hours-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}" class="hidden">
-        `;
-
-        // Группировка по часовым интервалам
-        const hourlyGroups = {};
-        workTypeRecords.forEach(r => {
-          const interval = getHourIntervalForWorkDay(r['Начало задачи'], selectedDate);
-          if (interval === null) return;
-          
-          if (!hourlyGroups[interval.key]) {
-            hourlyGroups[interval.key] = { 
-              interval: interval,
-              rawRecords: [] 
-            };
-          }
-          hourlyGroups[interval.key].rawRecords.push(r);
-        });
-
-        const sortedIntervals = Object.keys(hourlyGroups).sort((a, b) => {
-          return hourlyGroups[a].interval.sortKey - hourlyGroups[b].interval.sortKey;
-        });
-        
-        sortedIntervals.forEach(intervalKey => {
-          const g = hourlyGroups[intervalKey];
-          const hourRecords = g.rawRecords;
-          const interval = g.interval;
-          const responsiblesInHour = [...new Set(
-            hourRecords.filter(r => isResponsible(r['Должность'])).map(r => r['Сотрудник'])
-          )];
-
-          const hourResponsibleRecords = hourRecords.filter(r => isResponsible(r['Должность']));
-          let hourUnits = 0, hourTimeSec = 0, hourTasks = 0, hourAmount = 0;
-          hourResponsibleRecords.forEach(r => {
-            hourUnits += parseInt(r['Количество единиц']) || 0;
-            hourTimeSec += parseTime(r['Рабочее время']);
-            hourTasks++;
-          });
-          hourRecords.forEach(r => {
-            hourAmount += parseCurrency(r['Расчетная сумма']);
-          });
-          const hourFactNorm = calculateNormative(hourUnits, hourTimeSec);
-
-          const hourClass = interval.isNight ? 'hour-group night-interval' : 'hour-group';
-          
-          html += `
-            <div class="${hourClass}" data-hour="${intervalKey}" data-worktype="${workType}" data-date="${selectedDate}">
-              <span class="toggle-icon">▶</span>
-              <strong>Часовой интервал: ${interval.display}</strong>
-              <div class="report-item">Количество задач: ${hourTasks}</div>
-              <div class="report-item">Количество бригад: ${responsiblesInHour.length}</div>
-              <div class="report-item">Единиц: ${hourUnits}</div>
-              <div class="report-item">Сумма: р.${hourAmount.toFixed(2)}</div>
-              <div class="report-item">Время: ${formatTime(hourTimeSec)}</div>
-              <div class="report-item">Норматив: ${hourFactNorm > 0 ? hourFactNorm.toFixed(1) : '0.0'} шт/час</div>
-            </div>
-
-            <div id="detail-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}-${intervalKey}" class="detail-group hidden">
-          `;
-
-          // Детали по бригадам
-          responsiblesInHour.forEach((respName, idx) => {
-            const tasksMap = {};
-            hourRecords.forEach(r => {
-              const taskKey = `${r['Поставка'] || 'Без поставки'}|${r['Начало задачи'] || 'Без времени'}`;
-              if (!tasksMap[taskKey]) {
-                tasksMap[taskKey] = { responsible: null, helpers: [] };
-              }
-              if (isResponsible(r['Должность'])) {
-                tasksMap[taskKey].responsible = r;
-              } else {
-                tasksMap[taskKey].helpers.push(r);
-              }
-            });
-
-            const filteredTasks = Object.values(tasksMap).filter(task => 
-              task.responsible && task.responsible['Сотрудник'] === respName
-            );
-
-            filteredTasks.sort((a, b) => {
-              const timeA = a.responsible['Начало задачи'] || '';
-              const timeB = b.responsible['Начало задачи'] || '';
-              return timeA.localeCompare(timeB);
-            });
-
-            html += `<div class="brigade-group">
-              <strong>Бригада ${idx + 1}: ${respName}</strong>`;
-
-            filteredTasks.forEach(task => {
-              const resp = task.responsible;
-              const units = parseInt(resp['Количество единиц']) || 0;
-              const amount = parseCurrency(resp['Расчетная сумма']);
-              const time = resp['Рабочее время'] || '00:00:00';
-
-              html += `
-                <div style="margin: 8px 0; padding: 8px; background: #ffffff; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                  <div><strong>Поставка:</strong> ${resp['Поставка'] || '—'}</div>
-                  <div>Ед.: <strong>${units}</strong>, 
-                       Время: ${time}, 
-                       Сумма: р.${amount.toFixed(2)}</div>
-              `;
-
-              if (task.helpers.length > 0) {
-                html += `<div style="margin-top:6px; font-size:14px;"><strong>Помощники:</strong></div>`;
-                task.helpers.forEach(helper => {
-                  const helperAmount = parseCurrency(helper['Расчетная сумма']);
-                  html += `
-                    <div style="margin-left:15px; font-size:14px;">
-                      • ${helper['Сотрудник']} — 
-                        <span style="font-weight:bold;">р.${helperAmount.toFixed(2)}</span>
-                    </div>
-                  `;
-                });
-              }
-              html += `</div>`;
-            });
-            html += `</div>`;
-          });
-
-          html += `</div>`;
-        });
-
-        html += `</div>`;
-      });
-
-      html += `</div>`;
-      reportDiv.innerHTML = html;
-      reportDiv.classList.remove('hidden');
-
-      // Обработчики кликов для раскрытия/сворачивания
-      document.querySelector(`.day-group[data-date="${selectedDate}"]`)?.addEventListener('click', function() {
-        const hoursDiv = document.getElementById(`worktypes-${selectedDate}`);
-        const icon = this.querySelector('.toggle-icon');
-        if (hoursDiv?.classList.contains('hidden')) {
-          hoursDiv.classList.remove('hidden');
-          icon.textContent = '▼';
-        } else {
-          hoursDiv?.classList.add('hidden');
-          icon.textContent = '▶';
-        }
-      });
-
-      Object.keys(workTypeGroups).forEach(workType => {
-        const workTypeEl = document.querySelector(`.worktype-group[data-worktype="${workType}"][data-date="${selectedDate}"]`);
-        if (workTypeEl) {
-          workTypeEl.addEventListener('click', function() {
-            const workTypeHoursDiv = document.getElementById(`worktype-hours-${selectedDate}-${workType.replace(/[^a-zA-Z0-9]/g, '-')}`);
-            const icon = this.querySelector('.toggle-icon');
-            if (workTypeHoursDiv?.classList.contains('hidden')) {
-              workTypeHoursDiv.classList.remove('hidden');
-              icon.textContent = '▼';
-            } else {
-              workTypeHoursDiv?.classList.add('hidden');
-              icon.textContent = '▶';
-            }
-          });
-        }
-      });
-
-      // Обновляем аналитику
-      renderSimpleAnalytics(allRecords, responsibleRecords, totalUnits, totalTimeSec, totalAmount);
-      renderWorkTypesAnalytics(allRecords, selectedDate);
-    }
-
-    function renderSimpleAnalytics(allRecords, responsibleRecords, totalUnits, totalTimeSec, totalAmount) {
+      
       analyticsSection.classList.remove('hidden');
       
       const totalHours = totalTimeSec / 3600;
-      const avgNormative = totalHours > 0 ? totalUnits / totalHours : 0;
       const avgRevenuePerHour = totalHours > 0 ? totalAmount / totalHours : 0;
       const uniqueWorkTypes = [...new Set(allRecords.map(r => r['Вид работ']))].filter(Boolean);
       const uniqueBrigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
@@ -1241,7 +1194,7 @@
 
           <div class="analytics-card">
             <h4>⚡ Эффективность</h4>
-            <div class="analytics-value">${avgNormative.toFixed(1)}</div>
+            <div class="analytics-value">${factNormative.toFixed(1)}</div>
             <p class="analytics-label">Норматив (шт/час)</p>
             
             <div class="analytics-value">р.${avgRevenuePerHour.toFixed(2)}</div>
@@ -1265,23 +1218,171 @@
         </div>
       `;
       
-      if (planNormative > 0) {
-        const planPercentage = (avgNormative / planNormative * 100).toFixed(1);
-        const planStatus = planPercentage >= 100 ? '✅ Выполнено' : '⚠️ ' + planPercentage + '%';
-        const planClass = planPercentage >= 100 ? 'performance-good' : 
-                         planPercentage >= 80 ? 'performance-average' : 'performance-poor';
-        
-        html += `
-          <div class="plan-status ${planClass}">
-            План: ${planNormative} шт/час | Факт: ${avgNormative.toFixed(1)} шт/час | ${planStatus}
-          </div>
-        `;
-      }
-      
       analyticsContent.innerHTML = html;
     }
 
-    // === НОВЫЕ ФУНКЦИИ ДЛЯ АНАЛИТИКИ ПО ВИДАМ РАБОТ ===
+    function renderComparisonAnalytics(currentDate) {
+      const currentDateObj = parseDate(currentDate);
+      const previousDates = [];
+      
+      // Получаем данные за последние 7 дней
+      for (let i = 1; i <= 7; i++) {
+        const date = new Date(currentDateObj);
+        date.setDate(currentDateObj.getDate() - i);
+        const dateStr = formatDate(date);
+        previousDates.push({ date: dateStr, records: records.filter(r => r['Рабочий день'] === dateStr) });
+      }
+
+      const currentDayRecords = records.filter(r => r['Рабочий день'] === currentDate);
+      const currentResponsibleRecords = currentDayRecords.filter(r => isResponsible(r['Должность']));
+      
+      let currentUnits = 0, currentTime = 0, currentAmount = 0;
+      currentResponsibleRecords.forEach(r => {
+        currentUnits += parseInt(r['Количество единиц']) || 0;
+        currentTime += parseTime(r['Рабочее время']);
+      });
+      currentDayRecords.forEach(r => {
+        currentAmount += parseCurrency(r['Расчетная сумма']);
+      });
+
+      const currentNormative = calculateNormative(currentUnits, currentTime);
+
+      let html = '<div class="comparison-grid">';
+      
+      // Сравнение по единицам
+      const previousUnits = previousDates.map(d => {
+        const respRecords = d.records.filter(r => isResponsible(r['Должность']));
+        return respRecords.reduce((sum, r) => sum + (parseInt(r['Количество единиц']) || 0), 0);
+      }).filter(val => val > 0);
+      
+      const avgUnits = previousUnits.length > 0 ? previousUnits.reduce((a, b) => a + b) / previousUnits.length : 0;
+      const unitsTrend = currentUnits - avgUnits;
+      const unitsPercent = avgUnits > 0 ? ((unitsTrend / avgUnits) * 100).toFixed(1) : 0;
+      
+      html += `
+        <div class="comparison-card">
+          <h4>📦 Единицы</h4>
+          <div class="analytics-value">${currentUnits}</div>
+          <p class="analytics-label">Сегодня</p>
+          <div class="analytics-value ${unitsTrend >= 0 ? 'trend-up' : 'trend-down'}">
+            ${unitsTrend >= 0 ? '↗' : '↘'} ${Math.abs(unitsPercent)}%
+          </div>
+          <p class="analytics-label">Среднее: ${avgUnits.toFixed(0)}</p>
+        </div>
+      `;
+
+      // Сравнение по нормативу
+      const previousNorms = previousDates.map(d => {
+        const respRecords = d.records.filter(r => isResponsible(r['Должность']));
+        const units = respRecords.reduce((sum, r) => sum + (parseInt(r['Количество единиц']) || 0), 0);
+        const time = respRecords.reduce((sum, r) => sum + parseTime(r['Рабочее время']), 0);
+        return calculateNormative(units, time);
+      }).filter(val => val > 0);
+      
+      const avgNorm = previousNorms.length > 0 ? previousNorms.reduce((a, b) => a + b) / previousNorms.length : 0;
+      const normTrend = currentNormative - avgNorm;
+      const normPercent = avgNorm > 0 ? ((normTrend / avgNorm) * 100).toFixed(1) : 0;
+      
+      html += `
+        <div class="comparison-card">
+          <h4>⚡ Норматив</h4>
+          <div class="analytics-value">${currentNormative.toFixed(1)}</div>
+          <p class="analytics-label">Сегодня (шт/час)</p>
+          <div class="analytics-value ${normTrend >= 0 ? 'trend-up' : 'trend-down'}">
+            ${normTrend >= 0 ? '↗' : '↘'} ${Math.abs(normPercent)}%
+          </div>
+          <p class="analytics-label">Среднее: ${avgNorm.toFixed(1)}</p>
+        </div>
+      `;
+
+      // Сравнение по выручке
+      const previousAmounts = previousDates.map(d => 
+        d.records.reduce((sum, r) => sum + parseCurrency(r['Расчетная сумма']), 0)
+      ).filter(val => val > 0);
+      
+      const avgAmount = previousAmounts.length > 0 ? previousAmounts.reduce((a, b) => a + b) / previousAmounts.length : 0;
+      const amountTrend = currentAmount - avgAmount;
+      const amountPercent = avgAmount > 0 ? ((amountTrend / avgAmount) * 100).toFixed(1) : 0;
+      
+      html += `
+        <div class="comparison-card">
+          <h4>💰 Выручка</h4>
+          <div class="analytics-value">р.${currentAmount.toFixed(0)}</div>
+          <p class="analytics-label">Сегодня</p>
+          <div class="analytics-value ${amountTrend >= 0 ? 'trend-up' : 'trend-down'}">
+            ${amountTrend >= 0 ? '↗' : '↘'} ${Math.abs(amountPercent)}%
+          </div>
+          <p class="analytics-label">Среднее: р.${avgAmount.toFixed(0)}</p>
+        </div>
+      `;
+
+      html += '</div>';
+      comparisonContent.innerHTML = html;
+      comparisonSection.classList.remove('hidden');
+    }
+
+    function renderTimeStatistics(allRecords) {
+      const timeStats = {};
+      
+      // Группируем по часовым интервалам
+      allRecords.forEach(record => {
+        const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
+        if (!interval) return;
+        
+        if (!timeStats[interval.key]) {
+          timeStats[interval.key] = {
+            interval: interval,
+            units: 0,
+            amount: 0,
+            tasks: 0,
+            time: 0
+          };
+        }
+        
+        const stats = timeStats[interval.key];
+        if (isResponsible(record['Должность'])) {
+          stats.units += parseInt(record['Количество единиц']) || 0;
+          stats.time += parseTime(record['Рабочее время']);
+        }
+        stats.amount += parseCurrency(record['Расчетная сумма']);
+        stats.tasks++;
+      });
+
+      let html = '<div class="time-chart">';
+      
+      // Сортируем интервалы по времени
+      const sortedIntervals = Object.values(timeStats).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
+      
+      // Находим максимальные значения для масштабирования
+      const maxUnits = Math.max(...sortedIntervals.map(s => s.units));
+      const maxAmount = Math.max(...sortedIntervals.map(s => s.amount));
+      
+      sortedIntervals.forEach(stats => {
+        const unitsPercent = maxUnits > 0 ? (stats.units / maxUnits) * 100 : 0;
+        const amountPercent = maxAmount > 0 ? (stats.amount / maxAmount) * 100 : 0;
+        const normative = stats.time > 0 ? calculateNormative(stats.units, stats.time) : 0;
+        
+        html += `
+          <div class="time-bar">
+            <div class="time-label">${stats.interval.display}</div>
+            <div class="time-bar-inner">
+              <div class="time-bar-fill" style="width: ${unitsPercent}%"></div>
+            </div>
+            <div class="time-value">
+              ${stats.units} ед. | р.${stats.amount.toFixed(0)}
+            </div>
+          </div>
+          <div style="font-size: 11px; color: #666; margin-left: 100px;">
+            Задач: ${stats.tasks} | Норматив: ${normative.toFixed(1)} шт/час
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      timeStatisticsContent.innerHTML = html;
+      timeStatisticsSection.classList.remove('hidden');
+    }
+
     function renderWorkTypesAnalytics(allRecords, selectedDate) {
       const workTypesSection = document.getElementById('work-types-analytics');
       const workTypesContent = document.getElementById('work-types-content');
@@ -1296,6 +1397,8 @@
       
       allRecords.forEach(record => {
         const workType = record['Вид работ'] || 'Без вида работ';
+        const productGroup = record['Группа товара'] || 'Все';
+        
         if (!workTypeStats[workType]) {
           workTypeStats[workType] = {
             totalUnits: 0,
@@ -1304,6 +1407,8 @@
             tasks: 0,
             responsibleTasks: 0,
             brigades: new Set(),
+            productGroups: new Set(),
+            standard: getStandardForWork(workType, productGroup),
             records: []
           };
         }
@@ -1322,6 +1427,9 @@
         
         stats.totalAmount += parseCurrency(record['Расчетная сумма']);
         stats.tasks++;
+        if (productGroup && productGroup !== 'Все') {
+          stats.productGroups.add(productGroup);
+        }
       });
 
       let html = '';
@@ -1335,19 +1443,21 @@
         const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
         const avgRevenuePerTask = stats.tasks > 0 ? stats.totalAmount / stats.tasks : 0;
         
-        // Определяем индикатор производительности
+        // Определяем индикатор производительности относительно норматива
         let performanceClass = 'performance-poor';
         let performanceText = 'Низкая';
-        if (planNormative > 0) {
-          if (normative >= planNormative * 0.9) {
+        if (stats.standard > 0) {
+          const percentage = (normative / stats.standard) * 100;
+          if (percentage >= 90) {
             performanceClass = 'performance-good';
             performanceText = 'Высокая';
-          } else if (normative >= planNormative * 0.7) {
+          } else if (percentage >= 70) {
             performanceClass = 'performance-average';
             performanceText = 'Средняя';
           }
+          performanceText += ` (${percentage.toFixed(0)}%)`;
         } else {
-          // Если плана нет, используем абсолютные значения
+          // Если норматива нет, используем абсолютные значения
           if (normative >= 100) {
             performanceClass = 'performance-good';
             performanceText = 'Высокая';
@@ -1394,8 +1504,9 @@
             </div>
             
             <div style="margin-top: 10px; font-size: 11px; color: #666;">
+              ${stats.standard > 0 ? `План: ${stats.standard} шт/час | ` : ''}
               Выручка/час: р.${revenuePerHour.toFixed(2)} | 
-              Средняя задача: р.${avgRevenuePerTask.toFixed(2)}
+              Группы товаров: ${stats.productGroups.size}
             </div>
           </div>
         `;
@@ -1404,7 +1515,7 @@
       html += '</div>';
 
       // График сравнения нормативов
-      if (planNormative > 0) {
+      if (Object.values(workTypeStats).some(stats => stats.standard > 0)) {
         html += renderComparisonChart(workTypeStats);
       }
 
@@ -1414,9 +1525,10 @@
 
     function renderComparisonChart(workTypeStats) {
       let html = `<div class="comparison-chart">
-        <h4>Сравнение нормативов с планом (${planNormative} шт/час)</h4>`;
+        <h4>Сравнение нормативов с планом</h4>`;
       
       Object.entries(workTypeStats)
+        .filter(([, stats]) => stats.standard > 0)
         .sort(([,a], [,b]) => {
           const normA = a.totalTime > 0 ? a.totalUnits / (a.totalTime / 3600) : 0;
           const normB = b.totalTime > 0 ? b.totalUnits / (b.totalTime / 3600) : 0;
@@ -1424,9 +1536,9 @@
         })
         .forEach(([workType, stats]) => {
           const normative = stats.totalTime > 0 ? stats.totalUnits / (stats.totalTime / 3600) : 0;
-          const percentage = planNormative > 0 ? Math.min((normative / planNormative) * 100, 100) : 0;
-          const barColor = normative >= planNormative ? '#28a745' : 
-                          normative >= planNormative * 0.7 ? '#ffc107' : '#dc3545';
+          const percentage = stats.standard > 0 ? Math.min((normative / stats.standard) * 100, 100) : 0;
+          const barColor = normative >= stats.standard ? '#28a745' : 
+                          normative >= stats.standard * 0.7 ? '#ffc107' : '#dc3545';
           
           html += `
             <div class="chart-bar">
@@ -1434,7 +1546,7 @@
               <div class="chart-bar-inner">
                 <div class="chart-bar-fill" style="width: ${percentage}%; background: ${barColor};"></div>
               </div>
-              <div class="chart-value">${normative.toFixed(1)} шт/час</div>
+              <div class="chart-value">${normative.toFixed(1)}/${stats.standard}</div>
             </div>
           `;
         });
