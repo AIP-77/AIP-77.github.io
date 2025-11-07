@@ -813,6 +813,53 @@
       color: #999;
       font-style: italic;
     }
+
+    /* СТИЛИ ДЛЯ ГРУППИРОВКИ ПО НАПРАВЛЕНИЯМ */
+    .direction-group {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f0f4ff;
+      border-radius: 8px;
+      border-left: 4px solid #4a6bff;
+    }
+    
+    .direction-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .direction-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #2c3e8f;
+      margin: 0;
+    }
+    
+    .department-group {
+      margin: 15px 0;
+      padding: 12px;
+      background: #e8f0ff;
+      border-radius: 6px;
+      border-left: 3px solid #6c8eff;
+    }
+    
+    .department-subheader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    
+    .department-subtitle {
+      font-size: 14px;
+      font-weight: bold;
+      color: #3a4f9e;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -836,7 +883,7 @@
 
   <div class="container">
     <h2>Аналитика по видам работ</h2>
-    <div class="version">v3-11.07.2020 <span>🕒</span></div>
+    <div class="version">v3-11.07.1954 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="controls" class="hidden">
@@ -1265,33 +1312,50 @@
       };
     }
 
-    // Функция для анализа персонала по записям
+    // Функция для анализа персонала по записям с учетом времени работы
     function analyzeStaffForRecords(records) {
       const uniqueEmployees = [...new Set(records.map(r => r['Сотрудник']))].filter(Boolean);
       
       let totalStaff = 0;
       let permanentStaff = 0;
       let hiredStaff = 0;
+      let totalWorkTime = 0;
+      let permanentWorkTime = 0;
+      let hiredWorkTime = 0;
+      
+      // Фильтруем записи с количеством единиц > 0
+      const validRecords = records.filter(r => (parseInt(r['Количество единиц']) || 0) > 0);
       
       uniqueEmployees.forEach(employee => {
+        const employeeRecords = validRecords.filter(r => r['Сотрудник'] === employee);
+        const employeeWorkTime = employeeRecords.reduce((sum, r) => sum + parseTime(r['Рабочее время']), 0);
+        
         const staffInfo = staffData.find(s => s['Сотрудник'] === employee);
         if (staffInfo) {
           totalStaff++;
+          totalWorkTime += employeeWorkTime;
           if (staffInfo['Статус'] === 'Постоянный') {
             permanentStaff++;
+            permanentWorkTime += employeeWorkTime;
           } else {
             hiredStaff++;
+            hiredWorkTime += employeeWorkTime;
           }
         } else {
           totalStaff++;
-          hiredStaff++; // Если сотрудник не найден в штате, считаем наемным
+          hiredStaff++;
+          totalWorkTime += employeeWorkTime;
+          hiredWorkTime += employeeWorkTime;
         }
       });
       
       return {
         total: totalStaff,
         permanent: permanentStaff,
-        hired: hiredStaff
+        hired: hiredStaff,
+        totalWorkTime: totalWorkTime,
+        permanentWorkTime: permanentWorkTime,
+        hiredWorkTime: hiredWorkTime
       };
     }
 
@@ -1640,7 +1704,7 @@
         const workTypes = [...new Set(departmentRecords.map(r => r['Вид работ']))];
         const brigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
 
-        // Анализ персонала для отдела
+        // Анализ персонала для отдела с учетом времени работы
         const staffAnalysis = analyzeStaffForRecords(departmentRecords);
 
         html = `
@@ -1680,25 +1744,19 @@
               <p class="analytics-label">Расходы в час</p>
             </div>
 
-            <div class="staff-card">
+            <div class="analytics-card">
               <h4>👥 Персонал отдела</h4>
-              <div class="staff-overview">
-                <div class="staff-total">
-                  <div class="staff-total-value">${staffAnalysis.total}</div>
-                  <div class="staff-total-label">Всего сотрудников</div>
-                </div>
-                <div class="staff-permanent">
-                  <div class="staff-permanent-value">${staffAnalysis.permanent}</div>
-                  <div class="staff-permanent-label">Постоянные</div>
-                </div>
-                <div class="staff-hired">
-                  <div class="staff-hired-value">${staffAnalysis.hired}</div>
-                  <div class="staff-hired-label">Наемные</div>
-                </div>
-              </div>
-              <div style="font-size: 11px; color: #666; text-align: center;">
-                На работы отдела привлекалось ${staffAnalysis.total} сотрудников
-              </div>
+              <div class="analytics-value">${staffAnalysis.total}</div>
+              <p class="analytics-label">Всего сотрудников</p>
+              
+              <div class="analytics-value">${staffAnalysis.permanent}</div>
+              <p class="analytics-label">Постоянные</p>
+              
+              <div class="analytics-value">${staffAnalysis.hired}</div>
+              <p class="analytics-label">Наемные</p>
+              
+              <div class="analytics-value">${formatTime(staffAnalysis.totalWorkTime)}</div>
+              <p class="analytics-label">Общее время работы</p>
             </div>
 
             <div class="analytics-card">
@@ -1716,16 +1774,35 @@
     }
 
     function renderLevel3Analytics(allRecords) {
-      // Аналитика по видам работ
-      const workTypeStats = {};
+      // Группируем работы по направлениям и отделам
+      const directionStats = {};
       
       allRecords.forEach(record => {
+        const direction = record['Направление'] || 'Не указано';
+        const department = record['Отдел'] || 'Не указано';
         const workType = record['Вид работ'] || 'Без вида работ';
         const productGroup = record['Группа товара'] || 'Все';
         
-        if (!workTypeStats[workType]) {
-          const { direction, department } = getDirectionAndDepartment(workType);
-          workTypeStats[workType] = {
+        if (!directionStats[direction]) {
+          directionStats[direction] = {
+            departments: {},
+            totalUnits: 0,
+            totalTime: 0,
+            totalAmount: 0
+          };
+        }
+        
+        if (!directionStats[direction].departments[department]) {
+          directionStats[direction].departments[department] = {
+            workTypes: {},
+            totalUnits: 0,
+            totalTime: 0,
+            totalAmount: 0
+          };
+        }
+        
+        if (!directionStats[direction].departments[department].workTypes[workType]) {
+          directionStats[direction].departments[department].workTypes[workType] = {
             totalUnits: 0,
             totalTime: 0,
             totalAmount: 0,
@@ -1733,108 +1810,154 @@
             responsibleTasks: 0,
             brigades: new Set(),
             productGroups: new Set(),
-            direction: direction,
-            department: department,
             standard: getStandardForWork(workType, productGroup),
             records: []
           };
         }
         
-        const stats = workTypeStats[workType];
-        stats.records.push(record);
+        const workTypeStats = directionStats[direction].departments[department].workTypes[workType];
+        workTypeStats.records.push(record);
         
         if (isResponsible(record['Должность'])) {
-          stats.totalUnits += parseInt(record['Количество единиц']) || 0;
-          stats.totalTime += parseTime(record['Рабочее время']);
-          stats.responsibleTasks++;
+          workTypeStats.totalUnits += parseInt(record['Количество единиц']) || 0;
+          workTypeStats.totalTime += parseTime(record['Рабочее время']);
+          workTypeStats.responsibleTasks++;
           if (record['Сотрудник']) {
-            stats.brigades.add(record['Сотрудник']);
+            workTypeStats.brigades.add(record['Сотрудник']);
           }
         }
         
-        stats.totalAmount += parseCurrency(record['Расчетная сумма']);
-        stats.tasks++;
+        workTypeStats.totalAmount += parseCurrency(record['Расчетная сумма']);
+        workTypeStats.tasks++;
         if (productGroup && productGroup !== 'Все') {
-          stats.productGroups.add(productGroup);
+          workTypeStats.productGroups.add(productGroup);
         }
+        
+        // Обновляем статистику отдела
+        if (isResponsible(record['Должность'])) {
+          directionStats[direction].departments[department].totalUnits += parseInt(record['Количество единиц']) || 0;
+          directionStats[direction].departments[department].totalTime += parseTime(record['Рабочее время']);
+        }
+        directionStats[direction].departments[department].totalAmount += parseCurrency(record['Расчетная сумма']);
+        
+        // Обновляем статистику направления
+        if (isResponsible(record['Должность'])) {
+          directionStats[direction].totalUnits += parseInt(record['Количество единиц']) || 0;
+          directionStats[direction].totalTime += parseTime(record['Рабочее время']);
+        }
+        directionStats[direction].totalAmount += parseCurrency(record['Расчетная сумма']);
       });
 
       let html = '';
       
-      html += '<div class="work-types-grid">';
-      
-      Object.entries(workTypeStats).forEach(([workType, stats]) => {
-        const totalHours = stats.totalTime / 3600;
-        const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
-        const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
-        const costPerUnit = stats.totalUnits > 0 ? stats.totalAmount / stats.totalUnits : 0;
-        const avgRevenuePerTask = stats.tasks > 0 ? stats.totalAmount / stats.tasks : 0;
-        
-        let performanceClass = 'performance-poor';
-        let performanceText = 'Низкая';
-        if (stats.standard > 0) {
-          const percentage = (normative / stats.standard) * 100;
-          if (percentage >= 90) {
-            performanceClass = 'performance-good';
-            performanceText = 'Высокая';
-          } else if (percentage >= 70) {
-            performanceClass = 'performance-average';
-            performanceText = 'Средняя';
-          }
-          performanceText += ` (${percentage.toFixed(0)}%)`;
-        }
-
+      Object.entries(directionStats).forEach(([direction, dirStats]) => {
         html += `
-          <div class="work-type-card" onclick="showWorkTypeDetails('${workType}', '${selectedDate}')">
-            <div class="work-type-header">
-              <h4 class="work-type-name">${workType}</h4>
-              <div class="${performanceClass} performance-indicator">
-                ${performanceText}
+          <div class="direction-group">
+            <div class="direction-header" onclick="toggleDirection('${direction}')">
+              <h4 class="direction-title">
+                <span class="toggle-icon">▶</span> ${direction}
+                <span style="font-size: 14px; color: #666; margin-left: 10px;">
+                  (${dirStats.totalUnits} ед. | ${formatTime(dirStats.totalTime)} | р.${dirStats.totalAmount.toFixed(0)})
+                </span>
+              </h4>
+            </div>
+            <div class="direction-content">
+        `;
+        
+        Object.entries(dirStats.departments).forEach(([department, deptStats]) => {
+          html += `
+            <div class="department-group">
+              <div class="department-subheader" onclick="toggleDepartment('${direction}', '${department}')">
+                <h5 class="department-subtitle">
+                  <span class="toggle-icon">▶</span> ${department}
+                  <span style="font-size: 12px; color: #666; margin-left: 10px;">
+                    (${deptStats.totalUnits} ед. | ${formatTime(deptStats.totalTime)} | р.${deptStats.totalAmount.toFixed(0)})
+                  </span>
+                </h5>
+              </div>
+              <div class="department-content" id="dept-${direction}-${department}">
+                <div class="work-types-grid">
+          `;
+          
+          Object.entries(deptStats.workTypes).forEach(([workType, stats]) => {
+            const totalHours = stats.totalTime / 3600;
+            const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
+            const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+            const costPerUnit = stats.totalUnits > 0 ? stats.totalAmount / stats.totalUnits : 0;
+            
+            let performanceClass = 'performance-poor';
+            let performanceText = 'Низкая';
+            if (stats.standard > 0) {
+              const percentage = (normative / stats.standard) * 100;
+              if (percentage >= 90) {
+                performanceClass = 'performance-good';
+                performanceText = 'Высокая';
+              } else if (percentage >= 70) {
+                performanceClass = 'performance-average';
+                performanceText = 'Средняя';
+              }
+              performanceText += ` (${percentage.toFixed(0)}%)`;
+            }
+
+            html += `
+              <div class="work-type-card" onclick="showWorkTypeDetails('${workType}', '${selectedDate}')">
+                <div class="work-type-header">
+                  <h4 class="work-type-name">${workType}</h4>
+                  <div class="${performanceClass} performance-indicator">
+                    ${performanceText}
+                  </div>
+                </div>
+                
+                <div class="work-type-stats">
+                  <div class="stat-item">
+                    <div class="stat-value">${stats.totalUnits}</div>
+                    <div class="stat-label">Единиц</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">${stats.tasks}</div>
+                    <div class="stat-label">Задач</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">${stats.brigades.size}</div>
+                    <div class="stat-label">Бригад</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">${formatTime(stats.totalTime)}</div>
+                    <div class="stat-label">Время</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">${normative.toFixed(1)}</div>
+                    <div class="stat-label">Норматив</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">р.${stats.totalAmount.toFixed(0)}</div>
+                    <div class="stat-label">Расходы</div>
+                  </div>
+                </div>
+                
+                <div style="margin-top: 10px; font-size: 11px; color: #666;">
+                  ${stats.standard > 0 ? `План: ${stats.standard} шт/час | ` : ''}
+                  Расходы на ед.: р.${costPerUnit.toFixed(2)} | 
+                  Расходы/час: р.${revenuePerHour.toFixed(2)} | 
+                  Группы товаров: ${stats.productGroups.size}
+                </div>
+              </div>
+            `;
+          });
+          
+          html += `
+                </div>
               </div>
             </div>
-            
-            <div style="font-size: 12px; color: #666; margin-bottom: 10px;">
-              <strong>Направление:</strong> ${stats.direction} | <strong>Отдел:</strong> ${stats.department}
-            </div>
-            
-            <div class="work-type-stats">
-              <div class="stat-item">
-                <div class="stat-value">${stats.totalUnits}</div>
-                <div class="stat-label">Единиц</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">${stats.tasks}</div>
-                <div class="stat-label">Задач</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">${stats.brigades.size}</div>
-                <div class="stat-label">Бригад</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">${formatTime(stats.totalTime)}</div>
-                <div class="stat-label">Время</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">${normative.toFixed(1)}</div>
-                <div class="stat-label">Норматив</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">р.${stats.totalAmount.toFixed(0)}</div>
-                <div class="stat-label">Расходы</div>
-              </div>
-            </div>
-            
-            <div style="margin-top: 10px; font-size: 11px; color: #666;">
-              ${stats.standard > 0 ? `План: ${stats.standard} шт/час | ` : ''}
-              Расходы на ед.: р.${costPerUnit.toFixed(2)} | 
-              Расходы/час: р.${revenuePerHour.toFixed(2)} | 
-              Группы товаров: ${stats.productGroups.size}
+          `;
+        });
+        
+        html += `
             </div>
           </div>
         `;
       });
       
-      html += '</div>';
       document.getElementById('work-types-content').innerHTML = html;
     }
 
@@ -1860,7 +1983,7 @@
       const uniqueBrigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
       const uniqueDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
 
-      // Анализ персонала для всего дня
+      // Анализ персонала для всего дня с учетом времени работы
       const staffAnalysis = analyzeStaffForRecords(allRecords);
       
       let html = `
@@ -1901,25 +2024,19 @@
             <p class="analytics-label">Расходы в час</p>
           </div>
 
-          <div class="staff-card">
+          <div class="analytics-card">
             <h4>👥 Персонал</h4>
-            <div class="staff-overview">
-              <div class="staff-total">
-                <div class="staff-total-value">${staffAnalysis.total}</div>
-                <div class="staff-total-label">Всего сотрудников</div>
-              </div>
-              <div class="staff-permanent">
-                <div class="staff-permanent-value">${staffAnalysis.permanent}</div>
-                <div class="staff-permanent-label">Постоянные</div>
-              </div>
-              <div class="staff-hired">
-                <div class="staff-hired-value">${staffAnalysis.hired}</div>
-                <div class="staff-hired-label">Наемные</div>
-              </div>
-            </div>
-            <div style="font-size: 11px; color: #666; text-align: center;">
-              Ко всем работам привлекалось ${staffAnalysis.total} сотрудников
-            </div>
+            <div class="analytics-value">${staffAnalysis.total}</div>
+            <p class="analytics-label">Всего сотрудников</p>
+            
+            <div class="analytics-value">${staffAnalysis.permanent}</div>
+            <p class="analytics-label">Постоянные</p>
+            
+            <div class="analytics-value">${staffAnalysis.hired}</div>
+            <p class="analytics-label">Наемные</p>
+            
+            <div class="analytics-value">${formatTime(staffAnalysis.totalWorkTime)}</div>
+            <p class="analytics-label">Общее время работы</p>
           </div>
 
           <div class="analytics-card">
@@ -2287,6 +2404,34 @@
       }
     }
 
+    function toggleDirection(direction) {
+      const directionEl = document.querySelector(`.direction-group:has(.direction-title:contains("${direction}"))`);
+      const content = directionEl.querySelector('.direction-content');
+      const icon = directionEl.querySelector('.toggle-icon');
+      
+      if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.textContent = '▼';
+      } else {
+        content.style.display = 'none';
+        icon.textContent = '▶';
+      }
+    }
+
+    function toggleDepartment(direction, department) {
+      const deptContent = document.getElementById(`dept-${direction}-${department}`);
+      const departmentEl = deptContent.closest('.department-group');
+      const icon = departmentEl.querySelector('.toggle-icon');
+      
+      if (deptContent.style.display === 'none') {
+        deptContent.style.display = 'block';
+        icon.textContent = '▼';
+      } else {
+        deptContent.style.display = 'none';
+        icon.textContent = '▶';
+      }
+    }
+
     function selectDepartment(department) {
       selectedDepartment = department;
       const allRecords = records.filter(r => r['Рабочий день'] === selectedDate);
@@ -2399,10 +2544,12 @@
         if (!brigadeStats[brigade].supplies[supply]) {
           brigadeStats[brigade].supplies[supply] = {
             units: 0,
+            time: 0,
             helpers: []
           };
         }
         brigadeStats[brigade].supplies[supply].units += parseInt(record['Количество единиц']) || 0;
+        brigadeStats[brigade].supplies[supply].time += parseTime(record['Рабочее время']);
         
         // Находим помощников для этой поставки
         const supplyRecords = allRecords.filter(r => 
@@ -2460,7 +2607,7 @@
               <h6>Поставки:</h6>
               ${Object.entries(stats.supplies).map(([supply, supplyData]) => `
                 <div class="supply-details-expanded">
-                  <div class="supply-header">${supply} (${supplyData.units} ед.)</div>
+                  <div class="supply-header">${supply} (${supplyData.units} ед. | ${formatTime(supplyData.time)})</div>
                   ${supplyData.helpers.length > 0 ? `
                     <div class="helper-list">
                       <strong>Помощники:</strong>
