@@ -109,16 +109,19 @@
       .time-label {
         width: 100%;
         margin-bottom: 5px;
+        font-size: 11px;
       }
       
       .time-bar-inner {
         width: 100%;
         margin-bottom: 5px;
+        height: 12px;
       }
       
       .time-value {
         width: 100%;
         text-align: left;
+        font-size: 11px;
       }
       
       .work-type-legend {
@@ -130,6 +133,14 @@
         width: 95%;
         margin: 2% auto;
         padding: 15px;
+      }
+      
+      .work-type-segments {
+        height: 12px;
+      }
+      
+      .time-bar-fill {
+        height: 100%;
       }
     }
     
@@ -154,6 +165,14 @@
       .work-types-analytics {
         padding: 15px;
         margin-top: 15px;
+      }
+      
+      .time-label {
+        font-size: 10px;
+      }
+      
+      .time-value {
+        font-size: 10px;
       }
     }
 
@@ -1043,6 +1062,8 @@
       justify-content: center;
       color: #666;
       font-size: 14px;
+      text-align: center;
+      padding: 20px;
     }
 
     /* СТИЛИ ДЛЯ УВЕДОМЛЕНИЙ */
@@ -1058,6 +1079,61 @@
     
     .warning-note strong {
       color: #e65100;
+    }
+
+    /* СТИЛИ ДЛЯ РЕАЛЬНЫХ ГРАФИКОВ */
+    .chart-real {
+      height: 250px;
+      position: relative;
+    }
+    
+    .chart-bar {
+      display: flex;
+      align-items: flex-end;
+      height: 200px;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    
+    .chart-bar-item {
+      flex: 1;
+      background: #2196f3;
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      transition: opacity 0.2s;
+    }
+    
+    .chart-bar-item:hover {
+      opacity: 0.8;
+    }
+    
+    .chart-bar-label {
+      text-align: center;
+      font-size: 10px;
+      color: #666;
+      margin-top: 5px;
+    }
+    
+    .chart-pie {
+      height: 200px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+    
+    .chart-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
     }
   </style>
 </head>
@@ -1082,7 +1158,7 @@
 
   <div class="container">
     <h2>Аналитика по видам работ</h2>
-    <div class="version">v3-11.07.2231 <span>🕒</span></div>
+    <div class="version">v3-11.08.0000 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="controls" class="hidden">
@@ -1202,6 +1278,11 @@
       const m = Math.floor((seconds % 3600) / 60);
       const s = seconds % 60;
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function formatTimeHours(seconds) {
+      const hours = seconds / 3600;
+      return hours.toFixed(1);
     }
 
     function parseCurrency(str) {
@@ -1529,6 +1610,20 @@
         permanentWorkTime: permanentWorkTime,
         hiredWorkTime: hiredWorkTime
       };
+    }
+
+    // Функция для расчета времени по табелю (все записи, включая без единиц)
+    function calculateTimesheetTime(records) {
+      const uniqueEmployees = [...new Set(records.map(r => r['Сотрудник']))].filter(Boolean);
+      let totalTimesheetTime = 0;
+      
+      uniqueEmployees.forEach(employee => {
+        const employeeRecords = records.filter(r => r['Сотрудник'] === employee);
+        const employeeTime = employeeRecords.reduce((sum, r) => sum + parseTime(r['Рабочее время']), 0);
+        totalTimesheetTime += employeeTime;
+      });
+      
+      return totalTimesheetTime;
     }
 
     // Функция для создания тестовых данных
@@ -1882,6 +1977,7 @@
 
         // Анализ персонала для отдела с учетом времени работы
         const staffAnalysis = analyzeStaffForRecords(departmentRecords);
+        const timesheetTime = calculateTimesheetTime(departmentRecords);
 
         html = `
           <div style="margin-bottom: 15px;">
@@ -1906,8 +2002,8 @@
               <p class="analytics-label">Норматив (шт/час)</p>
               <div class="analytics-value">${formatTime(totalTime)}</div>
               <p class="analytics-label">Общее время работы</p>
-              <div class="analytics-value">${totalHours.toFixed(1)}</div>
-              <p class="analytics-label">Отработано часов</p>
+              <div class="analytics-value">${formatTime(timesheetTime)}</div>
+              <p class="analytics-label">Время по табелю</p>
             </div>
 
             <div class="analytics-card">
@@ -2184,6 +2280,7 @@
 
       // Анализ персонала для всего дня с учетом времени работы
       const staffAnalysis = analyzeStaffForRecords(allRecords);
+      const timesheetTime = calculateTimesheetTime(allRecords);
       
       let html = `
         <div class="analytics-grid">
@@ -2207,8 +2304,8 @@
             <div class="analytics-value">${formatTime(totalTimeSec)}</div>
             <p class="analytics-label">Общее время работы</p>
             
-            <div class="analytics-value">${totalHours.toFixed(1)}</div>
-            <p class="analytics-label">Отработано часов</p>
+            <div class="analytics-value">${formatTime(timesheetTime)}</div>
+            <p class="analytics-label">Время по табелю</p>
           </div>
 
           <div class="analytics-card">
@@ -2265,6 +2362,7 @@
       const workTypeData = {};
       const timeDistribution = {};
       const departmentData = {};
+      const costDistribution = {};
       
       // Собираем данные по видам работ
       responsibleRecords.forEach(record => {
@@ -2312,47 +2410,206 @@
         departmentData[department].amount += parseCurrency(record['Расчетная сумма']);
       });
       
+      // Собираем данные по распределению расходов
+      responsibleRecords.forEach(record => {
+        const workType = record['Вид работ'] || 'Без вида работ';
+        if (!costDistribution[workType]) {
+          costDistribution[workType] = 0;
+        }
+        costDistribution[workType] += parseCurrency(record['Расчетная сумма']);
+      });
+      
       let html = `
         <div class="charts-grid">
           <div class="chart-container">
             <h4 class="chart-title">📊 Распределение по видам работ</h4>
-            <div class="chart-placeholder">
-              График: Производительность по видам работ<br>
-              (Единицы продукции за час)
+            <div class="chart-real">
+              ${renderWorkTypeChart(workTypeData)}
             </div>
           </div>
           
           <div class="chart-container">
             <h4 class="chart-title">⏰ Активность по времени суток</h4>
-            <div class="chart-placeholder">
-              График: Количество единиц по часам<br>
-              (Пиковые и спокойные периоды)
+            <div class="chart-real">
+              ${renderTimeDistributionChart(timeDistribution)}
             </div>
           </div>
           
           <div class="chart-container">
             <h4 class="chart-title">🏢 Эффективность отделов</h4>
-            <div class="chart-placeholder">
-              График: Нормативы по отделам<br>
-              (шт/час по каждому отделу)
+            <div class="chart-real">
+              ${renderDepartmentChart(departmentData)}
             </div>
           </div>
           
           <div class="chart-container">
             <h4 class="chart-title">💰 Структура расходов</h4>
-            <div class="chart-placeholder">
-              График: Распределение расходов<br>
-              (По видам работ и отделам)
+            <div class="chart-real">
+              ${renderCostDistributionChart(costDistribution)}
             </div>
           </div>
-        </div>
-        
-        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; text-align: center;">
-          <small>📈 Реализация графиков будет добавлена в следующем обновлении</small>
         </div>
       `;
       
       document.getElementById('charts-content').innerHTML = html;
+    }
+
+    function renderWorkTypeChart(workTypeData) {
+      const sortedWorkTypes = Object.entries(workTypeData)
+        .sort((a, b) => b[1].units - a[1].units)
+        .slice(0, 8); // Топ-8 видов работ
+      
+      const maxUnits = Math.max(...sortedWorkTypes.map(([_, data]) => data.units));
+      
+      let html = '<div class="chart-bar">';
+      
+      sortedWorkTypes.forEach(([workType, data]) => {
+        const heightPercent = maxUnits > 0 ? (data.units / maxUnits) * 100 : 0;
+        const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+        
+        html += `
+          <div class="chart-bar-item" 
+               style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
+               title="${workType}: ${data.units} ед. (${normative.toFixed(1)} шт/час)">
+          </div>
+        `;
+      });
+      
+      html += '</div><div class="chart-bar-labels">';
+      
+      sortedWorkTypes.forEach(([workType, data]) => {
+        const shortName = workType.length > 10 ? workType.substring(0, 8) + '...' : workType;
+        html += `<div class="chart-bar-label">${shortName}</div>`;
+      });
+      
+      html += '</div>';
+      
+      return html;
+    }
+
+    function renderTimeDistributionChart(timeDistribution) {
+      const sortedIntervals = Object.values(timeDistribution)
+        .sort((a, b) => a.interval.sortKey - b.interval.sortKey);
+      
+      const maxUnits = Math.max(...sortedIntervals.map(stats => stats.units));
+      
+      let html = '<div class="chart-bar">';
+      
+      sortedIntervals.forEach(stats => {
+        const heightPercent = maxUnits > 0 ? (stats.units / maxUnits) * 100 : 0;
+        const color = stats.interval.isNight ? '#5c6bc0' : '#2196f3';
+        
+        html += `
+          <div class="chart-bar-item" 
+               style="height: ${heightPercent}%; background-color: ${color}"
+               title="${stats.interval.display}: ${stats.units} ед.">
+          </div>
+        `;
+      });
+      
+      html += '</div><div class="chart-bar-labels">';
+      
+      sortedIntervals.forEach(stats => {
+        const label = stats.interval.display.split(' ')[0]; // Берем только временной интервал
+        html += `<div class="chart-bar-label">${label}</div>`;
+      });
+      
+      html += '</div>';
+      
+      return html;
+    }
+
+    function renderDepartmentChart(departmentData) {
+      const sortedDepartments = Object.entries(departmentData)
+        .filter(([dept]) => dept !== 'Не указано')
+        .sort((a, b) => {
+          const normativeA = a[1].time > 0 ? calculateNormative(a[1].units, a[1].time) : 0;
+          const normativeB = b[1].time > 0 ? calculateNormative(b[1].units, b[1].time) : 0;
+          return normativeB - normativeA;
+        })
+        .slice(0, 6); // Топ-6 отделов
+      
+      const maxNormative = Math.max(...sortedDepartments.map(([_, data]) => {
+        return data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+      }));
+      
+      let html = '<div class="chart-bar">';
+      
+      sortedDepartments.forEach(([department, data]) => {
+        const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+        const heightPercent = maxNormative > 0 ? (normative / maxNormative) * 100 : 0;
+        
+        html += `
+          <div class="chart-bar-item" 
+               style="height: ${heightPercent}%; background-color: #4caf50"
+               title="${department}: ${normative.toFixed(1)} шт/час">
+          </div>
+        `;
+      });
+      
+      html += '</div><div class="chart-bar-labels">';
+      
+      sortedDepartments.forEach(([department, data]) => {
+        const shortName = department.length > 10 ? department.substring(0, 8) + '...' : department;
+        const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+        html += `<div class="chart-bar-label" title="${normative.toFixed(1)} шт/час">${shortName}</div>`;
+      });
+      
+      html += '</div>';
+      
+      return html;
+    }
+
+    function renderCostDistributionChart(costDistribution) {
+      const sortedCosts = Object.entries(costDistribution)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6); // Топ-6 по расходам
+      
+      const totalCost = sortedCosts.reduce((sum, [_, amount]) => sum + amount, 0);
+      
+      let html = '<div class="chart-pie">';
+      
+      // Простой круговой график с сегментами
+      let currentAngle = 0;
+      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
+      
+      sortedCosts.forEach(([workType, amount], index) => {
+        const percentage = totalCost > 0 ? (amount / totalCost) * 100 : 0;
+        const angle = (percentage / 100) * 360;
+        const color = colors[index % colors.length];
+        
+        html += `
+          <div style="
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(
+              ${color} ${currentAngle}deg ${currentAngle + angle}deg,
+              transparent ${currentAngle + angle}deg 360deg
+            );
+          "></div>
+        `;
+        
+        currentAngle += angle;
+      });
+      
+      html += '</div><div class="chart-legend">';
+      
+      sortedCosts.forEach(([workType, amount], index) => {
+        const percentage = totalCost > 0 ? (amount / totalCost) * 100 : 0;
+        const shortName = workType.length > 12 ? workType.substring(0, 10) + '...' : workType;
+        html += `
+          <div class="chart-legend-item">
+            <div class="legend-color" style="background-color: ${colors[index % colors.length]}"></div>
+            <span>${shortName} (${percentage.toFixed(1)}%)</span>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      
+      return html;
     }
 
     function renderComparisonAnalytics(currentDate) {
@@ -2392,13 +2649,16 @@
       const unitsTrend = currentUnits - avgUnits;
       const unitsPercent = avgUnits > 0 ? ((unitsTrend / avgUnits) * 100).toFixed(1) : 0;
       
+      // Для единиц - больше это хорошо
+      const unitsIsGood = unitsTrend >= 0;
+      
       html += `
         <div class="comparison-card">
           <h4>📦 Единицы</h4>
           <div class="analytics-value">${currentUnits}</div>
           <p class="analytics-label">Сегодня</p>
-          <div class="analytics-value ${unitsTrend >= 0 ? 'trend-up' : 'trend-down'}">
-            ${unitsTrend >= 0 ? '↗' : '↘'} ${Math.abs(unitsPercent)}%
+          <div class="analytics-value ${unitsIsGood ? 'trend-up' : 'trend-down'}">
+            ${unitsIsGood ? '↗' : '↘'} ${Math.abs(unitsPercent)}%
           </div>
           <p class="analytics-label">Среднее: ${avgUnits.toFixed(0)}</p>
         </div>
@@ -2415,13 +2675,16 @@
       const normTrend = currentNormative - avgNorm;
       const normPercent = avgNorm > 0 ? ((normTrend / avgNorm) * 100).toFixed(1) : 0;
       
+      // Для нормативов - больше это хорошо
+      const normIsGood = normTrend >= 0;
+      
       html += `
         <div class="comparison-card">
           <h4>⚡ Норматив</h4>
           <div class="analytics-value">${currentNormative.toFixed(1)}</div>
           <p class="analytics-label">Сегодня (шт/час)</p>
-          <div class="analytics-value ${normTrend >= 0 ? 'trend-up' : 'trend-down'}">
-            ${normTrend >= 0 ? '↗' : '↘'} ${Math.abs(normPercent)}%
+          <div class="analytics-value ${normIsGood ? 'trend-up' : 'trend-down'}">
+            ${normIsGood ? '↗' : '↘'} ${Math.abs(normPercent)}%
           </div>
           <p class="analytics-label">Среднее: ${avgNorm.toFixed(1)}</p>
         </div>
@@ -2435,7 +2698,7 @@
       const amountTrend = currentAmount - avgAmount;
       const amountPercent = avgAmount > 0 ? ((amountTrend / avgAmount) * 100).toFixed(1) : 0;
 
-      // ИНВЕРТИРУЕМ ЛОГИКУ ДЛЯ РАСХОДОВ - меньше расходы это хорошо
+      // ИСПРАВЛЕНО: Для расходов - меньше это хорошо
       const amountIsGood = amountTrend < 0;
       
       const previousCosts = previousDates.map(d => {
@@ -2449,7 +2712,7 @@
       const costTrend = currentCostPerUnit - avgCost;
       const costPercent = avgCost > 0 ? ((costTrend / avgCost) * 100).toFixed(1) : 0;
       
-      // ИНВЕРТИРУЕМ ЛОГИКУ ДЛЯ РАСХОДОВ НА ЕДИНИЦУ - меньше расходы это хорошо
+      // ИСПРАВЛЕНО: Для расходов на единицу - меньше это хорошо
       const costIsGood = costTrend < 0;
       
       html += `
