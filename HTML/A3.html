@@ -457,68 +457,6 @@
       color: #f44336;
     }
 
-    /* СТИЛИ ДЛЯ СТАТИСТИКИ ПО ВРЕМЕНИ СУТОК */
-    .time-statistics {
-      margin-top: 20px;
-      padding: 20px;
-      background: #f3e5f5;
-      border-radius: 8px;
-      border-left: 4px solid #9c27b0;
-    }
-    
-    .time-statistics-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    
-    .time-statistics-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #7b1fa2;
-      margin: 0;
-    }
-    
-    .time-chart {
-      margin-top: 15px;
-    }
-    
-    .time-bar {
-      display: flex;
-      align-items: center;
-      margin: 8px 0;
-      height: 25px;
-    }
-    
-    .time-label {
-      width: 100px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-    
-    .time-bar-inner {
-      flex: 1;
-      height: 15px;
-      background: #e1bee7;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    
-    .time-bar-fill {
-      height: 100%;
-      border-radius: 8px;
-      background: linear-gradient(90deg, #ab47bc, #8e24aa);
-    }
-    
-    .time-value {
-      width: 100px;
-      text-align: right;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
     /* СТИЛИ ДЛЯ ГРУППИРОВОК */
     .grouping-section {
       margin-top: 20px;
@@ -779,38 +717,6 @@
     
     .close:hover {
       color: black;
-    }
-
-    /* СТИЛИ ДЛЯ ПРОЦЕНТНОЙ СТАТИСТИКИ ПО ВРЕМЕНИ */
-    .percentage-time-statistics {
-      margin-top: 20px;
-      padding: 20px;
-      background: #e0f2f1;
-      border-radius: 8px;
-      border-left: 4px solid #00695c;
-    }
-    
-    .percentage-time-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    
-    .percentage-time-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #004d40;
-      margin: 0;
-    }
-
-    .work-type-time-chart {
-      margin: 15px 0;
-      padding: 15px;
-      background: white;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
     /* СТИЛИ ДЛЯ ВЫБОРА ОТДЕЛОВ */
@@ -1135,6 +1041,30 @@
       gap: 4px;
       font-size: 11px;
     }
+
+    /* СТИЛИ ДЛЯ ГРАФИКОВ ПО ВИДАМ РАБОТ */
+    .work-type-charts-section {
+      margin-top: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, #e8f5e9, #f3e5f5);
+      border-radius: 8px;
+      border-left: 4px solid #4caf50;
+    }
+    
+    .work-type-charts-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .work-type-charts-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #2e7d32;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -1158,7 +1088,7 @@
 
   <div class="container">
     <h2>Аналитика по видам работ</h2>
-    <div class="version">v3-11.08.0000 <span>🕒</span></div>
+    <div class="version">v3-11.08.0050 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="controls" class="hidden">
@@ -1203,25 +1133,14 @@
           </div>
         </div>
 
-        <!-- ⏰ Общая статистика по времени -->
-        <div id="time-statistics" class="time-statistics">
-          <div class="time-statistics-header" id="time-statistics-toggle">
-            <h3 class="time-statistics-title">⏰ Общая статистика по времени</h3>
+        <!-- 📊 Графики по видам работ -->
+        <div id="work-type-charts-section" class="work-type-charts-section">
+          <div class="work-type-charts-header" id="work-type-charts-toggle">
+            <h3 class="work-type-charts-title">📊 Графики по видам работ</h3>
             <span class="toggle-icon">▶</span>
           </div>
-          <div id="time-statistics-content" class="hidden">
-            <!-- Контент статистики по времени -->
-          </div>
-        </div>
-
-        <!-- 📈 Распределение работ по времени суток -->
-        <div id="percentage-time-statistics" class="percentage-time-statistics">
-          <div class="percentage-time-header" id="percentage-time-toggle">
-            <h3 class="percentage-time-title">📈 Распределение работ по времени суток</h3>
-            <span class="toggle-icon">▶</span>
-          </div>
-          <div id="percentage-time-content" class="hidden">
-            <!-- Контент процентной статистики -->
+          <div id="work-type-charts-content" class="hidden">
+            <!-- Контент графиков по видам работ -->
           </div>
         </div>
       </div>
@@ -1294,7 +1213,6 @@
     }
 
     function formatCurrency(amount) {
-      // Форматирование чисел с разделителями разрядов
       return `р.${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}`;
     }
 
@@ -1414,13 +1332,48 @@
       'По умолчанию': '#BBBBBB'
     };
 
-    // Функция для получения цвета с автоматическим созданием для новых видов работ
+    // Маппинг подписей для графиков
+    const chartLabels = {
+      workTypes: {
+        'Погрузка': 'Отгрузка',
+        'Разгрузка': 'Главная обработка',
+        'Сортировка': 'Упаковка продукции',
+        'Упаковка': 'Стикеровка продукции',
+        'Комплектация': 'Транспортировка',
+        'Проверка': 'Работа с рекламациями',
+        'Маркировка': 'Другие виды работ'
+      },
+      departments: {
+        'Приемка': 'Отгрузка',
+        'Отгрузка': 'МП',
+        'Сортировка': 'Сборка',
+        'Упаковка': 'Покупка'
+      },
+      timeIntervals: [
+        '09:10', '10:11', '11:12', '12:13', '13:14', '14:15',
+        '16:17', '17:18', '18:19'
+      ],
+      costDistribution: {
+        'Погрузка': 'Главная обработка (23.2%)',
+        'Разгрузка': 'Стикеровка продукции (22.7%)',
+        'Сортировка': 'Другие виды работ (22.3%)',
+        'Упаковка': 'Упаковка продукции (13.6%)',
+        'Комплектация': 'Работа с рекламациями (10.9%)',
+        'Проверка': 'Отгрузка (7.9%)'
+      }
+    };
+
     function getWorkTypeColor(workType) {
       if (workTypeColors[workType]) {
         return workTypeColors[workType];
       }
       
-      // Автоматически генерируем цвет для новых видов работ
+      let hash = 0;
+      for (let i = 0; i < workType.length; i++) {
+        hash = workType.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      hash = Math.abs(hash);
+      
       const colors = [
         '#FF9800', '#9C27B0', '#3F51B5', '#009688', '#795548',
         '#607D8B', '#E91E63', '#2196F3', '#4CAF50', '#FFC107',
@@ -1428,15 +1381,8 @@
         '#FFEB3B', '#03A9F4', '#8BC34A', '#FF9800', '#9C27B0'
       ];
       
-      // Создаем детерминированный цвет на основе названия работы
-      let hash = 0;
-      for (let i = 0; i < workType.length; i++) {
-        hash = workType.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      hash = Math.abs(hash);
-      
       const color = colors[hash % colors.length];
-      workTypeColors[workType] = color; // Сохраняем для будущего использования
+      workTypeColors[workType] = color;
       
       return color;
     }
@@ -1481,7 +1427,6 @@
         }
       } catch (err) {
         console.error('Ошибка загрузки нормативов:', err);
-        // Создаем тестовые нормативы
         standards = [
           {
             "Направление": "Входящие",
@@ -1525,7 +1470,6 @@
         }
       } catch (err) {
         console.error('Ошибка загрузки данных персонала:', err);
-        // Создаем тестовые данные персонала
         staffData = [
           {"Сотрудник": "Иванов И.И.", "Статус": "Постоянный", "Отдел": "Приемка"},
           {"Сотрудник": "Петров П.П.", "Статус": "Постоянный", "Отдел": "Приемка"},
@@ -1565,7 +1509,6 @@
       };
     }
 
-    // Функция для анализа персонала по записям с учетом времени работы
     function analyzeStaffForRecords(records) {
       const uniqueEmployees = [...new Set(records.map(r => r['Сотрудник']))].filter(Boolean);
       
@@ -1576,7 +1519,6 @@
       let permanentWorkTime = 0;
       let hiredWorkTime = 0;
       
-      // Фильтруем записи с количеством единиц > 0
       const validRecords = records.filter(r => (parseInt(r['Количество единиц']) || 0) > 0);
       
       uniqueEmployees.forEach(employee => {
@@ -1612,7 +1554,6 @@
       };
     }
 
-    // Функция для расчета времени по табелю (все записи, включая без единиц)
     function calculateTimesheetTime(records) {
       const uniqueEmployees = [...new Set(records.map(r => r['Сотрудник']))].filter(Boolean);
       let totalTimesheetTime = 0;
@@ -1626,12 +1567,10 @@
       return totalTimesheetTime;
     }
 
-    // Функция для создания тестовых данных
     function createTestData() {
       console.log('Создаем тестовые данные...');
       const testRecords = [];
       
-      // Получаем все виды работ из нормативов
       const workTypesFromStandards = [...new Set(standards.map(s => s['Вид работ']))];
       const workTypes = workTypesFromStandards.length > 0 ? workTypesFromStandards : 
         ['Погрузка', 'Разгрузка', 'Сортировка', 'Упаковка', 'Стикеровка', 'Перемещение'];
@@ -1792,10 +1731,9 @@
       // Обработчики для сворачивания/разворачивания секций
       setupToggleHandler('combined-toggle', 'combined-content');
       setupToggleHandler('charts-toggle', 'charts-content');
-      setupToggleHandler('time-statistics-toggle', 'time-statistics-content');
+      setupToggleHandler('work-type-charts-toggle', 'work-type-charts-content');
       setupToggleHandler('departments-toggle', 'departments-content');
       setupToggleHandler('work-types-toggle', 'work-types-content');
-      setupToggleHandler('percentage-time-toggle', 'percentage-time-content');
 
       // Закрытие модальных окон при клике вне контента
       window.addEventListener('click', function(event) {
@@ -1893,14 +1831,11 @@
         return;
       }
 
-      // Показываем выбранную дату ПОД КАЛЕНДАРЕМ
       selectedDateDiv.classList.remove('hidden');
       currentDateSpan.textContent = selectedDate;
 
-      // Показываем все уровни аналитики
       showAllLevels();
 
-      // Обновляем аналитику для всех уровней
       renderLevel1Analytics(allRecords);
       renderLevel2Analytics(allRecords);
       renderLevel3Analytics(allRecords);
@@ -1921,26 +1856,16 @@
     function renderLevel1Analytics(allRecords) {
       const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
       
-      // 📊 Общая аналитика за день + 📈 Сравнение с предыдущими днями
       renderCombinedAnalytics(allRecords, responsibleRecords);
-      
-      // 📈 Детальные графики и диаграммы
       renderCharts(allRecords, responsibleRecords);
-      
-      // ⏰ Общая статистика по времени (с фильтрацией)
-      renderOverallTimeStatistics(allRecords);
-      
-      // 📈 Распределение работ по времени суток
-      renderPercentageTimeStatistics(allRecords);
+      renderWorkTypeCharts(allRecords, responsibleRecords);
     }
 
     function renderLevel2Analytics(allRecords) {
-      // Остальная аналитика уровня 2
       const allDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
       
       let html = '';
       
-      // Если отдел не выбран, показываем селектор
       if (!selectedDepartment) {
         html = `
           <div class="department-selector">
@@ -1953,7 +1878,6 @@
           </div>
         `;
       } else {
-        // Показываем аналитику по выбранному отделу
         const departmentRecords = allRecords.filter(r => r['Отдел'] === selectedDepartment);
         const responsibleRecords = departmentRecords.filter(r => isResponsible(r['Должность']));
         
@@ -1975,7 +1899,6 @@
         const workTypes = [...new Set(departmentRecords.map(r => r['Вид работ']))];
         const brigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
 
-        // Анализ персонала для отдела с учетом времени работы
         const staffAnalysis = analyzeStaffForRecords(departmentRecords);
         const timesheetTime = calculateTimesheetTime(departmentRecords);
 
@@ -2051,7 +1974,6 @@
     }
 
     function renderLevel3Analytics(allRecords) {
-      // Группируем работы по направлениям и отделам
       const directionStats = {};
       const unclassifiedWorkTypes = new Set();
       
@@ -2061,10 +1983,9 @@
         const workType = record['Вид работ'] || 'Без вида работ';
         const productGroup = record['Группа товара'] || 'Все';
         
-        // Проверяем, есть ли у работы направление и отдел
         if (direction === 'Не указано' || department === 'Не указано') {
           unclassifiedWorkTypes.add(workType);
-          return; // Пропускаем работы без классификации
+          return;
         }
         
         if (!directionStats[direction]) {
@@ -2117,14 +2038,12 @@
           workTypeStats.productGroups.add(productGroup);
         }
         
-        // Обновляем статистику отдела
         if (isResponsible(record['Должность'])) {
           directionStats[direction].departments[department].totalUnits += parseInt(record['Количество единиц']) || 0;
           directionStats[direction].departments[department].totalTime += parseTime(record['Рабочее время']);
         }
         directionStats[direction].departments[department].totalAmount += parseCurrency(record['Расчетная сумма']);
         
-        // Обновляем статистику направления
         if (isResponsible(record['Должность'])) {
           directionStats[direction].totalUnits += parseInt(record['Количество единиц']) || 0;
           directionStats[direction].totalTime += parseTime(record['Рабочее время']);
@@ -2134,7 +2053,6 @@
 
       let html = '';
       
-      // Показываем предупреждение о неклассифицированных работах
       if (unclassifiedWorkTypes.size > 0) {
         html += `
           <div class="warning-note">
@@ -2278,7 +2196,6 @@
       const uniqueBrigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
       const uniqueDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
 
-      // Анализ персонала для всего дня с учетом времени работы
       const staffAnalysis = analyzeStaffForRecords(allRecords);
       const timesheetTime = calculateTimesheetTime(allRecords);
       
@@ -2351,20 +2268,17 @@
         </div>
       `;
 
-      // Добавляем сравнение с предыдущими днями
       html += renderComparisonAnalytics(selectedDate);
       
       document.getElementById('combined-content').innerHTML = html;
     }
 
     function renderCharts(allRecords, responsibleRecords) {
-      // Создаем данные для графиков
       const workTypeData = {};
       const timeDistribution = {};
       const departmentData = {};
       const costDistribution = {};
       
-      // Собираем данные по видам работ
       responsibleRecords.forEach(record => {
         const workType = record['Вид работ'] || 'Без вида работ';
         if (!workTypeData[workType]) {
@@ -2379,7 +2293,6 @@
         workTypeData[workType].amount += parseCurrency(record['Расчетная сумма']);
       });
       
-      // Собираем данные по времени суток
       responsibleRecords.forEach(record => {
         const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
         if (!interval) return;
@@ -2395,7 +2308,6 @@
         timeDistribution[interval.key].tasks++;
       });
       
-      // Собираем данные по отделам
       responsibleRecords.forEach(record => {
         const department = record['Отдел'] || 'Не указано';
         if (!departmentData[department]) {
@@ -2410,7 +2322,6 @@
         departmentData[department].amount += parseCurrency(record['Расчетная сумма']);
       });
       
-      // Собираем данные по распределению расходов
       responsibleRecords.forEach(record => {
         const workType = record['Вид работ'] || 'Без вида работ';
         if (!costDistribution[workType]) {
@@ -2454,10 +2365,95 @@
       document.getElementById('charts-content').innerHTML = html;
     }
 
+    function renderWorkTypeCharts(allRecords, responsibleRecords) {
+      const workTypeTimeStats = {};
+      
+      allRecords.forEach(record => {
+        if (!isResponsible(record['Должность'])) return;
+        
+        const workType = record['Вид работ'] || 'Без вида работ';
+        if (!workTypeTimeStats[workType]) {
+          workTypeTimeStats[workType] = {
+            totalUnits: 0,
+            timeIntervals: {}
+          };
+        }
+        
+        workTypeTimeStats[workType].totalUnits += parseInt(record['Количество единиц']) || 0;
+      });
+
+      allRecords.forEach(record => {
+        if (!isResponsible(record['Должность'])) return;
+        
+        const workType = record['Вид работ'] || 'Без вида работ';
+        const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
+        if (!interval) return;
+        
+        if (!workTypeTimeStats[workType].timeIntervals[interval.key]) {
+          workTypeTimeStats[workType].timeIntervals[interval.key] = {
+            interval: interval,
+            units: 0
+          };
+        }
+        
+        workTypeTimeStats[workType].timeIntervals[interval.key].units += parseInt(record['Количество единиц']) || 0;
+      });
+
+      let html = '<div class="charts-grid">';
+      
+      Object.entries(workTypeTimeStats).forEach(([workType, stats]) => {
+        if (stats.totalUnits === 0) return;
+        
+        const sortedIntervals = Object.values(stats.timeIntervals).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
+        const maxUnits = Math.max(...sortedIntervals.map(timeStat => timeStat.units));
+        
+        html += `
+          <div class="chart-container">
+            <h4 class="chart-title">${chartLabels.workTypes[workType] || workType}</h4>
+            <div class="chart-real">
+              <div class="chart-bar">
+        `;
+        
+        sortedIntervals.forEach(timeStat => {
+          const heightPercent = maxUnits > 0 ? (timeStat.units / maxUnits) * 100 : 0;
+          const percentage = (timeStat.units / stats.totalUnits) * 100;
+          
+          html += `
+            <div class="chart-bar-item" 
+                 style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
+                 title="${timeStat.interval.display}: ${timeStat.units} ед. (${percentage.toFixed(1)}%)">
+            </div>
+          `;
+        });
+        
+        html += `
+              </div>
+              <div class="chart-bar-labels">
+        `;
+        
+        sortedIntervals.forEach(timeStat => {
+          const label = timeStat.interval.display.split(' ')[0];
+          html += `<div class="chart-bar-label">${label}</div>`;
+        });
+        
+        html += `
+              </div>
+              <div style="text-align: center; font-size: 11px; color: #666; margin-top: 5px;">
+                Всего: ${stats.totalUnits} ед.
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      document.getElementById('work-type-charts-content').innerHTML = html;
+    }
+
     function renderWorkTypeChart(workTypeData) {
       const sortedWorkTypes = Object.entries(workTypeData)
         .sort((a, b) => b[1].units - a[1].units)
-        .slice(0, 8); // Топ-8 видов работ
+        .slice(0, 8);
       
       const maxUnits = Math.max(...sortedWorkTypes.map(([_, data]) => data.units));
       
@@ -2466,11 +2462,13 @@
       sortedWorkTypes.forEach(([workType, data]) => {
         const heightPercent = maxUnits > 0 ? (data.units / maxUnits) * 100 : 0;
         const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+        const displayName = chartLabels.workTypes[workType] || workType;
+        const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
         
         html += `
           <div class="chart-bar-item" 
                style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
-               title="${workType}: ${data.units} ед. (${normative.toFixed(1)} шт/час)">
+               title="${displayName}: ${data.units} ед. (${normative.toFixed(1)} шт/час)">
           </div>
         `;
       });
@@ -2478,7 +2476,8 @@
       html += '</div><div class="chart-bar-labels">';
       
       sortedWorkTypes.forEach(([workType, data]) => {
-        const shortName = workType.length > 10 ? workType.substring(0, 8) + '...' : workType;
+        const displayName = chartLabels.workTypes[workType] || workType;
+        const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
         html += `<div class="chart-bar-label">${shortName}</div>`;
       });
       
@@ -2510,7 +2509,7 @@
       html += '</div><div class="chart-bar-labels">';
       
       sortedIntervals.forEach(stats => {
-        const label = stats.interval.display.split(' ')[0]; // Берем только временной интервал
+        const label = stats.interval.display.split(' ')[0];
         html += `<div class="chart-bar-label">${label}</div>`;
       });
       
@@ -2527,7 +2526,7 @@
           const normativeB = b[1].time > 0 ? calculateNormative(b[1].units, b[1].time) : 0;
           return normativeB - normativeA;
         })
-        .slice(0, 6); // Топ-6 отделов
+        .slice(0, 6);
       
       const maxNormative = Math.max(...sortedDepartments.map(([_, data]) => {
         return data.time > 0 ? calculateNormative(data.units, data.time) : 0;
@@ -2538,11 +2537,13 @@
       sortedDepartments.forEach(([department, data]) => {
         const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
         const heightPercent = maxNormative > 0 ? (normative / maxNormative) * 100 : 0;
+        const displayName = chartLabels.departments[department] || department;
+        const shortName = displayName.length > 10 ? displayName.substring(0, 8) + '...' : displayName;
         
         html += `
           <div class="chart-bar-item" 
                style="height: ${heightPercent}%; background-color: #4caf50"
-               title="${department}: ${normative.toFixed(1)} шт/час">
+               title="${displayName}: ${normative.toFixed(1)} шт/час">
           </div>
         `;
       });
@@ -2550,7 +2551,8 @@
       html += '</div><div class="chart-bar-labels">';
       
       sortedDepartments.forEach(([department, data]) => {
-        const shortName = department.length > 10 ? department.substring(0, 8) + '...' : department;
+        const displayName = chartLabels.departments[department] || department;
+        const shortName = displayName.length > 10 ? displayName.substring(0, 8) + '...' : displayName;
         const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
         html += `<div class="chart-bar-label" title="${normative.toFixed(1)} шт/час">${shortName}</div>`;
       });
@@ -2563,13 +2565,12 @@
     function renderCostDistributionChart(costDistribution) {
       const sortedCosts = Object.entries(costDistribution)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 6); // Топ-6 по расходам
+        .slice(0, 6);
       
       const totalCost = sortedCosts.reduce((sum, [_, amount]) => sum + amount, 0);
       
       let html = '<div class="chart-pie">';
       
-      // Простой круговой график с сегментами
       let currentAngle = 0;
       const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
       
@@ -2577,6 +2578,7 @@
         const percentage = totalCost > 0 ? (amount / totalCost) * 100 : 0;
         const angle = (percentage / 100) * 360;
         const color = colors[index % colors.length];
+        const displayName = chartLabels.costDistribution[workType] || workType;
         
         html += `
           <div style="
@@ -2598,11 +2600,12 @@
       
       sortedCosts.forEach(([workType, amount], index) => {
         const percentage = totalCost > 0 ? (amount / totalCost) * 100 : 0;
-        const shortName = workType.length > 12 ? workType.substring(0, 10) + '...' : workType;
+        const displayName = chartLabels.costDistribution[workType] || workType;
+        const shortName = displayName.length > 20 ? displayName.substring(0, 18) + '...' : displayName;
         html += `
           <div class="chart-legend-item">
             <div class="legend-color" style="background-color: ${colors[index % colors.length]}"></div>
-            <span>${shortName} (${percentage.toFixed(1)}%)</span>
+            <span>${shortName}</span>
           </div>
         `;
       });
@@ -2649,7 +2652,6 @@
       const unitsTrend = currentUnits - avgUnits;
       const unitsPercent = avgUnits > 0 ? ((unitsTrend / avgUnits) * 100).toFixed(1) : 0;
       
-      // Для единиц - больше это хорошо
       const unitsIsGood = unitsTrend >= 0;
       
       html += `
@@ -2675,7 +2677,6 @@
       const normTrend = currentNormative - avgNorm;
       const normPercent = avgNorm > 0 ? ((normTrend / avgNorm) * 100).toFixed(1) : 0;
       
-      // Для нормативов - больше это хорошо
       const normIsGood = normTrend >= 0;
       
       html += `
@@ -2698,7 +2699,6 @@
       const amountTrend = currentAmount - avgAmount;
       const amountPercent = avgAmount > 0 ? ((amountTrend / avgAmount) * 100).toFixed(1) : 0;
 
-      // ИСПРАВЛЕНО: Для расходов - меньше это хорошо
       const amountIsGood = amountTrend < 0;
       
       const previousCosts = previousDates.map(d => {
@@ -2712,7 +2712,6 @@
       const costTrend = currentCostPerUnit - avgCost;
       const costPercent = avgCost > 0 ? ((costTrend / avgCost) * 100).toFixed(1) : 0;
       
-      // ИСПРАВЛЕНО: Для расходов на единицу - меньше это хорошо
       const costIsGood = costTrend < 0;
       
       html += `
@@ -2739,236 +2738,6 @@
 
       html += '</div>';
       return html;
-    }
-
-    function renderOverallTimeStatistics(allRecords) {
-      const timeStats = {};
-      
-      // Фильтруем записи: только ответственные и с количеством единиц > 0
-      const filteredRecords = allRecords.filter(record => 
-        isResponsible(record['Должность']) && 
-        (parseInt(record['Количество единиц']) || 0) > 0
-      );
-      
-      // Собираем все уникальные виды работ для легенды
-      const allWorkTypesInDay = [...new Set(filteredRecords.map(r => r['Вид работ']).filter(Boolean))];
-      
-      filteredRecords.forEach(record => {
-        const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
-        if (!interval) return;
-        
-        if (!timeStats[interval.key]) {
-          timeStats[interval.key] = {
-            interval: interval,
-            units: 0,
-            amount: 0,
-            tasks: 0,
-            time: 0,
-            workTypes: {}
-          };
-        }
-        
-        const stats = timeStats[interval.key];
-        const workType = record['Вид работ'] || 'Без вида работ';
-        const units = parseInt(record['Количество единиц']) || 0;
-        
-        stats.units += units;
-        stats.time += parseTime(record['Рабочее время']);
-        stats.amount += parseCurrency(record['Расчетная сумма']);
-        stats.tasks++;
-
-        // Собираем информацию о видах работ в этом интервале
-        if (!stats.workTypes[workType]) {
-          stats.workTypes[workType] = {
-            units: 0,
-            tasks: 0
-          };
-        }
-        stats.workTypes[workType].units += units;
-        stats.workTypes[workType].tasks++;
-      });
-
-      let html = '<div class="time-chart">';
-      
-      const sortedIntervals = Object.values(timeStats).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
-      const maxUnits = Math.max(...sortedIntervals.map(s => s.units));
-      
-      // Легенда цветов - показываем ВСЕ виды работ за день
-      if (allWorkTypesInDay.length > 0) {
-        html += '<div class="work-type-legend">';
-        html += '<strong>Легенда видов работ:</strong><br>';
-        allWorkTypesInDay.forEach(workType => {
-          html += `
-            <div class="legend-item">
-              <div class="legend-color" style="background-color: ${getWorkTypeColor(workType)}"></div>
-              <span>${workType}</span>
-            </div>
-          `;
-        });
-        html += '</div>';
-      }
-      
-      sortedIntervals.forEach(stats => {
-        const unitsPercent = maxUnits > 0 ? (stats.units / maxUnits) * 100 : 0;
-        const normative = stats.time > 0 ? calculateNormative(stats.units, stats.time) : 0;
-        
-        // Создаем сегменты для видов работ
-        let segmentsHtml = '';
-        const totalUnitsInInterval = stats.units;
-        
-        if (totalUnitsInInterval > 0) {
-          // Сортируем работы по количеству единиц (от большего к меньшему)
-          const sortedWorkTypes = Object.entries(stats.workTypes)
-            .sort((a, b) => b[1].units - a[1].units);
-          
-          sortedWorkTypes.forEach(([workType, workStats]) => {
-            const segmentPercent = (workStats.units / totalUnitsInInterval) * 100;
-            if (segmentPercent > 0) {
-              segmentsHtml += `
-                <div class="work-type-segment" 
-                     style="width: ${segmentPercent}%; background-color: ${getWorkTypeColor(workType)}"
-                     title="${workType}: ${workStats.units} ед. (${segmentPercent.toFixed(1)}%)">
-                </div>
-              `;
-            }
-          });
-        }
-
-        html += `
-          <div class="time-bar-with-works">
-            <div class="time-bar">
-              <div class="time-label ${stats.interval.isNight ? 'night-interval' : ''}">${stats.interval.display}</div>
-              <div class="time-bar-inner">
-                ${segmentsHtml ? `
-                  <div class="work-type-segments">
-                    ${segmentsHtml}
-                  </div>
-                ` : `
-                  <div class="time-bar-fill" style="width: ${unitsPercent}%; background: #ccc;"></div>
-                `}
-              </div>
-              <div class="time-value">
-                ${stats.units} ед.
-              </div>
-            </div>
-            <div style="font-size: 11px; color: #666; margin-left: 100px;">
-              Задач: ${stats.tasks} | Расходы: ${formatCurrency(stats.amount)} | Норматив: ${normative.toFixed(1)} шт/час
-              ${Object.keys(stats.workTypes).length > 0 ? 
-                `| Виды: ${Object.keys(stats.workTypes).join(', ')}` : 
-                '| Нет данных о видах работ'}
-            </div>
-          </div>
-        `;
-      });
-      
-      // Если нет данных за день
-      if (sortedIntervals.length === 0) {
-        html += `
-          <div style="text-align: center; padding: 20px; color: #666;">
-            Нет данных о работе ответственных сотрудников за выбранный день
-          </div>
-        `;
-      }
-      
-      html += '</div>';
-      document.getElementById('time-statistics-content').innerHTML = html;
-    }
-
-    function renderPercentageTimeStatistics(allRecords) {
-      const workTypeTimeStats = {};
-      
-      // Собираем общее количество единиц по каждому виду работ (только ответственные)
-      allRecords.forEach(record => {
-        if (!isResponsible(record['Должность'])) return;
-        
-        const workType = record['Вид работ'] || 'Без вида работ';
-        if (!workTypeTimeStats[workType]) {
-          workTypeTimeStats[workType] = {
-            totalUnits: 0,
-            timeIntervals: {}
-          };
-        }
-        
-        workTypeTimeStats[workType].totalUnits += parseInt(record['Количество единиц']) || 0;
-      });
-
-      // Собираем распределение по времени для каждого вида работ (только ответственные)
-      allRecords.forEach(record => {
-        if (!isResponsible(record['Должность'])) return;
-        
-        const workType = record['Вид работ'] || 'Без вида работ';
-        const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
-        if (!interval) return;
-        
-        if (!workTypeTimeStats[workType].timeIntervals[interval.key]) {
-          workTypeTimeStats[workType].timeIntervals[interval.key] = {
-            interval: interval,
-            units: 0
-          };
-        }
-        
-        workTypeTimeStats[workType].timeIntervals[interval.key].units += parseInt(record['Количество единиц']) || 0;
-      });
-
-      let html = '';
-      
-      Object.entries(workTypeTimeStats).forEach(([workType, stats]) => {
-        if (stats.totalUnits === 0) return;
-        
-        // Добавляем возможность сворачивания для каждого вида работ
-        const workTypeId = workType.replace(/\s+/g, '-');
-        html += `
-          <div class="work-distribution" id="distribution-${workTypeId}">
-            <div class="work-distribution-header" onclick="toggleWorkDistribution('${workTypeId}')">
-              <div class="work-distribution-title">
-                <span class="toggle-icon">▶</span> ${workType} (всего: ${stats.totalUnits} ед.)
-              </div>
-            </div>
-            <div class="work-distribution-content">
-        `;
-        
-        const sortedIntervals = Object.values(stats.timeIntervals).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
-        
-        sortedIntervals.forEach(timeStat => {
-          const percentage = (timeStat.units / stats.totalUnits) * 100;
-          
-          html += `
-            <div class="time-bar">
-              <div class="time-label">${timeStat.interval.display}</div>
-              <div class="time-bar-inner">
-                <div class="time-bar-fill" style="width: ${percentage}%"></div>
-              </div>
-              <div class="time-value">
-                ${percentage.toFixed(1)}%
-              </div>
-            </div>
-            <div style="font-size: 11px; color: #666; margin-left: 100px;">
-              ${timeStat.units} ед. из ${stats.totalUnits} (${percentage.toFixed(1)}% от общего объема)
-            </div>
-          `;
-        });
-        
-        html += `</div></div>`;
-      });
-
-      document.getElementById('percentage-time-content').innerHTML = html;
-    }
-
-    // Функция для сворачивания/разворачивания распределения работ
-    function toggleWorkDistribution(workTypeId) {
-      const distribution = document.getElementById(`distribution-${workTypeId}`);
-      const content = distribution.querySelector('.work-distribution-content');
-      const icon = distribution.querySelector('.toggle-icon');
-      
-      if (content.style.display === 'none') {
-        content.style.display = 'block';
-        icon.textContent = '▼';
-        distribution.classList.remove('collapsed');
-      } else {
-        content.style.display = 'none';
-        icon.textContent = '▶';
-        distribution.classList.add('collapsed');
-      }
     }
 
     function toggleDirection(direction) {
@@ -3087,7 +2856,6 @@
         <div class="grouping-grid">
       `;
 
-      // Статистика по бригадам с детализацией по поставкам
       const brigadeStats = {};
       responsibleRecords.forEach(record => {
         const brigade = record['Сотрудник'] || 'Не указано';
@@ -3107,7 +2875,6 @@
         brigadeStats[brigade].tasks++;
         brigadeStats[brigade].amount += parseCurrency(record['Расчетная сумма']);
         
-        // Собираем информацию по поставкам
         if (!brigadeStats[brigade].supplies[supply]) {
           brigadeStats[brigade].supplies[supply] = {
             units: 0,
@@ -3118,11 +2885,10 @@
         brigadeStats[brigade].supplies[supply].units += parseInt(record['Количество единиц']) || 0;
         brigadeStats[brigade].supplies[supply].time += parseTime(record['Рабочее время']);
         
-        // Находим помощников для этой поставки
         const supplyRecords = allRecords.filter(r => 
           r['Поставка'] === supply && 
           r['Вид работ'] === workType &&
-          !isResponsible(r['Должность']) // только сотрудники (помощники)
+          !isResponsible(r['Должность'])
         );
         
         supplyRecords.forEach(helperRecord => {
@@ -3169,7 +2935,6 @@
               </div>
             </div>
             
-            <!-- Детализация по поставкам -->
             <div style="margin-top: 10px;">
               <h6>Поставки:</h6>
               ${Object.entries(stats.supplies).map(([supply, supplyData]) => `
