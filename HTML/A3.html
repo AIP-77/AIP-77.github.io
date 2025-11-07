@@ -836,7 +836,7 @@
 
   <div class="container">
     <h2>Аналитика по видам работ</h2>
-    <div class="version">v3-11.07.1954 <span>🕒</span></div>
+    <div class="version">v3-11.07.2020 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
 
     <div id="controls" class="hidden">
@@ -1043,18 +1043,60 @@
     let uiInitialized = false;
     let selectedDepartment = '';
 
-    // Цвета для видов работ
+    // Расширенная палитра цветов для видов работ
     const workTypeColors = {
       'Погрузка': '#FF6B6B',
-      'Разгрузка': '#4ECDC4',
+      'Разгрузка': '#4ECDC4', 
       'Сортировка': '#45B7D1',
       'Упаковка': '#96CEB4',
       'Комплектация': '#FFEAA7',
       'Проверка': '#DDA0DD',
       'Маркировка': '#98D8C8',
       'Перемещение': '#F7DC6F',
+      'Транспортировка': '#FFA726',
+      'Сборка': '#AB47BC',
+      'Распаковка': '#26C6DA',
+      'Учет': '#66BB6A',
+      'Инвентаризация': '#FFCA28',
+      'Подготовка': '#78909C',
+      'Обработка': '#EC407A',
+      'Фасовка': '#8D6E63',
+      'Контроль': '#42A5F5',
+      'Отбор': '#7E57C2',
+      'Стеллажирование': '#9CCC65',
+      'Палетизация': '#FF7043',
+      'Распределение': '#26A69A',
+      'Стикеровка': '#5D4037',
+      'Переупаковка': '#00897B',
       'По умолчанию': '#BBBBBB'
     };
+
+    // Функция для получения цвета с автоматическим созданием для новых видов работ
+    function getWorkTypeColor(workType) {
+      if (workTypeColors[workType]) {
+        return workTypeColors[workType];
+      }
+      
+      // Автоматически генерируем цвет для новых видов работ
+      const colors = [
+        '#FF9800', '#9C27B0', '#3F51B5', '#009688', '#795548',
+        '#607D8B', '#E91E63', '#2196F3', '#4CAF50', '#FFC107',
+        '#673AB7', '#00BCD4', '#8BC34A', '#FF5722', '#CDDC39',
+        '#FFEB3B', '#03A9F4', '#8BC34A', '#FF9800', '#9C27B0'
+      ];
+      
+      // Создаем детерминированный цвет на основе названия работы
+      let hash = 0;
+      for (let i = 0; i < workType.length; i++) {
+        hash = workType.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      hash = Math.abs(hash);
+      
+      const color = colors[hash % colors.length];
+      workTypeColors[workType] = color; // Сохраняем для будущего использования
+      
+      return color;
+    }
 
     // DOM элементы
     const loadingDiv = document.getElementById('loading');
@@ -1093,10 +1135,27 @@
             isResponsible(record['Должность']) && record['Норматив 1']
           );
           console.log('Загружено нормативов:', standards.length);
+          
+          // Логируем все доступные виды работ из нормативов
+          const availableWorkTypes = [...new Set(standards.map(s => s['Вид работ']))];
+          console.log('Доступные виды работ из нормативов:', availableWorkTypes);
+          
+          // Логируем работы с группировкой по товарам
+          const workTypesWithGroups = standards.reduce((acc, standard) => {
+            const workType = standard['Вид работ'];
+            const productGroup = standard['Группа товара'];
+            if (!acc[workType]) acc[workType] = new Set();
+            if (productGroup && productGroup !== 'Все') {
+              acc[workType].add(productGroup);
+            }
+            return acc;
+          }, {});
+          
+          console.log('Работы с группировкой по товарам:', workTypesWithGroups);
         }
       } catch (err) {
         console.error('Ошибка загрузки нормативов:', err);
-        // Создаем тестовые нормативы
+        // Создаем тестовые нормативы на основе вашего файла
         standards = [
           {
             "Направление": "Входящие",
@@ -1118,6 +1177,20 @@
             "Вид работ": "Погрузка",
             "Группа товара": "Все",
             "Норматив 1": "100"
+          },
+          {
+            "Направление": "Входящие",
+            "Отдел": "Приемка",
+            "Вид работ": "Стикеровка",
+            "Группа товара": "Все", 
+            "Норматив 1": "90"
+          },
+          {
+            "Направление": "Внутренние",
+            "Отдел": "Склад",
+            "Вид работ": "Перемещение",
+            "Группа товара": "Все",
+            "Норматив 1": "110"
           }
         ];
       }
@@ -1157,19 +1230,31 @@
     }
 
     function getStandardForWork(workType, productGroup = null) {
-      if (productGroup) {
+      // Сначала ищем стандарт для конкретной группы товаров
+      if (productGroup && productGroup !== 'Все') {
         const specificStandard = standards.find(standard =>
           standard['Вид работ'] === workType &&
           standard['Группа товара'] === productGroup
         );
-        if (specificStandard) return parseFloat(specificStandard['Норматив 1']);
+        if (specificStandard) {
+          console.log(`Найден специфичный норматив для ${workType} (${productGroup}):`, specificStandard['Норматив 1']);
+          return parseFloat(specificStandard['Норматив 1']);
+        }
       }
       
+      // Ищем общий стандарт для всех товаров
       const generalStandard = standards.find(standard =>
-        standard['Вид работ'] === workType
+        standard['Вид работ'] === workType &&
+        (!standard['Группа товара'] || standard['Группа товара'] === 'Все')
       );
       
-      return generalStandard ? parseFloat(generalStandard['Норматив 1']) : 0;
+      if (generalStandard) {
+        console.log(`Найден общий норматив для ${workType}:`, generalStandard['Норматив 1']);
+        return parseFloat(generalStandard['Норматив 1']);
+      }
+      
+      console.log(`Норматив не найден для ${workType}`);
+      return 0;
     }
 
     function getDirectionAndDepartment(workType) {
@@ -1178,10 +1263,6 @@
         direction: standard?.['Направление'] || 'Не указано',
         department: standard?.['Отдел'] || 'Не указано'
       };
-    }
-
-    function getWorkTypeColor(workType) {
-      return workTypeColors[workType] || workTypeColors['По умолчанию'];
     }
 
     // Функция для анализа персонала по записям
@@ -1218,9 +1299,14 @@
     function createTestData() {
       console.log('Создаем тестовые данные...');
       const testRecords = [];
-      const workTypes = ['Погрузка', 'Разгрузка', 'Сортировка', 'Упаковка'];
-      const employees = ['Иванов И.И.', 'Петров П.П.', 'Сидоров С.С.'];
-      const productGroups = ['Диски', 'Шины', 'Аккумуляторы'];
+      
+      // Получаем все виды работ из нормативов
+      const workTypesFromStandards = [...new Set(standards.map(s => s['Вид работ']))];
+      const workTypes = workTypesFromStandards.length > 0 ? workTypesFromStandards : 
+        ['Погрузка', 'Разгрузка', 'Сортировка', 'Упаковка', 'Стикеровка', 'Перемещение'];
+      
+      const employees = ['Иванов И.И.', 'Петров П.П.', 'Сидоров С.С.', 'Кузнецов К.К.', 'Николаев Н.Н.'];
+      const productGroups = ['Диски', 'Шины', 'Аккумуляторы', 'Масла', 'Фильтры'];
       
       const today = new Date();
       
@@ -1229,15 +1315,16 @@
         date.setDate(today.getDate() - dayOffset);
         const dateStr = formatDate(date);
         
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 25; i++) {
           const workType = workTypes[i % workTypes.length];
           const { direction, department } = getDirectionAndDepartment(workType);
+          const productGroup = productGroups[i % productGroups.length];
           
           testRecords.push({
             'Рабочий день': dateStr,
             'Начало задачи': `${8 + (i % 10)}:${String(i % 60).padStart(2, '0')}:00`,
             'Вид работ': workType,
-            'Группа товара': productGroups[i % productGroups.length],
+            'Группа товара': productGroup,
             'Должность': i % 3 === 0 ? 'Ответственный' : 'Сотрудник',
             'Сотрудник': employees[i % employees.length],
             'Поставка': `Поставка ${Math.floor(i / 3) + 1}`,
@@ -1979,6 +2066,9 @@
         (parseInt(record['Количество единиц']) || 0) > 0
       );
       
+      // Собираем все уникальные виды работ для легенды
+      const allWorkTypesInDay = [...new Set(filteredRecords.map(r => r['Вид работ']).filter(Boolean))];
+      
       filteredRecords.forEach(record => {
         const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
         if (!interval) return;
@@ -1995,20 +2085,22 @@
         }
         
         const stats = timeStats[interval.key];
-        stats.units += parseInt(record['Количество единиц']) || 0;
+        const workType = record['Вид работ'] || 'Без вида работ';
+        const units = parseInt(record['Количество единиц']) || 0;
+        
+        stats.units += units;
         stats.time += parseTime(record['Рабочее время']);
         stats.amount += parseCurrency(record['Расчетная сумма']);
         stats.tasks++;
 
         // Собираем информацию о видах работ в этом интервале
-        const workType = record['Вид работ'] || 'Без вида работ';
         if (!stats.workTypes[workType]) {
           stats.workTypes[workType] = {
             units: 0,
             tasks: 0
           };
         }
-        stats.workTypes[workType].units += parseInt(record['Количество единиц']) || 0;
+        stats.workTypes[workType].units += units;
         stats.workTypes[workType].tasks++;
       });
 
@@ -2017,15 +2109,11 @@
       const sortedIntervals = Object.values(timeStats).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
       const maxUnits = Math.max(...sortedIntervals.map(s => s.units));
       
-      // Легенда цветов
-      const usedWorkTypes = new Set();
-      sortedIntervals.forEach(stats => {
-        Object.keys(stats.workTypes).forEach(workType => usedWorkTypes.add(workType));
-      });
-
-      if (usedWorkTypes.size > 0) {
+      // Легенда цветов - показываем ВСЕ виды работ за день
+      if (allWorkTypesInDay.length > 0) {
         html += '<div class="work-type-legend">';
-        Array.from(usedWorkTypes).forEach(workType => {
+        html += '<strong>Легенда видов работ:</strong><br>';
+        allWorkTypesInDay.forEach(workType => {
           html += `
             <div class="legend-item">
               <div class="legend-color" style="background-color: ${getWorkTypeColor(workType)}"></div>
@@ -2045,7 +2133,11 @@
         const totalUnitsInInterval = stats.units;
         
         if (totalUnitsInInterval > 0) {
-          Object.entries(stats.workTypes).forEach(([workType, workStats]) => {
+          // Сортируем работы по количеству единиц (от большего к меньшему)
+          const sortedWorkTypes = Object.entries(stats.workTypes)
+            .sort((a, b) => b[1].units - a[1].units);
+          
+          sortedWorkTypes.forEach(([workType, workStats]) => {
             const segmentPercent = (workStats.units / totalUnitsInInterval) * 100;
             if (segmentPercent > 0) {
               segmentsHtml += `
@@ -2068,7 +2160,7 @@
                     ${segmentsHtml}
                   </div>
                 ` : `
-                  <div class="time-bar-fill" style="width: ${unitsPercent}%"></div>
+                  <div class="time-bar-fill" style="width: ${unitsPercent}%; background: #ccc;"></div>
                 `}
               </div>
               <div class="time-value">
@@ -2077,11 +2169,22 @@
             </div>
             <div style="font-size: 11px; color: #666; margin-left: 100px;">
               Задач: ${stats.tasks} | Расходы: р.${stats.amount.toFixed(0)} | Норматив: ${normative.toFixed(1)} шт/час
-              ${Object.keys(stats.workTypes).length > 0 ? `| Виды работ: ${Object.keys(stats.workTypes).join(', ')}` : ''}
+              ${Object.keys(stats.workTypes).length > 0 ? 
+                `| Виды: ${Object.keys(stats.workTypes).join(', ')}` : 
+                '| Нет данных о видах работ'}
             </div>
           </div>
         `;
       });
+      
+      // Если нет данных за день
+      if (sortedIntervals.length === 0) {
+        html += `
+          <div style="text-align: center; padding: 20px; color: #666;">
+            Нет данных о работе ответственных сотрудников за выбранный день
+          </div>
+        `;
+      }
       
       html += '</div>';
       document.getElementById('time-statistics-content').innerHTML = html;
