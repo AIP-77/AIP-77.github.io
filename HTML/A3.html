@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Аналитика по видам работ 3</title>
+  <title>Аналитика по видам работ 2</title>
   <style>
-    /* Существующие стили остаются без изменений до нового блока */
     body {
       font-family: Arial, sans-serif;
       padding: 16px;
@@ -226,6 +225,61 @@
       font-size: 12px;
       color: #666;
       margin: 0;
+    }
+
+    /* СТИЛИ ДЛЯ КАРТОЧКИ ПЕРСОНАЛА */
+    .staff-card {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-left: 3px solid #ff9800;
+    }
+    
+    .staff-card h4 {
+      margin: 0 0 10px 0;
+      color: #ff6f00;
+      font-size: 14px;
+    }
+    
+    .staff-overview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .staff-total {
+      background: #e3f2fd;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    
+    .staff-permanent {
+      background: #e8f5e9;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    
+    .staff-hired {
+      background: #fff3e0;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    
+    .staff-total-value, .staff-permanent-value, .staff-hired-value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    
+    .staff-total-label, .staff-permanent-label, .staff-hired-label {
+      font-size: 11px;
+      color: #666;
     }
 
     /* СТИЛИ ДЛЯ СРАВНЕНИЯ С ПРЕДЫДУЩИМИ ДНЯМИ */
@@ -649,111 +703,6 @@
       border-color: #2196f3;
     }
 
-    /* НОВЫЕ СТИЛИ ДЛЯ ПЕРСОНАЛА (по аналогии с фото) */
-    .staff-section {
-      margin-top: 20px;
-      padding: 20px;
-      background: #fff8e1;
-      border-radius: 8px;
-      border-left: 4px solid #ffa000;
-    }
-    
-    .staff-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    
-    .staff-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #ff6f00;
-      margin: 0;
-    }
-    
-    .staff-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 15px;
-      margin-top: 15px;
-    }
-    
-    .staff-card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      border-left: 4px solid #ffa000;
-    }
-    
-    .staff-card h4 {
-      margin: 0 0 15px 0;
-      color: #ff6f00;
-      font-size: 16px;
-      text-align: center;
-    }
-    
-    .staff-overview {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-    
-    .staff-total {
-      background: #e3f2fd;
-      padding: 15px;
-      border-radius: 6px;
-      text-align: center;
-    }
-    
-    .staff-active {
-      background: #e8f5e9;
-      padding: 15px;
-      border-radius: 6px;
-      text-align: center;
-    }
-    
-    .staff-total-value, .staff-active-value {
-      font-size: 24px;
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 5px;
-    }
-    
-    .staff-total-label, .staff-active-label {
-      font-size: 12px;
-      color: #666;
-    }
-    
-    .staff-status-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    
-    .staff-status-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-    }
-    
-    .staff-status-name {
-      font-size: 12px;
-      color: #666;
-    }
-    
-    .staff-status-count {
-      font-size: 14px;
-      font-weight: bold;
-      color: #333;
-    }
-
     /* СТИЛИ ДЛЯ СВОРАЧИВАНИЯ РАБОТ */
     .work-distribution {
       margin: 10px 0;
@@ -871,13 +820,6 @@
   <div id="loading-progress" class="loading-progress"></div>
 
   <!-- Модальные окна для детализации -->
-  <div id="direction-modal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="closeModal('direction-modal')">&times;</span>
-      <div id="direction-modal-content"></div>
-    </div>
-  </div>
-
   <div id="department-modal" class="modal">
     <div class="modal-content">
       <span class="close" onclick="closeModal('department-modal')">&times;</span>
@@ -894,18 +836,8 @@
 
   <div class="container">
     <h2>Аналитика по видам работ</h2>
-    <div class="version">v3-11.07.1918 <span>🕒</span></div>
+    <div class="version">v2-11.01-2303 <span>🕒</span></div>
     <div class="last-updated" id="last-updated">Обновлено: —</div>
-
-    <div id="selected-date" class="selected-date hidden">
-      📅 Данные за: <span id="current-date"></span>
-    </div>
-
-    <div id="loading" class="loading">
-      <div class="loading-spinner"></div>
-      <span>Загрузка данных<span class="loading-dots"></span></span>
-    </div>
-    <div id="error" class="error hidden"></div>
 
     <div id="controls" class="hidden">
       <!-- КАЛЕНДАРЬ -->
@@ -920,19 +852,13 @@
         </div>
       </div>
 
+      <!-- ДАТА С ДАННЫМИ ПОД КАЛЕНДАРЕМ -->
+      <div id="selected-date" class="selected-date hidden">
+        📅 Данные за: <span id="current-date"></span>
+      </div>
+
       <!-- УРОВЕНЬ 1: РУКОВОДИТЕЛЬ ПРЕДПРИЯТИЯ -->
       <div id="level-1" class="hidden">
-        <!-- 👥 БЛОК ПЕРСОНАЛА -->
-        <div id="staff-analytics" class="staff-section">
-          <div class="staff-header" id="staff-toggle">
-            <h3 class="staff-title">👥 Персонал</h3>
-            <span class="toggle-icon">▶</span>
-          </div>
-          <div id="staff-content" class="hidden">
-            <!-- Контент персонала -->
-          </div>
-        </div>
-
         <!-- 📊 Общая аналитика за день + 📈 Сравнение с предыдущими днями -->
         <div id="combined-analytics" class="combined-analytics">
           <div class="combined-header" id="combined-toggle">
@@ -955,17 +881,6 @@
           </div>
         </div>
 
-        <!-- 📊 Аналитика по направлениям -->
-        <div id="directions-analytics" class="grouping-section">
-          <div class="grouping-header" id="directions-toggle">
-            <h3 class="grouping-title">📊 Аналитика по направлениям</h3>
-            <span class="toggle-icon">▶</span>
-          </div>
-          <div id="directions-content" class="hidden">
-            <!-- Контент по направлениям -->
-          </div>
-        </div>
-
         <!-- 📈 Распределение работ по времени суток -->
         <div id="percentage-time-statistics" class="percentage-time-statistics">
           <div class="percentage-time-header" id="percentage-time-toggle">
@@ -980,17 +895,6 @@
 
       <!-- УРОВЕНЬ 2: НАЧАЛЬНИК СМЕНЫ -->
       <div id="level-2" class="hidden">
-        <!-- 👥 БЛОК ПЕРСОНАЛА -->
-        <div id="staff-analytics-level2" class="staff-section">
-          <div class="staff-header" id="staff-toggle-level2">
-            <h3 class="staff-title">👥 Персонал по отделам</h3>
-            <span class="toggle-icon">▶</span>
-          </div>
-          <div id="staff-content-level2" class="hidden">
-            <!-- Контент персонала по отделам -->
-          </div>
-        </div>
-
         <div id="departments-analytics" class="grouping-section">
           <div class="grouping-header" id="departments-toggle">
             <h3 class="grouping-title">🏛️ Аналитика по отделам</h3>
@@ -1004,17 +908,6 @@
 
       <!-- УРОВЕНЬ 3: БРИГАДИР -->
       <div id="level-3" class="hidden">
-        <!-- 👥 БЛОК ПЕРСОНАЛА -->
-        <div id="staff-analytics-level3" class="staff-section">
-          <div class="staff-header" id="staff-toggle-level3">
-            <h3 class="staff-title">👥 Персонал по бригадам</h3>
-            <span class="toggle-icon">▶</span>
-          </div>
-          <div id="staff-content-level3" class="hidden">
-            <!-- Контент персонала по бригадам -->
-          </div>
-        </div>
-
         <div id="work-types-analytics" class="work-types-analytics">
           <div class="work-types-header" id="work-types-toggle">
             <h3 class="work-types-title">🔍 Аналитика по видам работ</h3>
@@ -1029,6 +922,12 @@
       <!-- КНОПКА ЭКСПОРТА -->
       <button id="export-excel" style="margin-top: 20px;">📊 Экспорт данных</button>
     </div>
+
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <span>Загрузка данных<span class="loading-dots"></span></span>
+    </div>
+    <div id="error" class="error hidden"></div>
   </div>
 
   <script>
@@ -1243,16 +1142,16 @@
         console.error('Ошибка загрузки данных персонала:', err);
         // Создаем тестовые данные персонала
         staffData = [
-          {"Сотрудник": "Иванов И.И.", "Статус": "Активный", "Отдел": "Приемка"},
-          {"Сотрудник": "Петров П.П.", "Статус": "Активный", "Отдел": "Приемка"},
-          {"Сотрудник": "Сидоров С.С.", "Статус": "Больничный", "Отдел": "Приемка"},
-          {"Сотрудник": "Кузнецов К.К.", "Статус": "Отпуск", "Отдел": "Отгрузка"},
-          {"Сотрудник": "Николаев Н.Н.", "Статус": "Активный", "Отдел": "Отгрузка"},
-          {"Сотрудник": "Васильев В.В.", "Статус": "Активный", "Отдел": "Сортировка"},
-          {"Сотрудник": "Алексеев А.А.", "Статус": "Командировка", "Отдел": "Сортировка"},
-          {"Сотрудник": "Григорьев Г.Г.", "Статус": "Активный", "Отдел": "Упаковка"},
-          {"Сотрудник": "Дмитриев Д.Д.", "Статус": "Активный", "Отдел": "Упаковка"},
-          {"Сотрудник": "Егоров Е.Е.", "Статус": "Отпуск", "Отдел": "Комплектация"}
+          {"Сотрудник": "Иванов И.И.", "Статус": "Постоянный", "Отдел": "Приемка"},
+          {"Сотрудник": "Петров П.П.", "Статус": "Постоянный", "Отдел": "Приемка"},
+          {"Сотрудник": "Сидоров С.С.", "Статус": "Наемный", "Отдел": "Приемка"},
+          {"Сотрудник": "Кузнецов К.К.", "Статус": "Постоянный", "Отдел": "Отгрузка"},
+          {"Сотрудник": "Николаев Н.Н.", "Статус": "Постоянный", "Отдел": "Отгрузка"},
+          {"Сотрудник": "Васильев В.В.", "Статус": "Наемный", "Отдел": "Сортировка"},
+          {"Сотрудник": "Алексеев А.А.", "Статус": "Постоянный", "Отдел": "Сортировка"},
+          {"Сотрудник": "Григорьев Г.Г.", "Статус": "Постоянный", "Отдел": "Упаковка"},
+          {"Сотрудник": "Дмитриев Д.Д.", "Статус": "Наемный", "Отдел": "Упаковка"},
+          {"Сотрудник": "Егоров Е.Е.", "Статус": "Постоянный", "Отдел": "Комплектация"}
         ];
       }
     }
@@ -1283,6 +1182,36 @@
 
     function getWorkTypeColor(workType) {
       return workTypeColors[workType] || workTypeColors['По умолчанию'];
+    }
+
+    // Функция для анализа персонала по записям
+    function analyzeStaffForRecords(records) {
+      const uniqueEmployees = [...new Set(records.map(r => r['Сотрудник']))].filter(Boolean);
+      
+      let totalStaff = 0;
+      let permanentStaff = 0;
+      let hiredStaff = 0;
+      
+      uniqueEmployees.forEach(employee => {
+        const staffInfo = staffData.find(s => s['Сотрудник'] === employee);
+        if (staffInfo) {
+          totalStaff++;
+          if (staffInfo['Статус'] === 'Постоянный') {
+            permanentStaff++;
+          } else {
+            hiredStaff++;
+          }
+        } else {
+          totalStaff++;
+          hiredStaff++; // Если сотрудник не найден в штате, считаем наемным
+        }
+      });
+      
+      return {
+        total: totalStaff,
+        permanent: permanentStaff,
+        hired: hiredStaff
+      };
     }
 
     // Функция для создания тестовых данных
@@ -1445,13 +1374,9 @@
       // Обработчики для сворачивания/разворачивания секций
       setupToggleHandler('combined-toggle', 'combined-content');
       setupToggleHandler('time-statistics-toggle', 'time-statistics-content');
-      setupToggleHandler('directions-toggle', 'directions-content');
       setupToggleHandler('departments-toggle', 'departments-content');
       setupToggleHandler('work-types-toggle', 'work-types-content');
       setupToggleHandler('percentage-time-toggle', 'percentage-time-content');
-      setupToggleHandler('staff-toggle', 'staff-content');
-      setupToggleHandler('staff-toggle-level2', 'staff-content-level2');
-      setupToggleHandler('staff-toggle-level3', 'staff-content-level3');
 
       // Закрытие модальных окон при клике вне контента
       window.addEventListener('click', function(event) {
@@ -1549,7 +1474,7 @@
         return;
       }
 
-      // Показываем выбранную дату
+      // Показываем выбранную дату ПОД КАЛЕНДАРЕМ
       selectedDateDiv.classList.remove('hidden');
       currentDateSpan.textContent = selectedDate;
 
@@ -1574,145 +1499,8 @@
       document.getElementById('level-3').classList.remove('hidden');
     }
 
-    // === ФУНКЦИИ ДЛЯ ПЕРСОНАЛА (по аналогии с фото) ===
-    function renderStaffAnalytics() {
-      const totalStaff = staffData.length;
-      const activeStaff = staffData.filter(staff => staff['Статус'] === 'Активный').length;
-      const statusCounts = {};
-      
-      staffData.forEach(staff => {
-        const status = staff['Статус'] || 'Не указан';
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      });
-
-      let html = `
-        <div class="staff-grid">
-          <div class="staff-card">
-            <h4>👥 Общая статистика</h4>
-            <div class="staff-overview">
-              <div class="staff-total">
-                <div class="staff-total-value">${totalStaff}</div>
-                <div class="staff-total-label">Всего сотрудников</div>
-              </div>
-              <div class="staff-active">
-                <div class="staff-active-value">${activeStaff}</div>
-                <div class="staff-active-label">Активных</div>
-              </div>
-            </div>
-            <div class="staff-status-grid">
-              ${Object.entries(statusCounts).map(([status, count]) => `
-                <div class="staff-status-item">
-                  <span class="staff-status-name">${status}</span>
-                  <span class="staff-status-count">${count}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-
-      return html;
-    }
-
-    function renderStaffByDepartments() {
-      const departmentStats = {};
-      
-      staffData.forEach(staff => {
-        const department = staff['Отдел'] || 'Не указан';
-        const status = staff['Статус'] || 'Не указан';
-        
-        if (!departmentStats[department]) {
-          departmentStats[department] = {
-            total: 0,
-            active: 0,
-            statuses: {}
-          };
-        }
-        
-        departmentStats[department].total++;
-        if (status === 'Активный') {
-          departmentStats[department].active++;
-        }
-        departmentStats[department].statuses[status] = (departmentStats[department].statuses[status] || 0) + 1;
-      });
-
-      let html = '<div class="staff-grid">';
-      
-      Object.entries(departmentStats).forEach(([department, stats]) => {
-        html += `
-          <div class="staff-card">
-            <h4>${department}</h4>
-            <div class="staff-overview">
-              <div class="staff-total">
-                <div class="staff-total-value">${stats.total}</div>
-                <div class="staff-total-label">Всего</div>
-              </div>
-              <div class="staff-active">
-                <div class="staff-active-value">${stats.active}</div>
-                <div class="staff-active-label">Активных</div>
-              </div>
-            </div>
-            <div class="staff-status-grid">
-              ${Object.entries(stats.statuses).map(([status, count]) => `
-                <div class="staff-status-item">
-                  <span class="staff-status-name">${status}</span>
-                  <span class="staff-status-count">${count}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      });
-      
-      html += '</div>';
-      return html;
-    }
-
-    function renderStaffByBrigades(allRecords) {
-      const brigadeStats = {};
-      const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
-      const uniqueBrigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
-      
-      uniqueBrigades.forEach(brigade => {
-        const staffMember = staffData.find(s => s['Сотрудник'] === brigade);
-        brigadeStats[brigade] = {
-          status: staffMember?.['Статус'] || 'Неизвестно',
-          department: staffMember?.['Отдел'] || 'Не указан',
-          isActive: staffMember?.['Статус'] === 'Активный'
-        };
-      });
-
-      let html = '<div class="staff-grid">';
-      
-      Object.entries(brigadeStats).forEach(([brigade, info]) => {
-        const statusClass = info.isActive ? 'performance-good' : 'performance-poor';
-        
-        html += `
-          <div class="staff-card">
-            <h4>${brigade}</h4>
-            <div class="staff-overview">
-              <div class="staff-total">
-                <div class="staff-total-value ${statusClass}">${info.status}</div>
-                <div class="staff-total-label">Статус</div>
-              </div>
-              <div class="staff-active">
-                <div class="staff-active-value">${info.department}</div>
-                <div class="staff-active-label">Отдел</div>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-      
-      html += '</div>';
-      return html;
-    }
-
     function renderLevel1Analytics(allRecords) {
       const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
-      
-      // 👥 Блок персонала
-      document.getElementById('staff-content').innerHTML = renderStaffAnalytics();
       
       // 📊 Общая аналитика за день + 📈 Сравнение с предыдущими днями
       renderCombinedAnalytics(allRecords, responsibleRecords);
@@ -1720,17 +1508,11 @@
       // ⏰ Общая статистика по времени (с фильтрацией)
       renderOverallTimeStatistics(allRecords);
       
-      // 📊 Аналитика по направлениям
-      renderDirectionsAnalytics(allRecords);
-
       // 📈 Распределение работ по времени суток
       renderPercentageTimeStatistics(allRecords);
     }
 
     function renderLevel2Analytics(allRecords) {
-      // 👥 Блок персонала по отделам
-      document.getElementById('staff-content-level2').innerHTML = renderStaffByDepartments();
-
       // Остальная аналитика уровня 2
       const allDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
       
@@ -1770,7 +1552,9 @@
         
         const workTypes = [...new Set(departmentRecords.map(r => r['Вид работ']))];
         const brigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
-        const directions = [...new Set(departmentRecords.map(r => r['Направление']))];
+
+        // Анализ персонала для отдела
+        const staffAnalysis = analyzeStaffForRecords(departmentRecords);
 
         html = `
           <div style="margin-bottom: 15px;">
@@ -1800,21 +1584,40 @@
             </div>
 
             <div class="analytics-card">
-              <h4>💰 Финансы</h4>
+              <h4>💰 Расходы</h4>
               <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
-              <p class="analytics-label">Общая Расходы</p>
+              <p class="analytics-label">Общие расходы</p>
               <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
-              <p class="analytics-label">Стоимость обработки 1 ед.</p>
+              <p class="analytics-label">Расходы на 1 ед.</p>
               <div class="analytics-value">р.${revenuePerHour.toFixed(2)}</div>
               <p class="analytics-label">Расходы в час</p>
+            </div>
+
+            <div class="staff-card">
+              <h4>👥 Персонал отдела</h4>
+              <div class="staff-overview">
+                <div class="staff-total">
+                  <div class="staff-total-value">${staffAnalysis.total}</div>
+                  <div class="staff-total-label">Всего сотрудников</div>
+                </div>
+                <div class="staff-permanent">
+                  <div class="staff-permanent-value">${staffAnalysis.permanent}</div>
+                  <div class="staff-permanent-label">Постоянные</div>
+                </div>
+                <div class="staff-hired">
+                  <div class="staff-hired-value">${staffAnalysis.hired}</div>
+                  <div class="staff-hired-label">Наемные</div>
+                </div>
+              </div>
+              <div style="font-size: 11px; color: #666; text-align: center;">
+                На работы отдела привлекалось ${staffAnalysis.total} сотрудников
+              </div>
             </div>
 
             <div class="analytics-card">
               <h4>🏢 Структура</h4>
               <div class="analytics-value">${workTypes.length}</div>
               <p class="analytics-label">Видов работ</p>
-              <div class="analytics-value">${directions.length}</div>
-              <p class="analytics-label">Направлений</p>
               <div class="analytics-value">${departmentRecords.length}</div>
               <p class="analytics-label">Всего операций</p>
             </div>
@@ -1826,9 +1629,6 @@
     }
 
     function renderLevel3Analytics(allRecords) {
-      // 👥 Блок персонала по бригадам
-      document.getElementById('staff-content-level3').innerHTML = renderStaffByBrigades(allRecords);
-
       // Аналитика по видам работ
       const workTypeStats = {};
       
@@ -1933,13 +1733,13 @@
               </div>
               <div class="stat-item">
                 <div class="stat-value">р.${stats.totalAmount.toFixed(0)}</div>
-                <div class="stat-label">Сумма</div>
+                <div class="stat-label">Расходы</div>
               </div>
             </div>
             
             <div style="margin-top: 10px; font-size: 11px; color: #666;">
               ${stats.standard > 0 ? `План: ${stats.standard} шт/час | ` : ''}
-              Стоимость ед.: р.${costPerUnit.toFixed(2)} | 
+              Расходы на ед.: р.${costPerUnit.toFixed(2)} | 
               Расходы/час: р.${revenuePerHour.toFixed(2)} | 
               Группы товаров: ${stats.productGroups.size}
             </div>
@@ -1971,8 +1771,10 @@
       const costPerUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
       const uniqueWorkTypes = [...new Set(allRecords.map(r => r['Вид работ']))].filter(Boolean);
       const uniqueBrigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
-      const uniqueDirections = [...new Set(allRecords.map(r => r['Направление']))].filter(Boolean);
       const uniqueDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
+
+      // Анализ персонала для всего дня
+      const staffAnalysis = analyzeStaffForRecords(allRecords);
       
       let html = `
         <div class="analytics-grid">
@@ -2001,22 +1803,40 @@
           </div>
 
           <div class="analytics-card">
-            <h4>💰 Финансы</h4>
+            <h4>💰 Расходы</h4>
             <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
-            <p class="analytics-label">Общая Расходы</p>
+            <p class="analytics-label">Общие расходы</p>
             
             <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
-            <p class="analytics-label">Стоимость обработки 1 ед.</p>
+            <p class="analytics-label">Расходы на 1 ед.</p>
             
             <div class="analytics-value">р.${avgRevenuePerHour.toFixed(2)}</div>
             <p class="analytics-label">Расходы в час</p>
           </div>
 
+          <div class="staff-card">
+            <h4>👥 Персонал</h4>
+            <div class="staff-overview">
+              <div class="staff-total">
+                <div class="staff-total-value">${staffAnalysis.total}</div>
+                <div class="staff-total-label">Всего сотрудников</div>
+              </div>
+              <div class="staff-permanent">
+                <div class="staff-permanent-value">${staffAnalysis.permanent}</div>
+                <div class="staff-permanent-label">Постоянные</div>
+              </div>
+              <div class="staff-hired">
+                <div class="staff-hired-value">${staffAnalysis.hired}</div>
+                <div class="staff-hired-label">Наемные</div>
+              </div>
+            </div>
+            <div style="font-size: 11px; color: #666; text-align: center;">
+              Ко всем работам привлекалось ${staffAnalysis.total} сотрудников
+            </div>
+          </div>
+
           <div class="analytics-card">
             <h4>🏢 Структура</h4>
-            <div class="analytics-value">${uniqueDirections.length}</div>
-            <p class="analytics-label">Направлений</p>
-            
             <div class="analytics-value">${uniqueDepartments.length}</div>
             <p class="analytics-label">Отделов</p>
             
@@ -2128,14 +1948,14 @@
           <h4>💰 Расходы</h4>
           <div class="analytics-value">р.${currentAmount.toFixed(0)}</div>
           <p class="analytics-label">Сегодня</p>
-          <div class="analytics-value ${amountTrend >= 0 ? 'trend-up' : 'trend-down'}">
-            ${amountTrend >= 0 ? '↗' : '↘'} ${Math.abs(amountPercent)}%
+          <div class="analytics-value ${amountTrend <= 0 ? 'trend-up' : 'trend-down'}">
+            ${amountTrend <= 0 ? '↗' : '↘'} ${Math.abs(amountPercent)}%
           </div>
           <p class="analytics-label">Среднее: р.${avgAmount.toFixed(0)}</p>
         </div>
 
         <div class="comparison-card">
-          <h4>💵 Стоимость ед.</h4>
+          <h4>💵 Расходы на ед.</h4>
           <div class="analytics-value">р.${currentCostPerUnit.toFixed(2)}</div>
           <p class="analytics-label">Сегодня</p>
           <div class="analytics-value ${costTrend <= 0 ? 'trend-up' : 'trend-down'}">
@@ -2364,87 +2184,6 @@
       }
     }
 
-    function renderDirectionsAnalytics(allRecords) {
-      const directionStats = {};
-      
-      allRecords.forEach(record => {
-        const direction = record['Направление'] || 'Не указано';
-        if (!directionStats[direction]) {
-          directionStats[direction] = {
-            totalUnits: 0,
-            totalTime: 0,
-            totalAmount: 0,
-            tasks: 0,
-            workTypes: new Set(),
-            departments: new Set(),
-            brigades: new Set(),
-            records: []
-          };
-        }
-        
-        const stats = directionStats[direction];
-        stats.records.push(record);
-        if (isResponsible(record['Должность'])) {
-          stats.totalUnits += parseInt(record['Количество единиц']) || 0;
-          stats.totalTime += parseTime(record['Рабочее время']);
-        }
-        stats.totalAmount += parseCurrency(record['Расчетная сумма']);
-        stats.tasks++;
-        stats.workTypes.add(record['Вид работ']);
-        stats.departments.add(record['Отдел']);
-        if (record['Сотрудник']) {
-          stats.brigades.add(record['Сотрудник']);
-        }
-      });
-
-      let html = '<div class="grouping-grid">';
-      
-      Object.entries(directionStats).forEach(([direction, stats]) => {
-        const totalHours = stats.totalTime / 3600;
-        const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
-        const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
-        const costPerUnit = stats.totalUnits > 0 ? stats.totalAmount / stats.totalUnits : 0;
-        
-        html += `
-          <div class="group-card" onclick="showDirectionDetails('${direction}', '${selectedDate}')">
-            <h4>${direction}</h4>
-            <div class="group-stats">
-              <div class="group-stat-item">
-                <div class="group-stat-value">${stats.totalUnits}</div>
-                <div class="group-stat-label">Единиц</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">${stats.tasks}</div>
-                <div class="group-stat-label">Задач</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">${stats.workTypes.size}</div>
-                <div class="group-stat-label">Видов работ</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">${stats.departments.size}</div>
-                <div class="group-stat-label">Отделов</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">${stats.brigades.size}</div>
-                <div class="group-stat-label">Бригад</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">${normative.toFixed(1)}</div>
-                <div class="group-stat-label">Норматив</div>
-              </div>
-            </div>
-            <div style="margin-top: 8px; font-size: 11px; color: #666;">
-              Расходы: р.${stats.totalAmount.toFixed(0)} | Стоимость ед.: р.${costPerUnit.toFixed(2)} | Расходы/час: р.${revenuePerHour.toFixed(2)}
-            </div>
-          </div>
-        `;
-      });
-      
-      html += '</div>';
-      document.getElementById('directions-content').innerHTML = html;
-    }
-
     function selectDepartment(department) {
       selectedDepartment = department;
       const allRecords = records.filter(r => r['Рабочий день'] === selectedDate);
@@ -2452,153 +2191,6 @@
     }
 
     // === ФУНКЦИИ ДЕТАЛИЗАЦИИ ===
-    function showDirectionDetails(direction, date) {
-      const allRecords = records.filter(r => r['Рабочий день'] === date && r['Направление'] === direction);
-      const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
-      
-      let totalUnits = 0, totalTime = 0, totalAmount = 0, totalTasks = 0;
-      responsibleRecords.forEach(r => {
-        totalUnits += parseInt(r['Количество единиц']) || 0;
-        totalTime += parseTime(r['Рабочее время']);
-        totalTasks++;
-      });
-      allRecords.forEach(r => {
-        totalAmount += parseCurrency(r['Расчетная сумма']);
-      });
-
-      const normative = calculateNormative(totalUnits, totalTime);
-      const costPerUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
-      
-      const departments = [...new Set(allRecords.map(r => r['Отдел']))];
-      const workTypes = [...new Set(allRecords.map(r => r['Вид работ']))];
-      const brigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
-
-      let html = `
-        <h3>🎯 Детализация по направлению: ${direction}</h3>
-        <p><strong>Дата:</strong> ${date}</p>
-        
-        <div class="analytics-grid" style="margin: 15px 0;">
-          <div class="analytics-card">
-            <h4>📊 Основные показатели</h4>
-            <div class="analytics-value">${totalUnits}</div>
-            <p class="analytics-label">Всего единиц</p>
-            <div class="analytics-value">${totalTasks}</div>
-            <p class="analytics-label">Задач</p>
-            <div class="analytics-value">${brigades.length}</div>
-            <p class="analytics-label">Бригад</p>
-          </div>
-          
-          <div class="analytics-card">
-            <h4>⚡ Эффективность</h4>
-            <div class="analytics-value">${normative.toFixed(1)}</div>
-            <p class="analytics-label">Норматив (шт/час)</p>
-            <div class="analytics-value">${formatTime(totalTime)}</div>
-            <p class="analytics-label">Время работы</p>
-            <div class="analytics-value">${(totalTime / 3600).toFixed(1)}</div>
-            <p class="analytics-label">Отработано часов</p>
-          </div>
-          
-          <div class="analytics-card">
-            <h4>💰 Финансы</h4>
-            <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
-            <p class="analytics-label">Общая Расходы</p>
-            <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
-            <p class="analytics-label">Стоимость ед.</p>
-            <div class="analytics-value">р.${(totalAmount / (totalTime / 3600)).toFixed(2)}</div>
-            <p class="analytics-label">Расходы в час</p>
-          </div>
-        </div>
-
-        <h4>📋 Структура направления</h4>
-        <div class="grouping-grid">
-          <div class="group-card">
-            <h4>🏛️ Отделы (${departments.length})</h4>
-            <div style="font-size: 14px;">
-              ${departments.map(dept => `<div>• ${dept}</div>`).join('')}
-            </div>
-          </div>
-          
-          <div class="group-card">
-            <h4>🔧 Виды работ (${workTypes.length})</h4>
-            <div style="font-size: 14px;">
-              ${workTypes.map(work => `<div>• ${work}</div>`).join('')}
-            </div>
-          </div>
-          
-          <div class="group-card">
-            <h4>👥 Бригады (${brigades.length})</h4>
-            <div style="font-size: 14px;">
-              ${brigades.map(brigade => `<div>• ${brigade}</div>`).join('')}
-            </div>
-          </div>
-        </div>
-
-        <h4>📈 Статистика по отделам</h4>
-        <div class="grouping-grid">
-      `;
-
-      // Статистика по отделам внутри направления
-      const departmentStats = {};
-      allRecords.forEach(record => {
-        const department = record['Отдел'] || 'Не указано';
-        if (!departmentStats[department]) {
-          departmentStats[department] = {
-            units: 0,
-            amount: 0,
-            tasks: 0,
-            time: 0
-          };
-        }
-        if (isResponsible(record['Должность'])) {
-          departmentStats[department].units += parseInt(record['Количество единиц']) || 0;
-          departmentStats[department].time += parseTime(record['Рабочее время']);
-          departmentStats[department].tasks++;
-        }
-        departmentStats[department].amount += parseCurrency(record['Расчетная сумма']);
-      });
-
-      Object.entries(departmentStats).forEach(([dept, stats]) => {
-        const deptCostPerUnit = stats.units > 0 ? stats.amount / stats.units : 0;
-        const deptNormative = stats.time > 0 ? calculateNormative(stats.units, stats.time) : 0;
-        html += `
-          <div class="group-card">
-            <h5>${dept}</h5>
-            <div class="group-stats">
-              <div class="group-stat-item">
-                <div class="group-stat-value">${stats.units}</div>
-                <div class="group-stat-label">Единиц</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">${stats.tasks}</div>
-                <div class="group-stat-label">Задач</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">${deptNormative.toFixed(1)}</div>
-                <div class="group-stat-label">Норматив</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">р.${stats.amount.toFixed(0)}</div>
-                <div class="group-stat-label">Расходы</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">р.${deptCostPerUnit.toFixed(2)}</div>
-                <div class="group-stat-label">Стоимость ед.</div>
-              </div>
-              <div class="group-stat-item">
-                <div class="group-stat-value">${formatTime(stats.time)}</div>
-                <div class="group-stat-label">Время</div>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-
-      html += `</div>`;
-      
-      document.getElementById('direction-modal-content').innerHTML = html;
-      document.getElementById('direction-modal').style.display = 'block';
-    }
-
     function showWorkTypeDetails(workType, date) {
       const allRecords = records.filter(r => r['Рабочий день'] === date && r['Вид работ'] === workType);
       const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
@@ -2649,11 +2241,11 @@
           </div>
           
           <div class="analytics-card">
-            <h4>💰 Финансы</h4>
+            <h4>💰 Расходы</h4>
             <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
-            <p class="analytics-label">Общая Расходы</p>
+            <p class="analytics-label">Общие расходы</p>
             <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
-            <p class="analytics-label">Стоимость ед.</p>
+            <p class="analytics-label">Расходы на 1 ед.</p>
             <div class="analytics-value">р.${(totalAmount / (totalTime / 3600)).toFixed(2)}</div>
             <p class="analytics-label">Расходы в час</p>
           </div>
@@ -2748,7 +2340,7 @@
               </div>
               <div class="group-stat-item">
                 <div class="group-stat-value">р.${brigadeCostPerUnit.toFixed(2)}</div>
-                <div class="group-stat-label">Стоимость ед.</div>
+                <div class="group-stat-label">Расходы на ед.</div>
               </div>
               <div class="group-stat-item">
                 <div class="group-stat-value">${formatTime(stats.time)}</div>
