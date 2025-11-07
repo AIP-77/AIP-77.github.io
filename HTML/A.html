@@ -567,11 +567,100 @@
       background: #5c6bc0 !important;
       color: white;
     }
+
+    /* СТИЛИ ДЛЯ МОДАЛЬНЫХ ОКОН */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+      background-color: white;
+      margin: 5% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close:hover {
+      color: black;
+    }
+
+    /* СТИЛИ ДЛЯ ПРОЦЕНТНОЙ СТАТИСТИКИ ПО ВРЕМЕНИ */
+    .percentage-time-statistics {
+      margin-top: 20px;
+      padding: 20px;
+      background: #e0f2f1;
+      border-radius: 8px;
+      border-left: 4px solid #00695c;
+    }
+    
+    .percentage-time-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      cursor: pointer;
+    }
+    
+    .percentage-time-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #004d40;
+      margin: 0;
+    }
+
+    .work-type-time-chart {
+      margin: 15px 0;
+      padding: 15px;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
   <!-- Индикатор прогресса -->
   <div id="loading-progress" class="loading-progress"></div>
+
+  <!-- Модальные окна для детализации -->
+  <div id="direction-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('direction-modal')">&times;</span>
+      <div id="direction-modal-content"></div>
+    </div>
+  </div>
+
+  <div id="department-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('department-modal')">&times;</span>
+      <div id="department-modal-content"></div>
+    </div>
+  </div>
+
+  <div id="worktype-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('worktype-modal')">&times;</span>
+      <div id="worktype-modal-content"></div>
+    </div>
+  </div>
 
   <div class="container">
     <h2>Аналитика по видам работ</h2>
@@ -655,6 +744,17 @@
           </div>
           <div id="departments-content">
             <!-- Контент по отделам -->
+          </div>
+        </div>
+
+        <!-- 📈 Процентная статистика по времени по видам работ -->
+        <div id="percentage-time-statistics" class="percentage-time-statistics">
+          <div class="percentage-time-header" id="percentage-time-toggle">
+            <h3 class="percentage-time-title">📈 Распределение работ по времени суток</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="percentage-time-content">
+            <!-- Контент процентной статистики -->
           </div>
         </div>
       </div>
@@ -1071,6 +1171,17 @@
       setupToggleHandler('directions-analytics-toggle', 'directions-analytics-content');
       setupToggleHandler('departments-analytics-toggle', 'departments-analytics-content');
       setupToggleHandler('work-types-toggle', 'work-types-content');
+      setupToggleHandler('percentage-time-toggle', 'percentage-time-content');
+
+      // Закрытие модальных окон при клике вне контента
+      window.addEventListener('click', function(event) {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+          if (event.target === modal) {
+            modal.style.display = 'none';
+          }
+        });
+      });
     }
 
     function setupToggleHandler(toggleId, contentId) {
@@ -1203,6 +1314,9 @@
       
       // 🏛️ Статистика по отделам
       renderDepartmentsStatistics(allRecords);
+
+      // 📈 Процентная статистика по времени
+      renderPercentageTimeStatistics(allRecords);
     }
 
     function renderGeneralAnalytics(allRecords, responsibleRecords) {
@@ -1222,6 +1336,7 @@
       const factNormative = calculateNormative(totalUnits, totalTimeSec);
       const totalHours = totalTimeSec / 3600;
       const avgRevenuePerHour = totalHours > 0 ? totalAmount / totalHours : 0;
+      const costPerUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
       const uniqueWorkTypes = [...new Set(allRecords.map(r => r['Вид работ']))].filter(Boolean);
       const uniqueBrigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
       const uniqueDirections = [...new Set(allRecords.map(r => r['Направление']))].filter(Boolean);
@@ -1252,8 +1367,17 @@
             <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
             <p class="analytics-label">Общая выручка</p>
             
+            <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
+            <p class="analytics-label">Стоимость обработки 1 ед.</p>
+          </div>
+
+          <div class="analytics-card">
+            <h4>📈 Экономика</h4>
             <div class="analytics-value">р.${avgRevenuePerHour.toFixed(2)}</div>
             <p class="analytics-label">Выручка в час</p>
+            
+            <div class="analytics-value">${totalHours.toFixed(1)}</div>
+            <p class="analytics-label">Отработано часов</p>
           </div>
 
           <div class="analytics-card">
@@ -1272,15 +1396,6 @@
             
             <div class="analytics-value">${uniqueDepartments.length}</div>
             <p class="analytics-label">Отделов</p>
-          </div>
-
-          <div class="analytics-card">
-            <h4>🔧 Виды работ</h4>
-            <div class="analytics-value">${uniqueWorkTypes.length}</div>
-            <p class="analytics-label">Видов работ</p>
-            
-            <div class="analytics-value">-</div>
-            <p class="analytics-label">Групп товаров</p>
           </div>
         </div>
       `;
@@ -1312,6 +1427,7 @@
       });
 
       const currentNormative = calculateNormative(currentUnits, currentTime);
+      const currentCostPerUnit = currentUnits > 0 ? currentAmount / currentUnits : 0;
 
       let html = '<div class="comparison-grid">';
       
@@ -1366,6 +1482,17 @@
       const avgAmount = previousAmounts.length > 0 ? previousAmounts.reduce((a, b) => a + b) / previousAmounts.length : 0;
       const amountTrend = currentAmount - avgAmount;
       const amountPercent = avgAmount > 0 ? ((amountTrend / avgAmount) * 100).toFixed(1) : 0;
+
+      const previousCosts = previousDates.map(d => {
+        const respRecords = d.records.filter(r => isResponsible(r['Должность']));
+        const units = respRecords.reduce((sum, r) => sum + (parseInt(r['Количество единиц']) || 0), 0);
+        const amount = d.records.reduce((sum, r) => sum + parseCurrency(r['Расчетная сумма']), 0);
+        return units > 0 ? amount / units : 0;
+      }).filter(val => val > 0);
+      
+      const avgCost = previousCosts.length > 0 ? previousCosts.reduce((a, b) => a + b) / previousCosts.length : 0;
+      const costTrend = currentCostPerUnit - avgCost;
+      const costPercent = avgCost > 0 ? ((costTrend / avgCost) * 100).toFixed(1) : 0;
       
       html += `
         <div class="comparison-card">
@@ -1376,6 +1503,16 @@
             ${amountTrend >= 0 ? '↗' : '↘'} ${Math.abs(amountPercent)}%
           </div>
           <p class="analytics-label">Среднее: р.${avgAmount.toFixed(0)}</p>
+        </div>
+
+        <div class="comparison-card">
+          <h4>💵 Стоимость ед.</h4>
+          <div class="analytics-value">р.${currentCostPerUnit.toFixed(2)}</div>
+          <p class="analytics-label">Сегодня</p>
+          <div class="analytics-value ${costTrend <= 0 ? 'trend-up' : 'trend-down'}">
+            ${costTrend <= 0 ? '↗' : '↘'} ${Math.abs(costPercent)}%
+          </div>
+          <p class="analytics-label">Среднее: р.${avgCost.toFixed(2)}</p>
         </div>
       `;
 
@@ -1438,6 +1575,73 @@
       document.getElementById('time-statistics-content').innerHTML = html;
     }
 
+    function renderPercentageTimeStatistics(allRecords) {
+      const workTypeTimeStats = {};
+      
+      // Собираем общее количество единиц по каждому виду работ
+      allRecords.forEach(record => {
+        const workType = record['Вид работ'] || 'Без вида работ';
+        if (!workTypeTimeStats[workType]) {
+          workTypeTimeStats[workType] = {
+            totalUnits: 0,
+            timeIntervals: {}
+          };
+        }
+        
+        workTypeTimeStats[workType].totalUnits += parseInt(record['Количество единиц']) || 0;
+      });
+
+      // Собираем распределение по времени для каждого вида работ
+      allRecords.forEach(record => {
+        const workType = record['Вид работ'] || 'Без вида работ';
+        const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
+        if (!interval) return;
+        
+        if (!workTypeTimeStats[workType].timeIntervals[interval.key]) {
+          workTypeTimeStats[workType].timeIntervals[interval.key] = {
+            interval: interval,
+            units: 0
+          };
+        }
+        
+        workTypeTimeStats[workType].timeIntervals[interval.key].units += parseInt(record['Количество единиц']) || 0;
+      });
+
+      let html = '';
+      
+      Object.entries(workTypeTimeStats).forEach(([workType, stats]) => {
+        if (stats.totalUnits === 0) return;
+        
+        html += `<div class="work-type-time-chart">`;
+        html += `<h4>${workType} (всего: ${stats.totalUnits} ед.)</h4>`;
+        
+        const sortedIntervals = Object.values(stats.timeIntervals).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
+        
+        sortedIntervals.forEach(timeStat => {
+          const percentage = (timeStat.units / stats.totalUnits) * 100;
+          
+          html += `
+            <div class="time-bar">
+              <div class="time-label">${timeStat.interval.display}</div>
+              <div class="time-bar-inner">
+                <div class="time-bar-fill" style="width: ${percentage}%"></div>
+              </div>
+              <div class="time-value">
+                ${percentage.toFixed(1)}%
+              </div>
+            </div>
+            <div style="font-size: 11px; color: #666; margin-left: 100px;">
+              ${timeStat.units} ед. из ${stats.totalUnits} (${percentage.toFixed(1)}% от общего объема)
+            </div>
+          `;
+        });
+        
+        html += `</div>`;
+      });
+
+      document.getElementById('percentage-time-content').innerHTML = html;
+    }
+
     function renderDirectionsStatistics(allRecords) {
       const directionStats = {};
       
@@ -1475,9 +1679,10 @@
         const totalHours = stats.totalTime / 3600;
         const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
         const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        const costPerUnit = stats.totalUnits > 0 ? stats.totalAmount / stats.totalUnits : 0;
         
         html += `
-          <div class="group-card">
+          <div class="group-card" onclick="showDirectionDetails('${direction}', '${selectedDate}')">
             <h4>${direction}</h4>
             <div class="group-stats">
               <div class="group-stat-item">
@@ -1506,7 +1711,7 @@
               </div>
             </div>
             <div style="margin-top: 8px; font-size: 11px; color: #666;">
-              Выручка: р.${stats.totalAmount.toFixed(0)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
+              Выручка: р.${stats.totalAmount.toFixed(0)} | Стоимость ед.: р.${costPerUnit.toFixed(2)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
             </div>
           </div>
         `;
@@ -1553,9 +1758,10 @@
         const totalHours = stats.totalTime / 3600;
         const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
         const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        const costPerUnit = stats.totalUnits > 0 ? stats.totalAmount / stats.totalUnits : 0;
         
         html += `
-          <div class="group-card">
+          <div class="group-card" onclick="showDepartmentDetails('${department}', '${selectedDate}')">
             <h4>${department}</h4>
             <div class="group-stats">
               <div class="group-stat-item">
@@ -1584,7 +1790,7 @@
               </div>
             </div>
             <div style="margin-top: 8px; font-size: 11px; color: #666;">
-              Выручка: р.${stats.totalAmount.toFixed(0)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
+              Выручка: р.${stats.totalAmount.toFixed(0)} | Стоимость ед.: р.${costPerUnit.toFixed(2)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
             </div>
           </div>
         `;
@@ -1595,7 +1801,6 @@
     }
 
     function renderLevel2Analytics(allRecords) {
-      // Аналитика по направлениям для начальника смены
       const directionStats = {};
       
       allRecords.forEach(record => {
@@ -1634,9 +1839,10 @@
         const totalHours = stats.totalTime / 3600;
         const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
         const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        const costPerUnit = stats.totalUnits > 0 ? stats.totalAmount / stats.totalUnits : 0;
         
         html += `
-          <div class="group-card" onclick="showDirectionDetails('${direction}')">
+          <div class="group-card" onclick="showDirectionDetails('${direction}', '${selectedDate}')">
             <h4>🎯 ${direction}</h4>
             <div class="group-stats">
               <div class="group-stat-item">
@@ -1665,7 +1871,7 @@
               </div>
             </div>
             <div style="margin-top: 8px; font-size: 11px; color: #666;">
-              Выручка: р.${stats.totalAmount.toFixed(0)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
+              Выручка: р.${stats.totalAmount.toFixed(0)} | Стоимость ед.: р.${costPerUnit.toFixed(2)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
             </div>
           </div>
         `;
@@ -1676,7 +1882,6 @@
     }
 
     function renderLevel3Analytics(allRecords) {
-      // Аналитика по отделам для руководителя отдела
       const departmentStats = {};
       
       allRecords.forEach(record => {
@@ -1715,9 +1920,10 @@
         const totalHours = stats.totalTime / 3600;
         const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
         const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        const costPerUnit = stats.totalUnits > 0 ? stats.totalAmount / stats.totalUnits : 0;
         
         html += `
-          <div class="group-card" onclick="showDepartmentDetails('${department}')">
+          <div class="group-card" onclick="showDepartmentDetails('${department}', '${selectedDate}')">
             <h4>👔 ${department}</h4>
             <div class="group-stats">
               <div class="group-stat-item">
@@ -1746,7 +1952,7 @@
               </div>
             </div>
             <div style="margin-top: 8px; font-size: 11px; color: #666;">
-              Выручка: р.${stats.totalAmount.toFixed(0)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
+              Выручка: р.${stats.totalAmount.toFixed(0)} | Стоимость ед.: р.${costPerUnit.toFixed(2)} | Выручка/час: р.${revenuePerHour.toFixed(2)}
             </div>
           </div>
         `;
@@ -1757,7 +1963,6 @@
     }
 
     function renderLevel4Analytics(allRecords) {
-      // Аналитика по видам работ для бригадира
       const workTypeStats = {};
       
       allRecords.forEach(record => {
@@ -1805,6 +2010,7 @@
         const totalHours = stats.totalTime / 3600;
         const normative = totalHours > 0 ? stats.totalUnits / totalHours : 0;
         const revenuePerHour = totalHours > 0 ? stats.totalAmount / totalHours : 0;
+        const costPerUnit = stats.totalUnits > 0 ? stats.totalAmount / stats.totalUnits : 0;
         const avgRevenuePerTask = stats.tasks > 0 ? stats.totalAmount / stats.tasks : 0;
         
         let performanceClass = 'performance-poor';
@@ -1822,7 +2028,7 @@
         }
 
         html += `
-          <div class="work-type-card" onclick="showWorkTypeDetails('${workType}')">
+          <div class="work-type-card" onclick="showWorkTypeDetails('${workType}', '${selectedDate}')">
             <div class="work-type-header">
               <h4 class="work-type-name">${workType}</h4>
               <div class="${performanceClass} performance-indicator">
@@ -1859,6 +2065,7 @@
             
             <div style="margin-top: 10px; font-size: 11px; color: #666;">
               ${stats.standard > 0 ? `План: ${stats.standard} шт/час | ` : ''}
+              Стоимость ед.: р.${costPerUnit.toFixed(2)} | 
               Выручка/час: р.${revenuePerHour.toFixed(2)} | 
               Группы товаров: ${stats.productGroups.size}
             </div>
@@ -1870,17 +2077,377 @@
       document.getElementById('work-types-content').innerHTML = html;
     }
 
-    // Функции для детализации (упрощенные версии)
-    function showDirectionDetails(direction) {
-      alert(`Детализация по направлению: ${direction}\n\nЗдесь будет подробная аналитика по выбранному направлению с разбивкой по отделам и видам работ.`);
+    // === ФУНКЦИИ ДЕТАЛИЗАЦИИ ===
+    function showDirectionDetails(direction, date) {
+      const allRecords = records.filter(r => r['Рабочий день'] === date && r['Направление'] === direction);
+      const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
+      
+      let totalUnits = 0, totalTime = 0, totalAmount = 0, totalTasks = 0;
+      responsibleRecords.forEach(r => {
+        totalUnits += parseInt(r['Количество единиц']) || 0;
+        totalTime += parseTime(r['Рабочее время']);
+        totalTasks++;
+      });
+      allRecords.forEach(r => {
+        totalAmount += parseCurrency(r['Расчетная сумма']);
+      });
+
+      const normative = calculateNormative(totalUnits, totalTime);
+      const costPerUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
+      
+      const departments = [...new Set(allRecords.map(r => r['Отдел']))];
+      const workTypes = [...new Set(allRecords.map(r => r['Вид работ']))];
+      const brigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
+
+      let html = `
+        <h3>🎯 Детализация по направлению: ${direction}</h3>
+        <p><strong>Дата:</strong> ${date}</p>
+        
+        <div class="analytics-grid" style="margin: 15px 0;">
+          <div class="analytics-card">
+            <h4>📊 Основные показатели</h4>
+            <div class="analytics-value">${totalUnits}</div>
+            <p class="analytics-label">Всего единиц</p>
+            <div class="analytics-value">${totalTasks}</div>
+            <p class="analytics-label">Задач</p>
+          </div>
+          
+          <div class="analytics-card">
+            <h4>⚡ Эффективность</h4>
+            <div class="analytics-value">${normative.toFixed(1)}</div>
+            <p class="analytics-label">Норматив (шт/час)</p>
+            <div class="analytics-value">${formatTime(totalTime)}</div>
+            <p class="analytics-label">Время работы</p>
+          </div>
+          
+          <div class="analytics-card">
+            <h4>💰 Финансы</h4>
+            <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
+            <p class="analytics-label">Общая выручка</p>
+            <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
+            <p class="analytics-label">Стоимость ед.</p>
+          </div>
+        </div>
+
+        <h4>📋 Структура направления</h4>
+        <div class="grouping-grid">
+          <div class="group-card">
+            <h4>🏛️ Отделы</h4>
+            <div style="font-size: 14px;">
+              ${departments.map(dept => `<div>• ${dept}</div>`).join('')}
+            </div>
+          </div>
+          
+          <div class="group-card">
+            <h4>🔧 Виды работ</h4>
+            <div style="font-size: 14px;">
+              ${workTypes.map(work => `<div>• ${work}</div>`).join('')}
+            </div>
+          </div>
+          
+          <div class="group-card">
+            <h4>👥 Бригады</h4>
+            <div style="font-size: 14px;">
+              ${brigades.map(brigade => `<div>• ${brigade}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <h4>📈 Статистика по отделам</h4>
+        <div class="grouping-grid">
+      `;
+
+      // Статистика по отделам внутри направления
+      const departmentStats = {};
+      allRecords.forEach(record => {
+        const department = record['Отдел'] || 'Не указано';
+        if (!departmentStats[department]) {
+          departmentStats[department] = {
+            units: 0,
+            amount: 0,
+            tasks: 0
+          };
+        }
+        if (isResponsible(record['Должность'])) {
+          departmentStats[department].units += parseInt(record['Количество единиц']) || 0;
+          departmentStats[department].tasks++;
+        }
+        departmentStats[department].amount += parseCurrency(record['Расчетная сумма']);
+      });
+
+      Object.entries(departmentStats).forEach(([dept, stats]) => {
+        const deptCostPerUnit = stats.units > 0 ? stats.amount / stats.units : 0;
+        html += `
+          <div class="group-card">
+            <h5>${dept}</h5>
+            <div class="group-stats">
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.units}</div>
+                <div class="group-stat-label">Единиц</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.tasks}</div>
+                <div class="group-stat-label">Задач</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">р.${stats.amount.toFixed(0)}</div>
+                <div class="group-stat-label">Выручка</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">р.${deptCostPerUnit.toFixed(2)}</div>
+                <div class="group-stat-label">Стоимость ед.</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      
+      document.getElementById('direction-modal-content').innerHTML = html;
+      document.getElementById('direction-modal').style.display = 'block';
     }
 
-    function showDepartmentDetails(department) {
-      alert(`Детализация по отделу: ${department}\n\nЗдесь будет подробная аналитика по выбранному отделу с разбивкой по бригадам и поставкам.`);
+    function showDepartmentDetails(department, date) {
+      const allRecords = records.filter(r => r['Рабочий день'] === date && r['Отдел'] === department);
+      const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
+      
+      let totalUnits = 0, totalTime = 0, totalAmount = 0, totalTasks = 0;
+      responsibleRecords.forEach(r => {
+        totalUnits += parseInt(r['Количество единиц']) || 0;
+        totalTime += parseTime(r['Рабочее время']);
+        totalTasks++;
+      });
+      allRecords.forEach(r => {
+        totalAmount += parseCurrency(r['Расчетная сумма']);
+      });
+
+      const normative = calculateNormative(totalUnits, totalTime);
+      const costPerUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
+      
+      const directions = [...new Set(allRecords.map(r => r['Направление']))];
+      const workTypes = [...new Set(allRecords.map(r => r['Вид работ']))];
+      const brigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
+
+      let html = `
+        <h3>👔 Детализация по отделу: ${department}</h3>
+        <p><strong>Дата:</strong> ${date}</p>
+        
+        <div class="analytics-grid" style="margin: 15px 0;">
+          <div class="analytics-card">
+            <h4>📊 Основные показатели</h4>
+            <div class="analytics-value">${totalUnits}</div>
+            <p class="analytics-label">Всего единиц</p>
+            <div class="analytics-value">${totalTasks}</div>
+            <p class="analytics-label">Задач</p>
+          </div>
+          
+          <div class="analytics-card">
+            <h4>⚡ Эффективность</h4>
+            <div class="analytics-value">${normative.toFixed(1)}</div>
+            <p class="analytics-label">Норматив (шт/час)</p>
+            <div class="analytics-value">${formatTime(totalTime)}</div>
+            <p class="analytics-label">Время работы</p>
+          </div>
+          
+          <div class="analytics-card">
+            <h4>💰 Финансы</h4>
+            <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
+            <p class="analytics-label">Общая выручка</p>
+            <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
+            <p class="analytics-label">Стоимость ед.</p>
+          </div>
+        </div>
+
+        <h4>📈 Статистика по видам работ</h4>
+        <div class="grouping-grid">
+      `;
+
+      // Статистика по видам работ внутри отдела
+      const workTypeStats = {};
+      allRecords.forEach(record => {
+        const workType = record['Вид работ'] || 'Не указано';
+        if (!workTypeStats[workType]) {
+          workTypeStats[workType] = {
+            units: 0,
+            amount: 0,
+            tasks: 0,
+            time: 0
+          };
+        }
+        if (isResponsible(record['Должность'])) {
+          workTypeStats[workType].units += parseInt(record['Количество единиц']) || 0;
+          workTypeStats[workType].time += parseTime(record['Рабочее время']);
+          workTypeStats[workType].tasks++;
+        }
+        workTypeStats[workType].amount += parseCurrency(record['Расчетная сумма']);
+      });
+
+      Object.entries(workTypeStats).forEach(([workType, stats]) => {
+        const workNormative = stats.time > 0 ? calculateNormative(stats.units, stats.time) : 0;
+        const workCostPerUnit = stats.units > 0 ? stats.amount / stats.units : 0;
+        const standard = getStandardForWork(workType);
+        
+        html += `
+          <div class="group-card">
+            <h5>${workType}</h5>
+            <div class="group-stats">
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.units}</div>
+                <div class="group-stat-label">Единиц</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.tasks}</div>
+                <div class="group-stat-label">Задач</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${workNormative.toFixed(1)}</div>
+                <div class="group-stat-label">Норматив</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">р.${workCostPerUnit.toFixed(2)}</div>
+                <div class="group-stat-label">Стоимость ед.</div>
+              </div>
+            </div>
+            ${standard > 0 ? `<div style="font-size: 11px; color: #666; margin-top: 5px;">План: ${standard} шт/час</div>` : ''}
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      
+      document.getElementById('department-modal-content').innerHTML = html;
+      document.getElementById('department-modal').style.display = 'block';
     }
 
-    function showWorkTypeDetails(workType) {
-      alert(`Детализация по виду работ: ${workType}\n\nЗдесь будет:\n- Детализация по часовым интервалам\n- Детализация по бригадам\n- Детализация по поставкам\n- Статистика по группам товаров`);
+    function showWorkTypeDetails(workType, date) {
+      const allRecords = records.filter(r => r['Рабочий день'] === date && r['Вид работ'] === workType);
+      const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
+      
+      let totalUnits = 0, totalTime = 0, totalAmount = 0, totalTasks = 0;
+      responsibleRecords.forEach(r => {
+        totalUnits += parseInt(r['Количество единиц']) || 0;
+        totalTime += parseTime(r['Рабочее время']);
+        totalTasks++;
+      });
+      allRecords.forEach(r => {
+        totalAmount += parseCurrency(r['Расчетная сумма']);
+      });
+
+      const normative = calculateNormative(totalUnits, totalTime);
+      const costPerUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
+      const standard = getStandardForWork(workType);
+      
+      const brigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
+      const productGroups = [...new Set(allRecords.map(r => r['Группа товара']))];
+      const supplies = [...new Set(allRecords.map(r => r['Поставка']))];
+
+      let html = `
+        <h3>🔍 Детализация по виду работ: ${workType}</h3>
+        <p><strong>Дата:</strong> ${date}</p>
+        
+        <div class="analytics-grid" style="margin: 15px 0;">
+          <div class="analytics-card">
+            <h4>📊 Основные показатели</h4>
+            <div class="analytics-value">${totalUnits}</div>
+            <p class="analytics-label">Всего единиц</p>
+            <div class="analytics-value">${totalTasks}</div>
+            <p class="analytics-label">Задач</p>
+          </div>
+          
+          <div class="analytics-card">
+            <h4>⚡ Эффективность</h4>
+            <div class="analytics-value">${normative.toFixed(1)}</div>
+            <p class="analytics-label">Норматив (шт/час)</p>
+            <div class="analytics-value">${formatTime(totalTime)}</div>
+            <p class="analytics-label">Время работы</p>
+          </div>
+          
+          <div class="analytics-card">
+            <h4>💰 Финансы</h4>
+            <div class="analytics-value">р.${totalAmount.toFixed(0)}</div>
+            <p class="analytics-label">Общая выручка</p>
+            <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
+            <p class="analytics-label">Стоимость ед.</p>
+          </div>
+        </div>
+
+        ${standard > 0 ? `
+        <div style="background: #e8f5e9; padding: 10px; border-radius: 6px; margin: 15px 0;">
+          <h4>🎯 Выполнение плана</h4>
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="flex: 1; background: #e0e0e0; border-radius: 10px; height: 20px;">
+              <div style="background: #4caf50; height: 100%; border-radius: 10px; width: ${Math.min((normative / standard) * 100, 100)}%;"></div>
+            </div>
+            <div style="font-weight: bold;">
+              ${((normative / standard) * 100).toFixed(1)}%
+            </div>
+          </div>
+          <div style="font-size: 12px; color: #666; margin-top: 5px;">
+            Факт: ${normative.toFixed(1)} шт/час | План: ${standard} шт/час
+          </div>
+        </div>
+        ` : ''}
+
+        <h4>👥 Работа бригад</h4>
+        <div class="grouping-grid">
+      `;
+
+      // Статистика по бригадам
+      const brigadeStats = {};
+      responsibleRecords.forEach(record => {
+        const brigade = record['Сотрудник'] || 'Не указано';
+        if (!brigadeStats[brigade]) {
+          brigadeStats[brigade] = {
+            units: 0,
+            time: 0,
+            tasks: 0,
+            amount: 0
+          };
+        }
+        brigadeStats[brigade].units += parseInt(record['Количество единиц']) || 0;
+        brigadeStats[brigade].time += parseTime(record['Рабочее время']);
+        brigadeStats[brigade].tasks++;
+        brigadeStats[brigade].amount += parseCurrency(record['Расчетная сумма']);
+      });
+
+      Object.entries(brigadeStats).forEach(([brigade, stats]) => {
+        const brigadeNormative = stats.time > 0 ? calculateNormative(stats.units, stats.time) : 0;
+        const brigadeCostPerUnit = stats.units > 0 ? stats.amount / stats.units : 0;
+        
+        html += `
+          <div class="group-card">
+            <h5>${brigade}</h5>
+            <div class="group-stats">
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.units}</div>
+                <div class="group-stat-label">Единиц</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${stats.tasks}</div>
+                <div class="group-stat-label">Задач</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">${brigadeNormative.toFixed(1)}</div>
+                <div class="group-stat-label">Норматив</div>
+              </div>
+              <div class="group-stat-item">
+                <div class="group-stat-value">р.${brigadeCostPerUnit.toFixed(2)}</div>
+                <div class="group-stat-label">Стоимость ед.</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      
+      document.getElementById('worktype-modal-content').innerHTML = html;
+      document.getElementById('worktype-modal').style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none';
     }
 
     function exportToExcel() {
