@@ -2,7 +2,7 @@ name: Sync Archive from Google Drive
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # Каждый день в 15:00 по ЕКБ (UTC+5)
+    - cron: '0 3 * * *'  # Каждый день в 8:00 по ЕКБ (UTC+5)
   workflow_dispatch:
 
 jobs:
