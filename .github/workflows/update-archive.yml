@@ -15,55 +15,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download files with proper cookies
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          npm init -y --silent
+          npm install node-fetch@2
+
+      - name: Download files using curl (более надежный способ)
+        env:
+          ARCHIVE_FILES: |
+           2025-10 fullData.json:1ONAxssw3MN_tS-ScPKeGDaIp3ZmPJrdT
+            
         run: |
           mkdir -p archive
-          
-          # Функция для загрузки одного файла
-          download_file() {
-            local name=$1
-            local id=$2
-            echo "📥 Загрузка: $name"
-            
-            # Создаем временный файл для кук
-            local COOKIE_FILE=$(mktemp)
-            
-            # Первый запрос для получения кук и страницы подтверждения
-            curl -L -c "$COOKIE_FILE" \
-              "https://drive.google.com/uc?export=download&id=$id" \
-              --silent --retry 3 > /dev/null
+          echo "$ARCHIVE_FILES" | while IFS= read -r line; do
+            line=$(echo "$line" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            if [[ -n "$line" && ! "$line" =~ ^# ]]; then
+              filename=$(echo "$line" | cut -d':' -f1)
+              fileid=$(echo "$line" | cut -d':' -f2)
+              echo "📥 Загрузка: $filename"
               
-            # Второй запрос с куками для скачивания файла
-            curl -L -b "$COOKIE_FILE" \
-              "https://drive.google.com/uc?export=download&id=$id&confirm=t" \
-              -o "archive/$name" \
-              --retry 3 \
-              --max-time 60
+              # Используем curl для обхода подтверждения
+              curl -L "https://drive.google.com/uc?export=download&id=$fileid&confirm=t" \
+                -o "archive/$filename" \
+                --retry 3 \
+                --max-time 30
               
-            local result=$?
-            rm -f "$COOKIE_FILE"
-            
-            if [ $result -eq 0 ] && [ -s "archive/$name" ]; then
-              local size=$(wc -c < "archive/$name")
-              echo "✅ Успешно: $name ($size bytes)"
-              return 0
-            else
-              echo "❌ Ошибка: $name"
-              rm -f "archive/$name"
-              return 1
+              if [[ $? -eq 0 && -s "archive/$filename" ]]; then
+                echo "✅ Успешно: $filename"
+              else
+                echo "❌ Ошибка загрузки: $filename"
+                rm -f "archive/$filename" 2>/dev/null
+              fi
+              
+              sleep 2
             fi
-          }
-
-          # Загружаем файлы по одному
-          download_file "standard fullData.json" "1Ua_KETb1fVu3PhR6SmxYkWjOOApaZDc5"
-          sleep 2
-          download_file "staff fullData.json" "1cbHKB7vGBslK52H7EJBT3jhG0yHFrpC8"
-          sleep 2
-          download_file "2025-09 fullData.json" "1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO"
-          sleep 2
-          download_file "2025-10 fullData.json" "1ONAxssw3MN_tS-ScPKeGDaIp3ZmPJrdT"
-          sleep 2
-          download_file "2025-11 fullData.json" "1tl89YvvdxAF7GZasSZoPxn6zaZuGTuCt"
+          done
 
       - name: Generate new archives from Google Sheets
         run: node scripts/generate-Archive.mjs
