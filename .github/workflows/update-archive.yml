@@ -2,7 +2,7 @@ name: Sync Archive from Google Drive
 
 on:
   schedule:
-    - cron: '0 3 * * *'  # 08:00 по ЕКБ (UTC+5)
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 jobs:
@@ -15,123 +15,55 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: |
-          npm init -y --silent
-          npm install googleapis@126.0.1
-
-      - name: Sync archive files using Google Drive API
-        env:
-          SERVICE_ACCOUNT_KEY: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY }}
+      - name: Download files with proper cookies
         run: |
           mkdir -p archive
-          node << "EOF"
-          const fs = require('fs');
-          const { google } = require('googleapis');
-
-          // Конфигурация файлов
-          const filesToDownload = [
-            { name: 'standard fullData.json', id: '1Ua_KETb1fVu3PhR6SmxYkWjOOApaZDc5' },
-            { name: 'staff fullData.json', id: '1cbHKB7vGBslK52H7EJBT3jhG0yHFrpC8' },
-            { name: '2025-09 fullData.json', id: '1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO' },
-            { name: '2025-10 fullData.json', id: '1ONAxssw3MN_tS-ScPKeGDaIp3ZmPJrdT' },
-            { name: '2025-11 fullData.json', id: '1tl89YvvdxAF7GZasSZoPxn6zaZuGTuCt' }
-          ];
-
-          async function downloadFile(drive, fileName, fileId) {
-            console.log(`📥 Загрузка: ${fileName}`);
+          
+          # Функция для загрузки одного файла
+          download_file() {
+            local name=$1
+            local id=$2
+            echo "📥 Загрузка: $name"
             
-            try {
-              const response = await drive.files.get({
-                fileId: fileId,
-                alt: 'media'
-              }, { responseType: 'stream' });
-
-              return new Promise((resolve, reject) => {
-                const dest = fs.createWriteStream(`archive/${fileName}`);
-                response.data
-                  .on('end', () => {
-                    console.log(`✅ Успешно: ${fileName}`);
-                    resolve(true);
-                  })
-                  .on('error', (err) => {
-                    console.error(`❌ Ошибка: ${fileName} - ${err.message}`);
-                    reject(err);
-                  })
-                  .pipe(dest);
-              });
-            } catch (err) {
-              console.error(`❌ Ошибка загрузки ${fileName}:`, err.message);
-              return false;
-            }
-          }
-
-          async function main() {
-            try {
-              // Аутентификация через сервисный аккаунт
-              const serviceAccountKey = JSON.parse(process.env.SERVICE_ACCOUNT_KEY);
-              const auth = new google.auth.GoogleAuth({
-                credentials: serviceAccountKey,
-                scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-              });
-
-              const drive = google.drive({ version: 'v3', auth });
-
-              console.log('🔐 Аутентификация успешна');
-              console.log(`📋 Файлов для загрузки: ${filesToDownload.length}`);
-
-              let successCount = 0;
-              const failedFiles = [];
-
-              for (const file of filesToDownload) {
-                try {
-                  const success = await downloadFile(drive, file.name, file.id);
-                  if (success) {
-                    successCount++;
-                  } else {
-                    failedFiles.push(file.name);
-                  }
-                  // Пауза между запросами
-                  await new Promise(r => setTimeout(r, 1000));
-                } catch (err) {
-                  console.error(`💥 Критическая ошибка для ${file.name}:`, err.message);
-                  failedFiles.push(file.name);
-                }
-              }
-
-              console.log('\n📊 Итоги загрузки:');
-              console.log(`✅ Успешно: ${successCount}/${filesToDownload.length}`);
-              if (failedFiles.length > 0) {
-                console.log(`❌ Не удалось загрузить: ${failedFiles.join(', ')}`);
-                process.exit(1);
-              }
-
-            } catch (err) {
-              console.error('💥 Ошибка аутентификации:', err.message);
-              process.exit(1);
-            }
-          }
-
-          main().catch(console.error);
-          EOF
-
-      - name: Check downloaded files
-        run: |
-          echo "📁 Содержимое папки archive:"
-          ls -la archive/
-          echo ""
-          echo "📊 Размеры файлов:"
-          for file in archive/*; do
-            if [ -f "$file" ]; then
-              size=$(wc -c < "$file")
-              echo "  $(basename "$file"): $size bytes"
+            # Создаем временный файл для кук
+            local COOKIE_FILE=$(mktemp)
+            
+            # Первый запрос для получения кук и страницы подтверждения
+            curl -L -c "$COOKIE_FILE" \
+              "https://drive.google.com/uc?export=download&id=$id" \
+              --silent --retry 3 > /dev/null
+              
+            # Второй запрос с куками для скачивания файла
+            curl -L -b "$COOKIE_FILE" \
+              "https://drive.google.com/uc?export=download&id=$id&confirm=t" \
+              -o "archive/$name" \
+              --retry 3 \
+              --max-time 60
+              
+            local result=$?
+            rm -f "$COOKIE_FILE"
+            
+            if [ $result -eq 0 ] && [ -s "archive/$name" ]; then
+              local size=$(wc -c < "archive/$name")
+              echo "✅ Успешно: $name ($size bytes)"
+              return 0
+            else
+              echo "❌ Ошибка: $name"
+              rm -f "archive/$name"
+              return 1
             fi
-          done
+          }
+
+          # Загружаем файлы по одному
+          download_file "standard fullData.json" "1Ua_KETb1fVu3PhR6SmxYkWjOOApaZDc5"
+          sleep 2
+          download_file "staff fullData.json" "1cbHKB7vGBslK52H7EJBT3jhG0yHFrpC8"
+          sleep 2
+          download_file "2025-09 fullData.json" "1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO"
+          sleep 2
+          download_file "2025-10 fullData.json" "1ONAxssw3MN_tS-ScPKeGDaIp3ZmPJrdT"
+          sleep 2
+          download_file "2025-11 fullData.json" "1tl89YvvdxAF7GZasSZoPxn6zaZuGTuCt"
 
       - name: Generate new archives from Google Sheets
         run: node scripts/generate-Archive.mjs
@@ -140,13 +72,11 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
           git add archive/ fullData.json
-          
           if ! git diff --staged --quiet; then
             git commit -m "🔄 Авто-обновление данных [$(date +'%Y-%m-%d %H:%M')]"
             git push
-            echo "✅ Изменения отправлены в репозиторий"
+            echo "✅ Изменения отправлены"
           else
-            echo "ℹ️ Нет изменений для коммита"
+            echo "ℹ️ Нет изменений"
           fi
