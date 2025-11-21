@@ -6,19 +6,34 @@
 </head>
 <body>
     <div id="data-container"></div>
+    <div id="status"></div>
 
     <script>
-        // URL к вашему Excel файлу на GitHub https://aip-77.github.io/Store.html
-        const excelUrl = 'https://aip-77.github.io/data.xlsx';
+        // URL к вашему Excel файлу
+        const excelUrl = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/data.xlsx';
 
         async function loadExcelData() {
+            const status = document.getElementById('status');
+            status.innerHTML = 'Загрузка данных...';
+            
             try {
+                console.log('Пытаюсь загрузить:', excelUrl);
+                
                 // Загружаем файл
                 const response = await fetch(excelUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                console.log('Файл загружен, статус:', response.status);
+                
                 const arrayBuffer = await response.arrayBuffer();
+                console.log('Размер файла:', arrayBuffer.byteLength, 'байт');
                 
                 // Парсим Excel
                 const workbook = XLSX.read(arrayBuffer, {type: 'array'});
+                console.log('Страницы в файле:', workbook.SheetNames);
                 
                 // Получаем первую страницу
                 const firstSheetName = workbook.SheetNames[0];
@@ -26,11 +41,22 @@
                 
                 // Конвертируем в JSON
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                console.log('Данные:', jsonData);
+                
+                status.innerHTML = `Загружено ${jsonData.length} записей`;
                 
                 // Отображаем данные
                 displayData(jsonData);
+                
             } catch (error) {
                 console.error('Ошибка загрузки данных:', error);
+                status.innerHTML = `Ошибка: ${error.message}`;
+                
+                // Показываем дополнительную информацию для отладки
+                status.innerHTML += `<br>Проверьте: 
+                    <br>1. Файл data.xlsx существует в репозитории
+                    <br>2. Файл закоммичен и запушен
+                    <br>3. URL: ${excelUrl}`;
             }
         }
 
@@ -38,14 +64,15 @@
             const container = document.getElementById('data-container');
             container.innerHTML = '<h2>Данные из Excel:</h2>';
             
-            if (data.length === 0) {
-                container.innerHTML += '<p>Нет данных</p>';
+            if (!data || data.length === 0) {
+                container.innerHTML += '<p>Нет данных или файл пуст</p>';
                 return;
             }
 
             const table = document.createElement('table');
             table.style.border = '1px solid black';
             table.style.borderCollapse = 'collapse';
+            table.style.margin = '10px 0';
             
             // Заголовки
             const thead = document.createElement('thead');
@@ -54,7 +81,8 @@
                 const th = document.createElement('th');
                 th.textContent = key;
                 th.style.border = '1px solid black';
-                th.style.padding = '5px';
+                th.style.padding = '8px';
+                th.style.backgroundColor = '#f0f0f0';
                 headerRow.appendChild(th);
             });
             thead.appendChild(headerRow);
@@ -62,13 +90,15 @@
             
             // Данные
             const tbody = document.createElement('tbody');
-            data.forEach(row => {
+            data.forEach((row, index) => {
                 const tr = document.createElement('tr');
+                tr.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
+                
                 Object.values(row).forEach(value => {
                     const td = document.createElement('td');
-                    td.textContent = value;
+                    td.textContent = value !== undefined ? value : '';
                     td.style.border = '1px solid black';
-                    td.style.padding = '5px';
+                    td.style.padding = '8px';
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
@@ -79,7 +109,7 @@
         }
 
         // Загружаем данные при загрузке страницы
-        loadExcelData();
+        document.addEventListener('DOMContentLoaded', loadExcelData);
     </script>
 </body>
 </html>
