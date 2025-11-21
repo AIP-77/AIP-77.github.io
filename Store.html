@@ -39,7 +39,9 @@
         tr:nth-child(even) { background-color: #f9f9f9; }
         tr:hover { background-color: #f1f1f1; }
         
-        /* Стили для итоговой строки */
+        /* Стили для группировки и итогов */
+        .group-header { background-color: #e3f2fd !important; font-weight: bold; }
+        .group-header td { border-bottom: 2px solid #2196f3; }
         .total-row { background-color: #e8f5e8 !important; font-weight: bold; }
         .total-row td { border-top: 2px solid #4CAF50; }
         
@@ -87,7 +89,10 @@
                 <div class="filters-column">
                     <div class="filter-group">
                         <label>🏢 Склад:</label>
-                        <input type="text" id="search-warehouse" placeholder="Введите название склада...">
+                        <select id="search-warehouse">
+                            <option value="">Все склады</option>
+                            <!-- Опции будут заполнены автоматически -->
+                        </select>
                     </div>
                     
                     <div class="filter-group">
@@ -101,8 +106,8 @@
                     </div>
                     
                     <div class="filter-group">
-                        <label>🔢 Минимальное количество:</label>
-                        <input type="number" id="min-quantity" placeholder="От 0" min="0" value="0">
+                        <label>🔢 Максимальное количество:</label>
+                        <input type="number" id="max-quantity" placeholder="До ..." min="0">
                     </div>
                 </div>
                 
@@ -151,6 +156,7 @@
         const tableHeader = document.getElementById('table-header');
         const tableBody = document.getElementById('table-body');
         const exportBtn = document.getElementById('export-btn');
+        const warehouseSelect = document.getElementById('search-warehouse');
 
         // =============================================
         // ФИКСИРОВАННОЕ СОПОСТАВЛЕНИЕ СТОЛБЦОВ ПО НОМЕРАМ
@@ -159,20 +165,19 @@
         const columnMappingByIndex = {
             0: 'code',           // Столбец A - "Код"
             3: 'nomenclature',   // Столбец D - "Номенклатура" 
-            7: 'address',        // Столбец E - "Адрес"
-            9: 'warehouse',      // Столбец F - "Склад"
+            7: 'address',        // Столбец H - "Адрес"
+            9: 'warehouse',      // Столбец J - "Склад"
             10: 'series_number', // Столбец K - "Серия.Номер"
-            12: 'production_date', // Столбец L - "Серия.Дата производства"
-            13: 'season',        // Столбец M - "Номенклатура.Сезон (Шины)"
-            14: 'start_balance', // Столбец N - "В наличии (начальный остаток)"
-            15: 'end_balance',   // Столбец O - "В наличии (конечный остаток)"
-            16: 'income',        // Столбец P - "В наличии (приход)"
-            17: 'expense',       // Столбец Q - "В наличии (расход)"
-            18: 'for_picking',   // Столбец R - "К отбору"
-            19: 'for_placement', // Столбец S - "К размещению"
-            20: 'volume'         // Столбец T - "Занятый, м3"
+            12: 'production_date', // Столбец M - "Серия.Дата производства"
+            13: 'season',        // Столбец N - "Номенклатура.Сезон (Шины)"
+            14: 'start_balance', // Столбец O - "В наличии (начальный остаток)"
+            15: 'end_balance',   // Столбец P - "В наличии (конечный остаток)"
+            16: 'income',        // Столбец Q - "В наличии (приход)"
+            17: 'expense',       // Столбец R - "В наличии (расход)"
+            18: 'for_picking',   // Столбец S - "К отбору"
+            19: 'for_placement', // Столбец T - "К размещению"
+            20: 'volume'         // Столбец U - "Занятый, м3"
         };
-
 
         // Заголовки для отображения (в правильном порядке)
         const headerTitles = [
@@ -181,15 +186,15 @@
             'Адрес',
             'Склад',
             'Серия.Номер',
-            'Серия.Дата производства',
-            'Номенклатура.Сезон (Шины)',
-            'В наличии (начальный остаток)',
-            'В наличии (конечный остаток)',
-            'В наличии (приход)',
-            'В наличии (расход)',
+            'Год производства',
+            'Сезон',
+            'Начальный остаток',
+            'Конечный остаток',
+            'Приход',
+            'Расход',
             'К отбору',
             'К размещению',
-            'Занятый, м3'
+            'Объем, м³'
         ];
 
         // =============================================
@@ -250,11 +255,25 @@
                 Object.keys(columnMappingByIndex).forEach(colIndex => {
                     const key = columnMappingByIndex[colIndex];
                     if (row[colIndex] !== undefined) {
+                        let value = row[colIndex];
+                        
+                        // Обработка даты производства - оставляем только год
+                        if (key === 'production_date' && value) {
+                            const date = new Date(value);
+                            if (!isNaN(date)) {
+                                value = date.getFullYear().toString();
+                            } else {
+                                // Если не удалось распарсить дату, пытаемся извлечь год из строки
+                                const yearMatch = value.toString().match(/\b(20\d{2})\b/);
+                                value = yearMatch ? yearMatch[1] : value;
+                            }
+                        }
+                        
                         // Преобразуем числовые значения
                         if (['start_balance', 'end_balance', 'income', 'expense', 'for_picking', 'for_placement', 'volume'].includes(key)) {
-                            processedRow[key] = parseFloat(row[colIndex]) || 0;
+                            processedRow[key] = parseFloat(value) || 0;
                         } else {
-                            processedRow[key] = row[colIndex];
+                            processedRow[key] = value;
                         }
                     }
                 });
@@ -263,15 +282,39 @@
             });
             
             console.log('Обработанные данные:', allData);
+            
+            // Заполняем выпадающий список складов
+            populateWarehouseFilter();
+        }
+
+        function populateWarehouseFilter() {
+            // Получаем уникальные значения складов
+            const warehouses = [...new Set(allData.map(item => item.warehouse).filter(Boolean))].sort();
+            
+            // Очищаем существующие опции (кроме первой)
+            while (warehouseSelect.options.length > 1) {
+                warehouseSelect.remove(1);
+            }
+            
+            // Добавляем опции складов
+            warehouses.forEach(warehouse => {
+                const option = document.createElement('option');
+                option.value = warehouse;
+                option.textContent = warehouse;
+                warehouseSelect.appendChild(option);
+            });
+            
+            console.log('Доступные склады:', warehouses);
         }
 
         function applyFilters() {
             const codeFilter = document.getElementById('search-code').value.toLowerCase();
             const nomenclatureFilter = document.getElementById('search-nomenclature').value.toLowerCase();
             const addressFilter = document.getElementById('search-address').value.toLowerCase();
-            const warehouseFilter = document.getElementById('search-warehouse').value.toLowerCase();
+            const warehouseFilter = document.getElementById('search-warehouse').value;
             const seasonFilter = document.getElementById('filter-season').value;
-            const minQuantity = parseFloat(document.getElementById('min-quantity').value) || 0;
+            const maxQuantity = document.getElementById('max-quantity').value ? 
+                               parseFloat(document.getElementById('max-quantity').value) : null;
             
             currentFilteredData = allData.filter(item => {
                 const matchesCode = !codeFilter || 
@@ -284,12 +327,13 @@
                     (item.address && item.address.toString().toLowerCase().includes(addressFilter));
                 
                 const matchesWarehouse = !warehouseFilter || 
-                    (item.warehouse && item.warehouse.toString().toLowerCase().includes(warehouseFilter));
+                    (item.warehouse && item.warehouse === warehouseFilter);
                 
                 const matchesSeason = !seasonFilter || 
                     (item.season && item.season.toString().toLowerCase() === seasonFilter);
                 
-                const matchesQuantity = (item.end_balance || 0) >= minQuantity;
+                const matchesQuantity = maxQuantity === null || 
+                    (item.end_balance || 0) <= maxQuantity;
                 
                 return matchesCode && matchesNomenclature && matchesAddress && 
                        matchesWarehouse && matchesSeason && matchesQuantity;
@@ -307,7 +351,7 @@
             document.getElementById('search-address').value = '';
             document.getElementById('search-warehouse').value = '';
             document.getElementById('filter-season').value = '';
-            document.getElementById('min-quantity').value = '0';
+            document.getElementById('max-quantity').value = '';
             
             results.classList.add('hidden');
             exportBtn.disabled = true;
@@ -317,7 +361,10 @@
             const totalRecords = allData.length;
             const filteredRecords = data.length;
             
-            // Рассчитываем суммы для столбцов O и P
+            // Группируем данные по коду
+            const groupedData = groupDataByCode(data);
+            
+            // Рассчитываем суммы
             const sumEndBalance = data.reduce((sum, item) => sum + (item.end_balance || 0), 0);
             const sumIncome = data.reduce((sum, item) => sum + (item.income || 0), 0);
             const sumExpense = data.reduce((sum, item) => sum + (item.expense || 0), 0);
@@ -354,26 +401,40 @@
             });
             tableHeader.appendChild(headerRow);
             
-            // Данные таблицы
-            data.forEach(item => {
-                const row = document.createElement('tr');
+            // Отображаем сгруппированные данные
+            Object.keys(groupedData).forEach(code => {
+                const groupItems = groupedData[code];
                 
-                row.appendChild(createCell(item.code));
-                row.appendChild(createCell(item.nomenclature));
-                row.appendChild(createCell(item.address));
-                row.appendChild(createCell(item.warehouse));
-                row.appendChild(createCell(item.series_number));
-                row.appendChild(createCell(item.production_date));
-                row.appendChild(createCell(item.season));
-                row.appendChild(createCell(item.start_balance, true));
-                row.appendChild(createCell(item.end_balance, true));
-                row.appendChild(createCell(item.income, true));
-                row.appendChild(createCell(item.expense, true));
-                row.appendChild(createCell(item.for_picking, true));
-                row.appendChild(createCell(item.for_placement, true));
-                row.appendChild(createCell(item.volume, true));
+                // Заголовок группы
+                const groupHeader = document.createElement('tr');
+                groupHeader.className = 'group-header';
+                const groupTd = document.createElement('td');
+                groupTd.colSpan = headers.length;
+                groupTd.textContent = `🔸 Код: ${code} (${groupItems.length} записей)`;
+                groupHeader.appendChild(groupTd);
+                tableBody.appendChild(groupHeader);
                 
-                tableBody.appendChild(row);
+                // Данные группы
+                groupItems.forEach(item => {
+                    const row = document.createElement('tr');
+                    
+                    row.appendChild(createCell(item.code));
+                    row.appendChild(createCell(item.nomenclature));
+                    row.appendChild(createCell(item.address));
+                    row.appendChild(createCell(item.warehouse));
+                    row.appendChild(createCell(item.series_number));
+                    row.appendChild(createCell(item.production_date));
+                    row.appendChild(createCell(item.season));
+                    row.appendChild(createCell(item.start_balance, true));
+                    row.appendChild(createCell(item.end_balance, true));
+                    row.appendChild(createCell(item.income, true));
+                    row.appendChild(createCell(item.expense, true));
+                    row.appendChild(createCell(item.for_picking, true));
+                    row.appendChild(createCell(item.for_placement, true));
+                    row.appendChild(createCell(item.volume, true));
+                    
+                    tableBody.appendChild(row);
+                });
             });
             
             // Добавляем строку с итогами
@@ -396,6 +457,20 @@
             totalRow.appendChild(createCell('', false));
             
             tableBody.appendChild(totalRow);
+        }
+
+        function groupDataByCode(data) {
+            const grouped = {};
+            
+            data.forEach(item => {
+                const code = item.code || 'Без кода';
+                if (!grouped[code]) {
+                    grouped[code] = [];
+                }
+                grouped[code].push(item);
+            });
+            
+            return grouped;
         }
 
         function createCell(value, isNumber = false, align = 'left') {
