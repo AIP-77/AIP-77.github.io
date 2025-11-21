@@ -26,7 +26,7 @@
         th { background-color: #4CAF50; color: white; position: sticky; top: 0; font-size: 12px; white-space: nowrap; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         
-        /* Стили для группировки - УЛУЧШЕННЫЕ */
+        /* Стили для группировки */
         .group-header-1 { 
             background-color: #1976d2 !important; 
             color: white !important;
@@ -49,6 +49,45 @@
         .results-info, .totals-info { padding: 10px 12px; border-radius: 5px; margin: 8px 0; font-size: 13px; }
         .results-info { background: #e7f3ff; border-left: 4px solid #007bff; }
         .totals-info { background: #fff3cd; border-left: 4px solid #ffc107; }
+        
+        /* Стили для панели отладки */
+        .debug-panel {
+            background: #f8d7da; 
+            border-left: 4px solid #dc3545;
+            border-radius: 5px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        .debug-header {
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        .debug-header:hover {
+            background: #f1b0b7;
+        }
+        .debug-content {
+            padding: 0 12px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            background: #f8d7da;
+        }
+        .debug-content.expanded {
+            padding: 10px 12px;
+            max-height: 200px;
+            border-top: 1px solid #dc3545;
+        }
+        .debug-toggle {
+            font-size: 16px;
+            transition: transform 0.3s ease;
+        }
+        .debug-toggle.expanded {
+            transform: rotate(180deg);
+        }
         
         .loading-container { text-align: center; padding: 30px; }
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4CAF50; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
@@ -128,7 +167,18 @@
         <div id="results" class="hidden">
             <div id="results-info" class="results-info"></div>
             <div id="totals-info" class="totals-info"></div>
-            <div id="debug-info" class="results-info" style="background: #f8d7da; border-left-color: #dc3545; display: none;"></div>
+            
+            <!-- Панель отладки (свернута по умолчанию) -->
+            <div id="debug-panel" class="debug-panel" style="display: none;">
+                <div class="debug-header" onclick="toggleDebugPanel()">
+                    <span>🔍 Отладка группировки</span>
+                    <span class="debug-toggle">▼</span>
+                </div>
+                <div id="debug-content" class="debug-content">
+                    <!-- Содержимое будет заполнено динамически -->
+                </div>
+            </div>
+            
             <div class="table-container">
                 <table id="data-table">
                     <thead id="table-header"></thead>
@@ -149,7 +199,9 @@
         const results = document.getElementById('results');
         const resultsInfo = document.getElementById('results-info');
         const totalsInfo = document.getElementById('totals-info');
-        const debugInfo = document.getElementById('debug-info');
+        const debugPanel = document.getElementById('debug-panel');
+        const debugContent = document.getElementById('debug-content');
+        const debugToggle = document.querySelector('.debug-toggle');
         const tableHeader = document.getElementById('table-header');
         const tableBody = document.getElementById('table-body');
         const exportBtn = document.getElementById('export-btn');
@@ -168,11 +220,17 @@
             'Расход', 'К отбору', 'К размещению', 'Объем, м³'
         ];
 
+        // Функция для переключения панели отладки
+        function toggleDebugPanel() {
+            debugContent.classList.toggle('expanded');
+            debugToggle.classList.toggle('expanded');
+        }
+
         async function loadDataWithFilters() {
             loadingIndicator.classList.remove('hidden');
             results.classList.add('hidden');
             exportBtn.disabled = true;
-            debugInfo.style.display = 'none';
+            debugPanel.style.display = 'none'; // Скрываем панель отладки
 
             try {
                 if (!isDataLoaded) {
@@ -243,12 +301,6 @@
             
             console.log('Обработанные данные:', allData);
             populateWarehouseFilter();
-            
-            // Отладочная информация о данных
-            const uniqueCodes = [...new Set(allData.map(item => item.code))];
-            const uniqueYears = [...new Set(allData.map(item => item.production_date))];
-            console.log('Уникальные коды:', uniqueCodes);
-            console.log('Уникальные годы:', uniqueYears);
         }
 
         function populateWarehouseFilter() {
@@ -291,18 +343,29 @@
             const totalRecords = allData.length;
             const filteredRecords = data.length;
             
-            // Отладочная информация
+            // Собираем отладочную информацию
             const uniqueCodesInResults = [...new Set(data.map(item => item.code))];
             const uniqueYearsInResults = [...new Set(data.map(item => item.production_date))];
+            const totalGroupsByCode = uniqueCodesInResults.length;
+            const totalGroupsByYear = uniqueYearsInResults.reduce((sum, code) => {
+                const yearsForCode = [...new Set(data.filter(item => item.code === code).map(item => item.production_date))];
+                return sum + yearsForCode.length;
+            }, 0);
             
-            debugInfo.innerHTML = `
-                🔍 <strong>Отладка группировки:</strong><br>
-                Уникальные коды в результатах: ${uniqueCodesInResults.join(', ') || 'нет'}<br>
-                Уникальные годы в результатах: ${uniqueYearsInResults.join(', ') || 'нет'}<br>
-                Всего групп по кодам: ${uniqueCodesInResults.length}<br>
-                Всего групп по годам: ${uniqueYearsInResults.length}
+            // Заполняем панель отладки
+            debugContent.innerHTML = `
+                <strong>Статистика группировки:</strong><br>
+                • Уникальные коды: <strong>${uniqueCodesInResults.join(', ') || 'нет'}</strong><br>
+                • Уникальные годы: <strong>${uniqueYearsInResults.join(', ') || 'нет'}</strong><br>
+                • Всего групп по кодам: <strong>${totalGroupsByCode}</strong><br>
+                • Всего групп по годам: <strong>${totalGroupsByYear}</strong><br>
+                • Всего записей: <strong>${filteredRecords}</strong>
             `;
-            debugInfo.style.display = 'block';
+            
+            // Показываем панель отладки (свернутую)
+            debugPanel.style.display = 'block';
+            debugContent.classList.remove('expanded');
+            debugToggle.classList.remove('expanded');
             
             resultsInfo.innerHTML = `
                 📊 <strong>Всего записей:</strong> ${totalRecords} | 
