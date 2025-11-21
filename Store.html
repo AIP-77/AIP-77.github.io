@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel как БД</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div id="data-container"></div>
+
+    <script>
+        // URL к вашему Excel файлу на GitHub
+        const excelUrl = 'https://raw.githubusercontent.com/AIP-77.github.io/main/data.xlsx';
+
+        async function loadExcelData() {
+            try {
+                // Загружаем файл
+                const response = await fetch(excelUrl);
+                const arrayBuffer = await response.arrayBuffer();
+                
+                // Парсим Excel
+                const workbook = XLSX.read(arrayBuffer, {type: 'array'});
+                
+                // Получаем первую страницу
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Конвертируем в JSON
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                
+                // Отображаем данные
+                displayData(jsonData);
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+            }
+        }
+
+        function displayData(data) {
+            const container = document.getElementById('data-container');
+            container.innerHTML = '<h2>Данные из Excel:</h2>';
+            
+            if (data.length === 0) {
+                container.innerHTML += '<p>Нет данных</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.style.border = '1px solid black';
+            table.style.borderCollapse = 'collapse';
+            
+            // Заголовки
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            Object.keys(data[0]).forEach(key => {
+                const th = document.createElement('th');
+                th.textContent = key;
+                th.style.border = '1px solid black';
+                th.style.padding = '5px';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // Данные
+            const tbody = document.createElement('tbody');
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                Object.values(row).forEach(value => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    td.style.border = '1px solid black';
+                    td.style.padding = '5px';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            
+            container.appendChild(table);
+        }
+
+        // Загружаем данные при загрузке страницы
+        loadExcelData();
+    </script>
+</body>
+</html>
