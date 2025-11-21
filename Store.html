@@ -5,184 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        /* Стили остаются без изменений */
         * { box-sizing: border-box; }
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 10px; 
-            background-color: #f5f5f5;
-            font-size: 14px;
-        }
-        .container { 
-            max-width: 100%; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 15px; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        /* Адаптивная панель фильтров */
-        .filters { 
-            background: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-bottom: 15px; 
-            border: 1px solid #e9ecef; 
-        }
-        .filters-grid { 
-            display: grid; 
-            grid-template-columns: 1fr; 
-            gap: 15px; 
-        }
-        @media (min-width: 768px) {
-            .filters-grid { 
-                grid-template-columns: 1fr 1fr; 
-            }
-        }
+        body { font-family: Arial, sans-serif; margin: 10px; background-color: #f5f5f5; font-size: 14px; }
+        .container { max-width: 100%; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .filters { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e9ecef; }
+        .filters-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        @media (min-width: 768px) { .filters-grid { grid-template-columns: 1fr 1fr; } }
         .filter-group { margin-bottom: 12px; }
-        .filter-group label { 
-            display: block; 
-            margin-bottom: 5px; 
-            font-weight: bold; 
-            color: #495057; 
-            font-size: 13px;
-        }
-        .filter-group input, .filter-group select { 
-            width: 100%; 
-            padding: 8px 10px; 
-            border: 1px solid #ced4da; 
-            border-radius: 4px; 
-            font-size: 13px; 
-        }
-        
-        .search-buttons { 
-            display: flex; 
-            flex-wrap: wrap;
-            gap: 8px; 
-            margin-top: 15px; 
-        }
-        button { 
-            padding: 8px 16px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-size: 13px; 
-            transition: background-color 0.3s;
-            flex: 1;
-            min-width: 120px;
-        }
+        .filter-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; font-size: 13px; }
+        .filter-group input, .filter-group select { width: 100%; padding: 8px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px; }
+        .search-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; transition: background-color 0.3s; flex: 1; min-width: 120px; }
         .btn-primary { background-color: #007bff; color: white; }
-        .btn-primary:hover { background-color: #0056b3; }
         .btn-secondary { background-color: #6c757d; color: white; }
-        .btn-secondary:hover { background-color: #545b62; }
         .btn-success { background-color: #28a745; color: white; }
-        .btn-success:hover { background-color: #1e7e34; }
-        
-        /* Адаптивная таблица */
-        .table-container {
-            overflow-x: auto;
-            margin: 15px 0;
-            -webkit-overflow-scrolling: touch;
-        }
-        table { 
-            border-collapse: collapse; 
-            width: 100%; 
-            font-size: 12px;
-            min-width: 800px;
-        }
-        th, td { 
-            border: 1px solid #ddd; 
-            padding: 6px 8px; 
-            text-align: left; 
-            word-wrap: break-word;
-        }
-        th { 
-            background-color: #4CAF50; 
-            color: white; 
-            position: sticky;
-            top: 0;
-            font-size: 12px;
-            white-space: nowrap;
-        }
+        .table-container { overflow-x: auto; margin: 15px 0; -webkit-overflow-scrolling: touch; }
+        table { border-collapse: collapse; width: 100%; font-size: 12px; min-width: 800px; }
+        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; word-wrap: break-word; }
+        th { background-color: #4CAF50; color: white; position: sticky; top: 0; font-size: 12px; white-space: nowrap; }
         tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:hover { background-color: #f1f1f1; }
         
-        /* Стили для группировки */
+        /* Стили для группировки - УЛУЧШЕННЫЕ */
         .group-header-1 { 
-            background-color: #e3f2fd !important; 
+            background-color: #1976d2 !important; 
+            color: white !important;
             font-weight: bold; 
             font-size: 13px;
         }
         .group-header-2 { 
-            background-color: #f3e5f5 !important; 
+            background-color: #7b1fa2 !important; 
+            color: white !important;
             font-weight: bold;
             font-size: 12px;
         }
-        .group-header-1 td { border-bottom: 2px solid #2196f3; }
-        .group-header-2 td { border-bottom: 1px solid #9c27b0; }
+        .group-header-1 td { border-bottom: 3px solid #0d47a1; font-size: 14px; }
+        .group-header-2 td { border-bottom: 2px solid #4a148c; }
         
-        .aggregated-row { 
-            background-color: #fff9c4 !important; 
-            font-weight: bold;
-        }
-        .total-row { 
-            background-color: #e8f5e8 !important; 
-            font-weight: bold; 
-        }
+        .aggregated-row { background-color: #fff9c4 !important; font-weight: bold; }
+        .total-row { background-color: #e8f5e8 !important; font-weight: bold; }
         .total-row td { border-top: 2px solid #4CAF50; }
         
-        .results-info, .totals-info { 
-            padding: 10px 12px; 
-            border-radius: 5px; 
-            margin: 8px 0; 
-            font-size: 13px;
-        }
-        .results-info { 
-            background: #e7f3ff; 
-            border-left: 4px solid #007bff; 
-        }
-        .totals-info { 
-            background: #fff3cd; 
-            border-left: 4px solid #ffc107; 
-        }
+        .results-info, .totals-info { padding: 10px 12px; border-radius: 5px; margin: 8px 0; font-size: 13px; }
+        .results-info { background: #e7f3ff; border-left: 4px solid #007bff; }
+        .totals-info { background: #fff3cd; border-left: 4px solid #ffc107; }
         
         .loading-container { text-align: center; padding: 30px; }
-        .spinner { 
-            border: 4px solid #f3f3f3; 
-            border-top: 4px solid #4CAF50; 
-            border-radius: 50%; 
-            width: 40px; 
-            height: 40px; 
-            animation: spin 1s linear infinite; 
-            margin: 0 auto 15px; 
-        }
-        @keyframes spin { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(360deg); } 
-        }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4CAF50; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .hidden { display: none; }
-        .instructions { 
-            background: #fff3cd; 
-            padding: 12px; 
-            border-radius: 5px; 
-            border-left: 4px solid #ffc107; 
-            margin-bottom: 15px;
-            font-size: 13px;
-        }
+        .instructions { background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #ffc107; margin-bottom: 15px; font-size: 13px; }
         
-        /* Мобильная оптимизация */
         @media (max-width: 767px) {
             body { margin: 5px; }
             .container { padding: 10px; }
             h1 { font-size: 18px; margin: 10px 0; }
-            .instructions h3 { font-size: 16px; margin: 5px 0; }
             button { min-width: 100px; padding: 6px 12px; }
-            th, td { padding: 4px 6px; }
-        }
-        
-        @media (max-width: 480px) {
-            .search-buttons { flex-direction: column; }
-            button { width: 100%; }
         }
     </style>
 </head>
@@ -193,30 +71,26 @@
         <div class="instructions">
             <h3>💡 Как использовать:</h3>
             <p>Заполните один или несколько фильтров и нажмите "Применить фильтры" для загрузки данных.</p>
+            <p><strong>Группировка работает всегда:</strong> данные автоматически группируются по Коду и Году производства</p>
         </div>
         
-        <!-- Адаптивная панель фильтров -->
+        <!-- Панель фильтров -->
         <div class="filters">
             <div class="filters-grid">
-                <!-- Левая колонка -->
                 <div class="filters-column">
                     <div class="filter-group">
                         <label>🔍 Поиск по артикулу/коду:</label>
                         <input type="text" id="search-code" placeholder="Введите код или артикул...">
                     </div>
-                    
                     <div class="filter-group">
                         <label>📋 Поиск по номенклатуре:</label>
                         <input type="text" id="search-nomenclature" placeholder="Введите название товара...">
                     </div>
-                    
                     <div class="filter-group">
                         <label>📍 Поиск по адресу хранения:</label>
                         <input type="text" id="search-address" placeholder="Введите адрес...">
                     </div>
                 </div>
-                
-                <!-- Правая колонка -->
                 <div class="filters-column">
                     <div class="filter-group">
                         <label>🏢 Склад:</label>
@@ -224,7 +98,6 @@
                             <option value="">Все склады</option>
                         </select>
                     </div>
-                    
                     <div class="filter-group">
                         <label>📅 Сезон (для шин):</label>
                         <select id="filter-season">
@@ -234,14 +107,11 @@
                             <option value="всесезон">Всесезон</option>
                         </select>
                     </div>
-                    
                     <div class="filter-group">
                         <label>🔢 Максимальное количество:</label>
                         <input type="number" id="max-quantity" placeholder="До ..." min="0">
                     </div>
                 </div>
-                
-                <!-- Кнопки -->
                 <div class="search-buttons">
                     <button class="btn-primary" onclick="loadDataWithFilters()">🔍 Применить фильтры</button>
                     <button class="btn-secondary" onclick="clearFilters()">❌ Очистить фильтры</button>
@@ -250,16 +120,15 @@
             </div>
         </div>
         
-        <!-- Индикатор загрузки -->
         <div id="loading-indicator" class="loading-container hidden">
             <div class="spinner"></div>
             <h3>Загружаем данные...</h3>
         </div>
         
-        <!-- Результаты -->
         <div id="results" class="hidden">
             <div id="results-info" class="results-info"></div>
             <div id="totals-info" class="totals-info"></div>
+            <div id="debug-info" class="results-info" style="background: #f8d7da; border-left-color: #dc3545; display: none;"></div>
             <div class="table-container">
                 <table id="data-table">
                     <thead id="table-header"></thead>
@@ -270,9 +139,6 @@
     </div>
 
     <script>
-        // =============================================
-        // ПЕРЕМЕННЫЕ И КОНСТАНТЫ
-        // =============================================
         let allData = [];
         let headers = [];
         let currentFilteredData = [];
@@ -283,66 +149,37 @@
         const results = document.getElementById('results');
         const resultsInfo = document.getElementById('results-info');
         const totalsInfo = document.getElementById('totals-info');
+        const debugInfo = document.getElementById('debug-info');
         const tableHeader = document.getElementById('table-header');
         const tableBody = document.getElementById('table-body');
         const exportBtn = document.getElementById('export-btn');
         const warehouseSelect = document.getElementById('search-warehouse');
 
-        // =============================================
-        // ФИКСИРОВАННОЕ СОПОСТАВЛЕНИЕ СТОЛБЦОВ
-        // =============================================
-        
         const columnMappingByIndex = {
-            0: 'code',           // Столбец A - "Код"
-            3: 'nomenclature',   // Столбец D - "Номенклатура" 
-            7: 'address',        // Столбец H - "Адрес"
-            9: 'warehouse',      // Столбец J - "Склад"
-            // Убрали столбец Серия.Номер
-            12: 'production_date', // Столбец M - "Серия.Дата производства"
-            13: 'season',        // Столбец N - "Номенклатура.Сезон (Шины)"
-            14: 'start_balance', // Столбец O - "В наличии (начальный остаток)"
-            15: 'end_balance',   // Столбец P - "В наличии (конечный остаток)"
-            16: 'income',        // Столбец Q - "В наличии (приход)"
-            17: 'expense',       // Столбец R - "В наличии (расход)"
-            18: 'for_picking',   // Столбец S - "К отбору"
-            19: 'for_placement', // Столбец T - "К размещению"
-            20: 'volume'         // Столбец U - "Занятый, м3"
+            0: 'code', 3: 'nomenclature', 7: 'address', 9: 'warehouse', 
+            12: 'production_date', 13: 'season', 14: 'start_balance', 
+            15: 'end_balance', 16: 'income', 17: 'expense', 
+            18: 'for_picking', 19: 'for_placement', 20: 'volume'
         };
 
-        // Заголовки для отображения (без столбца Серия.Номер)
         const headerTitles = [
-            'Код',
-            'Номенклатура', 
-            'Адрес',
-            'Склад',
-            'Год производства', // Убрали 'Серия.Номер'
-            'Сезон',
-            'Начальный остаток',
-            'Конечный остаток',
-            'Приход',
-            'Расход',
-            'К отбору',
-            'К размещению',
-            'Объем, м³'
+            'Код', 'Номенклатура', 'Адрес', 'Склад', 'Год производства',
+            'Сезон', 'Начальный остаток', 'Конечный остаток', 'Приход',
+            'Расход', 'К отбору', 'К размещению', 'Объем, м³'
         ];
-
-        // =============================================
-        // ОСНОВНЫЕ ФУНКЦИИ
-        // =============================================
 
         async function loadDataWithFilters() {
             loadingIndicator.classList.remove('hidden');
             results.classList.add('hidden');
             exportBtn.disabled = true;
+            debugInfo.style.display = 'none';
 
             try {
                 if (!isDataLoaded) {
-                    console.log('Загрузка данных...');
                     await loadExcelData();
                     isDataLoaded = true;
                 }
                 applyFilters();
-                
             } catch (error) {
                 console.error('Ошибка:', error);
                 loadingIndicator.classList.add('hidden');
@@ -364,10 +201,7 @@
             
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            
             const jsonData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
-            
-            console.log('Сырые данные из Excel:', jsonData);
             
             if (jsonData.length === 0) {
                 throw new Error('Данные не найдены');
@@ -386,22 +220,20 @@
                     if (row[colIndex] !== undefined) {
                         let value = row[colIndex];
                         
-                        // Обработка даты производства - оставляем только год
                         if (key === 'production_date' && value) {
                             const date = new Date(value);
                             if (!isNaN(date)) {
                                 value = date.getFullYear().toString();
                             } else {
                                 const yearMatch = value.toString().match(/\b(20\d{2})\b/);
-                                value = yearMatch ? yearMatch[1] : value;
+                                value = yearMatch ? yearMatch[1] : 'Не указан';
                             }
                         }
                         
-                        // Преобразуем числовые значения
                         if (['start_balance', 'end_balance', 'income', 'expense', 'for_picking', 'for_placement', 'volume'].includes(key)) {
                             processedRow[key] = parseFloat(value) || 0;
                         } else {
-                            processedRow[key] = value;
+                            processedRow[key] = value || 'Не указано';
                         }
                     }
                 });
@@ -411,15 +243,17 @@
             
             console.log('Обработанные данные:', allData);
             populateWarehouseFilter();
+            
+            // Отладочная информация о данных
+            const uniqueCodes = [...new Set(allData.map(item => item.code))];
+            const uniqueYears = [...new Set(allData.map(item => item.production_date))];
+            console.log('Уникальные коды:', uniqueCodes);
+            console.log('Уникальные годы:', uniqueYears);
         }
 
         function populateWarehouseFilter() {
             const warehouses = [...new Set(allData.map(item => item.warehouse).filter(Boolean))].sort();
-            
-            while (warehouseSelect.options.length > 1) {
-                warehouseSelect.remove(1);
-            }
-            
+            while (warehouseSelect.options.length > 1) warehouseSelect.remove(1);
             warehouses.forEach(warehouse => {
                 const option = document.createElement('option');
                 option.value = warehouse;
@@ -434,30 +268,17 @@
             const addressFilter = document.getElementById('search-address').value.toLowerCase();
             const warehouseFilter = document.getElementById('search-warehouse').value;
             const seasonFilter = document.getElementById('filter-season').value;
-            const maxQuantity = document.getElementById('max-quantity').value ? 
-                               parseFloat(document.getElementById('max-quantity').value) : null;
+            const maxQuantity = document.getElementById('max-quantity').value ? parseFloat(document.getElementById('max-quantity').value) : null;
             
             currentFilteredData = allData.filter(item => {
-                const matchesCode = !codeFilter || 
-                    (item.code && item.code.toString().toLowerCase().includes(codeFilter));
+                const matchesCode = !codeFilter || (item.code && item.code.toString().toLowerCase().includes(codeFilter));
+                const matchesNomenclature = !nomenclatureFilter || (item.nomenclature && item.nomenclature.toString().toLowerCase().includes(nomenclatureFilter));
+                const matchesAddress = !addressFilter || (item.address && item.address.toString().toLowerCase().includes(addressFilter));
+                const matchesWarehouse = !warehouseFilter || (item.warehouse && item.warehouse === warehouseFilter);
+                const matchesSeason = !seasonFilter || (item.season && item.season.toString().toLowerCase() === seasonFilter);
+                const matchesQuantity = maxQuantity === null || (item.end_balance || 0) <= maxQuantity;
                 
-                const matchesNomenclature = !nomenclatureFilter || 
-                    (item.nomenclature && item.nomenclature.toString().toLowerCase().includes(nomenclatureFilter));
-                
-                const matchesAddress = !addressFilter || 
-                    (item.address && item.address.toString().toLowerCase().includes(addressFilter));
-                
-                const matchesWarehouse = !warehouseFilter || 
-                    (item.warehouse && item.warehouse === warehouseFilter);
-                
-                const matchesSeason = !seasonFilter || 
-                    (item.season && item.season.toString().toLowerCase() === seasonFilter);
-                
-                const matchesQuantity = maxQuantity === null || 
-                    (item.end_balance || 0) <= maxQuantity;
-                
-                return matchesCode && matchesNomenclature && matchesAddress && 
-                       matchesWarehouse && matchesSeason && matchesQuantity;
+                return matchesCode && matchesNomenclature && matchesAddress && matchesWarehouse && matchesSeason && matchesQuantity;
             });
             
             loadingIndicator.classList.add('hidden');
@@ -466,41 +287,37 @@
             exportBtn.disabled = currentFilteredData.length === 0;
         }
 
-        function clearFilters() {
-            document.getElementById('search-code').value = '';
-            document.getElementById('search-nomenclature').value = '';
-            document.getElementById('search-address').value = '';
-            document.getElementById('search-warehouse').value = '';
-            document.getElementById('filter-season').value = '';
-            document.getElementById('max-quantity').value = '';
-            
-            results.classList.add('hidden');
-            exportBtn.disabled = true;
-        }
-
         function displayData(data) {
             const totalRecords = allData.length;
             const filteredRecords = data.length;
             
-            // Многоуровневая группировка и агрегация
-            const groupedData = groupAndAggregateData(data);
+            // Отладочная информация
+            const uniqueCodesInResults = [...new Set(data.map(item => item.code))];
+            const uniqueYearsInResults = [...new Set(data.map(item => item.production_date))];
             
-            // Общие суммы
+            debugInfo.innerHTML = `
+                🔍 <strong>Отладка группировки:</strong><br>
+                Уникальные коды в результатах: ${uniqueCodesInResults.join(', ') || 'нет'}<br>
+                Уникальные годы в результатах: ${uniqueYearsInResults.join(', ') || 'нет'}<br>
+                Всего групп по кодам: ${uniqueCodesInResults.length}<br>
+                Всего групп по годам: ${uniqueYearsInResults.length}
+            `;
+            debugInfo.style.display = 'block';
+            
+            resultsInfo.innerHTML = `
+                📊 <strong>Всего записей:</strong> ${totalRecords} | 
+                🔍 <strong>Найдено:</strong> ${filteredRecords}
+            `;
+            
             const sumEndBalance = data.reduce((sum, item) => sum + (item.end_balance || 0), 0);
             const sumIncome = data.reduce((sum, item) => sum + (item.income || 0), 0);
             const sumExpense = data.reduce((sum, item) => sum + (item.expense || 0), 0);
             const sumStartBalance = data.reduce((sum, item) => sum + (item.start_balance || 0), 0);
             
-            resultsInfo.innerHTML = `
-                📊 <strong>Всего записей:</strong> ${totalRecords} | 
-                🔍 <strong>Найдено:</strong> ${filteredRecords}
-                ${filteredRecords < totalRecords ? ` | ✅ <strong>Фильтры активны</strong>` : ''}
-            `;
-            
             totalsInfo.innerHTML = `
-                🧮 <strong>Суммы по столбцам:</strong> 
-                Начальный остаток: <strong>${sumStartBalance.toLocaleString()}</strong> | 
-                Конечный остаток: <strong>${sumEndBalance.toLocaleString()}</strong> | 
+                🧮 <strong>Суммы:</strong> 
+                Начальный: <strong>${sumStartBalance.toLocaleString()}</strong> | 
+                Конечный: <strong>${sumEndBalance.toLocaleString()}</strong> | 
                 Приход: <strong>${sumIncome.toLocaleString()}</strong> | 
                 Расход: <strong>${sumExpense.toLocaleString()}</strong>
             `;
@@ -509,7 +326,7 @@
             tableBody.innerHTML = '';
             
             if (data.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="' + (headers.length) + '" style="text-align: center;">Нет данных по фильтрам</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="' + headers.length + '" style="text-align: center;">Нет данных по фильтрам</td></tr>';
                 return;
             }
             
@@ -522,136 +339,82 @@
             });
             tableHeader.appendChild(headerRow);
             
-            // Отображаем сгруппированные и агрегированные данные
+            // Группировка и отображение данных
+            const groupedData = groupData(data);
             renderGroupedData(groupedData);
-            
-            // Итоговая строка
             addTotalRow(sumStartBalance, sumEndBalance, sumIncome, sumExpense);
         }
 
-        function groupAndAggregateData(data) {
+        function groupData(data) {
             const grouped = {};
             
             data.forEach(item => {
-                const code = item.code || 'Без кода';
-                const year = item.production_date || 'Без года';
-                
-                // Ключ для агрегации
-                const aggKey = `${code}_${item.address}_${item.warehouse}_${year}`;
+                const code = item.code;
+                const year = item.production_date;
                 
                 if (!grouped[code]) {
                     grouped[code] = {};
                 }
                 if (!grouped[code][year]) {
-                    grouped[code][year] = {};
+                    grouped[code][year] = [];
                 }
-                if (!grouped[code][year][aggKey]) {
-                    grouped[code][year][aggKey] = {
-                        items: [],
-                        aggregated: {
-                            code: code,
-                            nomenclature: item.nomenclature,
-                            address: item.address,
-                            warehouse: item.warehouse,
-                            production_date: year,
-                            season: item.season,
-                            start_balance: 0,
-                            end_balance: 0,
-                            income: 0,
-                            expense: 0,
-                            for_picking: 0,
-                            for_placement: 0,
-                            volume: 0,
-                            count: 0
-                        }
-                    };
-                }
-                
-                grouped[code][year][aggKey].items.push(item);
-                
-                // Суммируем значения для агрегации
-                const agg = grouped[code][year][aggKey].aggregated;
-                agg.start_balance += item.start_balance || 0;
-                agg.end_balance += item.end_balance || 0;
-                agg.income += item.income || 0;
-                agg.expense += item.expense || 0;
-                agg.for_picking += item.for_picking || 0;
-                agg.for_placement += item.for_placement || 0;
-                agg.volume += item.volume || 0;
-                agg.count++;
+                grouped[code][year].push(item);
             });
             
+            console.log('Сгруппированные данные:', grouped);
             return grouped;
         }
 
         function renderGroupedData(groupedData) {
-            Object.keys(groupedData).sort().forEach(code => {
+            // Сортируем коды
+            const sortedCodes = Object.keys(groupedData).sort();
+            
+            sortedCodes.forEach(code => {
                 const yearGroups = groupedData[code];
                 
-                // Заголовок группы по коду
+                // Заголовок группы по коду (Уровень 1 - синий)
                 const codeHeader = document.createElement('tr');
                 codeHeader.className = 'group-header-1';
                 const codeTd = document.createElement('td');
                 codeTd.colSpan = headers.length;
-                codeTd.textContent = `🔸 Код: ${code}`;
+                codeTd.innerHTML = `🔸 <strong>КОД: ${code}</strong>`;
+                codeHeader.appendChild(codeTd);
                 tableBody.appendChild(codeHeader);
                 
-                Object.keys(yearGroups).sort().forEach(year => {
-                    const aggGroups = yearGroups[year];
+                // Сортируем годы
+                const sortedYears = Object.keys(yearGroups).sort();
+                
+                sortedYears.forEach(year => {
+                    const items = yearGroups[year];
                     
-                    // Заголовок группы по году
+                    // Заголовок группы по году (Уровень 2 - фиолетовый)
                     const yearHeader = document.createElement('tr');
                     yearHeader.className = 'group-header-2';
                     const yearTd = document.createElement('td');
                     yearTd.colSpan = headers.length;
-                    yearTd.textContent = `📅 Год производства: ${year}`;
+                    yearTd.innerHTML = `📅 <strong>ГОД ПРОИЗВОДСТВА: ${year}</strong> (записей: ${items.length})`;
+                    yearHeader.appendChild(yearTd);
                     tableBody.appendChild(yearHeader);
                     
-                    Object.keys(aggGroups).forEach(aggKey => {
-                        const group = aggGroups[aggKey];
-                        const agg = group.aggregated;
+                    // Отображаем строки данных
+                    items.forEach(item => {
+                        const row = document.createElement('tr');
                         
-                        if (group.items.length > 1) {
-                            // Агрегированная строка для дубликатов
-                            const aggRow = document.createElement('tr');
-                            aggRow.className = 'aggregated-row';
-                            
-                            aggRow.appendChild(createCell(agg.code));
-                            aggRow.appendChild(createCell(agg.nomenclature));
-                            aggRow.appendChild(createCell(agg.address));
-                            aggRow.appendChild(createCell(agg.warehouse));
-                            aggRow.appendChild(createCell(agg.production_date));
-                            aggRow.appendChild(createCell(agg.season));
-                            aggRow.appendChild(createCell(agg.start_balance, true));
-                            aggRow.appendChild(createCell(agg.end_balance, true));
-                            aggRow.appendChild(createCell(agg.income, true));
-                            aggRow.appendChild(createCell(agg.expense, true));
-                            aggRow.appendChild(createCell(agg.for_picking, true));
-                            aggRow.appendChild(createCell(agg.for_placement, true));
-                            aggRow.appendChild(createCell(agg.volume, true));
-                            
-                            tableBody.appendChild(aggRow);
-                        } else {
-                            // Одиночная строка
-                            const item = group.items[0];
-                            const row = document.createElement('tr');
-                            
-                            row.appendChild(createCell(item.code));
-                            row.appendChild(createCell(item.nomenclature));
-                            row.appendChild(createCell(item.address));
-                            row.appendChild(createCell(item.warehouse));
-                            row.appendChild(createCell(item.production_date));
-                            row.appendChild(createCell(item.season));
-                            row.appendChild(createCell(item.start_balance, true));
-                            row.appendChild(createCell(item.end_balance, true));
-                            row.appendChild(createCell(item.income, true));
-                            row.appendChild(createCell(item.expense, true));
-                            row.appendChild(createCell(item.for_picking, true));
-                            row.appendChild(createCell(item.for_placement, true));
-                            row.appendChild(createCell(item.volume, true));
-                            
-                            tableBody.appendChild(row);
-                        }
+                        row.appendChild(createCell(item.code));
+                        row.appendChild(createCell(item.nomenclature));
+                        row.appendChild(createCell(item.address));
+                        row.appendChild(createCell(item.warehouse));
+                        row.appendChild(createCell(item.production_date));
+                        row.appendChild(createCell(item.season));
+                        row.appendChild(createCell(item.start_balance, true));
+                        row.appendChild(createCell(item.end_balance, true));
+                        row.appendChild(createCell(item.income, true));
+                        row.appendChild(createCell(item.expense, true));
+                        row.appendChild(createCell(item.for_picking, true));
+                        row.appendChild(createCell(item.for_placement, true));
+                        row.appendChild(createCell(item.volume, true));
+                        
+                        tableBody.appendChild(row);
                     });
                 });
             });
@@ -690,6 +453,17 @@
             return td;
         }
 
+        function clearFilters() {
+            document.getElementById('search-code').value = '';
+            document.getElementById('search-nomenclature').value = '';
+            document.getElementById('search-address').value = '';
+            document.getElementById('search-warehouse').value = '';
+            document.getElementById('filter-season').value = '';
+            document.getElementById('max-quantity').value = '';
+            results.classList.add('hidden');
+            exportBtn.disabled = true;
+        }
+
         function exportToExcel() {
             if (currentFilteredData.length === 0) {
                 alert('Нет данных для экспорта');
@@ -701,37 +475,19 @@
             
             currentFilteredData.forEach(item => {
                 const row = [
-                    item.code,
-                    item.nomenclature,
-                    item.address,
-                    item.warehouse,
-                    item.production_date,
-                    item.season,
-                    item.start_balance,
-                    item.end_balance,
-                    item.income,
-                    item.expense,
-                    item.for_picking,
-                    item.for_placement,
-                    item.volume
+                    item.code, item.nomenclature, item.address, item.warehouse,
+                    item.production_date, item.season, item.start_balance,
+                    item.end_balance, item.income, item.expense,
+                    item.for_picking, item.for_placement, item.volume
                 ];
                 exportData.push(row);
             });
-            
-            const sumStartBalance = currentFilteredData.reduce((sum, item) => sum + (item.start_balance || 0), 0);
-            const sumEndBalance = currentFilteredData.reduce((sum, item) => sum + (item.end_balance || 0), 0);
-            const sumIncome = currentFilteredData.reduce((sum, item) => sum + (item.income || 0), 0);
-            const sumExpense = currentFilteredData.reduce((sum, item) => sum + (item.expense || 0), 0);
-            
-            exportData.push(['ИТОГО:', '', '', '', '', '', 
-                           sumStartBalance, sumEndBalance, sumIncome, sumExpense, '', '', '']);
             
             const ws = XLSX.utils.aoa_to_sheet(exportData);
             XLSX.utils.book_append_sheet(wb, ws, "Складские данные");
             XLSX.writeFile(wb, `склад_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
-        // Обработчик Enter
         document.addEventListener('DOMContentLoaded', function() {
             const inputs = document.querySelectorAll('input, select');
             inputs.forEach(input => {
