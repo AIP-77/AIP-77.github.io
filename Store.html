@@ -26,25 +26,30 @@
         th { background-color: #4CAF50; color: white; position: sticky; top: 0; font-size: 12px; white-space: nowrap; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         
-        /* Стили для группировки */
+        /* Стили для группировки - СПОКОЙНЫЕ ЦВЕТА */
         .group-header-1 { 
-            background-color: #1976d2 !important; 
-            color: white !important;
+            background-color: #e8f5e8 !important; /* Спокойный зеленый */
+            color: #2e7d32 !important;
             font-weight: bold; 
             font-size: 13px;
         }
         .group-header-2 { 
-            background-color: #7b1fa2 !important; 
-            color: white !important;
+            background-color: #e3f2fd !important; /* Спокойный синий */
+            color: #1565c0 !important;
             font-weight: bold;
             font-size: 12px;
         }
-        .group-header-1 td { border-bottom: 3px solid #0d47a1; font-size: 14px; }
-        .group-header-2 td { border-bottom: 2px solid #4a148c; }
+        .group-header-1 td { 
+            border-bottom: 2px solid #4caf50; 
+            font-size: 14px; 
+        }
+        .group-header-2 td { 
+            border-bottom: 1px solid #2196f3; 
+        }
         
         .aggregated-row { background-color: #fff9c4 !important; font-weight: bold; }
-        .total-row { background-color: #e8f5e8 !important; font-weight: bold; }
-        .total-row td { border-top: 2px solid #4CAF50; }
+        .total-row { background-color: #f5f5f5 !important; font-weight: bold; }
+        .total-row td { border-top: 2px solid #757575; }
         
         .results-info, .totals-info { padding: 10px 12px; border-radius: 5px; margin: 8px 0; font-size: 13px; }
         .results-info { background: #e7f3ff; border-left: 4px solid #007bff; }
@@ -525,12 +530,15 @@
             sortedCodes.forEach(code => {
                 const yearGroups = groupedData[code];
                 
-                // Заголовок группы по коду (Уровень 1 - синий)
+                // Рассчитываем сумму конечного остатка для всей группы по коду
+                const totalEndBalanceForCode = Object.values(yearGroups).flat().reduce((sum, item) => sum + (item.end_balance || 0), 0);
+                
+                // Заголовок группы по коду (Уровень 1 - спокойный зеленый)
                 const codeHeader = document.createElement('tr');
                 codeHeader.className = 'group-header-1';
                 const codeTd = document.createElement('td');
                 codeTd.colSpan = headers.length;
-                codeTd.innerHTML = `🔸 <strong>КОД: ${code}</strong>`;
+                codeTd.innerHTML = `📦 <strong>КОД: ${code}</strong> | 🧮 Всего единиц: <strong>${totalEndBalanceForCode.toLocaleString()}</strong>`;
                 codeHeader.appendChild(codeTd);
                 tableBody.appendChild(codeHeader);
                 
@@ -540,12 +548,15 @@
                 sortedYears.forEach(year => {
                     const items = yearGroups[year];
                     
-                    // Заголовок группы по году (Уровень 2 - фиолетовый)
+                    // Рассчитываем сумму конечного остатка для группы по году
+                    const totalEndBalanceForYear = items.reduce((sum, item) => sum + (item.end_balance || 0), 0);
+                    
+                    // Заголовок группы по году (Уровень 2 - спокойный синий)
                     const yearHeader = document.createElement('tr');
                     yearHeader.className = 'group-header-2';
                     const yearTd = document.createElement('td');
                     yearTd.colSpan = headers.length;
-                    yearTd.innerHTML = `📅 <strong>ГОД ПРОИЗВОДСТВА: ${year}</strong> (записей: ${items.length})`;
+                    yearTd.innerHTML = `📅 <strong>ГОД ПРОИЗВОДСТВА: ${year}</strong> | 📊 Записей: ${items.length} | 🧮 Единиц: <strong>${totalEndBalanceForYear.toLocaleString()}</strong>`;
                     yearHeader.appendChild(yearTd);
                     tableBody.appendChild(yearHeader);
                     
