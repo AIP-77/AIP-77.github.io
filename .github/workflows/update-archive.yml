@@ -27,7 +27,7 @@ jobs:
         env:
           ARCHIVE_FILES: |
            2025-10 fullData.json:1ONAxssw3MN_tS-ScPKeGDaIp3ZmPJrdT
-            # standard fullData.json:1Ua_KETb1fVu3PhR6SmxYkWjOOApaZDc5
+           standard fullData.json:1Ua_KETb1fVu3PhR6SmxYkWjOOApaZDc5
             #  staff fullData.json:1cbHKB7vGBslK52H7EJBT3jhG0yHFrpC8
             # 2025-09 fullData.json:1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO
             # 2025-11 fullData.json:1tl89YvvdxAF7GZasSZoPxn6zaZuGTuCt
