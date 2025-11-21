@@ -208,13 +208,13 @@
         const tableHeader = document.getElementById('table-header');
         const tableBody = document.getElementById('table-body');
 
-        // Соответствие русских названий английским ключам
+        // Правильное сопоставление столбцов согласно вашим данным
         const columnMapping = {
-            'Код': 'code',
-            'Номенклатура': 'nomenclature',
-            'Адрес': 'address',
-            'Склад': 'warehouse',
-            'Серия.Номер': 'series_number',
+            'Код': 'series_number',        // Данные из столбца Серия.Номер
+            'Номенклатура': 'code',        // Данные из столбца Код
+            'Адрес': 'nomenclature',       // Данные из столбца Номенклатура
+            'Склад': 'address',            // Данные из столбца Адрес
+            'Серия.Номер': 'warehouse',    // Данные из столбца Склад
             'Серия.Дата производства': 'production_date',
             'Номенклатура.Сезон (Шины)': 'season',
             'В наличии (начальный остаток)': 'start_balance',
@@ -224,6 +224,24 @@
             'К отбору': 'for_picking',
             'К размещению': 'for_placement',
             'Занятый, м3': 'volume'
+        };
+
+        // Обратное сопоставление для правильного отображения данных
+        const reverseColumnMapping = {
+            'series_number': 'Код',
+            'code': 'Номенклатура', 
+            'nomenclature': 'Адрес',
+            'address': 'Склад',
+            'warehouse': 'Серия.Номер',
+            'production_date': 'Серия.Дата производства',
+            'season': 'Номенклатура.Сезон (Шины)',
+            'start_balance': 'В наличии (начальный остаток)',
+            'end_balance': 'В наличии (конечный остаток)',
+            'income': 'В наличии (приход)',
+            'expense': 'В наличии (расход)',
+            'for_picking': 'К отбору',
+            'for_placement': 'К размещению',
+            'volume': 'Занятый, м3'
         };
 
         async function loadExcelData() {
@@ -257,13 +275,13 @@
                 headers = headerWorksheet.filter(h => h); // Убираем пустые заголовки
                 
                 console.log('Заголовки:', headers);
-                console.log('Данные:', jsonData);
+                console.log('Сырые данные:', jsonData);
                 
                 if (jsonData.length === 0) {
                     throw new Error('Данные не найдены (начиная с 9 строки)');
                 }
                 
-                // Обрабатываем данные
+                // Обрабатываем данные с правильным сопоставлением
                 processData(jsonData);
                 
                 // Показываем интерфейс
@@ -290,18 +308,31 @@
             allData = rawData.map((row, index) => {
                 const processedRow = {id: index};
                 
-                // Сопоставляем данные с заголовками
+                // Преобразуем строку в массив значений
+                const rowValues = Object.values(row);
+                
+                console.log(`Строка ${index}:`, rowValues);
+                
+                // Сопоставляем данные с заголовками согласно исправленному маппингу
                 headers.forEach((header, colIndex) => {
-                    const englishKey = columnMapping[header] || header;
-                    // Получаем значение из соответствующей колонки
-                    const value = Object.values(row)[colIndex];
-                    processedRow[englishKey] = value;
+                    const englishKey = columnMapping[header];
+                    if (englishKey && colIndex < rowValues.length) {
+                        processedRow[englishKey] = rowValues[colIndex];
+                    }
                 });
                 
                 return processedRow;
             });
             
             console.log('Обработанные данные:', allData);
+            
+            // Выводим отладочную информацию о первых нескольких записях
+            if (allData.length > 0) {
+                console.log('Первая запись для проверки:');
+                Object.keys(allData[0]).forEach(key => {
+                    console.log(`${reverseColumnMapping[key] || key}: ${allData[0][key]}`);
+                });
+            }
         }
 
         function applyFilters() {
@@ -312,18 +343,23 @@
             const seasonFilter = document.getElementById('filter-season').value;
             
             currentFilteredData = allData.filter(item => {
+                // Поиск по коду (фактически данные из series_number)
                 const matchesCode = !codeFilter || 
-                    (item.code && item.code.toString().toLowerCase().includes(codeFilter));
+                    (item.series_number && item.series_number.toString().toLowerCase().includes(codeFilter));
                 
+                // Поиск по номенклатуре (фактически данные из code)
                 const matchesNomenclature = !nomenclatureFilter || 
-                    (item.nomenclature && item.nomenclature.toString().toLowerCase().includes(nomenclatureFilter));
+                    (item.code && item.code.toString().toLowerCase().includes(nomenclatureFilter));
                 
+                // Поиск по адресу (фактически данные из nomenclature)
                 const matchesAddress = !addressFilter || 
-                    (item.address && item.address.toString().toLowerCase().includes(addressFilter));
+                    (item.nomenclature && item.nomenclature.toString().toLowerCase().includes(addressFilter));
                 
+                // Поиск по складу (фактически данные из address)
                 const matchesWarehouse = !warehouseFilter || 
-                    (item.warehouse && item.warehouse.toString().toLowerCase().includes(warehouseFilter));
+                    (item.address && item.address.toString().toLowerCase().includes(warehouseFilter));
                 
+                // Поиск по сезону
                 const matchesSeason = !seasonFilter || 
                     (item.season && item.season.toString().toLowerCase() === seasonFilter);
                 
@@ -375,14 +411,14 @@
             });
             tableHeader.appendChild(headerRow);
             
-            // Заполняем данными
+            // Заполняем данными с правильным сопоставлением
             data.forEach(item => {
                 const row = document.createElement('tr');
                 
                 headers.forEach(header => {
                     const td = document.createElement('td');
-                    const englishKey = columnMapping[header] || header;
-                    const value = item[englishKey];
+                    const englishKey = columnMapping[header];
+                    const value = englishKey ? item[englishKey] : '';
                     td.textContent = value !== undefined && value !== null ? value : '';
                     row.appendChild(td);
                 });
@@ -405,11 +441,11 @@
                 headers // Первая строка - заголовки
             ];
             
-            // Добавляем данные
+            // Добавляем данные с правильным сопоставлением
             currentFilteredData.forEach(item => {
                 const row = headers.map(header => {
-                    const englishKey = columnMapping[header] || header;
-                    return item[englishKey] || '';
+                    const englishKey = columnMapping[header];
+                    return englishKey ? (item[englishKey] || '') : '';
                 });
                 exportData.push(row);
             });
