@@ -116,20 +116,32 @@
         <!-- Панель фильтров -->
         <div class="filters">
             <div class="filters-grid">
+                <!-- Левая колонка -->
                 <div class="filters-column">
                     <div class="filter-group">
                         <label>🔍 Поиск по артикулу/коду:</label>
                         <input type="text" id="search-code" placeholder="Введите код или артикул...">
                     </div>
+                    
                     <div class="filter-group">
                         <label>📋 Поиск по номенклатуре:</label>
                         <input type="text" id="search-nomenclature" placeholder="Введите название товара...">
                     </div>
+                    
                     <div class="filter-group">
                         <label>📍 Поиск по адресу хранения:</label>
                         <input type="text" id="search-address" placeholder="Введите адрес...">
                     </div>
+
+                    <div class="filter-group">
+                        <label>🗂️ Зона хранения:</label>
+                        <select id="filter-storage-zone">
+                            <option value="">Все зоны</option>
+                        </select>
+                    </div>
                 </div>
+                
+                <!-- Правая колонка -->
                 <div class="filters-column">
                     <div class="filter-group">
                         <label>🏢 Склад:</label>
@@ -137,6 +149,7 @@
                             <option value="">Все склады</option>
                         </select>
                     </div>
+                    
                     <div class="filter-group">
                         <label>📅 Сезон (для шин):</label>
                         <select id="filter-season">
@@ -146,11 +159,21 @@
                             <option value="всесезон">Всесезон</option>
                         </select>
                     </div>
+
+                    <div class="filter-group">
+                        <label>📆 Год производства:</label>
+                        <select id="filter-production-year">
+                            <option value="">Все годы</option>
+                        </select>
+                    </div>
+                    
                     <div class="filter-group">
                         <label>🔢 Максимальное количество:</label>
                         <input type="number" id="max-quantity" placeholder="До ..." min="0">
                     </div>
                 </div>
+                
+                <!-- Кнопки -->
                 <div class="search-buttons">
                     <button class="btn-primary" onclick="loadDataWithFilters()">🔍 Применить фильтры</button>
                     <button class="btn-secondary" onclick="clearFilters()">❌ Очистить фильтры</button>
@@ -206,6 +229,8 @@
         const tableBody = document.getElementById('table-body');
         const exportBtn = document.getElementById('export-btn');
         const warehouseSelect = document.getElementById('search-warehouse');
+        const storageZoneSelect = document.getElementById('filter-storage-zone');
+        const productionYearSelect = document.getElementById('filter-production-year');
 
         const columnMappingByIndex = {
             0: 'code', 3: 'nomenclature', 7: 'address', 9: 'warehouse', 
@@ -220,6 +245,21 @@
             'Расход', 'К отбору', 'К размещению', 'Объем, м³'
         ];
 
+        // Функция для извлечения зоны хранения из адреса
+        function extractStorageZone(address) {
+            if (!address) return 'Без зоны';
+            
+            const addressStr = address.toString().trim();
+            
+            // Если адрес содержит тире, берем часть до первого тире
+            if (addressStr.includes('-')) {
+                return addressStr.split('-')[0].trim();
+            }
+            
+            // Если нет тире, возвращаем весь адрес (для случаев типа "KARANTIN")
+            return addressStr;
+        }
+
         // Функция для переключения панели отладки
         function toggleDebugPanel() {
             debugContent.classList.toggle('expanded');
@@ -230,7 +270,7 @@
             loadingIndicator.classList.remove('hidden');
             results.classList.add('hidden');
             exportBtn.disabled = true;
-            debugPanel.style.display = 'none'; // Скрываем панель отладки
+            debugPanel.style.display = 'none';
 
             try {
                 if (!isDataLoaded) {
@@ -295,15 +335,26 @@
                         }
                     }
                 });
+
+                // Добавляем зону хранения
+                processedRow.storage_zone = extractStorageZone(processedRow.address);
                 
                 return processedRow;
             });
+
+            // Сортируем по номенклатуре (от меньшего к большему)
+            allData.sort((a, b) => {
+                const nomA = (a.nomenclature || '').toString().toLowerCase();
+                const nomB = (b.nomenclature || '').toString().toLowerCase();
+                return nomA.localeCompare(nomB);
+            });
             
             console.log('Обработанные данные:', allData);
-            populateWarehouseFilter();
+            populateFilterSelects();
         }
 
-        function populateWarehouseFilter() {
+        function populateFilterSelects() {
+            // Заполняем склады
             const warehouses = [...new Set(allData.map(item => item.warehouse).filter(Boolean))].sort();
             while (warehouseSelect.options.length > 1) warehouseSelect.remove(1);
             warehouses.forEach(warehouse => {
@@ -311,6 +362,26 @@
                 option.value = warehouse;
                 option.textContent = warehouse;
                 warehouseSelect.appendChild(option);
+            });
+
+            // Заполняем зоны хранения
+            const storageZones = [...new Set(allData.map(item => item.storage_zone).filter(Boolean))].sort();
+            while (storageZoneSelect.options.length > 1) storageZoneSelect.remove(1);
+            storageZones.forEach(zone => {
+                const option = document.createElement('option');
+                option.value = zone;
+                option.textContent = zone;
+                storageZoneSelect.appendChild(option);
+            });
+
+            // Заполняем годы производства
+            const productionYears = [...new Set(allData.map(item => item.production_date).filter(Boolean))].sort((a, b) => b - a); // Сортировка от нового к старому
+            while (productionYearSelect.options.length > 1) productionYearSelect.remove(1);
+            productionYears.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                productionYearSelect.appendChild(option);
             });
         }
 
@@ -320,6 +391,8 @@
             const addressFilter = document.getElementById('search-address').value.toLowerCase();
             const warehouseFilter = document.getElementById('search-warehouse').value;
             const seasonFilter = document.getElementById('filter-season').value;
+            const storageZoneFilter = document.getElementById('filter-storage-zone').value;
+            const productionYearFilter = document.getElementById('filter-production-year').value;
             const maxQuantity = document.getElementById('max-quantity').value ? parseFloat(document.getElementById('max-quantity').value) : null;
             
             currentFilteredData = allData.filter(item => {
@@ -328,15 +401,32 @@
                 const matchesAddress = !addressFilter || (item.address && item.address.toString().toLowerCase().includes(addressFilter));
                 const matchesWarehouse = !warehouseFilter || (item.warehouse && item.warehouse === warehouseFilter);
                 const matchesSeason = !seasonFilter || (item.season && item.season.toString().toLowerCase() === seasonFilter);
+                const matchesStorageZone = !storageZoneFilter || (item.storage_zone && item.storage_zone === storageZoneFilter);
+                const matchesProductionYear = !productionYearFilter || (item.production_date && item.production_date === productionYearFilter);
                 const matchesQuantity = maxQuantity === null || (item.end_balance || 0) <= maxQuantity;
                 
-                return matchesCode && matchesNomenclature && matchesAddress && matchesWarehouse && matchesSeason && matchesQuantity;
+                return matchesCode && matchesNomenclature && matchesAddress && 
+                       matchesWarehouse && matchesSeason && matchesStorageZone && 
+                       matchesProductionYear && matchesQuantity;
             });
             
             loadingIndicator.classList.add('hidden');
             results.classList.remove('hidden');
             displayData(currentFilteredData);
             exportBtn.disabled = currentFilteredData.length === 0;
+        }
+
+        function clearFilters() {
+            document.getElementById('search-code').value = '';
+            document.getElementById('search-nomenclature').value = '';
+            document.getElementById('search-address').value = '';
+            document.getElementById('search-warehouse').value = '';
+            document.getElementById('filter-season').value = '';
+            document.getElementById('filter-storage-zone').value = '';
+            document.getElementById('filter-production-year').value = '';
+            document.getElementById('max-quantity').value = '';
+            results.classList.add('hidden');
+            exportBtn.disabled = true;
         }
 
         function displayData(data) {
@@ -514,17 +604,6 @@
                 td.style.textAlign = align;
             }
             return td;
-        }
-
-        function clearFilters() {
-            document.getElementById('search-code').value = '';
-            document.getElementById('search-nomenclature').value = '';
-            document.getElementById('search-address').value = '';
-            document.getElementById('search-warehouse').value = '';
-            document.getElementById('filter-season').value = '';
-            document.getElementById('max-quantity').value = '';
-            results.classList.add('hidden');
-            exportBtn.disabled = true;
         }
 
         function exportToExcel() {
