@@ -2,7 +2,7 @@ name: Sync Archive from Google Drive
 
 on:
   schedule:
-    - cron: '0 3 * * *'  # 06:00 по ЕКБ (UTC+5)
+    - cron: '0 3 * * *'  # Каждый день в 8:00 по ЕКБ (UTC+5)
   workflow_dispatch:
 
 jobs:
@@ -19,108 +19,68 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # ✅ Убрали cache, так как нет package-lock.json
 
       - name: Install dependencies
-        run: |
-          npm init -y --silent
-          npm install node-fetch@2
+        run: npm init -y && npm install node-fetch@2
 
       - name: Sync archive files from Google Drive
         env:
           ARCHIVE_FILES: |
-            
+           # standard fullData.json:1Ua_KETb1fVu3PhR6SmxYkWjOOApaZDc5
+          #  staff fullData.json:1cbHKB7vGBslK52H7EJBT3jhG0yHFrpC8
+           # 2025-09 fullData.json:1qAMfjSXpoeExA-sjTHMZ7_26TBx8ULbO
             2025-10 fullData.json:1ONAxssw3MN_tS-ScPKeGDaIp3ZmPJrdT
-            2025-11 fullData.json:1tl89YvvdxAF7GZasSZoPxn6zaZuGTuCt
+           # 2025-11 fullData.json:1tl89YvvdxAF7GZasSZoPxn6zaZuGTuCt
+            # Добавляйте новые месяцы по мере появления
         run: |
           mkdir -p archive
           node <<'EOF'
           const fs = require('fs');
-          const { default: fetch } = require('node-fetch');
+          const fetch = require('node-fetch');
 
           const archiveList = process.env.ARCHIVE_FILES
             .split('\n')
             .map(line => line.trim())
             .filter(line => line && !line.startsWith('#'))
             .map(line => {
-              const [name, id] = line.split(':').map(part => part.trim());
-              return { name, id };
-            })
-            .filter(file => file.name && file.id);
-
-          console.log('Найдено файлов для загрузки:', archiveList.length);
+              const [name, id] = line.split(':');
+              return { name: name.trim(), id: id.trim() };
+            });
 
           async function downloadFile(fileName, fileId) {
-            console.log(`📥 Загрузка: ${fileName}`);
-            
             const url = `https://drive.google.com/uc?export=download&id=${fileId}`;
             try {
               const response = await fetch(url);
-              
-              if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-              }
-
-              const content = await response.text();
-              
-              // Проверяем, что это JSON, а не HTML-страница с подтверждением
-              if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
-                fs.writeFileSync(`archive/${fileName}`, content, 'utf8');
-                console.log(`✅ Успешно: ${fileName} (${content.length} байт)`);
-                return true;
-              } else {
-                // Если это HTML, пробуем найти прямую ссылку на скачивание
-                console.log(`⚠️ Получен HTML для ${fileName}, пробуем обойти подтверждение...`);
-                
-                // Альтернативный метод: используем другой endpoint
-                const directUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
-                const directResponse = await fetch(directUrl);
-                
-                if (directResponse.ok) {
-                  const directContent = await directResponse.text();
-                  if (directContent.trim().startsWith('{') || directContent.trim().startsWith('[')) {
-                    fs.writeFileSync(`archive/${fileName}`, directContent, 'utf8');
-                    console.log(`✅ Успешно (через direct): ${fileName}`);
-                    return true;
-                  }
-                }
-                
-                throw new Error('Не удалось получить JSON файл');
-              }
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              const text = await response.text();
+              fs.writeFileSync(`archive/${fileName}`, text, 'utf8');
+              console.log(`✅ ${fileName}`);
             } catch (err) {
-              console.error(`❌ Ошибка загрузки ${fileName}:`, err.message);
-              return false;
+              console.error(`❌ Не удалось скачать ${fileName}: ${err.message}`);
             }
           }
 
           async function main() {
-            let successCount = 0;
             for (const file of archiveList) {
-              const success = await downloadFile(file.name, file.id);
-              if (success) successCount++;
-              // Пауза между запросами
-              await new Promise(r => setTimeout(r, 2000));
+              await downloadFile(file.name, file.id);
+              await new Promise(r => setTimeout(r, 1000));
             }
-            console.log(`🎯 Успешно загружено: ${successCount}/${archiveList.length} файлов`);
           }
 
           main().catch(console.error);
           EOF
 
-      - name: Generate new archives from Google Sheets
-        run: node scripts/generate-Archive.mjs
-
-      - name: Commit and push changes
+      - name: Commit and push
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          git add archive/ fullData.json
+          git add archive/
           
           if ! git diff --staged --quiet; then
-            git commit -m "🔄 Авто-обновление данных [$(date +'%Y-%m-%d %H:%M')]"
+            git commit -m "🔄 Обновление архивов [$(date +'%Y-%m-%d')]"
             git push
-            echo "✅ Изменения отправлены в репозиторий"
+            echo "✅ Изменения отправлены"
           else
-            echo "ℹ️ Нет изменений для коммита"
+            echo "ℹ️ Нет изменений"
           fi
