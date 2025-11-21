@@ -4,14 +4,27 @@
     <title>Поиск по складским данным</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* Стили остаются без изменений */
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
         .container { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        /* Панель фильтров в две колонки */
         .filters { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef; }
+        .filters-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+        }
         .filter-group { margin-bottom: 15px; }
         .filter-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; }
         .filter-group input, .filter-group select { width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; }
-        .search-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        
+        .search-buttons { 
+            grid-column: 1 / -1; 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 20px; 
+            justify-content: flex-start;
+        }
         button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; transition: background-color 0.3s; }
         .btn-primary { background-color: #007bff; color: white; }
         .btn-primary:hover { background-color: #0056b3; }
@@ -19,12 +32,20 @@
         .btn-secondary:hover { background-color: #545b62; }
         .btn-success { background-color: #28a745; color: white; }
         .btn-success:hover { background-color: #1e7e34; }
+        
         table { border-collapse: collapse; margin: 20px 0; width: 100%; font-size: 14px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #4CAF50; color: white; position: sticky; top: 0; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         tr:hover { background-color: #f1f1f1; }
+        
+        /* Стили для итоговой строки */
+        .total-row { background-color: #e8f5e8 !important; font-weight: bold; }
+        .total-row td { border-top: 2px solid #4CAF50; }
+        
         .results-info { background: #e7f3ff; padding: 10px 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #007bff; }
+        .totals-info { background: #fff3cd; padding: 10px 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #ffc107; }
+        
         .loading-container { text-align: center; padding: 40px; }
         .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #4CAF50; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -41,32 +62,56 @@
             <p>Заполните один или несколько фильтров и нажмите "Применить фильтры" для загрузки данных.</p>
         </div>
         
-        <!-- Панель фильтров -->
+        <!-- Панель фильтров в две колонки -->
         <div class="filters">
-            <div class="filter-group">
-                <label>🔍 Поиск по артикулу/коду:</label>
-                <input type="text" id="search-code" placeholder="Введите код или артикул...">
-            </div>
-            
-            <div class="filter-group">
-                <label>📋 Поиск по номенклатуре:</label>
-                <input type="text" id="search-nomenclature" placeholder="Введите название товара...">
-            </div>
-            
-            <div class="filter-group">
-                <label>📍 Поиск по адресу хранения:</label>
-                <input type="text" id="search-address" placeholder="Введите адрес...">
-            </div>
-            
-            <div class="filter-group">
-                <label>🏢 Склад:</label>
-                <input type="text" id="search-warehouse" placeholder="Введите название склада...">
-            </div>
-            
-            <div class="search-buttons">
-                <button class="btn-primary" onclick="loadDataWithFilters()">🔍 Применить фильтры</button>
-                <button class="btn-secondary" onclick="clearFilters()">❌ Очистить фильтры</button>
-                <button class="btn-success" onclick="exportToExcel()" id="export-btn" disabled>📊 Экспорт в Excel</button>
+            <div class="filters-grid">
+                <!-- Левая колонка -->
+                <div class="filters-column">
+                    <div class="filter-group">
+                        <label>🔍 Поиск по артикулу/коду:</label>
+                        <input type="text" id="search-code" placeholder="Введите код или артикул...">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>📋 Поиск по номенклатуре:</label>
+                        <input type="text" id="search-nomenclature" placeholder="Введите название товара...">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>📍 Поиск по адресу хранения:</label>
+                        <input type="text" id="search-address" placeholder="Введите адрес...">
+                    </div>
+                </div>
+                
+                <!-- Правая колонка -->
+                <div class="filters-column">
+                    <div class="filter-group">
+                        <label>🏢 Склад:</label>
+                        <input type="text" id="search-warehouse" placeholder="Введите название склада...">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>📅 Сезон (для шин):</label>
+                        <select id="filter-season">
+                            <option value="">Все сезоны</option>
+                            <option value="лето">Лето</option>
+                            <option value="зима">Зима</option>
+                            <option value="всесезон">Всесезон</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>🔢 Минимальное количество:</label>
+                        <input type="number" id="min-quantity" placeholder="От 0" min="0" value="0">
+                    </div>
+                </div>
+                
+                <!-- Кнопки на всю ширину -->
+                <div class="search-buttons">
+                    <button class="btn-primary" onclick="loadDataWithFilters()">🔍 Применить фильтры</button>
+                    <button class="btn-secondary" onclick="clearFilters()">❌ Очистить фильтры</button>
+                    <button class="btn-success" onclick="exportToExcel()" id="export-btn" disabled>📊 Экспорт в Excel</button>
+                </div>
             </div>
         </div>
         
@@ -79,6 +124,7 @@
         <!-- Результаты -->
         <div id="results" class="hidden">
             <div id="results-info" class="results-info"></div>
+            <div id="totals-info" class="totals-info"></div>
             <div style="overflow-x: auto;">
                 <table id="data-table">
                     <thead id="table-header"></thead>
@@ -101,6 +147,7 @@
         const loadingIndicator = document.getElementById('loading-indicator');
         const results = document.getElementById('results');
         const resultsInfo = document.getElementById('results-info');
+        const totalsInfo = document.getElementById('totals-info');
         const tableHeader = document.getElementById('table-header');
         const tableBody = document.getElementById('table-body');
         const exportBtn = document.getElementById('export-btn');
@@ -109,50 +156,41 @@
         // ФИКСИРОВАННОЕ СОПОСТАВЛЕНИЕ СТОЛБЦОВ ПО НОМЕРАМ
         // =============================================
         
-        // ВАЖНО: Это прямое сопоставление номеров столбцов Excel (A=0, B=1, C=2...)
-        // с названиями заголовков из 7 строки
         const columnMappingByIndex = {
-            // индекс: 'ключ_для_данных'
             0: 'code',           // Столбец A - "Код"
-            // Пропускаем столбцы B, C если они пустые
             3: 'nomenclature',   // Столбец D - "Номенклатура" 
             7: 'address',        // Столбец E - "Адрес"
             9: 'warehouse',      // Столбец F - "Склад"
             10: 'series_number', // Столбец K - "Серия.Номер"
-            // Добавьте остальные столбцы по мере необходимости
-            12: 'production_date',
-            13: 'season',
-            14: 'start_balance',
-            15: 'end_balance',
-            16: 'income',
-            17: 'expense',
-            18: 'for_picking',
-            19: 'for_placement',
-            20: 'volume'
+            12: 'production_date', // Столбец L - "Серия.Дата производства"
+            13: 'season',        // Столбец M - "Номенклатура.Сезон (Шины)"
+            14: 'start_balance', // Столбец N - "В наличии (начальный остаток)"
+            15: 'end_balance',   // Столбец O - "В наличии (конечный остаток)"
+            16: 'income',        // Столбец P - "В наличии (приход)"
+            17: 'expense',       // Столбец Q - "В наличии (расход)"
+            18: 'for_picking',   // Столбец R - "К отбору"
+            19: 'for_placement', // Столбец S - "К размещению"
+            20: 'volume'         // Столбец T - "Занятый, м3"
         };
 
-        // Обратное сопоставление для отображения
+
+        // Заголовки для отображения (в правильном порядке)
         const headerTitles = [
-            'Код',              // 0 - A
-            '',                 // 1 - B (пустой)
-            '',                 // 2 - C (пустой) 
-            'Номенклатура',     // 3 - D
-             '', '', '',       // 4-5-6
-            'Адрес',            // 7- H 
-            '',                 // 8 - I
-            'Склад',            // 9 - J
-            'Серия.Номер',      // 10 - K
-             '',                // 11 - L
-            'Серия.Дата производства', // 12 - M
-            'Номенклатура.Сезон (Шины)', // 13 - N
-            'В наличии (начальный остаток)', // 14 - O
-            'В наличии (конечный остаток)',  // 15 - P
-            'В наличии (приход)',     // 16 - Q
-            'В наличии (расход)',    // 17 - R
-            'К отбору',         // 18 - S
-            'К размещению',     // 19 - T
-            'Занятый, м3'       // 20 - U
-        ].filter(title => title !== ''); // Убираем пустые заголовки
+            'Код',
+            'Номенклатура', 
+            'Адрес',
+            'Склад',
+            'Серия.Номер',
+            'Серия.Дата производства',
+            'Номенклатура.Сезон (Шины)',
+            'В наличии (начальный остаток)',
+            'В наличии (конечный остаток)',
+            'В наличии (приход)',
+            'В наличии (расход)',
+            'К отбору',
+            'К размещению',
+            'Занятый, м3'
+        ];
 
         // =============================================
         // ОСНОВНЫЕ ФУНКЦИИ
@@ -193,7 +231,6 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Получаем ВСЕ данные начиная с 9 строки
             const jsonData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
             
             console.log('Сырые данные из Excel:', jsonData);
@@ -202,9 +239,7 @@
                 throw new Error('Данные не найдены');
             }
             
-            // Используем фиксированные заголовки вместо чтения из файла
             headers = headerTitles;
-            
             processData(jsonData);
         }
 
@@ -212,13 +247,15 @@
             allData = rawData.map((row, index) => {
                 const processedRow = {id: index};
                 
-                console.log(`Обработка строки ${index}:`, row);
-                
-                // Прямое сопоставление по номерам столбцов
                 Object.keys(columnMappingByIndex).forEach(colIndex => {
                     const key = columnMappingByIndex[colIndex];
                     if (row[colIndex] !== undefined) {
-                        processedRow[key] = row[colIndex];
+                        // Преобразуем числовые значения
+                        if (['start_balance', 'end_balance', 'income', 'expense', 'for_picking', 'for_placement', 'volume'].includes(key)) {
+                            processedRow[key] = parseFloat(row[colIndex]) || 0;
+                        } else {
+                            processedRow[key] = row[colIndex];
+                        }
                     }
                 });
                 
@@ -226,16 +263,6 @@
             });
             
             console.log('Обработанные данные:', allData);
-            
-            // Отладочная информация
-            if (allData.length > 0) {
-                console.log('=== ПРОВЕРКА СОПОСТАВЛЕНИЯ ===');
-                console.log('Код (столбец A):', allData[0].code);
-                console.log('Номенклатура (столбец D):', allData[0].nomenclature);
-                console.log('Адрес (столбец E):', allData[0].address);
-                console.log('Склад (столбец F):', allData[0].warehouse);
-                console.log('Серия.Номер (столбец K):', allData[0].series_number);
-            }
         }
 
         function applyFilters() {
@@ -243,6 +270,8 @@
             const nomenclatureFilter = document.getElementById('search-nomenclature').value.toLowerCase();
             const addressFilter = document.getElementById('search-address').value.toLowerCase();
             const warehouseFilter = document.getElementById('search-warehouse').value.toLowerCase();
+            const seasonFilter = document.getElementById('filter-season').value;
+            const minQuantity = parseFloat(document.getElementById('min-quantity').value) || 0;
             
             currentFilteredData = allData.filter(item => {
                 const matchesCode = !codeFilter || 
@@ -257,7 +286,13 @@
                 const matchesWarehouse = !warehouseFilter || 
                     (item.warehouse && item.warehouse.toString().toLowerCase().includes(warehouseFilter));
                 
-                return matchesCode && matchesNomenclature && matchesAddress && matchesWarehouse;
+                const matchesSeason = !seasonFilter || 
+                    (item.season && item.season.toString().toLowerCase() === seasonFilter);
+                
+                const matchesQuantity = (item.end_balance || 0) >= minQuantity;
+                
+                return matchesCode && matchesNomenclature && matchesAddress && 
+                       matchesWarehouse && matchesSeason && matchesQuantity;
             });
             
             loadingIndicator.classList.add('hidden');
@@ -271,6 +306,8 @@
             document.getElementById('search-nomenclature').value = '';
             document.getElementById('search-address').value = '';
             document.getElementById('search-warehouse').value = '';
+            document.getElementById('filter-season').value = '';
+            document.getElementById('min-quantity').value = '0';
             
             results.classList.add('hidden');
             exportBtn.disabled = true;
@@ -280,10 +317,24 @@
             const totalRecords = allData.length;
             const filteredRecords = data.length;
             
+            // Рассчитываем суммы для столбцов O и P
+            const sumEndBalance = data.reduce((sum, item) => sum + (item.end_balance || 0), 0);
+            const sumIncome = data.reduce((sum, item) => sum + (item.income || 0), 0);
+            const sumExpense = data.reduce((sum, item) => sum + (item.expense || 0), 0);
+            const sumStartBalance = data.reduce((sum, item) => sum + (item.start_balance || 0), 0);
+            
             resultsInfo.innerHTML = `
                 📊 <strong>Всего записей:</strong> ${totalRecords} | 
                 🔍 <strong>Найдено:</strong> ${filteredRecords}
                 ${filteredRecords < totalRecords ? ` | ✅ <strong>Фильтры активны</strong>` : ''}
+            `;
+            
+            totalsInfo.innerHTML = `
+                🧮 <strong>Суммы по столбцам:</strong> 
+                Начальный остаток: <strong>${sumStartBalance.toLocaleString()}</strong> | 
+                Конечный остаток: <strong>${sumEndBalance.toLocaleString()}</strong> | 
+                Приход: <strong>${sumIncome.toLocaleString()}</strong> | 
+                Расход: <strong>${sumExpense.toLocaleString()}</strong>
             `;
             
             tableHeader.innerHTML = '';
@@ -307,29 +358,55 @@
             data.forEach(item => {
                 const row = document.createElement('tr');
                 
-                // Важно: порядок соответствует headerTitles
-                row.appendChild(createCell(item.code));               // Код
-                row.appendChild(createCell(item.nomenclature));       // Номенклатура
-                row.appendChild(createCell(item.address));            // Адрес
-                row.appendChild(createCell(item.warehouse));          // Склад
-                row.appendChild(createCell(item.series_number));      // Серия.Номер
-                row.appendChild(createCell(item.production_date));    // Дата производства
-                row.appendChild(createCell(item.season));             // Сезон
-                row.appendChild(createCell(item.start_balance));      // Начальный остаток
-                row.appendChild(createCell(item.end_balance));        // Конечный остаток
-                row.appendChild(createCell(item.income));             // Приход
-                row.appendChild(createCell(item.expense));            // Расход
-                row.appendChild(createCell(item.for_picking));        // К отбору
-                row.appendChild(createCell(item.for_placement));      // К размещению
-                row.appendChild(createCell(item.volume));             // Объем
+                row.appendChild(createCell(item.code));
+                row.appendChild(createCell(item.nomenclature));
+                row.appendChild(createCell(item.address));
+                row.appendChild(createCell(item.warehouse));
+                row.appendChild(createCell(item.series_number));
+                row.appendChild(createCell(item.production_date));
+                row.appendChild(createCell(item.season));
+                row.appendChild(createCell(item.start_balance, true));
+                row.appendChild(createCell(item.end_balance, true));
+                row.appendChild(createCell(item.income, true));
+                row.appendChild(createCell(item.expense, true));
+                row.appendChild(createCell(item.for_picking, true));
+                row.appendChild(createCell(item.for_placement, true));
+                row.appendChild(createCell(item.volume, true));
                 
                 tableBody.appendChild(row);
             });
+            
+            // Добавляем строку с итогами
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'total-row';
+            
+            totalRow.appendChild(createCell('ИТОГО:', false, 'right'));
+            totalRow.appendChild(createCell('', false));
+            totalRow.appendChild(createCell('', false));
+            totalRow.appendChild(createCell('', false));
+            totalRow.appendChild(createCell('', false));
+            totalRow.appendChild(createCell('', false));
+            totalRow.appendChild(createCell('', false));
+            totalRow.appendChild(createCell(sumStartBalance, true));
+            totalRow.appendChild(createCell(sumEndBalance, true));
+            totalRow.appendChild(createCell(sumIncome, true));
+            totalRow.appendChild(createCell(sumExpense, true));
+            totalRow.appendChild(createCell('', false));
+            totalRow.appendChild(createCell('', false));
+            totalRow.appendChild(createCell('', false));
+            
+            tableBody.appendChild(totalRow);
         }
 
-        function createCell(value) {
+        function createCell(value, isNumber = false, align = 'left') {
             const td = document.createElement('td');
-            td.textContent = value !== undefined && value !== null ? value : '';
+            if (isNumber && typeof value === 'number') {
+                td.textContent = value.toLocaleString();
+                td.style.textAlign = 'right';
+            } else {
+                td.textContent = value !== undefined && value !== null ? value : '';
+                td.style.textAlign = align;
+            }
             return td;
         }
 
@@ -342,6 +419,7 @@
             const wb = XLSX.utils.book_new();
             const exportData = [headers];
             
+            // Добавляем данные
             currentFilteredData.forEach(item => {
                 const row = [
                     item.code,
@@ -362,14 +440,23 @@
                 exportData.push(row);
             });
             
+            // Добавляем строку с итогами
+            const sumStartBalance = currentFilteredData.reduce((sum, item) => sum + (item.start_balance || 0), 0);
+            const sumEndBalance = currentFilteredData.reduce((sum, item) => sum + (item.end_balance || 0), 0);
+            const sumIncome = currentFilteredData.reduce((sum, item) => sum + (item.income || 0), 0);
+            const sumExpense = currentFilteredData.reduce((sum, item) => sum + (item.expense || 0), 0);
+            
+            exportData.push(['ИТОГО:', '', '', '', '', '', '', 
+                           sumStartBalance, sumEndBalance, sumIncome, sumExpense, '', '', '']);
+            
             const ws = XLSX.utils.aoa_to_sheet(exportData);
-            XLSX.utils.book_append_sheet(wb, ws, "Данные");
+            XLSX.utils.book_append_sheet(wb, ws, "Складские данные");
             XLSX.writeFile(wb, `склад_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
-        // Обработчик Enter
+        // Обработчик Enter для полей ввода
         document.addEventListener('DOMContentLoaded', function() {
-            const inputs = document.querySelectorAll('input');
+            const inputs = document.querySelectorAll('input, select');
             inputs.forEach(input => {
                 input.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') loadDataWithFilters();
