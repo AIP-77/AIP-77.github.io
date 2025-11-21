@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Поиск по складским данным 2025</title>
+    <title>Поиск по складским данным</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        /* Стили для красивого отображения */
         body { 
             font-family: Arial, sans-serif; 
             margin: 20px; 
@@ -202,14 +203,20 @@
     </div>
 
     <script>
+        // =============================================
+        // ПЕРЕМЕННЫЕ И КОНСТАНТЫ
+        // =============================================
+        
+        // Хранилище данных
         let allData = []; // Все загруженные данные
-        let headers = []; // Заголовки колонок
+        let headers = []; // Заголовки колонок из 7 строки Excel
         let currentFilteredData = []; // Текущие отфильтрованные данные
         let isDataLoaded = false; // Флаг загрузки данных
 
+        // URL Excel файла на GitHub
         const excelUrl = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/data.xlsx';
         
-        // Элементы DOM
+        // Элементы DOM для управления интерфейсом
         const loadingIndicator = document.getElementById('loading-indicator');
         const results = document.getElementById('results');
         const resultsInfo = document.getElementById('results-info');
@@ -217,13 +224,31 @@
         const tableBody = document.getElementById('table-body');
         const exportBtn = document.getElementById('export-btn');
 
-        // Правильное сопоставление столбцов
+        // =============================================
+        // СОПОСТАВЛЕНИЕ СТОЛБЦОВ - ЭТО САМАЯ ВАЖНАЯ ЧАСТЬ!
+        // =============================================
+        
+        // Ключи для внутреннего использования (на английском)
         const columnMapping = {
-            'Код': 'series_number',
-            'Номенклатура': 'code',
-            'Адрес': 'nomenclature',
-            'Склад': 'address',
-            'Серия.Номер': 'warehouse',
+            // ПРАВИЛЬНОЕ СОПОСТАВЛЕНИЕ:
+            // 'Заголовок в таблице': 'ключ_для_данных'
+            
+            // СТОЛБЕЦ A (1) в Excel -> "Код" в таблице
+            'Код': 'code_from_column_A',
+            
+            // СТОЛБЕЦ B (2) в Excel -> "Номенклатура" в таблице  
+            'Номенклатура': 'nomenclature_from_column_B',
+            
+            // СТОЛБЕЦ C (3) в Excel -> "Адрес" в таблице
+            'Адрес': 'address_from_column_C',
+            
+            // СТОЛБЕЦ D (4) в Excel -> "Склад" в таблице
+            'Склад': 'warehouse_from_column_D',
+            
+            // СТОЛБЕЦ K (11) в Excel -> "Серия.Номер" в таблице
+            'Серия.Номер': 'series_number_from_column_K',
+            
+            // Остальные столбцы - нужно будет настроить по аналогии
             'Серия.Дата производства': 'production_date',
             'Номенклатура.Сезон (Шины)': 'season',
             'В наличии (начальный остаток)': 'start_balance',
@@ -235,6 +260,13 @@
             'Занятый, м3': 'volume'
         };
 
+        // =============================================
+        // ОСНОВНЫЕ ФУНКЦИИ
+        // =============================================
+
+        /**
+         * Главная функция - загружает данные и применяет фильтры
+         */
         async function loadDataWithFilters() {
             // Показываем индикатор загрузки
             loadingIndicator.classList.remove('hidden');
@@ -260,51 +292,72 @@
             }
         }
 
+        /**
+         * Загрузка данных из Excel файла
+         */
         async function loadExcelData() {
+            // Загружаем файл с GitHub
             const response = await fetch(excelUrl);
             if (!response.ok) {
                 throw new Error(`Ошибка загрузки: ${response.status}`);
             }
             
+            // Читаем бинарные данные
             const arrayBuffer = await response.arrayBuffer();
+            
+            // Парсим Excel файл
             const workbook = XLSX.read(arrayBuffer, {type: 'array'});
             
             if (workbook.SheetNames.length === 0) {
                 throw new Error('В файле нет листов с данными');
             }
             
+            // Берем первый лист
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Получаем данные начиная с 9 строки
+            // ВАЖНО: получаем данные начиная с 9 строки (range: 8)
+            // потому что данные начинаются с 9 строки в Excel
             const jsonData = XLSX.utils.sheet_to_json(worksheet, {range: 8});
             
-            // Получаем заголовки из 7 строки
+            // ВАЖНО: получаем заголовки из 7 строки (range: 6)  
+            // потому что заголовки в 7 строке в Excel
             const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
-            headerRange.s.r = 6;
-            headerRange.e.r = 6;
+            headerRange.s.r = 6; // 7 строка (0-based индекс = 6)
+            headerRange.e.r = 6; // 7 строка (0-based индекс = 6)
             
             const headerWorksheet = XLSX.utils.sheet_to_json(worksheet, {range: headerRange, header: 1})[0];
-            headers = headerWorksheet.filter(h => h);
+            headers = headerWorksheet.filter(h => h); // Убираем пустые заголовки
             
-            console.log('Заголовки:', headers);
+            console.log('Заголовки из Excel:', headers);
             
             if (jsonData.length === 0) {
                 throw new Error('Данные не найдены (начиная с 9 строки)');
             }
             
-            // Обрабатываем данные
+            // Обрабатываем данные - это где происходит маппинг столбцов!
             processData(jsonData);
         }
 
+        /**
+         * Обработка сырых данных из Excel и правильное сопоставление столбцов
+         * @param {Array} rawData - сырые данные из Excel
+         */
         function processData(rawData) {
             allData = rawData.map((row, index) => {
                 const processedRow = {id: index};
-                const rowValues = Object.values(row);
                 
+                // Преобразуем строку в массив значений
+                // Object.values(row) возвращает массив значений в порядке столбцов A, B, C, D...
+                const rowValues = Object.values(row);
+                console.log(`Строка ${index}:`, rowValues);
+                
+                // ВАЖНО: здесь мы сопоставляем заголовки с правильными данными
                 headers.forEach((header, colIndex) => {
                     const englishKey = columnMapping[header];
                     if (englishKey && colIndex < rowValues.length) {
+                        // colIndex - это номер столбца (0 = A, 1 = B, 2 = C, ...)
+                        // rowValues[colIndex] - значение из соответствующего столбца
                         processedRow[englishKey] = rowValues[colIndex];
                     }
                 });
@@ -312,36 +365,57 @@
                 return processedRow;
             });
             
-            console.log('Загружено записей:', allData.length);
+            console.log('Обработанные данные:', allData);
+            console.log('Всего загружено записей:', allData.length);
+            
+            // Отладочная информация для проверки маппинга
+            if (allData.length > 0) {
+                console.log('ПЕРВАЯ ЗАПИСЬ ДЛЯ ПРОВЕРКИ:');
+                console.log('Код (должен быть из столбца A):', allData[0].code_from_column_A);
+                console.log('Номенклатура (должна быть из столбца B):', allData[0].nomenclature_from_column_B);
+                console.log('Адрес (должен быть из столбца C):', allData[0].address_from_column_C);
+                console.log('Склад (должен быть из столбца D):', allData[0].warehouse_from_column_D);
+                console.log('Серия.Номер (должен быть из столбца K):', allData[0].series_number_from_column_K);
+            }
         }
 
+        /**
+         * Применение фильтров к загруженным данным
+         */
         function applyFilters() {
+            // Получаем значения фильтров
             const codeFilter = document.getElementById('search-code').value.toLowerCase();
             const nomenclatureFilter = document.getElementById('search-nomenclature').value.toLowerCase();
             const addressFilter = document.getElementById('search-address').value.toLowerCase();
             const warehouseFilter = document.getElementById('search-warehouse').value.toLowerCase();
             const seasonFilter = document.getElementById('filter-season').value;
             
+            // Фильтруем данные
             currentFilteredData = allData.filter(item => {
+                // Поиск по коду (данные из столбца A)
                 const matchesCode = !codeFilter || 
-                    (item.series_number && item.series_number.toString().toLowerCase().includes(codeFilter));
+                    (item.code_from_column_A && item.code_from_column_A.toString().toLowerCase().includes(codeFilter));
                 
+                // Поиск по номенклатуре (данные из столбца B)
                 const matchesNomenclature = !nomenclatureFilter || 
-                    (item.code && item.code.toString().toLowerCase().includes(nomenclatureFilter));
+                    (item.nomenclature_from_column_B && item.nomenclature_from_column_B.toString().toLowerCase().includes(nomenclatureFilter));
                 
+                // Поиск по адресу (данные из столбца C)
                 const matchesAddress = !addressFilter || 
-                    (item.nomenclature && item.nomenclature.toString().toLowerCase().includes(addressFilter));
+                    (item.address_from_column_C && item.address_from_column_C.toString().toLowerCase().includes(addressFilter));
                 
+                // Поиск по складу (данные из столбца D)
                 const matchesWarehouse = !warehouseFilter || 
-                    (item.address && item.address.toString().toLowerCase().includes(warehouseFilter));
+                    (item.warehouse_from_column_D && item.warehouse_from_column_D.toString().toLowerCase().includes(warehouseFilter));
                 
+                // Поиск по сезону
                 const matchesSeason = !seasonFilter || 
                     (item.season && item.season.toString().toLowerCase() === seasonFilter);
                 
                 return matchesCode && matchesNomenclature && matchesAddress && matchesWarehouse && matchesSeason;
             });
             
-            // Скрываем индикатор и показываем результаты
+            // Обновляем интерфейс
             loadingIndicator.classList.add('hidden');
             results.classList.remove('hidden');
             
@@ -351,6 +425,9 @@
             exportBtn.disabled = currentFilteredData.length === 0;
         }
 
+        /**
+         * Очистка фильтров
+         */
         function clearFilters() {
             document.getElementById('search-code').value = '';
             document.getElementById('search-nomenclature').value = '';
@@ -363,6 +440,10 @@
             exportBtn.disabled = true;
         }
 
+        /**
+         * Отображение данных в таблице
+         * @param {Array} data - данные для отображения
+         */
         function displayData(data) {
             // Обновляем информацию о результатах
             const totalRecords = allData.length;
@@ -392,7 +473,7 @@
             });
             tableHeader.appendChild(headerRow);
             
-            // Заполняем данными
+            // Заполняем таблицу данными
             data.forEach(item => {
                 const row = document.createElement('tr');
                 
@@ -408,6 +489,9 @@
             });
         }
 
+        /**
+         * Экспорт данных в Excel
+         */
         function exportToExcel() {
             if (currentFilteredData.length === 0) {
                 alert('Нет данных для экспорта');
@@ -418,8 +502,9 @@
             const wb = XLSX.utils.book_new();
             
             // Подготавливаем данные для экспорта
-            const exportData = [headers];
+            const exportData = [headers]; // Первая строка - заголовки
             
+            // Добавляем данные
             currentFilteredData.forEach(item => {
                 const row = headers.map(header => {
                     const englishKey = columnMapping[header];
@@ -438,6 +523,10 @@
             const fileName = `складские_данные_${new Date().toISOString().split('T')[0]}.xlsx`;
             XLSX.writeFile(wb, fileName);
         }
+
+        // =============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // =============================================
 
         // Добавляем обработчик Enter для полей ввода
         document.addEventListener('DOMContentLoaded', function() {
