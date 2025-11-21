@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Поиск по складским данным</title>
+    <title>Поиск по данным</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -347,6 +347,12 @@
                 return processedRow;
             });
 
+            // Фильтруем строки с "Итого" в столбце Код
+            allData = allData.filter(item => {
+                const code = (item.code || '').toString().toLowerCase();
+                return !code.includes('итого') && !code.includes('итог');
+            });
+
             // Сортируем по номенклатуре (от меньшего к большему)
             allData.sort((a, b) => {
                 const nomA = (a.nomenclature || '').toString().toLowerCase();
@@ -500,7 +506,8 @@
             // Группировка и отображение данных
             const groupedData = groupData(data);
             renderGroupedData(groupedData);
-            addTotalRow(sumStartBalance, sumEndBalance, sumIncome, sumExpense);
+            
+            // УБИРАЕМ строку "ИТОГО" из таблицы, так как суммы уже показаны в заголовках групп
         }
 
         function groupData(data) {
@@ -582,27 +589,6 @@
                     });
                 });
             });
-        }
-
-        function addTotalRow(sumStartBalance, sumEndBalance, sumIncome, sumExpense) {
-            const totalRow = document.createElement('tr');
-            totalRow.className = 'total-row';
-            
-            totalRow.appendChild(createCell('ИТОГО:', false, 'right'));
-            totalRow.appendChild(createCell('', false));
-            totalRow.appendChild(createCell('', false));
-            totalRow.appendChild(createCell('', false));
-            totalRow.appendChild(createCell('', false));
-            totalRow.appendChild(createCell('', false));
-            totalRow.appendChild(createCell(sumStartBalance, true));
-            totalRow.appendChild(createCell(sumEndBalance, true));
-            totalRow.appendChild(createCell(sumIncome, true));
-            totalRow.appendChild(createCell(sumExpense, true));
-            totalRow.appendChild(createCell('', false));
-            totalRow.appendChild(createCell('', false));
-            totalRow.appendChild(createCell('', false));
-            
-            tableBody.appendChild(totalRow);
         }
 
         function createCell(value, isNumber = false, align = 'left') {
