@@ -267,7 +267,7 @@
   <div class="container">
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
-      (🛠 V.11.05 🛠)
+      (🛠 V.2026.02.06 🛠)
     </div>
 
     <div id="banner" class="banner"></div>
@@ -382,6 +382,27 @@
       staff: 'https://AIP-77.github.io/archive/staff%20fullData.json',
       monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')}%20fullData.json`
     };
+	// ============================================
+// Универсальная функция для работы с любым форматом JSON
+// ============================================
+function normalizeRecords(data) {
+  // Новый компактный формат: есть поле "columns" + "data"
+  if (data && data.columns && data.data) {
+    return data.data.map(row => {
+      const obj = {};
+      data.columns.forEach((col, idx) => {
+        obj[col] = row[idx] || '';
+      });
+      return obj;
+    });
+  }
+  // Старый формат: массив объектов в "records"
+  if (data && data.records && Array.isArray(data.records)) {
+    return data.records;
+  }
+  // Резервный вариант
+  return [];
+}
 
     let chatId = null;
     let isManager = false;
@@ -645,12 +666,13 @@
             
             // Получаем даты, по которым есть данные для текущего сотрудника
             const userDates = new Set();
-            if (monthData && monthData.records) {
-                monthData.records.forEach(record => {
-                    if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
-                        userDates.add(record['Рабочий день']);
-                    }
-                });
+            const records = normalizeRecords(monthData);
+            if (records.length > 0) {
+              records.forEach(record => {
+                if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
+                  userDates.add(record['Рабочий день']);
+                }
+              });
             }
 
             // Отображаем календарь
@@ -731,9 +753,9 @@
             
             // Загружаем данные за выбранный месяц
             const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
-            
+            const records = normalizeRecords(monthData);
             // Находим задачи сотрудника за выбранную дату
-            const userTasks = monthData.records.filter(record => 
+            const userTasks = records.filter(record => 
                 record['Сотрудник'] === currentUserData.name && record['Рабочий день'] === dateStr
             );
 
@@ -743,7 +765,7 @@
             }
 
             // Группируем все задачи сотрудника за выбранный месяц для расчета заработка за месяц
-            const allUserTasksInMonth = monthData.records.filter(record => 
+            const allUserTasksInMonth = records.filter(record =>
                 record['Сотрудник'] === currentUserData.name
             );
 
@@ -826,14 +848,14 @@
         // === КОНЕЦ ДОБАВЛЕНИЯ ===
         
         // Находим данные текущего пользователя
-        let userRecord = staffData.records.find(record => 
+        let userRecord = normalizeRecords(staffData).find(record =>
           String(record['Telegram ID']) === chatId
         );
 
         if (!userRecord) {
             // Показываем доступные ID для тестирования
-            const availableIds = staffData.records
-                .slice(0, 10) // Показываем только первые 10 для удобства
+            const availableIds = normalizeRecords(staffData)
+                .slice(0, 1) // Показываем только первые 1 для удобства
                 .map(record => `${record['Сотрудник']} - ${record['Telegram ID']}`)
                 .join('\n');
             
@@ -845,7 +867,7 @@
             if (newId) {
                 chatId = newId;
                 // Повторяем поиск с новым ID
-                userRecord = staffData.records.find(record => 
+                userRecord = normalizeRecords(staffData).find(record =>
                     String(record['Telegram ID']) === chatId
                 );
                 
@@ -927,7 +949,7 @@
     async function generatePersonalReport() {
       if (!currentMonthData || !currentUserData) return;
 
-      const userTasks = currentMonthData.records.filter(record => 
+      const userTasks = normalizeRecords(currentMonthData).filter(record =>
         record['Сотрудник'] === currentUserData.name
       );
 
