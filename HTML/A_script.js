@@ -1,5 +1,4 @@
-  <script>
-    // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+ // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
     function parseTime(timeStr) {
       if (!timeStr) return 0;
       const parts = timeStr.split(':').map(Number);
@@ -1606,4 +1605,3 @@ function normalizeRecords(data) {
       currentArchive = getArchiveNameForDate(new Date());
       loadData();
     });
-  </script>
