@@ -1,4 +1,30 @@
- // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+function showTooltip(event, element) {
+  const tooltip = document.getElementById('customTooltip');
+  const text = element.getAttribute('data-tooltip');
+  tooltip.textContent = text;
+  tooltip.style.display = 'block';
+  
+  // Позиционируем рядом с курсором
+  const x = event.pageX + 10;
+  const y = event.pageY - 10;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+
+function hideTooltip() {
+  const tooltip = document.getElementById('customTooltip');
+  tooltip.style.display = 'none';
+}
+
+// Обновляем позицию при движении мыши (опционально)
+document.addEventListener('mousemove', (e) => {
+  const tooltip = document.getElementById('customTooltip');
+  if (tooltip.style.display === 'block') {
+    tooltip.style.left = (e.pageX + 10) + 'px';
+    tooltip.style.top = (e.pageY - 10) + 'px';
+  }
+});
+// === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
     function parseTime(timeStr) {
       if (!timeStr) return 0;
       const parts = timeStr.split(':').map(Number);
@@ -1157,32 +1183,41 @@ function normalizeRecords(data) {
   document.getElementById('work-type-charts-content').innerHTML = html;
 }
     function renderWorkTypeChart(workTypeData) {
-      const sortedWorkTypes = Object.entries(workTypeData)
-        .sort((a, b) => b[1].units - a[1].units)
-        .slice(0, 8);
-      const maxUnits = Math.max(...sortedWorkTypes.map(([_, data]) => data.units));
-      let html = '<div class="chart-bar">';
-      sortedWorkTypes.forEach(([workType, data]) => {
-        const heightPercent = maxUnits > 0 ? (data.units / maxUnits) * 100 : 0;
-        const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
-        const displayName = chartLabels.workTypes[workType] || workType;
-        const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
-        html += `
-          <div class="chart-bar-item" 
-               style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
-               title="${displayName}: ${data.units} ед. (${normative.toFixed(1)} шт/час)">
-          </div>
-        `;
-      });
-      html += '</div><div class="chart-bar-labels">';
-      sortedWorkTypes.forEach(([workType, data]) => {
-        const displayName = chartLabels.workTypes[workType] || workType;
-        const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
-        html += `<div class="chart-bar-label">${shortName}</div>`;
-      });
-      html += '</div>';
-      return html;
-    }
+  const sortedWorkTypes = Object.entries(workTypeData)
+    .sort((a, b) => b[1].units - a[1].units)
+    .slice(0, 8);
+  const maxUnits = Math.max(...sortedWorkTypes.map(([_, data]) => data.units));
+  let html = '<div class="chart-bar">';
+  
+  sortedWorkTypes.forEach(([workType, data], index) => {
+    const heightPercent = maxUnits > 0 ? (data.units / maxUnits) * 100 : 0;
+    const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+    const displayName = chartLabels.workTypes[workType] || workType;
+    const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
+    
+    // Уникальный ID для каждого столбца (для позиционирования tooltip)
+    const barId = `bar-${Date.now()}-${index}`;
+    
+    html += `
+      <div class="chart-bar-item" 
+           id="${barId}"
+           data-tooltip="${displayName}: ${data.units} ед. (${normative.toFixed(1)} шт/час)"
+           style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
+           onmouseenter="showTooltip(event, this)"
+           onmouseleave="hideTooltip()">
+      </div>
+    `;
+  });
+  
+  html += '</div><div class="chart-bar-labels">';
+  sortedWorkTypes.forEach(([workType, data]) => {
+    const displayName = chartLabels.workTypes[workType] || workType;
+    const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
+    html += `<div class="chart-bar-label">${shortName}</div>`;
+  });
+  html += '</div>';
+  return html;
+}
     function renderTimeDistributionChart(timeDistribution) {
   const sortedIntervals = Object.values(timeDistribution)
     .sort((a, b) => a.interval.sortKey - b.interval.sortKey);
