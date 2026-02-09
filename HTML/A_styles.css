@@ -1,5 +1,3 @@
-    /* ... (весь CSS без изменений) ... */
-    /* Остальной CSS остаётся без изменений */
     * {
       box-sizing: border-box;
     }
@@ -886,3 +884,16 @@
       color: #2e7d32;
       margin: 0;
     }
+
+.custom-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  display: none;
+}
