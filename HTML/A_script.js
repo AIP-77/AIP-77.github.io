@@ -1,33 +1,40 @@
 let tooltipTimeout = null;
 
 function showTooltip(event, element) {
-  // Отменяем предыдущее скрытие
   if (tooltipTimeout) {
     clearTimeout(tooltipTimeout);
     tooltipTimeout = null;
   }
-  
+
   const tooltip = document.getElementById('customTooltip');
   const text = element.getAttribute('data-tooltip');
   if (!text) return;
-  
+
   tooltip.textContent = text;
   tooltip.style.display = 'block';
-  
-  // Позиционируем рядом с курсором
-  const x = event.pageX + 10;
-  const y = event.pageY - 10;
-  tooltip.style.left = x + 'px';
-  tooltip.style.top = y + 'px';
+
+  // Получаем позицию элемента относительно viewport
+  const rect = element.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+
+  // Позиционируем tooltip над центром столбца, с небольшим отступом сверху
+  const left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+  const top = rect.top - tooltipRect.height - 8; // 8px отступ сверху
+
+  // Ограничиваем, чтобы tooltip не уходил за левую/правую границу окна
+  const windowWidth = window.innerWidth;
+  const leftClamped = Math.max(0, Math.min(left, windowWidth - tooltipRect.width));
+
+  tooltip.style.left = leftClamped + 'px';
+  tooltip.style.top = Math.max(0, top) + 'px';
 }
 
 function hideTooltip() {
-  // Добавляем задержку перед скрытием (1 секунда)
   tooltipTimeout = setTimeout(() => {
     const tooltip = document.getElementById('customTooltip');
     tooltip.style.display = 'none';
     tooltipTimeout = null;
-  }, 1000); // 1000 мс = 1 секунда
+  }, 1000);
 }
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
     function parseTime(timeStr) {
