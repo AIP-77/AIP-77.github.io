@@ -9,7 +9,17 @@ function showTooltip(event, element) {
   const text = element.getAttribute('data-tooltip');
   if (!text) return;
   
-…}
+  tooltip.textContent = text;
+  tooltip.style.display = 'block';
+  
+  // Фиксируем позицию над столбцом
+  const rect = element.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const leftPos = rect.left + (rect.width - tooltipRect.width) / 2;
+  
+  tooltip.style.left = Math.max(0, leftPos) + 'px';
+  tooltip.style.top = (rect.top - tooltipRect.height - 8) + 'px';
+}
 
 function hideTooltip() {
   tooltipTimeout = setTimeout(() => {
