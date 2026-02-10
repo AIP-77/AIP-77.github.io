@@ -36,6 +36,80 @@ function hideTooltip() {
     tooltipTimeout = null;
   }, 1000);
 }
+// функцию генерации диаграммы
+function renderDonutChart(data) {
+  // Пример данных: { "Комплектация": 42, "Упаковка": 23, "Погрузка": 15, ... }
+  const total = Object.values(data).reduce((sum, v) => sum + v, 0);
+  if (total === 0) return '<div class="donut-chart"><svg></svg><div class="donut-center">Нет данных</div></div>';
+
+  const radius = 80;
+  const circumference = 2 * Math.PI * radius;
+  let startAngle = 0;
+  let svgHtml = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Цвета по порядку (можно расширить)
+  const colors = [
+    '#4285F4', // синий — Комплектация
+    '#34A853', // зелёный — Упаковка
+    '#FBBC05', // жёлтый — Погрузка
+    '#EA4335', // красный — Администрация
+    '#9C27B0', // фиолетовый — Сборка
+    '#00ACC1', // бирюзовый — Транспорт
+    '#FF9800', // оранжевый — Другие
+  ];
+
+  let i = 0;
+  for (const [label, value] of Object.entries(data)) {
+    const percentage = (value / total) * 100;
+    const arcLength = (percentage / 100) * circumference;
+    
+    // Вычисляем начальный и конечный углы
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = ((startAngle + (percentage / 100) * 360) * Math.PI) / 180;
+    
+    // Координаты начала и конца дуги
+    const x1 = 100 + radius * Math.cos(startRad);
+    const y1 = 100 + radius * Math.sin(startRad);
+    const x2 = 100 + radius * Math.cos(endRad);
+    const y2 = 100 + radius * Math.sin(endRad);
+    
+    // Большой сегмент? (больше 180°)
+    const largeArcFlag = percentage > 50 ? 1 : 0;
+    
+    // SVG path для сектора
+    const path = `
+      M 100,100
+      L ${x1},${y1}
+      A ${radius},${radius} 0 ${largeArcFlag},1 ${x2},${y2}
+      Z
+    `;
+    
+    svgHtml += `<path d="${path}" fill="${colors[i % colors.length]}" />`;
+    
+    startAngle += (percentage / 100) * 360;
+    i++;
+  }
+
+  svgHtml += '</svg>';
+  svgHtml += `<div class="donut-center">${total} ч</div>`;
+
+  // Легенда
+  let legendHtml = '<div class="donut-legend">';
+  i = 0;
+  for (const [label, value] of Object.entries(data)) {
+    const percentage = ((value / total) * 100).toFixed(1);
+    legendHtml += `
+      <div class="donut-legend-item">
+        <div class="donut-color-box" style="background-color:${colors[i % colors.length]}"></div>
+        <span>${label}: ${percentage}%</span>
+      </div>
+    `;
+    i++;
+  }
+  legendHtml += '</div>';
+
+  return `<div class="donut-chart">${svgHtml}${legendHtml}</div>`;
+}
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
     function parseTime(timeStr) {
       if (!timeStr) return 0;
@@ -419,62 +493,104 @@ function normalizeRecords(data) {
       return testRecords;
     }
     async function loadData() {
-      if (!currentArchive) {
-        currentArchive = getArchiveNameForDate(new Date());
-      }
-      const url = getArchiveUrl(currentArchive);
-      try {
-        loadingDiv.classList.remove('hidden');
-        errorDiv.classList.add('hidden');
-        controlsDiv.classList.add('hidden');
-        updateProgress(10);
-        await Promise.all([loadStandards(), loadStaffData()]);
-        loadingDiv.innerHTML = `
-          <div class="loading-spinner"></div>
-          <span>Загрузка данных архива ${currentArchive}<span class="loading-dots"></span></span>
-        `;
-        console.log('Пытаемся загрузить данные из:', url);
-        const urlWithCacheBust = `${url}?t=${Date.now()}`;
-        updateProgress(30);
-        const response = await fetch(urlWithCacheBust);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-        }
-        updateProgress(60);
-        const data = await response.json();
-		
-        records = normalizeRecords(data);
-        if (!Array.isArray(records)) {
-          throw new Error('Неверный формат данных');
-        }
-        updateProgress(80);
-        
-        records.forEach(record => {
-          const { direction, department } = getDirectionAndDepartment(record['Вид работ']);
-          record['Направление'] = direction;
-          record['Отдел'] = department;
-        });
-        allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
-        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive} | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
-        updateProgress(100);
-        setTimeout(() => {
-          initUI();
-          updateProgress(0);
-        }, 500);
-      } catch (err) {
-        console.error('Ошибка загрузки, используем тестовые данные:', err);
-        records = createTestData();
-        allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
-        lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
-        errorDiv.textContent = `⚠️ Не удалось загрузить данные: ${err.message}. Используются тестовые данные.`;
-        errorDiv.classList.remove('hidden');
-        updateProgress(100);
-        setTimeout(() => {
-          initUI();
-          updateProgress(0);
-        }, 500);
-      }
+  if (!currentArchive) {
+    currentArchive = getArchiveNameForDate(new Date());
+  }
+  const url = getArchiveUrl(currentArchive);
+  try {
+    loadingDiv.classList.remove('hidden');
+    errorDiv.classList.add('hidden');
+    controlsDiv.classList.add('hidden');
+    updateProgress(10);
+    await Promise.all([loadStandards(), loadStaffData()]);
+    loadingDiv.innerHTML = `
+      <div class="loading-spinner"></div>
+      <span>Загрузка данных архива ${currentArchive}<span class="loading-dots"></span></span>
+    `;
+    console.log('Пытаемся загрузить данные из:', url);
+    const urlWithCacheBust = `${url}?t=${Date.now()}`;
+    updateProgress(30);
+    const response = await fetch(urlWithCacheBust);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
     }
+    updateProgress(60);
+    const data = await response.json();
+    
+    records = normalizeRecords(data);
+    if (!Array.isArray(records)) {
+      throw new Error('Неверный формат данных');
+    }
+    updateProgress(80);
+    
+    // === НОВЫЙ ФРАГМЕНТ: Распределение трудозатрат ===
+    const workTypeHours = {};
+    records.forEach(record => {
+      const workType = record['Вид работ'] || 'Не указано';
+      const timeStr = record['Время по табелю'];
+      let hours = 0;
+      
+      if (timeStr && typeof timeStr === 'string') {
+        const parts = timeStr.split(':').map(Number);
+        if (parts.length >= 2) {
+          const h = parts[0] || 0;
+          const m = parts[1] || 0;
+          const s = parts[2] || 0;
+          hours = h + (m / 60) + (s / 3600);
+        }
+      }
+      workTypeHours[workType] = (workTypeHours[workType] || 0) + hours;
+    });
+    
+    // Ограничиваем до 6 основных видов работ
+    const topWorkTypes = Object.entries(workTypeHours)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+    
+    const donutData = Object.fromEntries(topWorkTypes);
+    // Сохраняем данные для использования в initUI()
+    window.donutChartData = donutData;
+    // === КОНЕЦ НОВОГО ФРАГМЕНТА ===
+    
+    records.forEach(record => {
+      const { direction, department } = getDirectionAndDepartment(record['Вид работ']);
+      record['Направление'] = direction;
+      record['Отдел'] = department;
+    });
+    allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
+    lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive} | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
+    updateProgress(100);
+    setTimeout(() => {
+      initUI();
+      updateProgress(0);
+    }, 500);
+  } catch (err) {
+    console.error('Ошибка загрузки, используем тестовые данные:', err);
+    records = createTestData();
+    allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
+    
+    // === НОВЫЙ ФРАГМЕНТ: Тестовые данные для диаграммы ===
+    const testDonutData = {
+      'Комплектация': 42.5,
+      'Упаковка': 23.2,
+      'Погрузка': 15.8,
+      'Администрация': 8.3,
+      'Сборка': 6.1,
+      'Транспортировка': 4.1
+    };
+    window.donutChartData = testDonutData;
+    // === КОНЕЦ ТЕСТОВОГО ФРАГМЕНТА ===
+    
+    lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
+    errorDiv.textContent = `⚠️ Не удалось загрузить данные: ${err.message}. Используются тестовые данные.`;
+    errorDiv.classList.remove('hidden');
+    updateProgress(100);
+    setTimeout(() => {
+      initUI();
+      updateProgress(0);
+    }, 500);
+  }
+}
     function getArchiveNameForDate(date) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -493,6 +609,10 @@ function normalizeRecords(data) {
         setupEventListeners();
         uiInitialized = true;
       }
+	    const donutContainer = document.getElementById('donut-container');
+        if (donutContainer && window.donutChartData) {
+          donutContainer.innerHTML = renderDonutChart(window.donutChartData);
+        }	
       const uniqueDates = [...new Set(records.map(r => r['Рабочий день']))].filter(Boolean).sort();
       if (uniqueDates.length > 0 && !selectedDate) {
         selectedDate = uniqueDates[0];
