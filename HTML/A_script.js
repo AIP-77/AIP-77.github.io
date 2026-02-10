@@ -1188,27 +1188,22 @@ function normalizeRecords(data) {
     .slice(0, 8);
   const maxUnits = Math.max(...sortedWorkTypes.map(([_, data]) => data.units));
   let html = '<div class="chart-bar">';
-  
-  sortedWorkTypes.forEach(([workType, data], index) => {
+  sortedWorkTypes.forEach(([workType, data]) => {
     const heightPercent = maxUnits > 0 ? (data.units / maxUnits) * 100 : 0;
     const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
     const displayName = chartLabels.workTypes[workType] || workType;
     const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
-    
-    // Уникальный ID для каждого столбца (для позиционирования tooltip)
-    const barId = `bar-${Date.now()}-${index}`;
+    const tooltipText = `${displayName}: ${data.units} ед. (${normative.toFixed(1)} шт/час)`;
     
     html += `
-      <div class="chart-bar-item" 
-           id="${barId}"
-           data-tooltip="${displayName}: ${data.units} ед. (${normative.toFixed(1)} шт/час)"
+      <div class="chart-bar-item"
            style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
+           data-tooltip="${tooltipText}"
            onmouseenter="showTooltip(event, this)"
            onmouseleave="hideTooltip()">
       </div>
     `;
   });
-  
   html += '</div><div class="chart-bar-labels">';
   sortedWorkTypes.forEach(([workType, data]) => {
     const displayName = chartLabels.workTypes[workType] || workType;
@@ -1226,62 +1221,67 @@ function normalizeRecords(data) {
   sortedIntervals.forEach(stats => {
     const heightPercent = maxUnits > 0 ? (stats.units / maxUnits) * 100 : 0;
     const color = stats.interval.isNight ? '#5c6bc0' : '#2196f3';
+    const tooltipText = `${stats.interval.display}: ${stats.units} ед.`;
+    
     html += `
-      <div class="chart-bar-item" 
+      <div class="chart-bar-item"
            style="height: ${heightPercent}%; background-color: ${color}"
-           title="${stats.interval.display}: ${stats.units} ед.">
+           data-tooltip="${tooltipText}"
+           onmouseenter="showTooltip(event, this)"
+           onmouseleave="hideTooltip()">
       </div>
     `;
   });
   html += `
   </div>
-  <!-- ИСПРАВЛЕННЫЙ БЛОК ПОДПИСЕЙ -->
   <div class="chart-bar-labels" style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: #666; text-align: center;">
   `;
   sortedIntervals.forEach(stats => {
-    const label = stats.interval.shortDisplay; // Используем shortDisplay для чистой метки
+    const label = stats.interval.shortDisplay;
     html += `<div style="flex: 1; min-width: 0; word-break: break-all;">${label}</div>`;
   });
-  html += `
-  </div>
-  `;
+  html += `</div>`;
   return html;
 }
     function renderDepartmentChart(departmentData) {
-      const sortedDepartments = Object.entries(departmentData)
-        .filter(([dept]) => dept !== 'Не указано')
-        .sort((a, b) => {
-          const normativeA = a[1].time > 0 ? calculateNormative(a[1].units, a[1].time) : 0;
-          const normativeB = b[1].time > 0 ? calculateNormative(b[1].units, b[1].time) : 0;
-          return normativeB - normativeA;
-        })
-        .slice(0, 6);
-      const maxNormative = Math.max(...sortedDepartments.map(([_, data]) => {
-        return data.time > 0 ? calculateNormative(data.units, data.time) : 0;
-      }));
-      let html = '<div class="chart-bar">';
-      sortedDepartments.forEach(([department, data]) => {
-        const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
-        const heightPercent = maxNormative > 0 ? (normative / maxNormative) * 100 : 0;
-        const displayName = chartLabels.departments[department] || department;
-        const shortName = displayName.length > 10 ? displayName.substring(0, 8) + '...' : displayName;
-        html += `
-          <div class="chart-bar-item" 
-               style="height: ${heightPercent}%; background-color: #4caf50"
-               title="${displayName}: ${normative.toFixed(1)} шт/час">
-          </div>
-        `;
-      });
-      html += '</div><div class="chart-bar-labels">';
-      sortedDepartments.forEach(([department, data]) => {
-        const displayName = chartLabels.departments[department] || department;
-        const shortName = displayName.length > 10 ? displayName.substring(0, 8) + '...' : displayName;
-        const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
-        html += `<div class="chart-bar-label" title="${normative.toFixed(1)} шт/час">${shortName}</div>`;
-      });
-      html += '</div>';
-      return html;
-    }
+  const sortedDepartments = Object.entries(departmentData)
+    .filter(([dept]) => dept !== 'Не указано')
+    .sort((a, b) => {
+      const normativeA = a[1].time > 0 ? calculateNormative(a[1].units, a[1].time) : 0;
+      const normativeB = b[1].time > 0 ? calculateNormative(b[1].units, b[1].time) : 0;
+      return normativeB - normativeA;
+    })
+    .slice(0, 6);
+  const maxNormative = Math.max(...sortedDepartments.map(([_, data]) => {
+    return data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+  }));
+  let html = '<div class="chart-bar">';
+  sortedDepartments.forEach(([department, data]) => {
+    const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+    const heightPercent = maxNormative > 0 ? (normative / maxNormative) * 100 : 0;
+    const displayName = chartLabels.departments[department] || department;
+    const shortName = displayName.length > 10 ? displayName.substring(0, 8) + '...' : displayName;
+    const tooltipText = `${displayName}: ${normative.toFixed(1)} шт/час`;
+    
+    html += `
+      <div class="chart-bar-item"
+           style="height: ${heightPercent}%; background-color: #4caf50"
+           data-tooltip="${tooltipText}"
+           onmouseenter="showTooltip(event, this)"
+           onmouseleave="hideTooltip()">
+      </div>
+    `;
+  });
+  html += '</div><div class="chart-bar-labels">';
+  sortedDepartments.forEach(([department, data]) => {
+    const displayName = chartLabels.departments[department] || department;
+    const shortName = displayName.length > 10 ? displayName.substring(0, 8) + '...' : displayName;
+    const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
+    html += `<div class="chart-bar-label" title="${normative.toFixed(1)} шт/час">${shortName}</div>`;
+  });
+  html += '</div>';
+  return html;
+}
     function renderCostDistributionChart(costDistribution) {
       const sortedCosts = Object.entries(costDistribution)
         .sort((a, b) => b[1] - a[1])
