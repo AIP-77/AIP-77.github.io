@@ -1184,6 +1184,80 @@ function normalizeRecords(data) {
       `;
       document.getElementById('charts-content').innerHTML = html;
     }
+function renderDonutChart(donutData) {
+  const total = Object.values(donutData).reduce((sum, v) => sum + v, 0);
+  if (total === 0) return '<div class="chart-placeholder">Нет данных</div>';
+
+  const radius = 80;
+  const circumference = 2 * Math.PI * radius;
+  let startAngle = 0;
+  let svgHtml = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Цвета для видов работ (можно расширить)
+  const colors = [
+    '#FF6B6B', // Красный — Главная сборка / Погрузка
+    '#4ECDC4', // Бирюзовый — Сортировка / Разгрузка
+    '#45B7D1', // Голубой — Упаковка / Транспортировка
+    '#96CEB4', // Зелёный — Комплектация
+    '#FFEAA7', // Жёлтый — Сборка A-зоны
+    '#DDA0DD', // Фиолетовый — Другие виды работ
+    '#AB47BC', // Темно-фиолетовый
+    '#26C6DA'  // Светло-голубой
+  ];
+
+  let i = 0;
+  for (const [label, value] of Object.entries(donutData)) {
+    const percentage = (value / total) * 100;
+    const arcLength = (percentage / 100) * circumference;
+    
+    // Вычисляем углы
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = ((startAngle + percentage * 3.6) * Math.PI) / 180; // 360° / 100 = 3.6
+    
+    const x1 = 100 + radius * Math.cos(startRad);
+    const y1 = 100 + radius * Math.sin(startRad);
+    const x2 = 100 + radius * Math.cos(endRad);
+    const y2 = 100 + radius * Math.sin(endRad);
+    
+    const largeArcFlag = percentage > 50 ? 1 : 0;
+    
+    // SVG path для сектора
+    const path = `
+      M 100,100
+      L ${x1},${y1}
+      A ${radius},${radius} 0 ${largeArcFlag},1 ${x2},${y2}
+      Z
+    `;
+    
+    svgHtml += `<path d="${path}" fill="${colors[i % colors.length]}" />`;
+    
+    startAngle += percentage * 3.6;
+    i++;
+  }
+
+  svgHtml += '</svg>';
+  
+  // Центральный текст
+  const centerText = `<div class="donut-center">${total.toFixed(0)} ч</div>`;
+  
+  // Легенда
+  let legendHtml = '<div class="chart-legend">';
+  i = 0;
+  for (const [label, value] of Object.entries(donutData)) {
+    const percentage = ((value / total) * 100).toFixed(1);
+    const color = colors[i % colors.length];
+    legendHtml += `
+      <div class="chart-legend-item">
+        <div class="legend-color" style="background-color:${color};"></div>
+        <span>${label}: ${percentage}%</span>
+      </div>
+    `;
+    i++;
+  }
+  legendHtml += '</div>';
+
+  return `<div class="chart-pie">${svgHtml}${centerText}</div>${legendHtml}`;
+}
     function renderWorkTypeCharts(allRecords, responsibleRecords) {
   const workTypeTimeStats = {};
   allRecords.forEach(record => {
