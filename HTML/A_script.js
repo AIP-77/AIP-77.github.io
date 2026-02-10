@@ -1104,28 +1104,23 @@ function normalizeRecords(data) {
       document.getElementById('combined-content').innerHTML = html;
     }
 function renderCharts(allRecords, responsibleRecords) {
+  // === Сбор данных для всех графиков ===
+  
+  // Данные по видам работ
   const workTypeData = {};
+  // Данные по времени суток
   const timeDistribution = {};
+  // Данные по отделам
   const departmentData = {};
-  const costDistribution = {};
-
-  // Собираем данные
-  responsibleRecords.forEach(record => {
-    const workType = record['Вид работ'] || 'Без вида работ';
-    if (!workTypeData[workType]) {
-      workTypeData[workType] = { units: 0, time: 0, amount: 0 };
-    }
-    workTypeData[workType].units += parseInt(record['Количество единиц']) || 0;
-    workTypeData[workType].time += parseTime(record['Рабочее время']);
-    workTypeData[workType].amount += parseCurrency(record['Расчетная сумма']);
-  });
-
-  // === НОВЫЙ БЛОК: Распределение трудозатрат ===
+  // Данные по трудозатратам (для donut chart)
   const workTypeHours = {};
-  records.forEach(record => {
+
+  // === Сбор данных по трудозатратам (для круговой диаграммы) ===
+  allRecords.forEach(record => {
     const workType = record['Вид работ'] || 'Не указано';
     const timeStr = record['Время по табелю'];
     let hours = 0;
+    
     if (timeStr && typeof timeStr === 'string') {
       const parts = timeStr.split(':').map(Number);
       if (parts.length >= 2) {
@@ -1141,11 +1136,19 @@ function renderCharts(allRecords, responsibleRecords) {
   const topWorkTypes = Object.entries(workTypeHours)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6);
-
   const donutData = Object.fromEntries(topWorkTypes);
-  // === КОНЕЦ НОВОГО БЛОКА ===
 
-  // Остальные графики (оставьте как есть)
+  // === Сбор данных для остальных графиков (только ответственные сотрудники) ===
+  responsibleRecords.forEach(record => {
+    const workType = record['Вид работ'] || 'Без вида работ';
+    if (!workTypeData[workType]) {
+      workTypeData[workType] = { units: 0, time: 0, amount: 0 };
+    }
+    workTypeData[workType].units += parseInt(record['Количество единиц']) || 0;
+    workTypeData[workType].time += parseTime(record['Рабочее время']);
+    workTypeData[workType].amount += parseCurrency(record['Расчетная сумма']);
+  });
+
   responsibleRecords.forEach(record => {
     const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
     if (!interval) return;
@@ -1166,39 +1169,35 @@ function renderCharts(allRecords, responsibleRecords) {
     departmentData[department].amount += parseCurrency(record['Расчетная сумма']);
   });
 
-  responsibleRecords.forEach(record => {
-    const workType = record['Вид работ'] || 'Без вида работ';
-    if (!costDistribution[workType]) {
-      costDistribution[workType] = 0;
-    }
-    costDistribution[workType] += parseCurrency(record['Расчетная сумма']);
-  });
-
-  // Формируем HTML
-  let html = `
+  // === Генерация HTML для всех графиков ===
+  const html = `
     <div class="charts-grid">
-      <!-- НОВЫЙ ГРАФИК: Распределение трудозатрат -->
+      <!-- 1. Распределение трудозатрат (круговая диаграмма) -->
       <div class="chart-container">
         <h4 class="chart-title">📊 Распределение Трудозатрат</h4>
-        <p>Структура фонда рабочего времени. Анализ показывает, что операции комплектации (Picking) и упаковки (Packing) потребляют большую часть ресурсов.</p>
+        <p>Структура фонда рабочего времени. Анализ показывает, что операции комплектации и упаковки потребляют большую часть ресурсов.</p>
         <div class="chart-real">
           ${renderDonutChart(donutData)}
         </div>
       </div>
 
-      <!-- Остальные графики -->
+      <!-- 2. Распределение по видам работ -->
       <div class="chart-container">
         <h4 class="chart-title">📊 Распределение по видам работ</h4>
         <div class="chart-real">
           ${renderWorkTypeChart(workTypeData)}
         </div>
       </div>
+
+      <!-- 3. Активность по времени суток -->
       <div class="chart-container">
         <h4 class="chart-title">⏰ Активность по времени суток</h4>
         <div class="chart-real">
           ${renderTimeDistributionChart(timeDistribution)}
         </div>
       </div>
+
+      <!-- 4. Эффективность отделов -->
       <div class="chart-container">
         <h4 class="chart-title">🏢 Эффективность отделов</h4>
         <div class="chart-real">
