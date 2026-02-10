@@ -1,6 +1,16 @@
+let tooltipTimeout = null;
+
 function showTooltip(event, element) {
+  // Отменяем предыдущее скрытие
+  if (tooltipTimeout) {
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = null;
+  }
+  
   const tooltip = document.getElementById('customTooltip');
   const text = element.getAttribute('data-tooltip');
+  if (!text) return;
+  
   tooltip.textContent = text;
   tooltip.style.display = 'block';
   
@@ -12,18 +22,13 @@ function showTooltip(event, element) {
 }
 
 function hideTooltip() {
-  const tooltip = document.getElementById('customTooltip');
-  tooltip.style.display = 'none';
+  // Добавляем задержку перед скрытием (1 секунда)
+  tooltipTimeout = setTimeout(() => {
+    const tooltip = document.getElementById('customTooltip');
+    tooltip.style.display = 'none';
+    tooltipTimeout = null;
+  }, 1000); // 1000 мс = 1 секунда
 }
-
-// Обновляем позицию при движении мыши (опционально)
-document.addEventListener('mousemove', (e) => {
-  const tooltip = document.getElementById('customTooltip');
-  if (tooltip.style.display === 'block') {
-    tooltip.style.left = (e.pageX + 10) + 'px';
-    tooltip.style.top = (e.pageY - 10) + 'px';
-  }
-});
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
     function parseTime(timeStr) {
       if (!timeStr) return 0;
