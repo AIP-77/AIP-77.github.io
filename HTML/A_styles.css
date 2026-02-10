@@ -828,6 +828,7 @@
       height: 200px;
       gap: 4px;
       margin-bottom: 10px;
+      position: relative;
     }
     .chart-bar-item {
       flex: 1;
@@ -896,4 +897,5 @@
   z-index: 1000;
   white-space: nowrap;
   display: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
 }
