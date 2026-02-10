@@ -1103,87 +1103,113 @@ function normalizeRecords(data) {
       html += renderComparisonAnalytics(selectedDate);
       document.getElementById('combined-content').innerHTML = html;
     }
-    function renderCharts(allRecords, responsibleRecords) {
-      const workTypeData = {};
-      const timeDistribution = {};
-      const departmentData = {};
-      const costDistribution = {};
-      responsibleRecords.forEach(record => {
-        const workType = record['Вид работ'] || 'Без вида работ';
-        if (!workTypeData[workType]) {
-          workTypeData[workType] = {
-            units: 0,
-            time: 0,
-            amount: 0
-          };
-        }
-        workTypeData[workType].units += parseInt(record['Количество единиц']) || 0;
-        workTypeData[workType].time += parseTime(record['Рабочее время']);
-        workTypeData[workType].amount += parseCurrency(record['Расчетная сумма']);
-      });
-      responsibleRecords.forEach(record => {
-        const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
-        if (!interval) return;
-        if (!timeDistribution[interval.key]) {
-          timeDistribution[interval.key] = {
-            interval: interval,
-            units: 0,
-            tasks: 0
-          };
-        }
-        timeDistribution[interval.key].units += parseInt(record['Количество единиц']) || 0;
-        timeDistribution[interval.key].tasks++;
-      });
-      responsibleRecords.forEach(record => {
-        const department = record['Отдел'] || 'Не указано';
-        if (!departmentData[department]) {
-          departmentData[department] = {
-            units: 0,
-            time: 0,
-            amount: 0
-          };
-        }
-        departmentData[department].units += parseInt(record['Количество единиц']) || 0;
-        departmentData[department].time += parseTime(record['Рабочее время']);
-        departmentData[department].amount += parseCurrency(record['Расчетная сумма']);
-      });
-      responsibleRecords.forEach(record => {
-        const workType = record['Вид работ'] || 'Без вида работ';
-        if (!costDistribution[workType]) {
-          costDistribution[workType] = 0;
-        }
-        costDistribution[workType] += parseCurrency(record['Расчетная сумма']);
-      });
-      let html = `
-        <div class="charts-grid">
-          <div class="chart-container">
-            <h4 class="chart-title">📊 Распределение по видам работ</h4>
-            <div class="chart-real">
-              ${renderWorkTypeChart(workTypeData)}
-            </div>
-          </div>
-          <div class="chart-container">
-            <h4 class="chart-title">⏰ Активность по времени суток</h4>
-            <div class="chart-real">
-              ${renderTimeDistributionChart(timeDistribution)}
-            </div>
-          </div>
-          <div class="chart-container">
-            <h4 class="chart-title">🏢 Эффективность отделов</h4>
-            <div class="chart-real">
-              ${renderDepartmentChart(departmentData)}
-            </div>
-          </div>
-          <div class="chart-container">
-            <h4 class="chart-title">💰 Структура расходов</h4>
-            <div class="chart-real">
-              ${renderCostDistributionChart(costDistribution)}
-            </div>
-          </div>
-        </div>
-      `;
-      document.getElementById('charts-content').innerHTML = html;
+function renderCharts(allRecords, responsibleRecords) {
+  const workTypeData = {};
+  const timeDistribution = {};
+  const departmentData = {};
+  const costDistribution = {};
+
+  // Собираем данные
+  responsibleRecords.forEach(record => {
+    const workType = record['Вид работ'] || 'Без вида работ';
+    if (!workTypeData[workType]) {
+      workTypeData[workType] = { units: 0, time: 0, amount: 0 };
     }
+    workTypeData[workType].units += parseInt(record['Количество единиц']) || 0;
+    workTypeData[workType].time += parseTime(record['Рабочее время']);
+    workTypeData[workType].amount += parseCurrency(record['Расчетная сумма']);
+  });
+
+  // === НОВЫЙ БЛОК: Распределение трудозатрат ===
+  const workTypeHours = {};
+  records.forEach(record => {
+    const workType = record['Вид работ'] || 'Не указано';
+    const timeStr = record['Время по табелю'];
+    let hours = 0;
+    if (timeStr && typeof timeStr === 'string') {
+      const parts = timeStr.split(':').map(Number);
+      if (parts.length >= 2) {
+        const h = parts[0] || 0;
+        const m = parts[1] || 0;
+        hours = h + (m / 60);
+      }
+    }
+    workTypeHours[workType] = (workTypeHours[workType] || 0) + hours;
+  });
+
+  // Ограничиваем до 6 основных видов работ
+  const topWorkTypes = Object.entries(workTypeHours)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+
+  const donutData = Object.fromEntries(topWorkTypes);
+  // === КОНЕЦ НОВОГО БЛОКА ===
+
+  // Остальные графики (оставьте как есть)
+  responsibleRecords.forEach(record => {
+    const interval = getHourIntervalForWorkDay(record['Начало задачи'], selectedDate);
+    if (!interval) return;
+    if (!timeDistribution[interval.key]) {
+      timeDistribution[interval.key] = { interval, units: 0, tasks: 0 };
+    }
+    timeDistribution[interval.key].units += parseInt(record['Количество единиц']) || 0;
+    timeDistribution[interval.key].tasks++;
+  });
+
+  responsibleRecords.forEach(record => {
+    const department = record['Отдел'] || 'Не указано';
+    if (!departmentData[department]) {
+      departmentData[department] = { units: 0, time: 0, amount: 0 };
+    }
+    departmentData[department].units += parseInt(record['Количество единиц']) || 0;
+    departmentData[department].time += parseTime(record['Рабочее время']);
+    departmentData[department].amount += parseCurrency(record['Расчетная сумма']);
+  });
+
+  responsibleRecords.forEach(record => {
+    const workType = record['Вид работ'] || 'Без вида работ';
+    if (!costDistribution[workType]) {
+      costDistribution[workType] = 0;
+    }
+    costDistribution[workType] += parseCurrency(record['Расчетная сумма']);
+  });
+
+  // Формируем HTML
+  let html = `
+    <div class="charts-grid">
+      <!-- НОВЫЙ ГРАФИК: Распределение трудозатрат -->
+      <div class="chart-container">
+        <h4 class="chart-title">📊 Распределение Трудозатрат</h4>
+        <p>Структура фонда рабочего времени. Анализ показывает, что операции комплектации (Picking) и упаковки (Packing) потребляют большую часть ресурсов.</p>
+        <div class="chart-real">
+          ${renderDonutChart(donutData)}
+        </div>
+      </div>
+
+      <!-- Остальные графики -->
+      <div class="chart-container">
+        <h4 class="chart-title">📊 Распределение по видам работ</h4>
+        <div class="chart-real">
+          ${renderWorkTypeChart(workTypeData)}
+        </div>
+      </div>
+      <div class="chart-container">
+        <h4 class="chart-title">⏰ Активность по времени суток</h4>
+        <div class="chart-real">
+          ${renderTimeDistributionChart(timeDistribution)}
+        </div>
+      </div>
+      <div class="chart-container">
+        <h4 class="chart-title">🏢 Эффективность отделов</h4>
+        <div class="chart-real">
+          ${renderDepartmentChart(departmentData)}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('charts-content').innerHTML = html;
+}
 function renderDonutChart(donutData) {
   const total = Object.values(donutData).reduce((sum, v) => sum + v, 0);
   if (total === 0) return '<div class="chart-placeholder">Нет данных</div>';
