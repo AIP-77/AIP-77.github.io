@@ -1197,7 +1197,7 @@ function renderCharts(allRecords, responsibleRecords) {
       <!-- 1. Распределение трудозатрат -->
       <div class="chart-container">
         <h4 class="chart-title">📊 Распределение Трудозатрат</h4>
-        <p>Структура фонда рабочего времени. Анализ показывает, что операции комплектации и упаковки потребляют большую часть ресурсов.</p>
+        
         ${filterHtml}
         <div class="chart-real" id="donut-chart-container">
           ${renderDonutChart(initialDonutData)}
