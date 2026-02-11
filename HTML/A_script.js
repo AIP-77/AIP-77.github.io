@@ -527,7 +527,7 @@ function normalizeRecords(data) {
     const workTypeHours = {};
     records.forEach(record => {
       const workType = record['Вид работ'] || 'Не указано';
-      const timeStr = record['Время по табелю'];
+      const timeStr = record['Рабочее время'];
       let hours = 0;
       
       if (timeStr && typeof timeStr === 'string') {
