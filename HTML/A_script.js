@@ -1105,17 +1105,12 @@ function normalizeRecords(data) {
     }
 function renderCharts(allRecords, responsibleRecords) {
   // === Сбор данных для всех графиков ===
-  
-  // Данные по видам работ
   const workTypeData = {};
-  // Данные по времени суток
   const timeDistribution = {};
-  // Данные по отделам
   const departmentData = {};
-  // Данные по трудозатратам (для donut chart)
   const workTypeHours = {};
 
-  // === Сбор данных по трудозатратам (для круговой диаграммы) ===
+  // Собираем данные по трудозатратам
   allRecords.forEach(record => {
     const workType = record['Вид работ'] || 'Не указано';
     const timeStr = record['Время по табелю'];
@@ -1132,13 +1127,40 @@ function renderCharts(allRecords, responsibleRecords) {
     workTypeHours[workType] = (workTypeHours[workType] || 0) + hours;
   });
 
-  // Ограничиваем до 6 основных видов работ
-  const topWorkTypes = Object.entries(workTypeHours)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6);
-  const donutData = Object.fromEntries(topWorkTypes);
+  // Исключаем "Рабочий день" и "Дополнительное время для работ" по умолчанию
+  const excludedByDefault = ['Рабочий день', 'Дополнительное время для работ'];
+  const allWorkTypes = Object.keys(workTypeHours).filter(type => !excludedByDefault.includes(type));
+  
+  // Сортируем по убыванию
+  const sortedWorkTypes = allWorkTypes.sort((a, b) => workTypeHours[b] - workTypeHours[a]);
+  
+  // Ограничиваем до 10 видов работ для чекбоксов
+  const topWorkTypes = sortedWorkTypes.slice(0, 10);
 
-  // === Сбор данных для остальных графиков (только ответственные сотрудники) ===
+  // === Генерация HTML для фильтров ===
+  let filterHtml = '<div class="donut-filters"><strong>Фильтр видов работ:</strong><br>';
+  topWorkTypes.forEach(workType => {
+    const displayName = chartLabels.workTypes[workType] || workType;
+    const shortName = displayName.length > 20 ? displayName.substring(0, 20) + '...' : displayName;
+    filterHtml += `
+      <label class="donut-filter-item">
+        <input type="checkbox" 
+               class="work-type-checkbox" 
+               data-worktype="${workType}" 
+               checked>
+        ${shortName}
+      </label>
+    `;
+  });
+  filterHtml += '</div>';
+
+  // === Генерация данных для диаграммы (только выбранные) ===
+  const initialDonutData = {};
+  topWorkTypes.slice(0, 6).forEach(workType => {
+    initialDonutData[workType] = workTypeHours[workType];
+  });
+
+  // === Остальные данные (для других графиков) ===
   responsibleRecords.forEach(record => {
     const workType = record['Вид работ'] || 'Без вида работ';
     if (!workTypeData[workType]) {
@@ -1169,35 +1191,32 @@ function renderCharts(allRecords, responsibleRecords) {
     departmentData[department].amount += parseCurrency(record['Расчетная сумма']);
   });
 
-  // === Генерация HTML для всех графиков ===
+  // === Финальный HTML ===
   const html = `
     <div class="charts-grid">
-      <!-- 1. Распределение трудозатрат (круговая диаграмма) -->
+      <!-- 1. Распределение трудозатрат -->
       <div class="chart-container">
         <h4 class="chart-title">📊 Распределение Трудозатрат</h4>
-        <p>Структура фонда рабочего времени. Анализ показывает, что некоторые операции потребляют большую часть ресурсов.</p>
-        <div class="chart-real">
-          ${renderDonutChart(donutData)}
+        <p>Структура фонда рабочего времени. Анализ показывает, что операции комплектации и упаковки потребляют большую часть ресурсов.</p>
+        ${filterHtml}
+        <div class="chart-real" id="donut-chart-container">
+          ${renderDonutChart(initialDonutData)}
         </div>
       </div>
 
-      <!-- 2. Распределение по видам работ -->
+      <!-- Остальные графики -->
       <div class="chart-container">
         <h4 class="chart-title">📊 Распределение по видам работ</h4>
         <div class="chart-real">
           ${renderWorkTypeChart(workTypeData)}
         </div>
       </div>
-
-      <!-- 3. Активность по времени суток -->
       <div class="chart-container">
         <h4 class="chart-title">⏰ Активность по времени суток</h4>
         <div class="chart-real">
           ${renderTimeDistributionChart(timeDistribution)}
         </div>
       </div>
-
-      <!-- 4. Эффективность отделов -->
       <div class="chart-container">
         <h4 class="chart-title">🏢 Эффективность отделов</h4>
         <div class="chart-real">
@@ -1208,7 +1227,42 @@ function renderCharts(allRecords, responsibleRecords) {
   `;
 
   document.getElementById('charts-content').innerHTML = html;
+  
+  // === Настраиваем обработчики чекбоксов ===
+  setupDonutFilters(workTypeHours, topWorkTypes);
 }
+
+// === Новая функция: настройка фильтров ===
+function setupDonutFilters(workTypeHours, allWorkTypes) {
+  const checkboxes = document.querySelectorAll('.work-type-checkbox');
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+      // Собираем выбранные виды работ
+      const selectedWorkTypes = Array.from(checkboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.dataset.worktype);
+      
+      // Ограничиваем до 6 видов работ для диаграммы
+      const displayWorkTypes = selectedWorkTypes.slice(0, 6);
+      
+      if (displayWorkTypes.length === 0) {
+        document.getElementById('donut-chart-container').innerHTML = '<div class="chart-placeholder">Выберите виды работ</div>';
+        return;
+      }
+      
+      // Формируем данные для диаграммы
+      const donutData = {};
+      displayWorkTypes.forEach(workType => {
+        donutData[workType] = workTypeHours[workType];
+      });
+      
+      // Обновляем диаграмму
+      document.getElementById('donut-chart-container').innerHTML = renderDonutChart(donutData);
+    });
+  });
+}
+
 function renderDonutChart(donutData) {
   const total = Object.values(donutData).reduce((sum, v) => sum + v, 0);
   if (total === 0) return '<div class="chart-placeholder">Нет данных</div>';
