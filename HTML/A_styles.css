@@ -937,3 +937,28 @@
   height: 12px;
   border-radius: 2px;
 }
+.donut-filters {
+  margin: 10px 0 15px 0;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.donut-filter-item {
+  display: inline-block;
+  margin: 2px 8px 2px 0;
+  cursor: pointer;
+}
+
+.donut-filter-item input[type="checkbox"] {
+  margin-right: 4px;
+}
+
+.chart-placeholder {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 20px;
+}
+
