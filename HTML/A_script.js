@@ -1237,41 +1237,50 @@ function renderCharts(allRecords, responsibleRecords) {
 }
 
 // === Новая функция: настройка фильтров ===
+let donutRenderTimeout = null;
+
 function setupDonutFilters(workTypeHours, allWorkTypes) {
   const checkboxes = document.querySelectorAll('.work-type-checkbox');
-  
+
   checkboxes.forEach(checkbox => {
     checkbox.addEventListener('change', () => {
-      const selectedWorkTypes = Array.from(checkboxes)
-        .filter(cb => cb.checked)
-        .map(cb => cb.dataset.worktype);
-      
-      if (selectedWorkTypes.length === 0) {
-        document.getElementById('donut-chart-container').innerHTML = 
-          '<div class="chart-placeholder">Выберите хотя бы один вид работ</div>';
-        return;
+      if (donutRenderTimeout) {
+        clearTimeout(donutRenderTimeout);
       }
 
-      // Берём максимум 6 видов для диаграммы
-      const displayWorkTypes = selectedWorkTypes.slice(0, 6);
-      const donutData = {};
-      displayWorkTypes.forEach(workType => {
-        donutData[workType] = workTypeHours[workType];
-      });
+      donutRenderTimeout = setTimeout(() => {
+        const selectedWorkTypes = Array.from(checkboxes)
+          .filter(cb => cb.checked)
+          .map(cb => cb.dataset.worktype);
 
-      document.getElementById('donut-chart-container').innerHTML = renderDonutChart(donutData);
+        if (selectedWorkTypes.length === 0) {
+          document.getElementById('donut-chart-container').innerHTML = 
+            '<div class="chart-placeholder">Выберите хотя бы один вид работ</div>';
+          return;
+        }
+
+        // Берём максимум 6 видов
+        const displayWorkTypes = selectedWorkTypes.slice(0, 6);
+        const donutData = {};
+        displayWorkTypes.forEach(workType => {
+          donutData[workType] = workTypeHours[workType] || 0;
+        });
+
+        document.getElementById('donut-chart-container').innerHTML = renderDonutChart(donutData);
+      }, 200); // 200 мс задержка — достаточно для UX, но не блокирует интерфейс
     });
   });
 }
-
 function renderDonutChart(donutData) {
   const total = Object.values(donutData).reduce((sum, v) => sum + v, 0);
-  if (total === 0) return '<div class="chart-placeholder">Нет данных</div>';
+  if (total <= 0 || isNaN(total)) {
+    return '<div class="chart-placeholder">Нет данных для отображения</div>';
+  }
 
-  const radius = 80;
+  const radius = 75; // уменьшили радиус для компактности
   const circumference = 2 * Math.PI * radius;
   let startAngle = 0;
-  let svgHtml = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">`;
+  let svgHtml = `<svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" style="max-width: 160px; margin: 0 auto;">`;
 
   // Цвета для видов работ (можно расширить)
   const colors = [
@@ -1287,57 +1296,40 @@ function renderDonutChart(donutData) {
 
   let i = 0;
   for (const [label, value] of Object.entries(donutData)) {
+    if (value <= 0) continue;
+
     const percentage = (value / total) * 100;
+    if (percentage < 0.1) continue; // игнорируем очень малые сегменты
+
     const arcLength = (percentage / 100) * circumference;
-    
-    // Вычисляем углы
+    const endAngle = startAngle + (percentage * 3.6); // 360/100 = 3.6
+
     const startRad = (startAngle * Math.PI) / 180;
-    const endRad = ((startAngle + percentage * 3.6) * Math.PI) / 180; // 360° / 100 = 3.6
-    
-    const x1 = 100 + radius * Math.cos(startRad);
-    const y1 = 100 + radius * Math.sin(startRad);
-    const x2 = 100 + radius * Math.cos(endRad);
-    const y2 = 100 + radius * Math.sin(endRad);
-    
+    const endRad = (endAngle * Math.PI) / 180;
+
+    const x1 = 80 + radius * Math.cos(startRad);
+    const y1 = 80 + radius * Math.sin(startRad);
+    const x2 = 80 + radius * Math.cos(endRad);
+    const y2 = 80 + radius * Math.sin(endRad);
+
     const largeArcFlag = percentage > 50 ? 1 : 0;
-    
-    // SVG path для сектора
-    const path = `
-      M 100,100
-      L ${x1},${y1}
-      A ${radius},${radius} 0 ${largeArcFlag},1 ${x2},${y2}
-      Z
-    `;
-    
+    const path = `M 80,80 L ${x1},${y1} A ${radius},${radius} 0 ${largeArcFlag},1 ${x2},${y2} Z`;
+
+    // Защита от NaN
+    if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) continue;
+
     svgHtml += `<path d="${path}" fill="${colors[i % colors.length]}" />`;
-    
-    startAngle += percentage * 3.6;
+    startAngle = endAngle;
     i++;
   }
 
   svgHtml += '</svg>';
-  
-  // Центральный текст
   const centerText = `<div class="donut-center">${total.toFixed(0)} ч</div>`;
   
-  // Легенда
-  let legendHtml = '<div class="chart-legend">';
-  i = 0;
-  for (const [label, value] of Object.entries(donutData)) {
-    const percentage = ((value / total) * 100).toFixed(1);
-    const color = colors[i % colors.length];
-    legendHtml += `
-      <div class="chart-legend-item">
-        <div class="legend-color" style="background-color:${color};"></div>
-        <span>${label}: ${percentage}%</span>
-      </div>
-    `;
-    i++;
-  }
-  legendHtml += '</div>';
-
-  return `<div class="chart-pie">${svgHtml}${centerText}</div>${legendHtml}`;
+  return `<div class="chart-pie">${svgHtml}${centerText}</div>`;
 }
+
+
     function renderWorkTypeCharts(allRecords, responsibleRecords) {
   const workTypeTimeStats = {};
   allRecords.forEach(record => {
