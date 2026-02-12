@@ -938,14 +938,9 @@
   padding: 20px;
 }
 /*=======================
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 20px;
-  margin-top: 10px;
+.charts-grid {  display: grid;  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));  gap: 20px;  margin-top: 10px;  max-width: 1200px; /* ← КЛЮЧЕВОЕ: ограничиваем ширину */
+  margin-left: auto;  margin-right: auto;
 }
-
-
 /* Диаграмма "Распределение Трудозатрат" — занимает 8 колонок (2/3 ширины) */
 .chart-container.donut-full {  grid-column: span 8;}
 
