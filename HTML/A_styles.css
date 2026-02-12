@@ -775,18 +775,8 @@
       color: #1976d2;
       margin: 0;
     }
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 20px;
-      margin-top: 15px;
-    }
-    .chart-container {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
+
+
     .chart-title {
       font-size: 14px;
       font-weight: bold;
@@ -937,23 +927,9 @@
   height: 12px;
   border-radius: 2px;
 }
-.donut-filters {
-  margin: 10px 0 15px 0;
-  padding: 8px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 12px;
-}
 
-.donut-filter-item {
-  display: inline-block;
-  margin: 2px 8px 2px 0;
-  cursor: pointer;
-}
 
-.donut-filter-item input[type="checkbox"] {
-  margin-right: 4px;
-}
+
 
 .chart-placeholder {
   text-align: center;
@@ -961,4 +937,26 @@
   font-style: italic;
   padding: 20px;
 }
+/*=======================
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+  margin-top: 10px;
+}
 
+
+/* Диаграмма "Распределение Трудозатрат" — занимает 8 колонок (2/3 ширины) */
+.chart-container.donut-full {  grid-column: span 8;}
+
+/* Остальные графики — по 4 колонки (1/3 ширины) */
+.chart-container:not(.donut-full) {  grid-column: span 4;}
+.chart-container {    background: white;    padding: 15px;   border-radius: 8px;   box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+
+/* Фильтры — всегда вверху, внутри контейнера диаграммы */
+.donut-filters {
+  margin: 10px 0 15px 0;  padding: 8px;  background: #f8f9fa;  border-radius: 6px;  font-size: 12px;  display: flex;  flex-wrap: wrap;  gap: 8px;}
+
+.donut-filter-item {  display: flex;  align-items: center;  gap: 4px;  font-size: 12px;}
+
+.donut-filter-item input[type="checkbox"] {  width: 14px;  height: 14px;}
