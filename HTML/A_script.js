@@ -1230,6 +1230,9 @@ function renderCharts(allRecords, responsibleRecords) {
   
   // === Настраиваем обработчики чекбоксов ===
   setupDonutFilters(workTypeHours, topWorkTypes);
+console.log('Пример записи:', allRecords[0]);
+console.log('Рабочее время:', allRecords[0]['Рабочее время']);
+console.log('Время по табелю:', allRecords[0]['Время по табелю']);	
 }
 
 // === Новая функция: настройка фильтров ===
