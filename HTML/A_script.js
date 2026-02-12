@@ -1110,22 +1110,32 @@ function renderCharts(allRecords, responsibleRecords) {
   const departmentData = {};
   const workTypeHours = {};
 
-  // Собираем данные по трудозатратам
-  allRecords.forEach(record => {
-    const workType = record['Вид работ'] || 'Не указано';
-    const timeStr = record['Время по табелю'];
-    let hours = 0;
-    
-    if (timeStr && typeof timeStr === 'string') {
-      const parts = timeStr.split(':').map(Number);
-      if (parts.length >= 2) {
-        const h = parts[0] || 0;
-        const m = parts[1] || 0;
-        hours = h + (m / 60);
-      }
+// === Сбор данных для трудозатрат (для круговой диаграммы) ===
+allRecords.forEach(record => {
+  const workType = record['Вид работ'] || 'Не указано';
+  
+  // Приоритет: сначала "Рабочее время", потом "Время по табелю"
+  let timeStr;
+  if (record['Рабочее время'] && record['Рабочее время'].trim() !== '') {
+    timeStr = record['Рабочее время'];
+  } else if (record['Время по табелю'] && record['Время по табелю'].trim() !== '') {
+    timeStr = record['Время по табелю'];
+  } else {
+    return; // пропускаем запись без времени
+  }
+
+  let hours = 0;
+  if (typeof timeStr === 'string') {
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length >= 2) {
+      const h = parts[0] || 0;
+      const m = parts[1] || 0;
+      hours = h + (m / 60);
     }
-    workTypeHours[workType] = (workTypeHours[workType] || 0) + hours;
-  });
+  }
+
+  workTypeHours[workType] = (workTypeHours[workType] || 0) + hours;
+});
 
   // Исключаем "Рабочий день" и "Дополнительное время для работ" по умолчанию
   const excludedByDefault = ['Рабочий день', 'Дополнительное время для работ'];
