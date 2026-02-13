@@ -918,6 +918,7 @@
 .donut-filter-item {  display: flex;  align-items: center;  gap: 4px;  font-size: 12px;}
 
 .donut-filter-item input[type="checkbox"] {  width: 14px;  height: 14px;}
+
 /*====CSS для 24-часового графика
 .chart-24h {
   display: flex;
@@ -943,7 +944,7 @@
 .chart-24h-label {
   font-size: 10px;
   color: #666;
-  margin-top: 4px;
+  margin: 4px 0 0 0;
   white-space: nowrap;
   transform: rotate(-45deg);
   transform-origin: top left;
