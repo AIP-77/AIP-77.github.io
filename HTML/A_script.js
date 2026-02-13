@@ -1329,8 +1329,8 @@ function renderDonutChart(donutData) {
   return `<div class="chart-pie">${svgHtml}${centerText}</div>`;
 }
 
-
-    function renderWorkTypeCharts(allRecords, responsibleRecords) {
+// первый вариант
+/*    function renderWorkTypeCharts(allRecords, responsibleRecords) {
   const workTypeTimeStats = {};
   allRecords.forEach(record => {
     if (!isResponsible(record['Должность'])) return;
@@ -1468,8 +1468,112 @@ function renderDonutChart(donutData) {
 
   html += '</div>';
   document.getElementById('work-type-charts-content').innerHTML = html;
+}*/
+
+function render24HourStackedChart(allRecords) {
+  // Интервалы: 00-01, 01-02, ..., 23-00
+  const intervals = Array(24).fill().map(() => ({})); // [{ вид1: 5, вид2: 3 }, ...]
+
+  allRecords.forEach(record => {
+    const workType = record['Вид работ'] || 'Не указано';
+    const startTimeStr = record['Начало задачи'];
+    if (!startTimeStr) return;
+
+    const hour = parseInt(startTimeStr.split(':')[0]) || 0;
+    if (hour < 0 || hour >= 24) return;
+
+    const units = parseInt(record['Количество единиц']) || 0;
+    if (!intervals[hour][workType]) intervals[hour][workType] = 0;
+    intervals[hour][workType] += units;
+  });
+
+  // Получаем все уникальные виды работ
+  const allWorkTypes = [...new Set(
+    intervals.flatMap(interval => Object.keys(interval))
+  )].sort();
+
+  // Максимальное значение для масштаба
+  const maxTotal = Math.max(...intervals.map(interval => 
+    Object.values(interval).reduce((a, b) => a + b, 0)
+  ));
+
+  let html = '<div class="chart-24h-stacked">';
+  for (let h = 0; h < 24; h++) {
+    const interval = intervals[h];
+    const total = Object.values(interval).reduce((a, b) => a + b, 0);
+    const heightPercent = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+
+    html += `<div class="chart-24h-stacked-column" style="height: ${heightPercent}%; min-height: 4px;">`;
+    
+    let accumulatedHeight = 0;
+    for (const workType of allWorkTypes) {
+      const value = interval[workType] || 0;
+      const partPercent = total > 0 ? (value / total) * 100 : 0;
+      
+      if (value > 0) {
+        html += `
+          <div class="chart-24h-stacked-bar"
+               title="${workType}: ${value} ед."
+               style="height: ${partPercent}%; background-color: ${getWorkTypeColor(workType)}; top: ${accumulatedHeight}%;"></div>
+        `;
+        accumulatedHeight += partPercent;
+      }
+    }
+    html += `<div class="chart-24h-stacked-label">${String(h).padStart(2,'0')}-${String(h+1).padStart(2,'0')}</div>`;
+    html += '</div>';
+  }
+  html += '</div>';
+
+  return html;
 }
-    function renderWorkTypeChart(workTypeData) {
+
+function render24HourWorkChart(workType, records) {
+  // Создаём массив для 24 часов: [0,0,...,0]
+  const hours = Array(24).fill(0);
+
+  // Группируем по часовым интервалам
+  records.forEach(record => {
+    if (record['Вид работ'] !== workType) return;
+
+    const startTimeStr = record['Начало задачи'];
+    if (!startTimeStr || typeof startTimeStr !== 'string') return;
+
+    // Парсим время: "8:21:44" → час = 8
+    const timeParts = startTimeStr.split(':').map(Number);
+    const hour = timeParts[0] || 0;
+    if (hour < 0 || hour >= 24) return;
+
+    // Считаем единицы (или время, если нужно)
+    const units = parseInt(record['Количество единиц']) || 0;
+    // Или можно использовать: parseTime(record['Рабочее время']) — по вашему выбору
+    hours[hour] += units;
+  });
+
+  // Определяем максимальное значение для масштабирования
+  const maxVal = Math.max(...hours);
+  const scale = maxVal > 0 ? 100 / maxVal : 1;
+
+  let html = '<div class="chart-24h">';
+  for (let h = 0; h < 24; h++) {
+    const value = hours[h];
+    const heightPercent = value > 0 ? (value * scale) : 0;
+    const label = `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
+    
+    html += `
+      <div class="chart-24h-bar" 
+           title="${label}: ${value} ед."
+           style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)};">
+        <div class="chart-24h-label">${label}</div>
+      </div>
+    `;
+  }
+  html += '</div>';
+
+  return html;
+}   
+
+// повтор
+/*function renderWorkTypeChart(workTypeData) {
   const sortedWorkTypes = Object.entries(workTypeData)
     .sort((a, b) => b[1].units - a[1].units)
     .slice(0, 8);
@@ -1568,7 +1672,7 @@ function renderDonutChart(donutData) {
   });
   html += '</div>';
   return html;
-}
+}*/
     function renderCostDistributionChart(costDistribution) {
       const sortedCosts = Object.entries(costDistribution)
         .sort((a, b) => b[1] - a[1])
