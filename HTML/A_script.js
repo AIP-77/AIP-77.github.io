@@ -753,7 +753,7 @@ function normalizeRecords(data) {
       const responsibleRecords = allRecords.filter(r => isResponsible(r['Должность']));
       renderCombinedAnalytics(allRecords, responsibleRecords);
       renderCharts(allRecords, responsibleRecords);
-      s(allRecords, responsibleRecords);
+      renderWorkTypeChartss(allRecords, responsibleRecords);
     }
     function renderLevel2Analytics(allRecords) {
       const allDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
