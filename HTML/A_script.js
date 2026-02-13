@@ -1103,17 +1103,61 @@ function normalizeRecords(data) {
       html += renderComparisonAnalytics(selectedDate);
       document.getElementById('combined-content').innerHTML = html;
     }
+//==========================================================
 function renderCharts(allRecords, responsibleRecords) {
+  // === Сбор данных для трудозатрат (для donut chart) ===
+  const workTypeHours = {};
+  allRecords.forEach(record => {
+    const workType = record['Вид работ'] || 'Не указано';
+    let timeStr;
+    if (record['Рабочее время'] && record['Рабочее время'].trim() !== '') {
+      timeStr = record['Рабочее время'];
+    } else if (record['Время по табелю'] && record['Время по табелю'].trim() !== '') {
+      timeStr = record['Время по табелю'];
+    } else {
+      return;
+    }
+    let hours = 0;
+    if (typeof timeStr === 'string') {
+      const parts = timeStr.split(':').map(Number);
+      if (parts.length >= 2) {
+        const h = parts[0] || 0;
+        const m = parts[1] || 0;
+        hours = h + (m / 60);
+      }
+    }
+    workTypeHours[workType] = (workTypeHours[workType] || 0) + hours;
+  });
+
+  // Исключаем нерелевантные виды работ
+  const excluded = ['Рабочий день', 'Дополнительное время для работ'];
+  const allWorkTypes = Object.keys(workTypeHours)
+    .filter(type => !excluded.includes(type))
+    .sort((a, b) => workTypeHours[b] - workTypeHours[a]);
+  const topWorkTypes = allWorkTypes.slice(0, 10); // ← теперь определена!
+
+  // === Генерация HTML-фильтров ===
+  let filterHtml = '<div class="donut-filters"><strong>Фильтр видов работ:</strong><br>';
+  topWorkTypes.forEach(workType => {
+    const displayName = chartLabels.workTypes[workType] || workType;
+    const shortName = displayName.length > 20 ? displayName.substring(0, 20) + '...' : displayName;
+    filterHtml += `
+      <label class="donut-filter-item">
+        <input type="checkbox" class="work-type-checkbox" data-worktype="${workType}">
+        ${shortName}
+      </label>
+    `;
+  });
+  filterHtml += '</div>';
+
+  // === Сбор данных для остальных графиков ===
   const workTypeData = {};
   const timeDistribution = {};
   const departmentData = {};
 
-  // Сбор данных для стандартных графиков
   responsibleRecords.forEach(record => {
     const workType = record['Вид работ'] || 'Без вида работ';
-    if (!workTypeData[workType]) {
-      workTypeData[workType] = { units: 0, time: 0, amount: 0 };
-    }
+    if (!workTypeData[workType]) workTypeData[workType] = { units: 0, time: 0, amount: 0 };
     workTypeData[workType].units += parseInt(record['Количество единиц']) || 0;
     workTypeData[workType].time += parseTime(record['Рабочее время']);
     workTypeData[workType].amount += parseCurrency(record['Расчетная сумма']);
@@ -1139,47 +1183,32 @@ function renderCharts(allRecords, responsibleRecords) {
     departmentData[department].amount += parseCurrency(record['Расчетная сумма']);
   });
 
-  // === Генерация HTML — КРИТИЧЕСКИ ВАЖНО: использовать только строки! ===
+  // === Формирование HTML ===
   const html = `
     <div class="charts-grid">
-      <!-- 1. Распределение трудозатрат -->
+      <!-- Распределение трудозатрат -->
       <div class="chart-container donut-full">
         <h4 class="chart-title">📊 Распределение Трудозатрат</h4>
         <p>Структура фонда рабочего времени. Выберите виды работ для анализа.</p>
-        <div class="donut-filters"><strong>Фильтр видов работ:</strong><br>
-          ${topWorkTypes.map(workType => {
-            const displayName = chartLabels.workTypes[workType] || workType;
-            const shortName = displayName.length > 20 ? displayName.substring(0, 20) + '...' : displayName;
-            return `
-              <label class="donut-filter-item">
-                <input type="checkbox" class="work-type-checkbox" data-worktype="${workType}">
-                ${shortName}
-              </label>
-            `;
-          }).join('')}
-        </div>
+        ${filterHtml}
         <div class="chart-real" id="donut-chart-container">
           ${renderDonutChart({})}
         </div>
       </div>
 
-      <!-- 2. Распределение по видам работ -->
+      <!-- Остальные графики -->
       <div class="chart-container">
         <h4 class="chart-title">📊 Распределение по видам работ</h4>
         <div class="chart-real">
-          ${renderWorkTypeChart(workTypeData)}   <!-- ✅ Здесь строка, а не объект -->
+          ${renderWorkTypeChart(workTypeData)}
         </div>
       </div>
-
-      <!-- 3. Активность по времени суток -->
       <div class="chart-container">
         <h4 class="chart-title">⏰ Активность по времени суток</h4>
         <div class="chart-real">
           ${renderTimeDistributionChart(timeDistribution)}
         </div>
       </div>
-
-      <!-- 4. Эффективность отделов -->
       <div class="chart-container">
         <h4 class="chart-title">🏢 Эффективность отделов</h4>
         <div class="chart-real">
