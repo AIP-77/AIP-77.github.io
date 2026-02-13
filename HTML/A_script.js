@@ -1658,28 +1658,25 @@ function render24HourStackedChart(allRecords) {
 }
 
 function render24HourWorkChart(workType, records) {
-  // Создаём массив для 24 часов: [0,0,...,0]
+  // Создаём массив из 24 нулей (по одному на час)
   const hours = Array(24).fill(0);
 
-  // Группируем по часовым интервалам
+  // Заполняем только те часы, где есть данные
   records.forEach(record => {
     if (record['Вид работ'] !== workType) return;
 
     const startTimeStr = record['Начало задачи'];
     if (!startTimeStr || typeof startTimeStr !== 'string') return;
 
-    // Парсим время: "8:21:44" → час = 8
-    const timeParts = startTimeStr.split(':').map(Number);
-    const hour = timeParts[0] || 0;
+    // Парсим час: "8:21:44" → 8
+    const hour = parseInt(startTimeStr.split(':')[0]) || 0;
     if (hour < 0 || hour >= 24) return;
 
-    // Считаем единицы (или время, если нужно)
     const units = parseInt(record['Количество единиц']) || 0;
-    // Или можно использовать: parseTime(record['Рабочее время']) — по вашему выбору
     hours[hour] += units;
   });
 
-  // Определяем максимальное значение для масштабирования
+  // Находим максимум для масштабирования (если все нули — оставляем 1, чтобы не делить на 0)
   const maxVal = Math.max(...hours);
   const scale = maxVal > 0 ? 100 / maxVal : 1;
 
@@ -1688,9 +1685,9 @@ function render24HourWorkChart(workType, records) {
     const value = hours[h];
     const heightPercent = value > 0 ? (value * scale) : 0;
     const label = `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
-    
+
     html += `
-      <div class="chart-24h-bar" 
+      <div class="chart-24h-bar"
            title="${label}: ${value} ед."
            style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)};">
         <div class="chart-24h-label">${label}</div>
@@ -1700,7 +1697,7 @@ function render24HourWorkChart(workType, records) {
   html += '</div>';
 
   return html;
-}   
+}  
 
     function renderComparisonAnalytics(currentDate) {
       const currentDateObj = parseDate(currentDate);
