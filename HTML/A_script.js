@@ -1569,7 +1569,7 @@ function renderWorkTypeChart(workTypeData) {
   });
   html += '</div>';
   return html;
-}*/
+}
     function renderCostDistributionChart(costDistribution) {
       const sortedCosts = Object.entries(costDistribution)
         .sort((a, b) => b[1] - a[1])
