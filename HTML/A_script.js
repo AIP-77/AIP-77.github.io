@@ -1330,7 +1330,7 @@ function renderDonutChart(donutData) {
 }
 
 // первый вариант
-/*    function renderWorkTypeCharts(allRecords, responsibleRecords) {
+   function renderWorkTypeCharts(allRecords, responsibleRecords) {
   const workTypeTimeStats = {};
   allRecords.forEach(record => {
     if (!isResponsible(record['Должность'])) return;
@@ -1468,9 +1468,9 @@ function renderDonutChart(donutData) {
 
   html += '</div>';
   document.getElementById('work-type-charts-content').innerHTML = html;
-}*/
-
-function render24HourStackedChart(allRecords) {
+}
+// альернативныый вид рафика все работы в одном
+/*function render24HourStackedChart(allRecords) {
   // Интервалы: 00-01, 01-02, ..., 23-00
   const intervals = Array(24).fill().map(() => ({})); // [{ вид1: 5, вид2: 3 }, ...]
 
@@ -1525,7 +1525,7 @@ function render24HourStackedChart(allRecords) {
   html += '</div>';
 
   return html;
-}
+}*/
 
 function render24HourWorkChart(workType, records) {
   // Создаём массив для 24 часов: [0,0,...,0]
