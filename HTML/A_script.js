@@ -1314,18 +1314,18 @@ function renderDonutChart(donutData) {
   
   return `<div class="chart-pie">${svgHtml}${centerText}</div>`;
 }
+
+//=========
 function render24HourWorkChart(workType, records) {
-  // Создаём массив из 24 нулей (по одному на час)
+  // Создаём массив для 24 часов: [0,0,...,0]
   const hours = Array(24).fill(0);
 
-  // Заполняем только те часы, где есть данные
+  // Собираем данные по началу задачи (час = 0–23)
   records.forEach(record => {
     if (record['Вид работ'] !== workType) return;
-
     const startTimeStr = record['Начало задачи'];
     if (!startTimeStr || typeof startTimeStr !== 'string') return;
 
-    // Парсим час: "8:21:44" → 8
     const hour = parseInt(startTimeStr.split(':')[0]) || 0;
     if (hour < 0 || hour >= 24) return;
 
@@ -1333,7 +1333,7 @@ function render24HourWorkChart(workType, records) {
     hours[hour] += units;
   });
 
-  // Находим максимум для масштабирования (если все нули — оставляем 1, чтобы не делить на 0)
+  // Масштабирование: высота = % от максимума
   const maxVal = Math.max(...hours);
   const scale = maxVal > 0 ? 100 / maxVal : 1;
 
@@ -1343,16 +1343,17 @@ function render24HourWorkChart(workType, records) {
     const heightPercent = value > 0 ? (value * scale) : 0;
     const label = `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
 
+    // Важно: высота задаётся у внутреннего div, а не у .chart-24h-bar
     html += `
-      <div class="chart-24h-bar"
-           title="${label}: ${value} ед."
-           style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)};">
+      <div class="chart-24h-bar" title="${label}: ${value} ед.">
+        <div class="chart-24h-bar-inner"
+             style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)};">
+        </div>
         <div class="chart-24h-label">${label}</div>
       </div>
     `;
   }
   html += '</div>';
-
   return html;
 }  
 
