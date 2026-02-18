@@ -888,7 +888,7 @@
   display: flex !important;             /* Выстраивает дочерние элементы в одну строку */
   gap: 2px;                             /* Расстояние между столбцами */
   height: 200px !important;             /* Фиксированная высота графика */
-  width: 100%;                          /* Занимает всю ширину карточки */
+  width: 100% !important;   /* Растягиваем на всю ширину */
   max-width: none !important;           /* ← УБРАЛИ ограничение ширины */
   margin: 0 !important;     /* ← УБРАЛИ центрирование .\\ margin: 0 auto; /* ← Центрируем график */ 
   overflow-x: auto;          /* Если не влезает — появляется прокрутка */
@@ -897,6 +897,7 @@
   background: #fafafa;            /* Легкий фон для пустых мест */
   border-radius: 4px; 
 }
+
 /* Один столбец (один час) */
 .chart-24h-bar {
   flex: 0 0 24px !important;            /* ЖЕСТКО фиксируем ширину: 24px на каждый час */
@@ -930,23 +931,7 @@
   width: 100%;
   line-height: 1;  
   position: absolute; /* Абсолютное позиционирование относительно .chart-24h-bar */
-  bottom: -45px; /* Сдвигаем вниз за пределы столбца */   
-}
-
-
-/* Подпись под столбцом */
-.chart-24h-label {
-  font-size: 9px;
-  color: #666;
-  margin-top: 4px; /* Отступ от низа контейнера */
-  white-space: nowrap;
-  transform: rotate(-90deg);
-  transform-origin: top left;
-  text-align: center;
-  width: 100%;
-  line-height: 1;
-  position: absolute; /* Абсолютное позиционирование относительно .chart-24h-bar */
-  bottom: -25px; /* Сдвигаем вниз за пределы столбца */
+  bottom: -48px; /* Сдвигаем вниз за пределы столбца */   
 }
 
 /* Адаптив: на очень маленьких экранах можно уменьшить ширину столбца */
