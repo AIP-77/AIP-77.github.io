@@ -1317,10 +1317,10 @@ function renderDonutChart(donutData) {
 
 //=========
 function render24HourWorkChart(workType, records) {
-  // Создаём массив для 24 часов: [0,0,...,0]
+  // 1. Создаём массив из 24 нулей
   const hours = Array(24).fill(0);
 
-  // Собираем данные по началу задачи (час = 0–23)
+  // 2. Заполняем данными
   records.forEach(record => {
     if (record['Вид работ'] !== workType) return;
     const startTimeStr = record['Начало задачи'];
@@ -1333,27 +1333,33 @@ function render24HourWorkChart(workType, records) {
     hours[hour] += units;
   });
 
-  // Масштабирование: высота = % от максимума
+  // 3. Масштабирование
   const maxVal = Math.max(...hours);
   const scale = maxVal > 0 ? 100 / maxVal : 1;
+  const color = getWorkTypeColor(workType);
 
+  // 4. Генерация HTML
   let html = '<div class="chart-24h">';
+  
   for (let h = 0; h < 24; h++) {
     const value = hours[h];
-    const heightPercent = value > 0 ? (value * scale) : 0;
+    // Высота применяется ТОЛЬКО к внутреннему блоку (.chart-24h-bar-inner)
+    const heightPercent = value > 0 ? (value * scale) : 0; 
     const label = `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
 
-    // Важно: высота задаётся у внутреннего div, а не у .chart-24h-bar
     html += `
       <div class="chart-24h-bar" title="${label}: ${value} ед.">
-        <div class="chart-24h-bar-inner"
-             style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)};">
+        <!-- Внутренний цветной блок -->
+        <div class="chart-24h-bar-inner" 
+             style="height: ${heightPercent}%; background-color: ${color};">
         </div>
+        <!-- Подпись снизу -->
         <div class="chart-24h-label">${label}</div>
       </div>
     `;
   }
   html += '</div>';
+  
   return html;
 }
 
