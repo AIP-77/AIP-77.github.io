@@ -928,7 +928,7 @@
   height: 180px !important;           /* Фиксированная высота графика */
   width: 100%;               /* Занимает всю ширину карточки */
   overflow-x: auto;          /* Если не влезает — появляется прокрутка */
-  padding-bottom: 10px;      /* Отступ снизу для подписей */
+  padding-bottom: 25px;      /* Отступ снизу для подписей */
   align-items: flex-end !important;     /* Прижимаем столбцы к низу */
   background: #fafafa;            /* Легкий фон для пустых мест */
   border-radius: 4px; 
@@ -938,7 +938,7 @@
 .chart-24h-bar {
   flex: 0 0 24px !important;            /* ЖЕСТКО фиксируем ширину: 24px на каждый час */
   display: flex;
-  flex-direction: column;    /* Подпись внутри столбца будет под ним */
+  flex-direction: column-reverse; /* КЛЮЧЕВОЕ: содержимое растёт снизу вверх */
   align-items: center;
   position: relative;
   background-color: transparent;  /* Фон прозрачный, виден общий фон .chart-24h */
