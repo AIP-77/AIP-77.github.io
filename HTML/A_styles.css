@@ -889,7 +889,7 @@
   gap: 2px;                  /* Расстояние между столбцами */
   height: 180px !important;           /* Фиксированная высота графика */
   width: 100%;               /* Занимает всю ширину карточки */
-  max-width: 600px; /* ← КЛЮЧЕВОЕ: ограничиваем максимальную ширину */  
+  max-width: 800px; /* ← КЛЮЧЕВОЕ: ограничиваем максимальную ширину */  
   margin: 0 auto; /* ← Центрируем график */ 
   overflow-x: auto;          /* Если не влезает — появляется прокрутка */
   padding-bottom: 30px;      /* Отступ снизу для подписей */
@@ -926,7 +926,7 @@
   color: #666;
   margin-top: 4px; /* Отступ от низа контейнера */
   white-space: nowrap;       /* Запрещаем перенос текста */
-  transform: rotate(-45deg); /* Поворачиваем на 45 градусов */
+  transform: rotate(-90deg); /* Поворачиваем на 45 градусов */
   transform-origin: top left; /* Точка вращения - левый верхний угол */
   text-align: center;
   width: 100%;
@@ -941,7 +941,7 @@
   color: #666;
   margin-top: 4px; /* Отступ от низа контейнера */
   white-space: nowrap;
-  transform: rotate(-45deg);
+  transform: rotate(-90deg);
   transform-origin: top left;
   text-align: center;
   width: 100%;
