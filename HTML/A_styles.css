@@ -919,72 +919,55 @@
 
 .donut-filter-item input[type="checkbox"] {  width: 14px;  height: 14px;}
 
-/*====CSS для 24-часового графика
+/* === СТИЛИ ДЛЯ 24-ЧАСОВОГО ГРАФИКА === */
+
+/* Контейнер всего графика: выстраиваем столбцы в ряд */
 .chart-24h {
-  display: flex;
-  gap: 2px;
-  height: 180px;
-  overflow-x: auto;
-  padding-bottom: 10px;
+  display: flex;             /* Выстраивает дочерние элементы в одну строку */
+  gap: 2px;                  /* Расстояние между столбцами */
+  height: 180px;             /* Фиксированная высота графика */
+  width: 100%;               /* Занимает всю ширину карточки */
+  overflow-x: auto;          /* Если не влезает — появляется прокрутка */
+  padding-bottom: 10px;      /* Отступ снизу для подписей */
+  align-items: flex-end;     /* Прижимаем столбцы к низу */
 }
 
+/* Один столбец (один час) */
 .chart-24h-bar {
-  flex: 0 0 24px; /* ширина одного часа */
+  flex: 0 0 24px;            /* ЖЕСТКО фиксируем ширину: 24px на каждый час */
   display: flex;
-  flex-direction: column;
+  flex-direction: column;    /* Подпись внутри столбца будет под ним */
   align-items: center;
   position: relative;
-  background-color: #e0e0e0;
+  background-color: #e0e0e0; /* Цвет фона для пустых часов (если height=0) */
+  border-radius: 2px 2px 0 0; /* Скругление сверху */
 }
 
-.chart-24h-bar:hover {
-  background-color: #d0d0d0;
+/* Внутренний цветной блок (само значение) */
+.chart-24h-bar-inner {
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease; /* Плавное изменение высоты */
 }
 
+/* Подпись под столбцом (например, "09-10") */
 .chart-24h-label {
   font-size: 10px;
   color: #666;
-  margin: 4px 0 0 0;
-  white-space: nowrap;
-  transform: rotate(-45deg);
-  transform-origin: top left;
-}
-.chart-24h-bar-inner {
-  width: 100%;
-  border-radius: 4px 4px 0 0;
-}
-
-/* Для совместимости с вашим стилем */
-.chart-container .chart-real .chart-24h-bar {
-  background-color: #4CAF50;
-}
-/*=====Один общий 24-часовой график со стекингом
-.chart-24h-stacked {
-  display: flex;
-  gap: 2px;
-  height: 180px;
-  overflow-x: auto;
-  padding-bottom: 10px;
-}
-
-.chart-24h-stacked-column {
-  flex: 0 0 24px;
-  position: relative;
-  background-color: #f5f5f5;
-}
-
-.chart-24h-stacked-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  background-color: #4CAF50;
-}
-
-.chart-24h-stacked-label {
-  font-size: 10px;
-  color: #666;
-  text-align: center;
   margin-top: 4px;
-  transform: rotate(-45deg);
-  transform-origin: top left;
+  white-space: nowrap;       /* Запрещаем перенос текста */
+  transform: rotate(-45deg); /* Поворачиваем на 45 градусов */
+  transform-origin: top left; /* Точка вращения - левый верхний угол */
+  text-align: center;
+  width: 100%;
+}
+
+/* Адаптив: на очень маленьких экранах можно уменьшить ширину столбца */
+@media (max-width: 600px) {
+  .chart-24h-bar {
+    flex: 0 0 16px; /* Столбцы уже на мобильных */
+  }
+  .chart-24h-label {
+    font-size: 8px;
+  }
 }
