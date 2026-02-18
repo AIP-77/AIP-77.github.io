@@ -923,36 +923,42 @@
 
 /* Контейнер всего графика: выстраиваем столбцы в ряд */
 .chart-24h {
-  display: flex;             /* Выстраивает дочерние элементы в одну строку */
+  display: flex !important;             /* Выстраивает дочерние элементы в одну строку */
   gap: 2px;                  /* Расстояние между столбцами */
-  height: 180px;             /* Фиксированная высота графика */
+  height: 180px !important;           /* Фиксированная высота графика */
   width: 100%;               /* Занимает всю ширину карточки */
   overflow-x: auto;          /* Если не влезает — появляется прокрутка */
   padding-bottom: 10px;      /* Отступ снизу для подписей */
-  align-items: flex-end;     /* Прижимаем столбцы к низу */
+  align-items: flex-end !important;     /* Прижимаем столбцы к низу */
+  background: #fafafa;            /* Легкий фон для пустых мест */
+  border-radius: 4px; 
 }
 
 /* Один столбец (один час) */
 .chart-24h-bar {
-  flex: 0 0 24px;            /* ЖЕСТКО фиксируем ширину: 24px на каждый час */
+  flex: 0 0 24px !important;            /* ЖЕСТКО фиксируем ширину: 24px на каждый час */
   display: flex;
   flex-direction: column;    /* Подпись внутри столбца будет под ним */
   align-items: center;
   position: relative;
-  background-color: #e0e0e0; /* Цвет фона для пустых часов (если height=0) */
+  background-color: transparent;  /* Фон прозрачный, виден общий фон .chart-24h */
+  height: 100% !important;        /* Растянуть на всю высоту контейнера */   
   border-radius: 2px 2px 0 0; /* Скругление сверху */
 }
 
-/* Внутренний цветной блок (само значение) */
+/* ВНУТРЕННИЙ ЦВЕТНОЙ БЛОК (само значение) */
+/* Именно этому элементу мы задаем height в JS */
 .chart-24h-bar-inner {
   width: 100%;
+  background-color: inherit;      /* Цвет берется из style="" родителя или задается явно */
   border-radius: 2px 2px 0 0;
-  transition: height 0.3s ease; /* Плавное изменение высоты */
+  transition: height 0.3s ease;
+  min-height: 2px;                /* Минимальная высота, чтобы было видно даже 0 */
 }
 
 /* Подпись под столбцом (например, "09-10") */
 .chart-24h-label {
-  font-size: 10px;
+  font-size: 9px;
   color: #666;
   margin-top: 4px;
   white-space: nowrap;       /* Запрещаем перенос текста */
@@ -960,14 +966,15 @@
   transform-origin: top left; /* Точка вращения - левый верхний угол */
   text-align: center;
   width: 100%;
+  line-height: 1;  
 }
 
 /* Адаптив: на очень маленьких экранах можно уменьшить ширину столбца */
 @media (max-width: 600px) {
   .chart-24h-bar {
-    flex: 0 0 16px; /* Столбцы уже на мобильных */
+   flex: 0 0 16px !important; /* Столбцы уже на мобильных */
   }
   .chart-24h-label {
-    font-size: 8px;
+    font-size: 7px;
   }
 }
