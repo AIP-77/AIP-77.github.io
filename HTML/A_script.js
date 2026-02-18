@@ -1317,26 +1317,20 @@ function renderDonutChart(donutData) {
 
 //=========
 function render24HourWorkChart(workType, records) {
-  // Создаём массив для 24 часов: [0,0,...,0]
   const hours = Array(24).fill(0);
 
-  // Группируем по часовым интервалам
   records.forEach(record => {
     if (record['Вид работ'] !== workType) return;
     const startTimeStr = record['Начало задачи'];
     if (!startTimeStr || typeof startTimeStr !== 'string') return;
 
-    // Парсим время: "8:21:44" → час = 8
-    const timeParts = startTimeStr.split(':').map(Number);
-    const hour = timeParts[0] || 0;
+    const hour = parseInt(startTimeStr.split(':')[0]) || 0;
     if (hour < 0 || hour >= 24) return;
 
-    // Считаем единицы
     const units = parseInt(record['Количество единиц']) || 0;
     hours[hour] += units;
   });
 
-  // Масштабирование
   const maxVal = Math.max(...hours);
   const scale = maxVal > 0 ? 100 / maxVal : 1;
   const color = getWorkTypeColor(workType);
@@ -1348,14 +1342,12 @@ function render24HourWorkChart(workType, records) {
     const heightPercent = value > 0 ? (value * scale) : 0;
     const label = `${String(h).padStart(2, '0')}-${String(h + 1).padStart(2, '0')}`;
 
-    // Упрощённая структура: один div с цветом и высотой
+    // Структура: bar -> inner (цвет) + label (подпись)
     html += `
       <div class="chart-24h-bar" title="${label}: ${value} ед.">
-        <!-- Цветной блок -->
         <div class="chart-24h-bar-inner" 
              style="height: ${heightPercent}%; background-color: ${color};">
         </div>
-        <!-- Подпись (будет внизу благодаря column-reverse) -->
         <div class="chart-24h-label">${label}</div>
       </div>
     `;
