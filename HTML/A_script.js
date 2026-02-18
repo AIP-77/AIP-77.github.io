@@ -1355,7 +1355,7 @@ function render24HourWorkChart(workType, records) {
   }
   html += '</div>';
   return html;
-}  
+}
 
 //======= на новую версию, которая рисует ровно 24 часа для каждого вида работ.
 function renderWorkTypeCharts(allRecords, responsibleRecords) {
