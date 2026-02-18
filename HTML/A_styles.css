@@ -14,59 +14,21 @@
       border-radius: 6px;    }
 
     @media (max-width: 768px) {      body {        padding: 4px;      }
-                               
+                   
       .container {        padding: 10px;      }
       h2 {        font-size: 1.3rem;      }
-      .calendar-nav-btn {
-        padding: 6px 12px;
-        min-width: 80px;
-        font-size: 12px;
-      }
-      .calendar-title {
-        font-size: 16px;
-      }
-      .analytics-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-      .work-types-grid {
-        grid-template-columns: 1fr;
-      }
-      .grouping-grid {
-        grid-template-columns: 1fr;
-      }
-      .comparison-grid {
-        grid-template-columns: 1fr;
-      }
-      .time-bar {
-        flex-direction: column;
-        height: auto;
-        align-items: flex-start;
-      }
-      .time-label {
-        width: 100%;
-        margin-bottom: 5px;
-        font-size: 11px;
-      }
-      .time-bar-inner {
-        width: 100%;
-        margin-bottom: 5px;
-        height: 12px;
-      }
-      .time-value {
-        width: 100%;
-        text-align: left;
-        font-size: 11px;
-      }
-      .work-type-legend {
-        flex-direction: column;
-        gap: 5px;
-      }
-      .modal-content {
-        width: 95%;
-        margin: 2% auto;
-        padding: 15px;
-      }
+      .calendar-nav-btn {        padding: 6px 12px;        min-width: 80px;        font-size: 12px;      }
+      .calendar-title {        font-size: 16px;      }
+      .analytics-grid {        grid-template-columns: 1fr;        gap: 10px;      }
+      .work-types-grid {        grid-template-columns: 1fr;      }
+      .grouping-grid {        grid-template-columns: 1fr;      }
+      .comparison-grid {        grid-template-columns: 1fr;      }
+      .time-bar {        flex-direction: column;        height: auto;        align-items: flex-start;      }
+      .time-label {        width: 100%;        margin-bottom: 5px;        font-size: 11px;      }
+      .time-bar-inner {        width: 100%;        margin-bottom: 5px;        height: 12px;      }
+      .time-value {        width: 100%;        text-align: left;        font-size: 11px;      }
+      .work-type-legend {        flex-direction: column;        gap: 5px;      }
+      .modal-content {        width: 95%;        margin: 2% auto;        padding: 15px;      }
       .work-type-segments {
         height: 12px;
       }
@@ -927,8 +889,10 @@
   gap: 2px;                  /* Расстояние между столбцами */
   height: 180px !important;           /* Фиксированная высота графика */
   width: 100%;               /* Занимает всю ширину карточки */
+  max-width: 600px; /* ← КЛЮЧЕВОЕ: ограничиваем максимальную ширину */  
+  margin: 0 auto; /* ← Центрируем график */ 
   overflow-x: auto;          /* Если не влезает — появляется прокрутка */
-  padding-bottom: 25px;      /* Отступ снизу для подписей */
+  padding-bottom: 30px;      /* Отступ снизу для подписей */
   align-items: flex-end !important;     /* Прижимаем столбцы к низу */
   background: #fafafa;            /* Легкий фон для пустых мест */
   border-radius: 4px; 
@@ -960,13 +924,30 @@
 .chart-24h-label {
   font-size: 9px;
   color: #666;
-  margin-top: 4px;
+  margin-top: 4px; /* Отступ от низа контейнера */
   white-space: nowrap;       /* Запрещаем перенос текста */
   transform: rotate(-45deg); /* Поворачиваем на 45 градусов */
   transform-origin: top left; /* Точка вращения - левый верхний угол */
   text-align: center;
   width: 100%;
   line-height: 1;  
+  position: absolute; /* Абсолютное позиционирование относительно .chart-24h-bar */
+  bottom: -25px; /* Сдвигаем вниз за пределы столбца */   
+}
+
+/* Подпись под столбцом */
+.chart-24h-label {
+  font-size: 9px;
+  color: #666;
+  margin-top: 4px; /* Отступ от низа контейнера */
+  white-space: nowrap;
+  transform: rotate(-45deg);
+  transform-origin: top left;
+  text-align: center;
+  width: 100%;
+  line-height: 1;
+  position: absolute; /* Абсолютное позиционирование относительно .chart-24h-bar */
+  bottom: -25px; /* Сдвигаем вниз за пределы столбца */
 }
 
 /* Адаптив: на очень маленьких экранах можно уменьшить ширину столбца */
