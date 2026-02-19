@@ -1402,65 +1402,71 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
 
   let html = '<div class="charts-grid">';
 
-  // === ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТРИСОВКИ СМЕНЫ ===
-  function renderShiftGraph(stats, shiftName, isNight, shiftHoursArray, currentWorkType, currentColor) {
-    // Находим максимальное значение ТОЛЬКО среди часов этой смены для масштабирования
-    let maxUnitsInShift = 0;
-    shiftHoursArray.forEach(h => {
-      const key = `${String(h).padStart(2,'0')}-${String(h+1).padStart(2,'0')}`;
-      const data = stats.timeIntervals[key];
-      if (data && data.units > maxUnitsInShift) {
-        maxUnitsInShift = data.units;
-      }
-    });
 
-    const totalShiftUnits = shiftHoursArray.reduce((sum, h) => {
-      const key = `${String(h).padStart(2,'0')}-${String(h+1).padStart(2,'0')}`;
-      return sum + (stats.timeIntervals[key]?.units || 0);
-    }, 0);
+// === ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТРИСОВКИ СМЕНЫ ===
+function renderShiftGraph(stats, shiftName, isNight, shiftHoursArray, currentWorkType, currentColor) {
+  // 1. Собираем данные по каждому часу из массива shiftHoursArray
+  const hoursData = [];
+  let maxUnitsInShift = 0;
 
-    if (totalShiftUnits === 0) {
-        return `<div class="shift-graph empty"><div class="shift-title">${shiftName}</div><div class="shift-empty">Нет активности</div></div>`;
-    }
+  shiftHoursArray.forEach(h => {
+    const key = `${String(h).padStart(2,'0')}-${String(h+1).padStart(2,'0')}`;
+    const data = stats.timeIntervals[key] || { units: 0 };
+    hoursData.push({ hour: h, key, units: data.units });
+    if (data.units > maxUnitsInShift) maxUnitsInShift = data.units;
+  });
 
-    let barsHtml = '<div class="chart-bar">';
+  const totalShiftUnits = hoursData.reduce((sum, item) => sum + item.units, 0);
+  if (totalShiftUnits === 0) {
+    return `<div class="shift-graph empty"><div class="shift-title">${shiftName}</div><div class="shift-empty">Нет активности</div></div>`;
+  }
+
+  // 2. Генерируем HTML для столбцов (ровно 12 штук)
+  let barsHtml = '<div class="chart-bar">';
+  hoursData.forEach(item => {
+    const heightPercent = maxUnitsInShift > 0 ? (item.units / maxUnitsInShift) * 100 : 0;
+    const percentage = stats.totalUnits > 0 ? (item.units / stats.totalUnits) * 100 : 0;
     
-    // ЦИКЛ СТРОГО ПО 12 ЧАСАМ СМЕНЫ
-    shiftHoursArray.forEach(h => {
-      const key = `${String(h).padStart(2,'0')}-${String(h+1).padStart(2,'0')}`;
-      const timeStat = stats.timeIntervals[key];
-      
-      // Если данных нет, создаем фейковый объект с 0 единиц
-      const units = timeStat ? timeStat.units : 0;
-      const heightPercent = maxUnitsInShift > 0 ? (units / maxUnitsInShift) * 100 : 0;
-      const percentage = stats.totalUnits > 0 ? (units / stats.totalUnits) * 100 : 0;
-      
-      // Рисуем столбец (даже если height 0%, он займет место в flex-контейнере)
-      barsHtml += `
-        <div class="chart-bar-item"
-             style="height: ${heightPercent}%; background-color: ${currentColor}; opacity: ${units > 0 ? 1 : 0.3};"
-             title="${key}: ${units} ед. (${percentage.toFixed(1)}%)">
-        </div>`;
-    });
-    barsHtml += '</div>';
-
-    let labelsHtml = '<div class="chart-bar-labels" style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 9px; color: #666; text-align: center;">';
-    
-    // Подписи тоже строго по 12 часам
-    shiftHoursArray.forEach(h => {
-      const label = `${String(h).padStart(2,'0')}–${String(h+1).padStart(2,'0')}`;
-      labelsHtml += `<div style="flex: 1; min-width: 0; word-break: break-all;">${label}</div>`;
-    });
-    labelsHtml += '</div>';
-
-    return `
-      <div class="shift-container ${isNight ? 'night-shift' : 'day-shift'}">
-        <div class="shift-title">${shiftName} <span style="font-size:11px; color:#666;">(${totalShiftUnits} ед.)</span></div>
-        ${barsHtml}
-        ${labelsHtml}
+    // Важно: задаем высоту и цвет явно
+    barsHtml += `
+      <div class="chart-bar-item"
+           style="height: ${heightPercent}%; background-color: ${currentColor}; opacity: ${item.units > 0 ? 1 : 0.2};"
+           title="${item.key}: ${item.units} ед. (${percentage.toFixed(1)}%)">
       </div>
     `;
-  }
+  });
+  barsHtml += '</div>';
+
+  // 3. Генерируем подписи (12 штук) — поворачиваем на 90°
+  let labelsHtml = '<div class="chart-bar-labels" style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 9px; color: #666; text-align: center;">';
+  hoursData.forEach(item => {
+    const label = `${String(item.hour).padStart(2,'0')}-${String(item.hour+1).padStart(2,'0')}`;
+    labelsHtml += `
+      <div style="
+        flex: 1;
+        min-width: 0;
+        word-break: break-all;
+        transform: rotate(-90deg);
+        transform-origin: top left;
+        position: relative;
+        top: 10px;
+        width: 14px;
+        line-height: 1;
+      ">
+        ${label}
+      </div>
+    `;
+  });
+  labelsHtml += '</div>';
+
+  return `
+    <div class="shift-container ${isNight ? 'night-shift' : 'day-shift'}">
+      <div class="shift-title">${shiftName} <span style="font-size:11px; color:#666;">(${totalShiftUnits} ед.)</span></div>
+      ${barsHtml}
+      ${labelsHtml}
+    </div>
+  `;
+}
   // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 
   // 2. Генерация HTML для каждого вида работ
