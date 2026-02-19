@@ -739,30 +739,35 @@
       height: 250px;
       position: relative;
     }
-    .chart-bar {
-      display: flex;
-      align-items: flex-end;
-      height: 200px;
-      gap: 4px;
-      margin-bottom: 10px;
-      position: relative;
-    }
-    .chart-bar-item {
-      flex: 1;
-      background: #2196f3;
-      border-radius: 4px 4px 0 0;
-      position: relative;
-      transition: opacity 0.2s;
-    }
+    /* Контейнер столбцов — ОБЯЗАТЕЛЬНО задаем высоту */
+.chart-bar {
+  display: flex;
+  gap: 2px;
+  height: 180px; /* ← ВАЖНО: без этого % не работают */
+  width: 100%;
+  margin-bottom: 10px;
+}
+/* Один столбец — фиксируем ширину и высоту */
+.chart-bar-item {
+  flex: 0 0 24px; /* Ширина 24px */
+  background-color: #CDCDC9;
+  border-radius: 2px 2px 0 0;
+  transition: opacity 0.2s;
+  position: relative;
+}
     .chart-bar-item:hover {
       opacity: 0.8;
     }
-    .chart-bar-label {
-      text-align: center;
-      font-size: 10px;
-      color: #666;
-      margin-top: 5px;
-    }
+/* Подписи — исправляем "слипание" */
+.chart-bar-labels > div {
+  flex: 0 0 24px; /* Тоже 24px — чтобы совпадало с шириной столбца */
+  transform: rotate(-90deg);
+  transform-origin: top left;
+  position: relative;
+  white-space: nowrap; 
+  top: 20px; /* Отступ от низа столбца */
+  line-height: 1;
+}
     .chart-pie {
       height: 200px;
       display: flex;
