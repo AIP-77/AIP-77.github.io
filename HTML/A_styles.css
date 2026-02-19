@@ -901,7 +901,7 @@
 .chart-24h {
   display: flex !important;             /* Выстраивает дочерние элементы в одну строку */
   gap: 2px;                             /* Расстояние между столбцами */
-  height: 280px !important;             /* Фиксированная высота графика */
+  height: 360px !important;             /* Фиксированная высота графика */
   width: 100% !important;   /* Растягиваем на всю ширину */
   max-width: none !important;           /* ← УБРАЛИ ограничение ширины */
   margin: 0 !important;     /* ← УБРАЛИ центрирование .\\ margin: 0 auto; /* ← Центрируем график */ 
