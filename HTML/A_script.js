@@ -1407,42 +1407,29 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
 
   // Порядок видов работ
   const workTypeOrder = [
-	'Работа с расхождениями',  
-   'Главная сборка',
-    'Сборка Шины',
-	'Сборка Шины (Исключение)',
-	'Сборка Шины-зона А',
+    'Главная сборка',    'Сборка Шины',	'Сборка Шины (Исключение)',	'Сборка Шины-зона А',
 	  
-	'Сборка шины МП', 
-	'Сборка шины МП-зона А',  
-    'Стикеровка Шины',
+	'Сборка шины МП', 	'Сборка шины МП-зона А',      'Стикеровка Шины',
 	  
-	'Сборка Диски МП',
-    'Стикеровка Диски',
+	'Сборка Диски МП',    'Стикеровка Диски',
 	  
-    'Упаковка паллеты',
-	'Транспортировка МП',
-	'Погрузка МП',
+    'Упаковка паллеты',	'Транспортировка МП',	'Погрузка МП',
 
-    'Транспортировка товара по складу',
-	'Погрузка', 	  
-    'Отгрузка',
+    'Транспортировка товара по складу',	'Погрузка',     'Отгрузка',
 	  
-    'Работа с расхождениями',
-    'Другие виды работ',
-    'Переупаковка паллеты'
+    'Работа с расхождениями',    'Другие виды работ',    'Переупаковка паллеты'
   ];
 
   let html = '<div class="charts-grid">';
 
-  // Вспомогательная функция для отрисовки одного графика (смены)
-  function renderShiftGraph(stats, intervals, shiftName, isNight) {
+  // === ИСПРАВЛЕННАЯ ВЛОЖЕННАЯ ФУНКЦИЯ ===
+  // Добавлен аргумент currentWorkType и currentColor
+  function renderShiftGraph(stats, intervals, shiftName, isNight, currentWorkType, currentColor) {
     if (intervals.length === 0) return '';
     
     const maxUnits = Math.max(...intervals.map(i => i.units));
     const totalShiftUnits = intervals.reduce((sum, i) => sum + i.units, 0);
     
-    // Если в смене нет активности, можно скрыть или показать пустым
     if (totalShiftUnits === 0) {
         return `<div class="shift-graph empty"><div class="shift-title">${shiftName}</div><div class="shift-empty">Нет активности</div></div>`;
     }
@@ -1452,9 +1439,10 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
       const heightPercent = maxUnits > 0 ? (timeStat.units / maxUnits) * 100 : 0;
       const percentage = stats.totalUnits > 0 ? (timeStat.units / stats.totalUnits) * 100 : 0;
       
+      // Теперь используем переданный currentColor вместо глобального workType
       barsHtml += `
         <div class="chart-bar-item"
-             style="height: ${heightPercent}%; background-color: ${getWorkTypeColor(workType)}"
+             style="height: ${heightPercent}%; background-color: ${currentColor}"
              title="${timeStat.interval.display}: ${timeStat.units} ед. (${percentage.toFixed(1)}%)">
         </div>`;
     });
@@ -1474,6 +1462,7 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
       </div>
     `;
   }
+  // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 
   // 2. Генерация HTML для каждого вида работ
   function processWorkType(workType, stats) {
@@ -1482,14 +1471,15 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
     const allIntervals = Object.values(stats.timeIntervals).sort((a, b) => a.interval.sortKey - b.interval.sortKey);
     
     // Разделяем интервалы на две смены
-    // Смена 1 (День): 09-10 ... 20-21 (sortKey от 9 до 20)
     const dayIntervals = allIntervals.filter(i => i.interval.sortKey >= 9 && i.interval.sortKey <= 20);
-    
-    // Смена 2 (Ночь): 21-22 ... 08-09 (остальные)
     const nightIntervals = allIntervals.filter(i => i.interval.sortKey < 9 || i.interval.sortKey > 20);
 
-    const dayGraph = renderShiftGraph(stats, dayIntervals, '🌞 Дневная смена (09:00–21:00)', false);
-    const nightGraph = renderShiftGraph(stats, nightIntervals, '🌙 Ночная смена (21:00–09:00)', true);
+    // Получаем цвет один раз здесь
+    const color = getWorkTypeColor(workType);
+
+    // Передаем workType и color в функцию отрисовки
+    const dayGraph = renderShiftGraph(stats, dayIntervals, '🌞 Дневная смена (09:00–21:00)', false, workType, color);
+    const nightGraph = renderShiftGraph(stats, nightIntervals, '🌙 Ночная смена (21:00–09:00)', true, workType, color);
 
     return `
       <div class="chart-container split-shift-chart">
