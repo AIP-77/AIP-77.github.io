@@ -1420,6 +1420,8 @@ function renderShiftGraph(stats, shiftName, isNight, shiftHoursArray, currentWor
   if (totalShiftUnits === 0) {
     return `<div class="shift-graph empty"><div class="shift-title">${shiftName}</div><div class="shift-empty">Нет активности</div></div>`;
   }
+	console.log(`[DEBUG] ${shiftName}: maxUnitsInShift=${maxUnitsInShift}, total=${totalShiftUnits}`);
+console.log('hoursData:', hoursData);
 
   // 2. Генерируем HTML для столбцов (ровно 12 штук)
   let barsHtml = '<div class="chart-bar">';
