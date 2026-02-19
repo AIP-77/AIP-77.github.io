@@ -1522,18 +1522,29 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
   document.getElementById('work-type-charts-content').innerHTML = html;
 }
 
-//=======формирование графиков
+// =================================================================
+// ФУНКЦИЯ renderWorkTypeChart (Единственное число!)
+// Нужна для блока "Детальные графики" (renderCharts)
+// =================================================================
 function renderWorkTypeChart(workTypeData) {
   const sortedWorkTypes = Object.entries(workTypeData)
     .sort((a, b) => b[1].units - a[1].units)
     .slice(0, 8);
+  
+  if (sortedWorkTypes.length === 0) {
+    return '<div class="chart-placeholder">Нет данных</div>';
+  }
+
   const maxUnits = Math.max(...sortedWorkTypes.map(([_, data]) => data.units));
+  
   let html = '<div class="chart-bar">';
   sortedWorkTypes.forEach(([workType, data]) => {
     const heightPercent = maxUnits > 0 ? (data.units / maxUnits) * 100 : 0;
     const normative = data.time > 0 ? calculateNormative(data.units, data.time) : 0;
     const displayName = chartLabels.workTypes[workType] || workType;
     const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
+    
+    // Текст подсказки
     const tooltipText = `${displayName}: ${data.units} ед. (${normative.toFixed(1)} шт/час)`;
     
     html += `
@@ -1546,12 +1557,14 @@ function renderWorkTypeChart(workTypeData) {
     `;
   });
   html += '</div><div class="chart-bar-labels">';
+  
   sortedWorkTypes.forEach(([workType, data]) => {
     const displayName = chartLabels.workTypes[workType] || workType;
     const shortName = displayName.length > 12 ? displayName.substring(0, 10) + '...' : displayName;
     html += `<div class="chart-bar-label">${shortName}</div>`;
   });
   html += '</div>';
+  
   return html;
 }
     function renderTimeDistributionChart(timeDistribution) {
