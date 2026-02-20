@@ -739,34 +739,59 @@
       height: 250px;
       position: relative;
     }
-    /* Контейнер столбцов — ОБЯЗАТЕЛЬНО задаем высоту */
+/* Контейнер столбцов — КРИТИЧЕСКИ ВАЖНО: выравнивание по низу */
 .chart-bar {
   display: flex;
   gap: 2px;
-  height: 180px; /* ← ВАЖНО: без этого % не работают */
+  height: 180px; /* Фиксированная высота */
   width: 100%;
   margin-bottom: 10px;
+  align-items: flex-end !important; /* ← СТОЛБЦЫ ПРИЖАТЫ К НИЗУ (растают вверх) */
+  background: #fafafa;
+  border-radius: 4px;
+  padding: 0 5px; /* Небольшие отступы по бокам */
 }
-/* Один столбец — фиксируем ширину и высоту */
+
+/* Один столбец — растет СНИЗУ ВВЕРХ */
 .chart-bar-item {
-  flex: 0 0 24px; /* Ширина 24px */
+  flex: 0 0 24px !important; /* Жесткая ширина 24px */
   background-color: #CDCDC9;
   border-radius: 2px 2px 0 0;
   transition: opacity 0.2s;
   position: relative;
+  display: flex;
+  flex-direction: column-reverse !important; /* ← СОДЕРЖИМОЕ РАСТЕТ СНИЗУ ВВЕРХ */
+  min-height: 0; /* Предотвращает переполнение */
+  justify-content: flex-end; /* Прижимает содержимое к низу */
 }
+
     .chart-bar-item:hover {
       opacity: 0.8;
     }
-/* Подписи — исправляем "слипание" */
+/* Подписи — ЧЕТКО ПОД КАЖДЫМ СТОЛБЦОМ */
+.chart-bar-labels {
+  display: flex;
+  justify-content: flex-start; /* ← ВАЖНО: не space-between! */
+  gap: 2px; /* Совпадает с gap у .chart-bar */
+  margin-top: 5px;
+  font-size: 9px;
+  color: #666;
+  text-align: center;
+  width: 100%;
+  overflow: visible;
+}
+
 .chart-bar-labels > div {
-  flex: 0 0 24px; /* Тоже 24px — чтобы совпадало с шириной столбца */
+  flex: 0 0 24px !important; /* ← ТОЧНО 24px — совпадает со столбцом */
   transform: rotate(-90deg);
   transform-origin: top left;
   position: relative;
-  white-space: nowrap; 
-  top: 20px; /* Отступ от низа столбца */
+  white-space: nowrap;
   line-height: 1;
+  text-align: center;
+  margin-top: 4px; /* Отступ от низа столбца */
+  width: 24px !important; /* Фиксированная ширина */
+  box-sizing: border-box;
 }
     .chart-pie {
       height: 200px;
