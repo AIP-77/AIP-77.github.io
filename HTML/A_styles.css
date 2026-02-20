@@ -951,7 +951,7 @@
   transform: rotate(-90deg) !important; /* Поворачиваем на 45 градусов */
   transform-origin: top left !important; /* Точка вращения - левый верхний угол */
   text-align: center !important;
-  width: 24px !important; /* Фиксированная ширина */
+  width: 100% !important; /* Фиксированная ширина */
   line-height: 1;  
   position: relative; /* Заменяем absolute на relative */
   bottom: -45px !important; /* Сдвигаем вниз за пределы столбца */
