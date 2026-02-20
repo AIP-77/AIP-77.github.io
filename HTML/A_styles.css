@@ -739,18 +739,7 @@
       height: 250px;
       position: relative;
     }
-/* Контейнер столбцов — КРИТИЧЕСКИ ВАЖНО: выравнивание по низу */
-.chart-bar {
-  display: flex;
-  gap: 2px;
-  height: 180px; /* Фиксированная высота */
-  width: 100%;
-  margin-bottom: 10px;
-  align-items: flex-end !important; /* ← СТОЛБЦЫ ПРИЖАТЫ К НИЗУ (растают вверх) */
-  background: #fafafa;
-  border-radius: 4px;
-  padding: 0 5px; /* Небольшие отступы по бокам */
-}
+
 
 /* Один столбец — растет СНИЗУ ВВЕРХ */
 .chart-bar-item {
@@ -768,31 +757,9 @@
     .chart-bar-item:hover {
       opacity: 0.8;
     }
-/* Подписи — ЧЕТКО ПОД КАЖДЫМ СТОЛБЦОМ */
-.chart-bar-labels {
-  display: flex;
-  justify-content: flex-start; /* ← ВАЖНО: не space-between! */
-  gap: 2px; /* Совпадает с gap у .chart-bar */
-  margin-top: 5px;
-  font-size: 9px;
-  color: #666;
-  text-align: center;
-  width: 100%;
-  overflow: visible;
-}
 
-.chart-bar-labels > div {
-  flex: 0 0 24px !important; /* ← ТОЧНО 24px — совпадает со столбцом */
-  transform: rotate(-90deg);
-  transform-origin: top left;
-  position: relative;
-  white-space: nowrap;
-  line-height: 1;
-  text-align: center;
-  margin-top: 4px; /* Отступ от низа столбца */
-  width: 24px !important; /* Фиксированная ширина */
-  box-sizing: border-box;
-}
+
+
     .chart-pie {
       height: 200px;
       display: flex;
@@ -1002,6 +969,8 @@
 }
 /* === Стили для разделенных смен === */
 
+/* === ИСПРАВЛЕНИЕ ДЛЯ РАСПОЛОЖЕНИЯ СМЕН === */
+
 /* Контейнер вида работ с двумя графиками */
 .split-shift-chart {
   padding: 15px;
@@ -1011,12 +980,13 @@
   margin-bottom: 20px;
 }
 
-/* Обертка для двух смен рядом */
+/* Обертка для двух смен рядом - КРИТИЧЕСКИ ВАЖНО: ограничение ширины */
 .shifts-wrapper {
   display: flex;
   gap: 20px;
   margin-top: 10px;
   align-items: flex-end; /* Выравнивание по низу столбцов */
+  width: 100%; /* Гарантируем, что контейнер занимает всю ширину */
 }
 
 /* Контейнер одной смены */
@@ -1029,6 +999,67 @@
   border-radius: 6px;
   background: #f9f9f9;
   min-width: 0; /* Важно для flex */
+  max-width: 100%; /* Ограничение ширины */
+}
+
+/* Контейнер столбцов - ОБЯЗАТЕЛЬНО задаем выравнивание */
+.chart-bar {
+  display: flex;
+  gap: 2px;
+  height: 180px; /* Фиксированная высота */
+  width: 100%;
+  margin-bottom: 10px;
+  justify-content: flex-start; /* КРИТИЧЕСКИ ВАЖНО: выравнивание по левому краю */
+  align-items: flex-end !important; /* ← СТОЛБЦЫ ПРИЖАТЫ К НИЗУ (растают вверх) */
+  background: #fafafa;
+  border-radius: 4px;
+  padding: 0 5px; /* Небольшие отступы по бокам */ 
+}
+ 
+
+/* Подписи - ИСПРАВЛЕНИЕ РАСТЯГИВАНИЯ */
+.chart-bar-labels {
+  display: flex;
+  gap: 2px; /* Должен совпадать с gap у .chart-bar */
+  width: 100%;
+  justify-content: flex-start; /* Выравнивание по левому краю */
+  margin-top: 5px;
+  font-size: 9px;
+  color: #666;
+  text-align: center; 
+  overflow: visible; 
+}
+   
+
+/* Подписи отдельных интервалов */
+.chart-bar-labels > div {
+  flex: 0 0 24px !important; /* ЖЕСТКО фиксируем ширину 24px */
+  transform: rotate(-90deg);
+  transform-origin: top left;
+  white-space: nowrap;
+  line-height: 1;
+  text-align: center;
+  position: relative;
+  top: 20px;
+  font-size: 9px;
+  color: #666;
+  margin-top: 4px; /* Отступ от низа столбца */ 
+}
+.chart-bar-labels > div {
+
+
+   
+
+/* Адаптив для мобильных */
+@media (max-width: 768px) {
+  .shifts-wrapper {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .shift-container {
+    width: 100%;
+  }
 }
 
 .shift-container.night-shift {
