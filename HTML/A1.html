@@ -89,6 +89,17 @@
     <div id="error" class="error hidden"></div>
   </div>
   <div id="customTooltip" class="custom-tooltip"></div>
-  <script src="A_script.js"></script>
+
+  <!-- Вместо одного скрипта -->
+<script src="A_script.js"></script> <!-- основной файл - точка входа -->
+
+<!-- Подключаем модули по порядку -->
+<script src="utils.js"></script> <!-- вспомогательные функции -->
+<script src="data.js"></script> <!-- загрузка и обработка данных -->
+<script src="calendar.js"></script> <!-- календарь и навигация -->
+<script src="charts.js"></script> <!-- все функции графиков -->
+<script src="analytics.js"></script> <!-- аналитика и отчеты -->
+<script src="modals.js"></script> <!-- модальные окна -->
+
 </body>
 </html>
