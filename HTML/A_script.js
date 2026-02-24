@@ -49,13 +49,13 @@ function renderDonutChart(data) {
 
   // Цвета по порядку (можно расширить)
   const colors = [
-    '#4285F4', // синий — Комплектация
-    '#34A853', // зелёный — Упаковка
-    '#FBBC05', // жёлтый — Погрузка
-    '#EA4335', // красный — Администрация
-    '#9C27B0', // фиолетовый — Сборка
-    '#00ACC1', // бирюзовый — Транспорт
-    '#FF9800', // оранжевый — Другие
+    '#4285F4', // синий 
+    '#34A853', // зелёный
+    '#FBBC05', // жёлтый
+    '#EA4335', // красный
+    '#9C27B0', // фиолетовый 
+    '#00ACC1', // бирюзовый 
+    '#FF9800', // оранжевый
   ];
 
   let i = 0;
@@ -1402,6 +1402,7 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
   ];
 
   let html = '<div class="charts-grid">';
+
 
   // Вспомогательная функция для отрисовки одной смены
 function renderShiftGraph(stats, shiftHoursArray, shiftName, isNight, currentWorkType, currentColor) {
