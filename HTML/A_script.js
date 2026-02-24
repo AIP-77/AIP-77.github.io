@@ -1369,6 +1369,7 @@ function render24HourWorkChart(workType, records) {
     'Работа с расхождениями',    'Другие виды работ',    'Переупаковка паллеты'*/
 
 //======= на новую версию, которая рисует ровно 24 часа для каждого вида работ.
+// === ИСПРАВЛЕННАЯ ФУНКЦИЯ renderWorkTypeCharts ===
 function renderWorkTypeCharts(allRecords, responsibleRecords) {
   const workTypeTimeStats = {};
 
@@ -1402,89 +1403,72 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
 
   let html = '<div class="charts-grid">';
 
+  // Вспомогательная функция для отрисовки одной смены
+  function renderShiftGraph(stats, shiftHoursArray, shiftName, isNight, currentWorkType, currentColor) {
+    // Генерируем данные для 12 часов смены
+    const hoursData = [];
+    let maxUnitsInShift = 0;
+    let totalShiftUnits = 0;
 
-// === ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТРИСОВКИ СМЕНЫ ===
-function renderShiftGraph(stats, shiftName, isNight, shiftHoursArray, currentWorkType, currentColor) {
-  // 1. Собираем данные по каждому часу из массива shiftHoursArray
-  const hoursData = [];
-  let maxUnitsInShift = 0;
+    shiftHoursArray.forEach(h => {
+      const key = `${String(h).padStart(2,'0')}-${String(h+1).padStart(2,'0')}`;
+      const data = stats.timeIntervals[key] || { units: 0 };
+      hoursData.push({ hour: h, key, units: data.units });
+      if (data.units > maxUnitsInShift) maxUnitsInShift = data.units;
+      totalShiftUnits += data.units;
+    });
 
-  shiftHoursArray.forEach(h => {
-    const key = `${String(h).padStart(2,'0')}-${String(h+1).padStart(2,'0')}`;
-    const data = stats.timeIntervals[key] || { units: 0 };
-    hoursData.push({ hour: h, key, units: data.units });
-    if (data.units > maxUnitsInShift) maxUnitsInShift = data.units;
-  });
+    if (totalShiftUnits === 0) {
+      return `<div class="shift-container empty">
+                <div class="shift-title">${shiftName} <span style="font-size:11px; color:#666;">(0 ед.)</span></div>
+                <div class="shift-empty">Нет активности</div>
+              </div>`;
+    }
 
-  const totalShiftUnits = hoursData.reduce((sum, item) => sum + item.units, 0);
-  if (totalShiftUnits === 0) {
-    return `<div class="shift-graph empty"><div class="shift-title">${shiftName}</div><div class="shift-empty">Нет активности</div></div>`;
+    // Генерируем HTML для столбцов
+    let barsHtml = '<div class="chart-bar">';
+    hoursData.forEach(item => {
+      const heightPercent = maxUnitsInShift > 0 ? (item.units / maxUnitsInShift) * 100 : 0;
+      const percentage = stats.totalUnits > 0 ? (item.units / stats.totalUnits) * 100 : 0;
+      
+      barsHtml += `
+        <div class="chart-bar-item"
+             style="height: ${heightPercent}%; background-color: ${currentColor}; opacity: ${item.units > 0 ? 1 : 0.2};"
+             title="${item.key}: ${item.units} ед. (${percentage.toFixed(1)}%)">
+        </div>
+      `;
+    });
+    barsHtml += '</div>';
+
+    // Генерируем подписи
+    let labelsHtml = '<div class="chart-bar-labels" style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 9px; color: #666; text-align: center;">';
+    hoursData.forEach(item => {
+      const label = `${String(item.hour).padStart(2,'0')}-${String(item.hour+1).padStart(2,'0')}`;
+      labelsHtml += `<div style="flex: 1; min-width: 0; word-break: break-all; transform: rotate(-90deg); transform-origin: top left; position: relative; top: 10px; width: 14px;">${label}</div>`;
+    });
+    labelsHtml += '</div>';
+
+    return `
+      <div class="shift-container ${isNight ? 'night-shift' : 'day-shift'}">
+        <div class="shift-title">${shiftName} <span style="font-size:11px; color:#666;">(${totalShiftUnits} ед.)</span></div>
+        ${barsHtml}
+        ${labelsHtml}
+      </div>
+    `;
   }
-	console.log(`[DEBUG] ${shiftName}: maxUnitsInShift=${maxUnitsInShift}, total=${totalShiftUnits}`);
-console.log('hoursData:', hoursData);
-
-  // 2. Генерируем HTML для столбцов (ровно 12 штук)
-  let barsHtml = '<div class="chart-bar">';
-  hoursData.forEach(item => {
-    const heightPercent = maxUnitsInShift > 0 ? (item.units / maxUnitsInShift) * 100 : 0;
-    const percentage = stats.totalUnits > 0 ? (item.units / stats.totalUnits) * 100 : 0;
-    
-    // Важно: задаем высоту и цвет явно
-    barsHtml += `
-      <div class="chart-bar-item"
-           style="height: ${heightPercent}%; background-color: ${currentColor}; opacity: ${item.units > 0 ? 1 : 0.2};"
-           title="${item.key}: ${item.units} ед. (${percentage.toFixed(1)}%)">
-      </div>
-    `;
-  });
-  barsHtml += '</div>';
-
-  // 3. Генерируем подписи (12 штук) — поворачиваем на 90°
-  let labelsHtml = '<div class="chart-bar-labels" style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 9px; color: #666; text-align: center;">';
-  hoursData.forEach(item => {
-    const label = `${String(item.hour).padStart(2,'0')}-${String(item.hour+1).padStart(2,'0')}`;
-    labelsHtml += `
-      <div style="
-        flex: 1;
-        min-width: 0;
-        word-break: break-all;
-        transform: rotate(-90deg);
-        transform-origin: top left;
-        position: relative;
-        top: 10px;
-        width: 14px;
-        line-height: 1;
-      ">
-        ${label}
-      </div>
-    `;
-  });
-  labelsHtml += '</div>';
-
-  return `
-    <div class="shift-container ${isNight ? 'night-shift' : 'day-shift'}">
-      <div class="shift-title">${shiftName} <span style="font-size:11px; color:#666;">(${totalShiftUnits} ед.)</span></div>
-      ${barsHtml}
-      ${labelsHtml}
-    </div>
-  `;
-}
-  // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 
   // 2. Генерация HTML для каждого вида работ
   function processWorkType(workType, stats) {
     if (!stats || stats.totalUnits === 0) return '';
 
     // ЖЕСТКИЕ МАССИВЫ ЧАСОВ ДЛЯ СМЕН
-    // День: 09, 10, ..., 20 (всего 12 часов: 09-10 ... 20-21)
     const dayHours = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-    // Ночь: 21, 22, 23, 0, 1, ..., 8 (всего 12 часов: 21-22 ... 08-09)
     const nightHours = [21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8];
 
     const color = getWorkTypeColor(workType);
 
-    const dayGraph = renderShiftGraph(stats, '🌞 Дневная смена (09:00–21:00)', false, dayHours, workType, color);
-    const nightGraph = renderShiftGraph(stats, '🌙 Ночная смена (21:00–09:00)', true, nightHours, workType, color);
+    const dayGraph = renderShiftGraph(stats, dayHours, '🌞 Дневная смена (09:00–21:00)', false, workType, color);
+    const nightGraph = renderShiftGraph(stats, nightHours, '🌙 Ночная смена (21:00–09:00)', true, workType, color);
 
     return `
       <div class="chart-container split-shift-chart">
