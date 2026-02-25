@@ -1,5 +1,3 @@
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ АНАЛИТИКИ ===
-let selectedDepartment = '';
 
 function renderReport() {
   if (!selectedDate) {
