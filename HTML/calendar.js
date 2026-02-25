@@ -1,14 +1,3 @@
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ КАЛЕНДАРЯ ===
-let currentMonth = new Date();
-currentMonth.setDate(1);
-let selectedDate = '';
-let uiInitialized = false;
-
-// === ЭЛЕМЕНТЫ DOM ===
-const calendarTitle = document.getElementById('calendar-title');
-const prevMonthBtn = document.getElementById('prev-month');
-const nextMonthBtn = document.getElementById('next-month');
-const calendarDaysContainer = document.getElementById('calendar-days');
 
 function renderCalendar() {
   const year = currentMonth.getFullYear();
