@@ -564,13 +564,13 @@ h2 {
   font-size: 9px;
   color: #666;
   transform: rotate(-90deg);
-  transform-origin: center center; /* ← Изменено: центрирование */
+  transform-origin: 50% 50%; /* ← Точное центрирование */
   position: relative;
   white-space: nowrap;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center; /* ← Добавлено: центрирование текста */  
+  display: inline-block;
+  width: 100%;
+  text-align: center;
 }
 
 /* Круговая диаграмма */
