@@ -468,3 +468,106 @@ function toggleDepartment(direction, department) {
     icon.textContent = '▶';
   }
 }
+
+function renderComparisonAnalytics(currentDate) {
+  const currentDateObj = parseDate(currentDate);
+  const previousDates = [];
+  for (let i = 1; i <= 7; i++) {
+    const date = new Date(currentDateObj);
+    date.setDate(currentDateObj.getDate() - i);
+    const dateStr = formatDate(date);
+    previousDates.push({ date: dateStr, records: records.filter(r => r['Рабочий день'] === dateStr) });
+  }
+  const currentDayRecords = records.filter(r => r['Рабочий день'] === currentDate);
+  const currentResponsibleRecords = currentDayRecords.filter(r => isResponsible(r['Должность']));
+  let currentUnits = 0, currentTime = 0, currentAmount = 0;
+  currentResponsibleRecords.forEach(r => {
+    currentUnits += parseInt(r['Количество единиц']) || 0;
+    currentTime += parseTime(r['Рабочее время']);
+  });
+  currentDayRecords.forEach(r => {
+    currentAmount += parseCurrency(r['Расчетная сумма']);
+  });
+  const currentNormative = calculateNormative(currentUnits, currentTime);
+  const currentCostPerUnit = currentUnits > 0 ? currentAmount / currentUnits : 0;
+  let html = '<h4 style="margin: 20px 0 15px 0; color: #333;">📈 Сравнение с предыдущими днями</h4><div class="comparison-grid">';
+  const previousUnits = previousDates.map(d => {
+    const respRecords = d.records.filter(r => isResponsible(r['Должность']));
+    return respRecords.reduce((sum, r) => sum + (parseInt(r['Количество единиц']) || 0), 0);
+  }).filter(val => val > 0);
+  const avgUnits = previousUnits.length > 0 ? previousUnits.reduce((a, b) => a + b) / previousUnits.length : 0;
+  const unitsTrend = currentUnits - avgUnits;
+  const unitsPercent = avgUnits > 0 ? ((unitsTrend / avgUnits) * 100).toFixed(1) : 0;
+  const unitsIsGood = unitsTrend >= 0;
+  html += `
+    <div class="comparison-card">
+      <h4>📦 Единицы</h4>
+      <div class="analytics-value">${currentUnits}</div>
+      <p class="analytics-label">Сегодня</p>
+      <div class="analytics-value ${unitsIsGood ? 'trend-up' : 'trend-down'}">
+        ${unitsIsGood ? '↗' : '↘'} ${Math.abs(unitsPercent)}%
+      </div>
+      <p class="analytics-label">Среднее: ${avgUnits.toFixed(0)}</p>
+    </div>
+  `;
+  const previousNorms = previousDates.map(d => {
+    const respRecords = d.records.filter(r => isResponsible(r['Должность']));
+    const units = respRecords.reduce((sum, r) => sum + (parseInt(r['Количество единиц']) || 0), 0);
+    const time = respRecords.reduce((sum, r) => sum + parseTime(r['Рабочее время']), 0);
+    return calculateNormative(units, time);
+  }).filter(val => val > 0);
+  const avgNorm = previousNorms.length > 0 ? previousNorms.reduce((a, b) => a + b) / previousNorms.length : 0;
+  const normTrend = currentNormative - avgNorm;
+  const normPercent = avgNorm > 0 ? ((normTrend / avgNorm) * 100).toFixed(1) : 0;
+  const normIsGood = normTrend >= 0;
+  html += `
+    <div class="comparison-card">
+      <h4>⚡ Норматив</h4>
+      <div class="analytics-value">${currentNormative.toFixed(1)}</div>
+      <p class="analytics-label">Сегодня (шт/час)</p>
+      <div class="analytics-value ${normIsGood ? 'trend-up' : 'trend-down'}">
+        ${normIsGood ? '↗' : '↘'} ${Math.abs(normPercent)}%
+      </div>
+      <p class="analytics-label">Среднее: ${avgNorm.toFixed(1)}</p>
+    </div>
+  `;
+  const previousAmounts = previousDates.map(d =>
+    d.records.reduce((sum, r) => sum + parseCurrency(r['Расчетная сумма']), 0)
+  ).filter(val => val > 0);
+  const avgAmount = previousAmounts.length > 0 ? previousAmounts.reduce((a, b) => a + b) / previousAmounts.length : 0;
+  const amountTrend = currentAmount - avgAmount;
+  const amountPercent = avgAmount > 0 ? ((amountTrend / avgAmount) * 100).toFixed(1) : 0;
+  const amountIsGood = amountTrend < 0;
+  const previousCosts = previousDates.map(d => {
+    const respRecords = d.records.filter(r => isResponsible(r['Должность']));
+    const units = respRecords.reduce((sum, r) => sum + (parseInt(r['Количество единиц']) || 0), 0);
+    const amount = d.records.reduce((sum, r) => sum + parseCurrency(r['Расчетная сумма']), 0);
+    return units > 0 ? amount / units : 0;
+  }).filter(val => val > 0);
+  const avgCost = previousCosts.length > 0 ? previousCosts.reduce((a, b) => a + b) / previousCosts.length : 0;
+  const costTrend = currentCostPerUnit - avgCost;
+  const costPercent = avgCost > 0 ? ((costTrend / avgCost) * 100).toFixed(1) : 0;
+  const costIsGood = costTrend < 0;
+  html += `
+    <div class="comparison-card">
+      <h4>💰 Расходы</h4>
+      <div class="analytics-value">${formatCurrency(currentAmount)}</div>
+      <p class="analytics-label">Сегодня</p>
+      <div class="analytics-value ${amountIsGood ? 'trend-up' : 'trend-down'}">
+        ${amountIsGood ? '↗' : '↘'} ${Math.abs(amountPercent)}%
+      </div>
+      <p class="analytics-label">Среднее: ${formatCurrency(avgAmount)}</p>
+    </div>
+    <div class="comparison-card">
+      <h4>💵 Расходы на ед.</h4>
+      <div class="analytics-value">р.${currentCostPerUnit.toFixed(2)}</div>
+      <p class="analytics-label">Сегодня</p>
+      <div class="analytics-value ${costIsGood ? 'trend-up' : 'trend-down'}">
+        ${costIsGood ? '↗' : '↘'} ${Math.abs(costPercent)}%
+      </div>
+      <p class="analytics-label">Среднее: р.${avgCost.toFixed(2)}</p>
+    </div>
+  `;
+  html += '</div>';
+  return html;
+}
