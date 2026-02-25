@@ -10,7 +10,7 @@ let currentArchive = null;
 let uiInitialized = false;
 let selectedDepartment = '';
 let donutRenderTimeout = null; // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ ГРАФИКОВ 
-let tooltipTimeout = null; //  ФУНКЦИИ TOOLTIP 
+
 
 // === ЭЛЕМЕНТЫ DOM ===
 const loadingDiv = document.getElementById('loading');
