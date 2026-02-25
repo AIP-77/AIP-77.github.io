@@ -1,826 +1,584 @@
-    * {      box-sizing: border-box;    }
+/* ============================================
+   БАЗОВЫЕ СТИЛИ
+   ============================================ */
+* {
+  box-sizing: border-box;
+}
 
-    body {      font-family: Arial, sans-serif;      padding: 8px;      background: #f9f9f9;      color: #333;      margin: 0;    }
+body {
+  font-family: Arial, sans-serif;
+  padding: 8px;
+  background: #f9f9f9;
+  color: #333;
+  margin: 0;
+}
 
-    .container {      max-width: 1400px;      margin: 0 auto;      background: white;      padding: 15px;      border-radius: 8px;      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    h2 {      text-align: center;      margin-bottom: 10px;      font-size: 1.5rem;    }
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
 
-    .version {      text-align: center;      font-size: 12px;      color: #666;      margin-bottom: 10px;    }
+h2 {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+}
 
-    .last-updated {      text-align: center;      font-size: 11px;      color: #555;      margin-bottom: 10px;      font-style: italic;    }
+.version {
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 10px;
+}
 
-    .selected-date {      text-align: center;      font-size: 14px;      font-weight: bold;      color: #1976d2;      margin: 10px 0;      padding: 8px;      background: #e3f2fd;
-      border-radius: 6px;    }
+.last-updated {
+  text-align: center;
+  font-size: 11px;
+  color: #555;
+  margin-bottom: 10px;
+  font-style: italic;
+}
 
-    @media (max-width: 768px) {      body {        padding: 4px;      }
-                   
-      .container {        padding: 10px;      }
-      h2 {        font-size: 1.3rem;      }
-      .calendar-nav-btn {        padding: 6px 12px;        min-width: 80px;        font-size: 12px;      }
-      .calendar-title {        font-size: 16px;      }
-      .analytics-grid {        grid-template-columns: 1fr;        gap: 10px;      }
-      .work-types-grid {        grid-template-columns: 1fr;      }
-      .grouping-grid {        grid-template-columns: 1fr;      }
-      .comparison-grid {        grid-template-columns: 1fr;      }
-      .time-bar {        flex-direction: column;        height: auto;        align-items: flex-start;      }
-      .time-label {        width: 100%;        margin-bottom: 5px;        font-size: 11px;      }
-      .time-bar-inner {        width: 100%;        margin-bottom: 5px;        height: 12px;      }
-      .time-value {        width: 100%;        text-align: left;        font-size: 11px;      }
-      .work-type-legend {        flex-direction: column;        gap: 5px;      }
-      .modal-content {        width: 95%;        margin: 2% auto;        padding: 15px;      }
-      .work-type-segments {
-        height: 12px;
-      }
-      .time-bar-fill {
-        height: 100%;
+.selected-date {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #1976d2;
+  margin: 10px 0;
+  padding: 8px;
+  background: #e3f2fd;
+  border-radius: 6px;
+}
 
-         
-      }
-    }
-    @media (max-width: 480px) {
-      .calendar-day {
-        padding: 6px;
-        font-size: 12px;
-      }
-      .analytics-card, .staff-card, .group-card, .work-type-card {
-        padding: 10px;
-      }
-      .analytics-value {
-        font-size: 20px;
-      }
-      .combined-analytics,
-      .time-statistics,
-      .percentage-time-statistics,
-      .grouping-section,
-      .work-types-analytics {
-        padding: 15px;
-        margin-top: 15px;
-      }
-      .time-label {
-        font-size: 10px;
-      }
-      .time-value {
-        font-size: 10px;
-      }
-    }
-    .calendar-container {
-      margin: 15px 0;
-      padding: 15px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    }
-    .calendar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-    .calendar-title {
-      font-size: 18px;
-      font-weight: bold;
-      margin: 0 10px;
-      text-align: center;
-    }
-    .calendar-nav-btn {
-      background: #2196f3;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      min-width: 100px;
-      text-align: center;
-      font-weight: bold;
-    }
-    .calendar-days {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-    }
-    .calendar-day-header {
-      text-align: center;
-      font-weight: bold;
-      padding: 8px;
-      background: #f0f0f0;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-    .calendar-day {
-      text-align: center;
-      padding: 10px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-      font-size: 14px;
-    }
-    .calendar-day.has-data {
-      background: #2196f3;
-      color: white;
-    }
-    .calendar-day.selected {
-      background: #ff9800;
-      color: white;
-      font-weight: bold;
-    }
-    .calendar-day.disabled {
-      color: #aaa;
-      cursor: not-allowed;
-    }
-    .toggle-icon {
-      display: inline-block;
-      width: 16px;
-      text-align: center;
-      margin-right: 6px;
-    }
-    .hidden {
-      display: none;
-    }
-    .loading {
-      text-align: center;
-      color: #666;
-      padding: 20px;
-    }
-    .error {
-      color: #d32f2f;
-      background: #ffebee;
-      padding: 10px;
-      border-radius: 4px;
-      margin-top: 10px;
-    }
-    .loading-spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #2196f3;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .loading-progress {
-      background: linear-gradient(90deg, #2196f3, #1976d2);
-      height: 3px;
-      width: 0%;
-      transition: width 0.3s ease;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1000;
-    }
-    .loading-dots:after {
-      content: '';
-      animation: dots 1.5s steps(5, end) infinite;
-    }
-    @keyframes dots {
-      0%, 20% { content: '.'; }
-      40% { content: '..'; }
-      60%, 100% { content: '...'; }
-    }
-    .combined-analytics {
-      margin-top: 20px;
-      padding: 20px;
-      background: linear-gradient(135deg, #fff3e0, #e8f5e9);
-      border-radius: 8px;
-      border-left: 4px solid #ff9800;
-    }
-    .combined-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    .combined-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #e65100;
-      margin: 0;
-    }
-    .analytics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 15px;
-      margin-top: 15px;
-    }
-    .analytics-card {
-      background: white;
-      padding: 15px;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      border-left: 3px solid #2196f3;
-    }
-    .analytics-card h4 {
-      margin: 0 0 10px 0;
-      color: #1976d2;
-      font-size: 14px;
-    }
-    .analytics-value {
-      font-size: 24px;
-      font-weight: bold;
-      color: #333;
-      margin: 5px 0;
-    }
-    .analytics-label {
-      font-size: 12px;
-      color: #666;
-      margin: 0;
-    }
-    .staff-card {
-      background: white;
-      padding: 15px;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      border-left: 3px solid #ff9800;
-    }
-    .staff-card h4 {
-      margin: 0 0 10px 0;
-      color: #ff6f00;
-      font-size: 14px;
-    }
-    .staff-overview {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .staff-total {
-      background: #e3f2fd;
-      padding: 10px;
-      border-radius: 4px;
-      text-align: center;
-    }
-    .staff-permanent {
-      background: #e8f5e9;
-      padding: 10px;
-      border-radius: 4px;
-      text-align: center;
-    }
-    .staff-hired {
-      background: #fff3e0;
-      padding: 10px;
-      border-radius: 4px;
-      text-align: center;
-    }
-    .staff-total-value, .staff-permanent-value, .staff-hired-value {
-      font-size: 20px;
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 5px;
-    }
-    .staff-total-label, .staff-permanent-label, .staff-hired-label {
-      font-size: 11px;
-      color: #666;
-    }
-    .comparison-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 15px;
-      margin-top: 20px;
-    }
-    .comparison-card {
-      background: white;
-      padding: 15px;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .comparison-card h4 {
-      margin: 0 0 10px 0;
-      color: #388e3c;
-      font-size: 14px;
-    }
-    .trend-up {
-      color: #4caf50;
-    }
-    .trend-down {
-      color: #f44336;
-    }
-    .grouping-section {
-      margin-top: 20px;
-      padding: 20px;
-      background: #e3f2fd;
-      border-radius: 8px;
-      border-left: 4px solid #1976d2;
-    }
-    .grouping-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    .grouping-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #0d47a1;
-      margin: 0;
-    }
-    .grouping-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 15px;
-      margin-top: 15px;
-    }
-    .group-card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      border-left: 4px solid #2196f3;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .group-card:hover {
-      transform: translateY(-2px);
-    }
-    .group-card h4 {
-      margin: 0 0 10px 0;
-      color: #1976d2;
-      font-size: 14px;
-    }
-    .group-stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .group-stat-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 6px;
-      background: #f8f9fa;
-      border-radius: 4px;
-    }
-    .group-stat-value {
-      font-size: 16px;
-      font-weight: bold;
-      color: #333;
-    }
-    .group-stat-label {
-      font-size: 10px;
-      color: #666;
-      text-align: center;
-    }
-    .work-types-analytics {
-      margin-top: 20px;
-      padding: 20px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      border-left: 4px solid #17a2b8;
-    }
-    .work-types-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    .work-types-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #0c5460;
-      margin: 0;
-    }
-    .work-types-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 15px;
-      margin-top: 15px;
-    }
-    .work-type-card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      border-left: 4px solid #17a2b8;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .work-type-card:hover {
-      transform: translateY(-2px);
-    }
-    .work-type-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #e9ecef;
-    }
-    .work-type-name {
-      font-size: 16px;
-      font-weight: bold;
-      color: #495057;
-      margin: 0;
-    }
-    .work-type-stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-    }
-    .stat-value {
-      font-size: 18px;
-      font-weight: bold;
-      color: #333;
-    }
-    .stat-label {
-      font-size: 11px;
-      color: #666;
-      text-align: center;
-    }
-    .performance-indicator {
-      margin-top: 10px;
-      padding: 8px;
-      border-radius: 4px;
-      text-align: center;
-      font-weight: bold;
-      font-size: 12px;
-    }
-    .performance-good {
-      background: #d4edda;
-      color: #155724;
-    }
-    .performance-average {
-      background: #fff3cd;
-      color: #856404;
-    }
-    .performance-poor {
-      background: #f8d7da;
-      color: #721c24;
-    }
-    .detail-section {
-      margin: 10px 0;
-      padding: 15px;
-      background: #f1f8e9;
-      border-radius: 6px;
-      border-left: 3px solid #7cb342;
-    }
-    .hour-group, .brigade-group {
-      margin: 10px 0;
-      padding: 10px;
-      background: #e8f5e8;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .brigade-group {
-      background: #f3e5f5;
-      margin-left: 20px;
-    }
-    .supply-details {
-      margin-left: 40px;
-      padding: 8px;
-      background: #fff3e0;
-      border-radius: 4px;
-      margin-top: 5px;
-    }
-    .night-interval {
-      background: #5c6bc0 !important;
-      color: white;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-    }
-    .modal-content {
-      background-color: white;
-      margin: 5% auto;
-      padding: 20px;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 800px;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .close:hover {
-      color: black;
-    }
-    .department-selector {
-      margin: 15px 0;
-      padding: 15px;
-      background: #fff3cd;
-      border-radius: 6px;
-      border-left: 3px solid #ffc107;
-    }
-    .department-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .department-btn {
-      padding: 8px 16px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .department-btn:hover {
-      background: #e3f2fd;
-      border-color: #2196f3;
-    }
-    .department-btn.active {
-      background: #2196f3;
-      color: white;
-      border-color: #2196f3;
-    }
-    .work-distribution {
-      margin: 10px 0;
-    }
-    .work-distribution-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      background: #e3f2fd;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-bottom: 5px;
-    }
-    .work-distribution-title {
-      font-weight: bold;
-      color: #1976d2;
-    }
-    .work-distribution-content {
-      padding: 10px;
-      background: #f8f9fa;
-      border-radius: 4px;
-    }
-    .collapsed .work-distribution-content {
-      display: none;
-    }
-    .work-type-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 10px 0;
-      padding: 10px;
-      background: #f8f9fa;
-      border-radius: 4px;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 12px;
-    }
-    .legend-color {
-      width: 12px;
-      height: 12px;
-      border-radius: 2px;
-    }
-    .time-bar-with-works {
-      position: relative;
-      margin: 8px 0;
-    }
-    .work-type-segments {
-      display: flex;
-      height: 15px;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .work-type-segment {
-      height: 100%;
-      transition: opacity 0.2s;
-    }
-    .work-type-segment:hover {
-      opacity: 0.8;
-    }
-    .supply-details-expanded {
-      margin-left: 20px;
-      padding: 10px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      margin-top: 8px;
-    }
-    .supply-header {
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #666;
-    }
-    .helper-list {
-      margin-left: 15px;
-      font-size: 12px;
-    }
-    .helper-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 2px 0;
-    }
-    .helper-name {
-      color: #666;
-    }
-    .helper-role {
-      color: #999;
-      font-style: italic;
-    }
-    .direction-group {
-      margin: 20px 0;
-      padding: 15px;
-      background: #f0f4ff;
-      border-radius: 8px;
-      border-left: 4px solid #4a6bff;
-    }
-    .direction-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    .direction-title {
-      font-size: 16px;
-      font-weight: bold;
-      color: #2c3e8f;
-      margin: 0;
-    }
-    .department-group {
-      margin: 15px 0;
-      padding: 12px;
-      background: #e8f0ff;
-      border-radius: 6px;
-      border-left: 3px solid #6c8eff;
-    }
-    .department-subheader {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      cursor: pointer;
-    }
-    .department-subtitle {
-      font-size: 14px;
-      font-weight: bold;
-      color: #3a4f9e;
-      margin: 0;
-    }
-    .charts-section {
-      margin-top: 20px;
-      padding: 20px;
-      background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
-      border-radius: 8px;
-      border-left: 4px solid #2196f3;
-    }
-    .charts-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    .charts-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #1976d2;
-      margin: 0;
-    }
+/* ============================================
+   КАЛЕНДАРЬ
+   ============================================ */
+.calendar-container {
+  margin: 15px 0;
+  padding: 15px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
 
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
 
-    .chart-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: #333;
-      margin: 0 0 10px 0;
-      text-align: center;
-    }
-    .chart-placeholder {
-      height: 250px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #666;
-      font-size: 14px;
-      text-align: center;
-      padding: 20px;
-    }
-    .warning-note {
-      background: #fff3cd;
-      border: 1px solid #ffeaa7;
-      border-radius: 6px;
-      padding: 12px;
-      margin: 15px 0;
-      font-size: 14px;
-      color: #856404;
-    }
-    .warning-note strong {
-      color: #e65100;
-    }
-    .chart-real {
-      height: 250px;
-      position: relative;
-    }
+.calendar-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 0 10px;
+  text-align: center;
+}
 
+.calendar-nav-btn {
+  background: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 100px;
+  text-align: center;
+  font-weight: bold;
+}
 
-/* Один столбец — растет СНИЗУ ВВЕРХ */
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-weight: bold;
+  padding: 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.calendar-day {
+  text-align: center;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+}
+
+.calendar-day.has-data {
+  background: #2196f3;
+  color: white;
+}
+
+.calendar-day.selected {
+  background: #ff9800;
+  color: white;
+  font-weight: bold;
+}
+
+.calendar-day.disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   ОБЩИЕ ЭЛЕМЕНТЫ
+   ============================================ */
+.toggle-icon {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  margin-right: 6px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ============================================
+   ЗАГРУЗКА И ОШИБКИ
+   ============================================ */
+.loading {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+}
+
+.error {
+  color: #d32f2f;
+  background: #ffebee;
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #2196f3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-progress {
+  background: linear-gradient(90deg, #2196f3, #1976d2);
+  height: 3px;
+  width: 0%;
+  transition: width 0.3s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+.loading-dots:after {
+  content: '';
+  animation: dots 1.5s steps(5, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+/* ============================================
+   АНАЛИТИКА
+   ============================================ */
+.combined-analytics {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff3e0, #e8f5e9);
+  border-radius: 8px;
+  border-left: 4px solid #ff9800;
+}
+
+.combined-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.combined-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #e65100;
+  margin: 0;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.analytics-card {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-left: 3px solid #2196f3;
+}
+
+.analytics-card h4 {
+  margin: 0 0 10px 0;
+  color: #1976d2;
+  font-size: 14px;
+}
+
+.analytics-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin: 5px 0;
+}
+
+.analytics-label {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
+
+/* ============================================
+   ГРУППИРОВКА И ОТДЕЛЫ
+   ============================================ */
+.grouping-section {
+  margin-top: 20px;
+  padding: 20px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
+}
+
+.grouping-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.grouping-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #0d47a1;
+  margin: 0;
+}
+
+.grouping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.group-card {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-left: 4px solid #2196f3;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.group-card:hover {
+  transform: translateY(-2px);
+}
+
+.group-card h4 {
+  margin: 0 0 10px 0;
+  color: #1976d2;
+  font-size: 14px;
+}
+
+.group-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.group-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.group-stat-value {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.group-stat-label {
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+}
+
+/* ============================================
+   ВИДЫ РАБОТ
+   ============================================ */
+.work-types-analytics {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #17a2b8;
+}
+
+.work-types-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.work-types-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #0c5460;
+  margin: 0;
+}
+
+.work-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.work-type-card {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-left: 4px solid #17a2b8;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.work-type-card:hover {
+  transform: translateY(-2px);
+}
+
+.work-type-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.work-type-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #495057;
+  margin: 0;
+}
+
+.work-type-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+}
+
+.performance-indicator {
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.performance-good {
+  background: #d4edda;
+  color: #155724;
+}
+
+.performance-average {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.performance-poor {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* ============================================
+   ГРАФИКИ И ДИАГРАММЫ
+   ============================================ */
+.charts-section {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+
+.charts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.charts-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1976d2;
+  margin: 0;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 10px 0;
+  text-align: center;
+}
+
+.chart-placeholder {
+  height: 250px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+.chart-real {
+  height: 250px;
+  position: relative;
+  width: 100% !important;
+  max-width: none !important;
+  overflow-x: auto;
+}
+
+.chart-container {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Столбчатые графики */
+.chart-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 180px;
+  width: 100%;
+  margin-bottom: 15px;
+  padding: 0 5px;
+  background: #fafafa;
+  border-radius: 4px;
+  justify-content: flex-start;
+}
+
 .chart-bar-item {
-  flex: 0 0 24px !important; /* Жесткая ширина 24px */
+  flex: 1;
+  min-width: 20px;
   background-color: #CDCDC9;
   border-radius: 2px 2px 0 0;
   transition: opacity 0.2s;
-  position: relative;
+}
+
+.chart-bar-item:hover {
+  opacity: 0.8;
+}
+
+.chart-bar-labels {
   display: flex;
-  flex-direction: column-reverse !important; /* ← СОДЕРЖИМОЕ РАСТЕТ СНИЗУ ВВЕРХ */
-  min-height: 0; /* Предотвращает переполнение */
-  justify-content: flex-end; /* Прижимает содержимое к низу */
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px;
+  padding: 0 5px;
+  font-size: 9px;
+  color: #666;
+  text-align: center;
+  overflow: visible;
 }
 
-    .chart-bar-item:hover {
-      opacity: 0.8;
-    }
-
-
-
-    .chart-pie {
-      height: 200px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .chart-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-    }
-    .chart-legend-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
-    }
-    .work-type-charts-section {
-      margin-top: 20px;
-      padding: 20px;
-      background: linear-gradient(135deg, #e8f5e9, #f3e5f5);
-      border-radius: 8px;
-      border-left: 4px solid #4caf50;
-    }
-    .work-type-charts-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      cursor: pointer;
-    }
-    .work-type-charts-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #2e7d32;
-      margin: 0;
-    }
-
-.custom-tooltip {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  pointer-events: none;
-  z-index: 1000;
+.chart-bar-labels > div {
+  flex: 1;
+  text-align: center;
+  font-size: 9px;
+  color: #666;
+  transform: rotate(-45deg);
+  transform-origin: top center;
+  position: relative;
+  top: 10px;
   white-space: nowrap;
-  display: none;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
+  min-width: 0;
 }
 
-/* === Donut Chart === */
+/* Круговая диаграмма */
 .chart-pie {
   height: 200px;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
+  margin-bottom: 10px;
 }
 
 .donut-center {
@@ -852,126 +610,57 @@
   border-radius: 2px;
 }
 
-
-
-
-.chart-placeholder {
-  text-align: center;
-  color: #666;
-  font-style: italic;
-  padding: 20px;
-}
-/*=======================
-.charts-grid {  display: grid;  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));  gap: 20px;  margin-top: 10px;  max-width: 1200px; /* ← КЛЮЧЕВОЕ: ограничиваем ширину */
-  margin-left: auto;  margin-right: auto;
-}
-/* Диаграмма "Распределение Трудозатрат" — занимает 8 колонок (2/3 ширины) */
-.chart-container.donut-full {  grid-column: span 4;}
-
-/* Остальные графики — по 4 колонки (1/3 ширины) */
-.chart-container:not(.donut-full) {  grid-column: span 3;}
-.chart-container {    background: white;    padding: 15px;   border-radius: 8px;   box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-
-/* Фильтры — всегда вверху, внутри контейнера диаграммы */
-.donut-filters {
-  margin: 10px 0 15px 0;  padding: 8px;  background: #f8f9fa;  border-radius: 6px;  font-size: 12px;  display: flex;  flex-wrap: wrap;  gap: 8px;}
-
-.donut-filter-item {  display: flex;  align-items: center;  gap: 4px;  font-size: 12px;}
-
-.donut-filter-item input[type="checkbox"] {  width: 14px;  height: 14px;}
-
-/* === СТИЛИ ДЛЯ 24-ЧАСОВОГО ГРАФИКА === */
-/* === ИСПРАВЛЕНИЕ ДЛЯ РАСТЯГИВАНИЯ ГРАФИКОВ === */
-
-/* Заставляем контейнер графика занимать всю ширину */
-.chart-real {
+/* 24-часовой график */
+.chart-24h {
+  display: flex !important;
+  gap: 2px;
+  height: 360px !important;
   width: 100% !important;
   max-width: none !important;
-  overflow-x: auto; /* Добавляем прокрутку, если не влезает */
+  margin: 0 !important;
+  overflow-x: auto;
+  padding-bottom: 50px;
+  align-items: flex-end !important;
+  background: #fafafa;
+  border-radius: 4px;
 }
 
-/* Убираем любые отступы у контейнера карточки, которые могут сжимать контент */
-.chart-container {
-  width: 100%;
-  box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
-}
-
-/* Контейнер всего графика: выстраиваем столбцы в ряд */
-.chart-24h {
-  display: flex !important;             /* Выстраивает дочерние элементы в одну строку */
-  gap: 2px;                             /* Расстояние между столбцами */
-  height: 360px !important;             /* Фиксированная высота графика */
-  width: 100% !important;   /* Растягиваем на всю ширину */
-  max-width: none !important;           /* ← УБРАЛИ ограничение ширины */
-  margin: 0 !important;     /* ← УБРАЛИ центрирование .\\ margin: 0 auto; /* ← Центрируем график */ 
-  overflow-x: auto;          /* Если не влезает — появляется прокрутка */
-  padding-bottom: 50px;      /* Отступ снизу для подписей */
-  align-items: flex-end !important;     /* Прижимаем столбцы к низу */
-  background: #fafafa;            /* Легкий фон для пустых мест */
-  border-radius: 4px; 
-}
-
-/* Один столбец (один час) */
 .chart-24h-bar {
-  flex: 0 0 24px !important;            /* ЖЕСТКО фиксируем ширину: 24px на каждый час */
+  flex: 0 0 24px !important;
   display: flex;
-  flex-direction: column-reverse; /* КЛЮЧЕВОЕ: содержимое растёт снизу вверх */
-  min-height: 0; /* Важно: предотвращает переполнение */ 
+  flex-direction: column-reverse;
+  min-height: 0;
   align-items: center;
   position: relative;
-  background-color: transparent;  /* Фон прозрачный, виден общий фон .chart-24h */
-  height: 100% !important;        /* Растянуть на всю высоту контейнера */   
-  border-radius: 2px 2px 0 0; /* Скругление сверху */
+  background-color: transparent;
+  height: 100% !important;
+  border-radius: 2px 2px 0 0;
 }
-/* ВНУТРЕННИЙ ЦВЕТНОЙ БЛОК (само значение) */
-/* Именно этому элементу мы задаем height в JS */
+
 .chart-24h-bar-inner {
   width: 100%;
-  background-color: inherit;      /* Цвет берется из style="" родителя или задается явно */
+  background-color: inherit;
   border-radius: 2px 2px 0 0;
   transition: height 0.3s ease;
-  min-height: 2px;                /* Минимальная высота, чтобы было видно даже 0 */
+  min-height: 2px;
 }
 
-/* Подпись под столбцом (например, "09-10") */
 .chart-24h-label {
   font-size: 9px !important;
-   color: #666 !important;
-  top: 100% !important; /* Сдвигаем вниз от столбца */ 
-  margin-top: 4px !important; /* Отступ от низа контейнера */
-  white-space: nowrap !important;       /* Запрещаем перенос текста */
-  transform: rotate(-90deg) !important; /* Поворачиваем на 45 градусов */
-  transform-origin: top left !important; /* Точка вращения - левый верхний угол */
+  color: #666 !important;
+  top: 100% !important;
+  margin-top: 4px !important;
+  white-space: nowrap !important;
+  transform: rotate(-90deg) !important;
+  transform-origin: top left !important;
   text-align: center !important;
-  width: 100% !important; /* Фиксированная ширина */
-  line-height: 1;  
-  position: relative; /* Заменяем absolute на relative */
-  bottom: -45px !important; /* Сдвигаем вниз за пределы столбца */
-
- 
-  
-  
-
- 
-
- 
-
-
-/* Адаптив: на очень маленьких экранах можно уменьшить ширину столбца */
-@media (max-width: 600px) {
-  .chart-24h-bar {
-   flex: 0 0 16px !important; /* Столбцы уже на мобильных */
-  }
-  .chart-24h-label {
-    font-size: 7px;
-    bottom: -35px; /* На мобильных тоже опускаем */
-  }
+  width: 100% !important;
+  line-height: 1;
+  position: relative;
+  bottom: -45px !important;
 }
-/* === Стили для разделенных смен === */
 
-/* === ИСПРАВЛЕНИЕ ДЛЯ РАСПОЛОЖЕНИЯ СМЕН === */
-
-/* Контейнер вида работ с двумя графиками */
+/* Графики по сменам */
 .split-shift-chart {
   padding: 15px;
   background: white;
@@ -980,129 +669,572 @@
   margin-bottom: 20px;
 }
 
-/* Обертка для двух смен рядом - КРИТИЧЕСКИ ВАЖНО: ограничение ширины */
 .shifts-wrapper {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
-  margin-top: 10px;
-  align-items: flex-end; /* Выравнивание по низу столбцов */
-  width: 100%; /* Гарантируем, что контейнер занимает всю ширину */
+  margin-top: 15px;
 }
 
-/* Контейнер одной смены */
 .shift-container {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px;
+  padding: 15px;
   border-radius: 6px;
   background: #f9f9f9;
-  min-width: 0; /* Важно для flex */
-  max-width: 100%; /* Ограничение ширины */
-}
-
-/* Контейнер столбцов - ОБЯЗАТЕЛЬНО задаем выравнивание */
-.chart-bar {
-  display: flex;
-  gap: 2px;
-  height: 180px; /* Фиксированная высота */
-  width: 100%;
-  margin-bottom: 10px;
-  justify-content: flex-start; /* КРИТИЧЕСКИ ВАЖНО: выравнивание по левому краю */
-  align-items: flex-end !important; /* ← СТОЛБЦЫ ПРИЖАТЫ К НИЗУ (растают вверх) */
-  background: #fafafa;
-  border-radius: 4px;
-  padding: 0 5px; /* Небольшие отступы по бокам */ 
-}
- 
-
-/* Подписи - ИСПРАВЛЕНИЕ РАСТЯГИВАНИЯ */
-.chart-bar-labels {
-  display: flex;
-  gap: 2px; /* Должен совпадать с gap у .chart-bar */
-  width: 100%;
-  justify-content: flex-start; /* Выравнивание по левому краю */
-  margin-top: 5px;
-  font-size: 9px;
-  color: #666;
-  text-align: center; 
-  overflow: visible; 
-}
-   
-
-/* Подписи отдельных интервалов */
-.chart-bar-labels > div {
-  flex: 0 0 24px !important; /* ЖЕСТКО фиксируем ширину 24px */
-  transform: rotate(-90deg);
-  transform-origin: top left;
-  white-space: nowrap;
-  line-height: 1;
-  text-align: center;
-  position: relative;
-  top: 20px;
-  font-size: 9px;
-  color: #666;
-  margin-top: 4px; /* Отступ от низа столбца */ 
-}
-.chart-bar-labels > div {
-
-
-   
-
-/* Адаптив для мобильных */
-@media (max-width: 768px) {
-  .shifts-wrapper {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .shift-container {
-    width: 100%;
-  }
-}
-
-.shift-container.night-shift {
-  background: #e8eaf6; /* Легкий синий фон для ночи */
-  border: 1px solid #c5cae9;
+  min-width: 0;
 }
 
 .shift-container.day-shift {
-  background: #fff8e1; /* Легкий желтый фон для дня */
+  background: #fff8e1;
   border: 1px solid #ffe0b2;
+}
+
+.shift-container.night-shift {
+  background: #e8eaf6;
+  border: 1px solid #c5cae9;
 }
 
 .shift-container.empty {
   opacity: 0.6;
+  min-height: 200px;
   justify-content: center;
-  height: 200px;
 }
 
-/* Заголовок смены */
 .shift-title {
   font-size: 13px;
   font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 15px;
   color: #333;
   text-align: center;
 }
 
-/* Пустое состояние */
 .shift-empty {
   font-size: 12px;
   color: #999;
   font-style: italic;
   margin-top: 40px;
+  text-align: center;
 }
 
-/* Адаптив: на мобильных смены друг под другом */
+/* ============================================
+   ГРАФИКИ ПО ВИДАМ РАБОТ
+   ============================================ */
+.work-type-charts-section {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #e8f5e9, #f3e5f5);
+  border-radius: 8px;
+  border-left: 4px solid #4caf50;
+}
+
+.work-type-charts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.work-type-charts-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2e7d32;
+  margin: 0;
+}
+
+/* ============================================
+   МОДАЛЬНЫЕ ОКНА
+   ============================================ */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background-color: white;
+  margin: 5% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: black;
+}
+
+/* ============================================
+   ВЫБОР ОТДЕЛА
+   ============================================ */
+.department-selector {
+  margin: 15px 0;
+  padding: 15px;
+  background: #fff3cd;
+  border-radius: 6px;
+  border-left: 3px solid #ffc107;
+}
+
+.department-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.department-btn {
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.department-btn:hover {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.department-btn.active {
+  background: #2196f3;
+  color: white;
+  border-color: #2196f3;
+}
+
+/* ============================================
+   РАСПРЕДЕЛЕНИЕ РАБОТ
+   ============================================ */
+.work-distribution {
+  margin: 10px 0;
+}
+
+.work-distribution-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: #e3f2fd;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 5px;
+}
+
+.work-distribution-title {
+  font-weight: bold;
+  color: #1976d2;
+}
+
+.work-distribution-content {
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.collapsed .work-distribution-content {
+  display: none;
+}
+
+.work-type-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.time-bar-with-works {
+  position: relative;
+  margin: 8px 0;
+}
+
+.work-type-segments {
+  display: flex;
+  height: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.work-type-segment {
+  height: 100%;
+  transition: opacity 0.2s;
+}
+
+.work-type-segment:hover {
+  opacity: 0.8;
+}
+
+/* ============================================
+   ДЕТАЛИЗАЦИЯ
+   ============================================ */
+.detail-section {
+  margin: 10px 0;
+  padding: 15px;
+  background: #f1f8e9;
+  border-radius: 6px;
+  border-left: 3px solid #7cb342;
+}
+
+.hour-group, .brigade-group {
+  margin: 10px 0;
+  padding: 10px;
+  background: #e8f5e8;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.brigade-group {
+  background: #f3e5f5;
+  margin-left: 20px;
+}
+
+.supply-details {
+  margin-left: 40px;
+  padding: 8px;
+  background: #fff3e0;
+  border-radius: 4px;
+  margin-top: 5px;
+}
+
+.supply-details-expanded {
+  margin-left: 20px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.supply-header {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #666;
+}
+
+.helper-list {
+  margin-left: 15px;
+  font-size: 12px;
+}
+
+.helper-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+.helper-name {
+  color: #666;
+}
+
+.helper-role {
+  color: #999;
+  font-style: italic;
+}
+
+.night-interval {
+  background: #5c6bc0 !important;
+  color: white;
+}
+
+/* ============================================
+   НАПРАВЛЕНИЯ И ОТДЕЛЫ
+   ============================================ */
+.direction-group {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f0f4ff;
+  border-radius: 8px;
+  border-left: 4px solid #4a6bff;
+}
+
+.direction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.direction-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #2c3e8f;
+  margin: 0;
+}
+
+.department-group {
+  margin: 15px 0;
+  padding: 12px;
+  background: #e8f0ff;
+  border-radius: 6px;
+  border-left: 3px solid #6c8eff;
+}
+
+.department-subheader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.department-subtitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #3a4f9e;
+  margin: 0;
+}
+
+/* ============================================
+   СРАВНЕНИЕ И ТРЕНДЫ
+   ============================================ */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.comparison-card {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.comparison-card h4 {
+  margin: 0 0 10px 0;
+  color: #388e3c;
+  font-size: 14px;
+}
+
+.trend-up {
+  color: #4caf50;
+}
+
+.trend-down {
+  color: #f44336;
+}
+
+/* ============================================
+   ФИЛЬТРЫ
+   ============================================ */
+.donut-filters {
+  margin: 10px 0 15px 0;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.donut-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.donut-filter-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================
+   TOOLTIP
+   ============================================ */
+.custom-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  display: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* ============================================
+   ПРЕДУПРЕЖДЕНИЯ
+   ============================================ */
+.warning-note {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 15px 0;
+  font-size: 14px;
+  color: #856404;
+}
+
+.warning-note strong {
+  color: #e65100;
+}
+
+/* ============================================
+   АДАПТИВНОСТЬ
+   ============================================ */
 @media (max-width: 768px) {
-  .shifts-wrapper {
-    flex-direction: column;
+  body {
+    padding: 4px;
+  }
+  
+  .container {
+    padding: 10px;
+  }
+  
+  h2 {
+    font-size: 1.3rem;
+  }
+  
+  .calendar-nav-btn {
+    padding: 6px 12px;
+    min-width: 80px;
+    font-size: 12px;
+  }
+  
+  .calendar-title {
+    font-size: 16px;
+  }
+  
+  .analytics-grid {
+    grid-template-columns: 1fr;
     gap: 10px;
   }
   
-  .shift-container {
+  .work-types-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .grouping-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .time-bar {
+    flex-direction: column;
+    height: auto;
+    align-items: flex-start;
+  }
+  
+  .time-label {
     width: 100%;
+    margin-bottom: 5px;
+    font-size: 11px;
+  }
+  
+  .time-bar-inner {
+    width: 100%;
+    margin-bottom: 5px;
+    height: 12px;
+  }
+  
+  .time-value {
+    width: 100%;
+    text-align: left;
+    font-size: 11px;
+  }
+  
+  .work-type-legend {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    margin: 2% auto;
+    padding: 15px;
+  }
+  
+  .work-type-segments {
+    height: 12px;
+  }
+  
+  .time-bar-fill {
+    height: 100%;
+  }
+  
+  .shifts-wrapper {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .chart-bar-labels > div {
+    font-size: 8px;
+    transform: rotate(-90deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-day {
+    padding: 6px;
+    font-size: 12px;
+  }
+  
+  .analytics-card, .staff-card, .group-card, .work-type-card {
+    padding: 10px;
+  }
+  
+  .analytics-value {
+    font-size: 20px;
+  }
+  
+  .combined-analytics,
+  .time-statistics,
+  .percentage-time-statistics,
+  .grouping-section,
+  .work-types-analytics {
+    padding: 15px;
+    margin-top: 15px;
+  }
+  
+  .time-label {
+    font-size: 10px;
+  }
+  
+  .time-value {
+    font-size: 10px;
+  }
+  
+  .chart-24h-bar {
+    flex: 0 0 16px !important;
+  }
+  
+  .chart-24h-label {
+    font-size: 7px;
+    bottom: -35px;
   }
 }
