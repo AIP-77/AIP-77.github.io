@@ -188,6 +188,9 @@ function getWorkTypeColor(workType) {
   return color;
 }
 
+//  ФУНКЦИИ TOOLTIP 
+let tooltipTimeout = null; 
+
 function showTooltip(event, element) {
   if (tooltipTimeout) {
     clearTimeout(tooltipTimeout);
