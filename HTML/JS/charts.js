@@ -1,8 +1,4 @@
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ ГРАФИКОВ ===
-let donutRenderTimeout = null;
 
-// === ФУНКЦИИ TOOLTIP ===
-let tooltipTimeout = null;
 
 function showTooltip(event, element) {
   if (tooltipTimeout) {
