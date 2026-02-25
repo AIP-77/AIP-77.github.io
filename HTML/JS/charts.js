@@ -209,7 +209,9 @@ function renderWorkTypeCharts(allRecords, responsibleRecords) {
       barsHtml += `
         <div class="chart-bar-item"
              style="height: ${heightPercent}%; background-color: ${currentColor}; opacity: ${item.units > 0 ? 1 : 0.2};"
-             title="${item.key}: ${item.units} ед. (${percentage.toFixed(1)}%)">
+             data-tooltip="${item.key}: ${item.units} ед. (${percentage.toFixed(1)}%)"
+             onmouseenter="showShiftTooltip(event, this)"
+             onmouseleave="hideShiftTooltip()">
         </div>
       `;
     });
