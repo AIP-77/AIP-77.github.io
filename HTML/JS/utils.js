@@ -187,3 +187,41 @@ function getWorkTypeColor(workType) {
   workTypeColors[workType] = color;
   return color;
 }
+
+let shiftTooltipTimeout = null;
+
+function showShiftTooltip(event, element) {
+  if (shiftTooltipTimeout) {
+    clearTimeout(shiftTooltipTimeout);
+    shiftTooltipTimeout = null;
+  }
+  
+  const tooltip = document.getElementById('customTooltip');
+  const text = element.getAttribute('data-tooltip');
+  if (!text) return;
+  
+  tooltip.textContent = text;
+  tooltip.style.display = 'block';
+  
+  // Позиционируем tooltip над столбцом
+  const rect = element.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  
+  const left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+  const top = rect.top - tooltipRect.height - 8;
+  
+  const windowWidth = window.innerWidth;
+  const leftClamped = Math.max(0, Math.min(left, windowWidth - tooltipRect.width));
+  
+  tooltip.style.left = leftClamped + 'px';
+  tooltip.style.top = Math.max(0, top) + 'px';
+}
+
+function hideShiftTooltip() {
+  shiftTooltipTimeout = setTimeout(() => {
+    const tooltip = document.getElementById('customTooltip');
+    tooltip.style.display = 'none';
+    shiftTooltipTimeout = null;
+  }, 1000);
+}
+
