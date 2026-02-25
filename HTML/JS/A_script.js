@@ -9,6 +9,8 @@ currentMonth.setDate(1);
 let currentArchive = null;
 let uiInitialized = false;
 let selectedDepartment = '';
+let donutRenderTimeout = null; // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ ГРАФИКОВ 
+let tooltipTimeout = null; //  ФУНКЦИИ TOOLTIP 
 
 // === ЭЛЕМЕНТЫ DOM ===
 const loadingDiv = document.getElementById('loading');
@@ -18,6 +20,10 @@ const selectedDateDiv = document.getElementById('selected-date');
 const currentDateSpan = document.getElementById('current-date');
 const lastUpdatedDiv = document.getElementById('last-updated');
 const exportExcelBtn = document.getElementById('export-excel');
+const calendarTitle = document.getElementById('calendar-title');
+const prevMonthBtn = document.getElementById('prev-month');
+const nextMonthBtn = document.getElementById('next-month');
+const calendarDaysContainer = document.getElementById('calendar-days');
 const loadingProgress = document.getElementById('loading-progress');
 
 // === ПРОГРЕСС БАР ===
