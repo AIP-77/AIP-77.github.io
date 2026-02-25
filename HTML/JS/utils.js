@@ -189,7 +189,7 @@ function getWorkTypeColor(workType) {
 }
 
 //  ФУНКЦИИ TOOLTIP 
-let tooltipTimeout = null; 
+let tooltipTimeout = null;
 
 function showTooltip(event, element) {
   if (tooltipTimeout) {
@@ -205,18 +205,15 @@ function showTooltip(event, element) {
   tooltip.style.display = 'block';
   
   // Позиционируем tooltip рядом с курсором
-  const tooltipWidth = tooltip.offsetWidth || 150; // Примерная ширина
-  const tooltipHeight = tooltip.offsetHeight || 40; // Примерная высота
+  const tooltipWidth = tooltip.offsetWidth || 150;
+  const tooltipHeight = tooltip.offsetHeight || 40;
   
-  // Отступы от курсора
   const offsetX = 15;
   const offsetY = 15;
   
-  // Координаты мыши
   let left = event.clientX + offsetX;
   let top = event.clientY + offsetY;
   
-  // Проверяем, не выходит ли tooltip за правый край экрана
   const windowWidth = window.innerWidth;
   const windowHeight = window.innerHeight;
   
@@ -228,7 +225,6 @@ function showTooltip(event, element) {
     top = event.clientY - tooltipHeight - offsetY;
   }
   
-  // Учитываем прокрутку
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
   
