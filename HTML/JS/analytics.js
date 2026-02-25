@@ -41,6 +41,90 @@ function renderLevel1Analytics(allRecords) {
   renderWorkTypeCharts(allRecords, responsibleRecords);
 }
 
+function renderCombinedAnalytics(allRecords, responsibleRecords) {
+  let totalUnits = 0, totalTimeSec = 0, totalTasks = 0, totalAmount = 0;
+  const uniqueResponsibles = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
+  
+  responsibleRecords.forEach(r => {
+    totalUnits += parseInt(r['Количество единиц']) || 0;
+    totalTimeSec += parseTime(r['Рабочее время']);
+    totalTasks++;
+  });
+  
+  allRecords.forEach(r => {
+    totalAmount += parseCurrency(r['Расчетная сумма']);
+  });
+  
+  const factNormative = calculateNormative(totalUnits, totalTimeSec);
+  const totalHours = totalTimeSec / 3600;
+  const avgRevenuePerHour = totalHours > 0 ? totalAmount / totalHours : 0;
+  const costPerUnit = totalUnits > 0 ? totalAmount / totalUnits : 0;
+  
+  const uniqueWorkTypes = [...new Set(allRecords.map(r => r['Вид работ']))].filter(Boolean);
+  const uniqueBrigades = [...new Set(responsibleRecords.map(r => r['Сотрудник']))];
+  const uniqueDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
+  
+  const staffAnalysis = analyzeStaffForRecords(allRecords);
+  const timesheetTime = calculateTimesheetTime(allRecords);
+  
+  let html = `
+    <div class="analytics-grid">
+      <div class="analytics-card">
+        <h4>📦 Производство</h4>
+        <div class="analytics-value">${totalUnits}</div>
+        <p class="analytics-label">Обработано единиц</p>
+        <div class="analytics-value">${totalTasks}</div>
+        <p class="analytics-label">Выполнено задач</p>
+        <div class="analytics-value">${uniqueBrigades.length}</div>
+        <p class="analytics-label">Работало бригад</p>
+      </div>
+      <div class="analytics-card">
+        <h4>⚡ Эффективность</h4>
+        <div class="analytics-value">${factNormative.toFixed(1)}</div>
+        <p class="analytics-label">Норматив (шт/час)</p>
+        <div class="analytics-value">${formatTime(totalTimeSec)}</div>
+        <p class="analytics-label">Общее время работы</p>
+        <div class="analytics-value">${formatTime(timesheetTime)}</div>
+        <p class="analytics-label">Время по табелю</p>
+      </div>
+      <div class="analytics-card">
+        <h4>💰 Расходы</h4>
+        <div class="analytics-value">${formatCurrency(totalAmount)}</div>
+        <p class="analytics-label">Общие расходы</p>
+        <div class="analytics-value">р.${costPerUnit.toFixed(2)}</div>
+        <p class="analytics-label">Расходы на 1 ед.</p>
+        <div class="analytics-value">${formatCurrency(avgRevenuePerHour)}</div>
+        <p class="analytics-label">Расходы в час</p>
+      </div>
+      <div class="analytics-card">
+        <h4>👥 Персонал</h4>
+        <div class="analytics-value">${staffAnalysis.total}</div>
+        <p class="analytics-label">Всего сотрудников</p>
+        <div class="analytics-value">${staffAnalysis.permanent}</div>
+        <p class="analytics-label">Постоянные</p>
+        <div class="analytics-value">${staffAnalysis.hired}</div>
+        <p class="analytics-label">Наемные</p>
+        <div class="analytics-value">${formatTime(staffAnalysis.totalWorkTime)}</div>
+        <p class="analytics-label">Общее время работы</p>
+        <div style="font-size: 11px; color: #666; margin-top: 5px;">
+          Постоянные: ${formatTime(staffAnalysis.permanentWorkTime)}<br>
+          Наемные: ${formatTime(staffAnalysis.hiredWorkTime)}
+        </div>
+      </div>
+      <div class="analytics-card">
+        <h4>🏢 Структура</h4>
+        <div class="analytics-value">${uniqueDepartments.length}</div>
+        <p class="analytics-label">Отделов</p>
+        <div class="analytics-value">${uniqueWorkTypes.length}</div>
+        <p class="analytics-label">Видов работ</p>
+      </div>
+    </div>
+  `;
+  
+  html += renderComparisonAnalytics(selectedDate);
+  document.getElementById('combined-content').innerHTML = html;
+}
+
 function renderLevel2Analytics(allRecords) {
   const allDepartments = [...new Set(allRecords.map(r => r['Отдел']))].filter(Boolean);
   let html = '';
