@@ -1,8 +1,3 @@
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДАННЫХ ===
-let records = [];
-let standards = [];
-let staffData = [];
-let allWorkTypes = [];
 
 async function loadStandards() {
   const standardsUrl = `${window.location.origin}/archive/standard%20fullData.json`;
