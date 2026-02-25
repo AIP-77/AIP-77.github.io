@@ -188,12 +188,12 @@ function getWorkTypeColor(workType) {
   return color;
 }
 
-let shiftTooltipTimeout = null;
+let tooltipTimeout = null;
 
-function showShiftTooltip(event, element) {
-  if (shiftTooltipTimeout) {
-    clearTimeout(shiftTooltipTimeout);
-    shiftTooltipTimeout = null;
+function showTooltip(event, element) {
+  if (tooltipTimeout) {
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = null;
   }
   
   const tooltip = document.getElementById('customTooltip');
@@ -203,25 +203,42 @@ function showShiftTooltip(event, element) {
   tooltip.textContent = text;
   tooltip.style.display = 'block';
   
-  // Позиционируем tooltip над столбцом
-  const rect = element.getBoundingClientRect();
-  const tooltipRect = tooltip.getBoundingClientRect();
+  // Позиционируем tooltip рядом с курсором
+  const tooltipWidth = tooltip.offsetWidth || 150; // Примерная ширина
+  const tooltipHeight = tooltip.offsetHeight || 40; // Примерная высота
   
-  const left = rect.left + rect.width / 2 - tooltipRect.width / 2;
-  const top = rect.top - tooltipRect.height - 8;
+  // Отступы от курсора
+  const offsetX = 15;
+  const offsetY = 15;
   
+  // Координаты мыши
+  let left = event.clientX + offsetX;
+  let top = event.clientY + offsetY;
+  
+  // Проверяем, не выходит ли tooltip за правый край экрана
   const windowWidth = window.innerWidth;
-  const leftClamped = Math.max(0, Math.min(left, windowWidth - tooltipRect.width));
+  const windowHeight = window.innerHeight;
   
-  tooltip.style.left = leftClamped + 'px';
-  tooltip.style.top = Math.max(0, top) + 'px';
+  if (left + tooltipWidth > windowWidth) {
+    left = event.clientX - tooltipWidth - offsetX;
+  }
+  
+  if (top + tooltipHeight > windowHeight) {
+    top = event.clientY - tooltipHeight - offsetY;
+  }
+  
+  // Учитываем прокрутку
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  
+  tooltip.style.left = (left + scrollLeft) + 'px';
+  tooltip.style.top = (top + scrollTop) + 'px';
 }
 
-function hideShiftTooltip() {
-  shiftTooltipTimeout = setTimeout(() => {
+function hideTooltip() {
+  tooltipTimeout = setTimeout(() => {
     const tooltip = document.getElementById('customTooltip');
     tooltip.style.display = 'none';
-    shiftTooltipTimeout = null;
+    tooltipTimeout = null;
   }, 1000);
 }
-
