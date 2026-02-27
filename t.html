@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ пиковых нагрузок склада по Исходящему потоку</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1a73e8; margin-bottom: 10px; }
+        .controls { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+        .controls label { font-weight: 600; }
+        .controls select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
+        .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #e8f0fe; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #d2e3fc; }
+        .stat-card span { display: block; font-size: 0.9em; color: #555; }
+        .stat-card strong { font-size: 1.2em; color: #1a73e8; }
+        .chart-container { position: relative; height: 350px; width: 100%; margin-bottom: 60px; padding-bottom: 20px; border-bottom: 1px dashed #ccc; }
+        h2 { border-left: 5px solid #1a73e8; padding-left: 10px; font-size: 1.3em; margin-top: 40px; }
+        .loading { text-align: center; color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Анализ пиковых нагрузок склада по Исходящему потоку</h1>
+
+    <div class="controls">
+        <label for="dateSelect">📅 Выберите дату:</label>
+        <select id="dateSelect"><option value="">Загрузка дат...</option></select>
+        <span id="loadingStatus" class="loading"></span>
+    </div>
+    
+    <div class="stats-summary">
+        <div class="stat-card"><span>Норма Сборки</span><strong>3 бригады (6 чел.)<br> 210 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Погрузки</span><strong>1 бригада (3 чел.)<br> 340 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Стикеровки</span><strong>1 бригада (2 чел.)<br> 150 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Упаковки</span><strong>1 бригада (2 чел.)<br> 124 шт/ч</strong></div>
+    </div>
+   <p> Как интерпретировать графики:<br>
+Цветная линия: Это фактический или планируемый объем в штуках по часам.<br>
+Серые столбцы: Это количество бригад, которое необходимо вывести в этот конкретный час, чтобы закрыть объем согласно нормативам.<br>
+Пики: Если столбец резко уходит вверх, значит, в этот час нагрузка на одну бригаду превышает норму, и требуется усиление или перераспределение задач.</p>
+    <h2>1. Сборка (Любые виды)</h2>
+    <div class="chart-container"><canvas id="chartAssembly"></canvas></div>
+
+    <h2>2. Погрузка</h2>
+    <div class="chart-container"><canvas id="chartLoading"></canvas></div>
+
+    <h2>3. Стикеровка</h2>
+    <div class="chart-container"><canvas id="chartStickering"></canvas></div>
+
+    <h2>4. Упаковка в паллет</h2>
+    <div class="chart-container"><canvas id="chartPalletizing"></canvas></div>
+</div>
+
+<script>
+    // ========== ВСТАВЬТЕ ВАШ JSON СЮДА ==========
+ /* fetch('https://github.com/AIP-77/AIP-77.github.io/blob/main/archive/2026-02%20fullData.json')
+  .then(r => r.json())
+  .then(data => { jsonData = data; init(); });*/
+    // Если данные на внешнем файле - замените на fetch('data.json').then(r => r.json())
+    const jsonData = {
+        "lastUpdated":"2026-02-27T03:59:17.636Z",
+        "columns":["Рабочий день","Начало задачи","Сотрудник","Вид работ","Вид работ-Дополнение","Поставка","Должность","тип товара","Единица расчета","Количество единиц","Расценка","Время по табелю","Рабочее время","Стоимость задачи","Расчетная сумма","Доплата XIS","Конец задачи","Источник","Отметка времени"],
+        "data":[
+            ["01.02.2026","8:21:44","Мамашарипов Махамадали","Сборка","","","","","","",150,"","5:44:00","","","р.3 096,00","","15:05:45","Создание JSON","8:59:17"],
+            ["01.02.2026","8:45:00","Иванов И.","Погрузка","","","","","","",200,"","", "","","","","","15:30:00","Создание JSON",""],
+            ["01.02.2026","9:15:00","Петров П.","Стикеровка","","","","","","",80,"","", "","","","","","16:00:00","Создание JSON",""],
+            ["01.02.2026","10:00:00","Сидоров С.","Упаковка в паллет","","","","","","",120,"","", "","","","","","17:00:00","Создание JSON",""],
+            ["02.02.2026","8:00:00","Иванов И.","Сборка","","","","","","",300,"","", "","","","","","14:00:00","Создание JSON",""]
+            // ... ваши данные
+        ]
+    };
+    // ============================================
+
+    const labels = ["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00",
+                    "12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"];
+    
+    const norms = { assembly: 210, loading: 340, stickering: 150, palletizing: 124 };
+    const workTypeMap = {
+        'Сборка': 'assembly',
+        'Сборка (любая)': 'assembly',
+        'Погрузка': 'loading',
+        'Погрузка/Разгрузка': 'loading',
+        'Стикеровка': 'stickering',
+        'Маркировка': 'stickering',
+        'Упаковка в паллет': 'palletizing',
+        'Паллетирование': 'palletizing',
+        'Упаковка': 'palletizing'
+    };
+
+    let charts = {};
+    const dateSelect = document.getElementById('dateSelect');
+    const loadingStatus = document.getElementById('loadingStatus');
+
+    // Инициализация: заполнение дат и графиков
+    function init() {
+        populateDateSelect();
+        if (dateSelect.options.length > 1) {
+            dateSelect.value = dateSelect.options[1].value;
+            updateCharts(dateSelect.value);
+        }
+        dateSelect.addEventListener('change', (e) => updateCharts(e.target.value));
+    }
+
+    // Заполнение выпадающего списка уникальными датами
+    function populateDateSelect() {
+        const dates = new Set();
+        const dateCol = jsonData.columns.indexOf('Рабочий день');
+        jsonData.data.forEach(row => {
+            if (row[dateCol]) dates.add(row[dateCol]);
+        });
+        dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
+        [...dates].sort().forEach(date => {
+            const opt = document.createElement('option');
+            opt.value = date;
+            opt.textContent = date;
+            dateSelect.appendChild(opt);
+        });
+    }
+
+    // Извлечение часа из строки времени "8:21:44" → "08:00"
+    function getHourLabel(timeStr) {
+        if (!timeStr) return null;
+        const parts = timeStr.split(':');
+        const h = parseInt(parts[0]);
+        return (h < 10 ? '0' : '') + h + ':00';
+    }
+
+    // Подсчет данных по дате: группировка по часам и видам работ
+    function calculateDataForDate(selectedDate) {
+        const result = { assembly: Array(24).fill(0), loading: Array(24).fill(0), stickering: Array(24).fill(0), palletizing: Array(24).fill(0) };
+        const dateCol = jsonData.columns.indexOf('Рабочий день');
+        const timeCol = jsonData.columns.indexOf('Начало задачи');
+        const workCol = jsonData.columns.indexOf('Вид работ');
+        const qtyCol = jsonData.columns.indexOf('Количество единиц');
+
+        jsonData.data.forEach(row => {
+            if (row[dateCol] !== selectedDate) return;
+            const workTypeRaw = row[workCol] || '';
+            const key = workTypeMap[workTypeRaw];
+            if (!key) return;
+            const hourLabel = getHourLabel(row[timeCol]);
+            if (!hourLabel) return;
+            const hourIdx = labels.indexOf(hourLabel);
+            if (hourIdx === -1) return;
+            const qty = parseFloat(row[qtyCol]) || 0;
+            result[key][hourIdx] += qty;
+        });
+        return result;
+    }
+
+    // Создание/обновление графика
+    function createOrUpdateChart(canvasId, label, data, color, norm) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const fteData = data.map(val => (val / norm).toFixed(2));
+        
+        if (charts[canvasId]) {
+            charts[canvasId].data.datasets[0].data = data;
+            charts[canvasId].data.datasets[1].data = fteData;
+            charts[canvasId].update();
+            return;
+        }
+        
+        charts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Объем (штук)',
+                        data: data,
+                        backgroundColor: color + '22',
+                        borderColor: color,
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Требуемый ресурс (бригад/час)',
+                        data: fteData,
+                        type: 'bar',
+                        backgroundColor: '#34495e88',
+                        yAxisID: 'y1',
+                        barThickness: 20
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { type: 'linear', position: 'left', title: { display: true, text: 'Штуки' }, beginAtZero: true },
+                    y1: { type: 'linear', position: 'right', title: { display: true, text: 'Ресурс (Бригада)' }, grid: { drawOnChartArea: false }, beginAtZero: true }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    let val = context.raw;
+                                    return `Загрузка: ${(val/norm).toFixed(2)} бригад/час`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Обновление всех графиков по выбранной дате
+    function updateCharts(selectedDate) {
+        if (!selectedDate) return;
+        loadingStatus.textContent = 'Обработка данных...';
+        
+        // Небольшая задержка для отображения статуса
+        setTimeout(() => {
+            const data = calculateDataForDate(selectedDate);
+            createOrUpdateChart('chartAssembly', 'Сборка', data.assembly, '#4285F4', norms.assembly);
+            createOrUpdateChart('chartLoading', 'Погрузка', data.loading, '#EA4335', norms.loading);
+            createOrUpdateChart('chartStickering', 'Стикеровка', data.stickering, '#FBBC05', norms.stickering);
+            createOrUpdateChart('chartPalletizing', 'Упаковка', data.palletizing, '#34A853', norms.palletizing);
+            loadingStatus.textContent = `Данные за ${selectedDate}`;
+        }, 50);
+    }
+
+    // Запуск
+    init();
+</script>
+
+</body>
+</html>
