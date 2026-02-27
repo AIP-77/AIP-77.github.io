@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ пиковых нагрузок склада</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1a73e8; margin-bottom: 10px; }
+        .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #e8f0fe; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #d2e3fc; }
+        .stat-card span { display: block; font-size: 0.9em; color: #555; }
+        .stat-card strong { font-size: 1.2em; color: #1a73e8; }
+        .chart-container { position: relative; height: 350px; width: 100%; margin-bottom: 60px; padding-bottom: 20px; border-bottom: 1px dashed #ccc; }
+        h2 { border-left: 5px solid #1a73e8; padding-left: 10px; font-size: 1.3em; margin-top: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Мониторинг пиковых интервалов</h1>
+    
+    <div class="stats-summary">
+        <div class="stat-card"><span>Норма Сборки</span><strong>210 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Погрузки</span><strong>340 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Стикеровки</span><strong>120 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Упаковки</span><strong>120 шт/ч</strong></div>
+    </div>
+
+    <h2>1. Сборка (Любые виды)</h2>
+    <div class="chart-container"><canvas id="chartAssembly"></canvas></div>
+
+    <h2>2. Погрузка</h2>
+    <div class="chart-container"><canvas id="chartLoading"></canvas></div>
+
+    <h2>3. Стикеровка</h2>
+    <div class="chart-container"><canvas id="chartStickering"></canvas></div>
+
+    <h2>4. Упаковка в паллет</h2>
+    <div class="chart-container"><canvas id="chartPalletizing"></canvas></div>
+</div>
+
+<script>
+    // Вставьте сюда данные из вашей таблицы [Час, Сборка, Погрузка, Стикеровка, Упаковка]
+    const labels = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"];
+    
+    const rawData = {
+        assembly: [450, 800, 1200, 950, 300, 200, 600, 1100, 800, 400, 150, 100],
+        loading: [100, 300, 600, 1200, 1500, 800, 400, 200, 100, 50, 0, 0],
+        stickering: [50, 120, 300, 450, 400, 100, 200, 500, 600, 300, 100, 50],
+        palletizing: [40, 100, 250, 400, 350, 90, 180, 450, 550, 280, 90, 40]
+    };
+
+    const norms = { assembly: 210, loading: 340, stickering: 120, palletizing: 120 };
+
+    function createChart(canvasId, label, data, color, norm) {
+        const fteData = data.map(val => (val / norm).toFixed(2)); // Расчет нужного кол-ва людей
+        
+        new Chart(document.getElementById(canvasId), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Объем (штук)',
+                        data: data,
+                        backgroundColor: color + '22',
+                        borderColor: color,
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Требуемый ресурс (чел/час)',
+                        data: fteData,
+                        type: 'bar',
+                        backgroundColor: '#34495e88',
+                        yAxisID: 'y1',
+                        barThickness: 20
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { type: 'linear', position: 'left', title: { display: true, text: 'Штуки' } },
+                    y1: { 
+                        type: 'linear', 
+                        position: 'right', 
+                        title: { display: true, text: 'Ресурс (чел)' },
+                        grid: { drawOnChartArea: false } 
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    let val = context.raw;
+                                    return `Загрузка: ${(val/norm).toFixed(2)} чел/час`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Инициализация графиков
+    createChart('chartAssembly', 'Сборка', rawData.assembly, '#4285F4', norms.assembly);
+    createChart('chartLoading', 'Погрузка', rawData.loading, '#EA4335', norms.loading);
+    createChart('chartStickering', 'Стикеровка', rawData.stickering, '#FBBC05', norms.stickering);
+    createChart('chartPalletizing', 'Упаковка', rawData.palletizing, '#34A853', norms.palletizing);
+</script>
+
+</body>
+</html>
