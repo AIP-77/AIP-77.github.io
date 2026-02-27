@@ -70,10 +70,10 @@
     
     const norms = { assembly: 210, loading: 340, stickering: 150, palletizing: 124 };
     const workTypeMap = {
-        'Сборка': 'assembly', 'Сборка (любая)': 'assembly',
+        'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly', 'Сборка Шины (Исключение)': 'assembly',
         'Погрузка': 'loading', 'Погрузка/Разгрузка': 'loading',
-        'Стикеровка': 'stickering', 'Маркировка': 'stickering',
-        'Упаковка в паллет': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
+        'Стикеровка Шины': 'stickering', 'Стикеровка Диски': 'stickering',
+        'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
     };
 
     let jsonData = null;
