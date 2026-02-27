@@ -23,10 +23,10 @@
     <h1>Мониторинг пиковых интервалов</h1>
     
     <div class="stats-summary">
-        <div class="stat-card"><span>Норма Сборки</span><strong>210 шт/ч</strong></div>
-        <div class="stat-card"><span>Норма Погрузки</span><strong>340 шт/ч</strong></div>
-        <div class="stat-card"><span>Норма Стикеровки</span><strong>120 шт/ч</strong></div>
-        <div class="stat-card"><span>Норма Упаковки</span><strong>120 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Сборки</span><strong>3 бригады 210 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Погрузки</span><strong>1 бригада 340 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Стикеровки</span><strong>1 бригада 150 шт/ч</strong></div>
+        <div class="stat-card"><span>Норма Упаковки</span><strong>1 бригада 124 шт/ч</strong></div>
     </div>
 
     <h2>1. Сборка (Любые виды)</h2>
@@ -48,13 +48,13 @@
                     "20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00"];
     
     const rawData = {
-        assembly: [450, 800, 1200, 950, 300, 200, 600, 1100, 800, 400, 150, 100],
+        assembly: [450, 800, 1200, 950, 300, 200, 600, 1100, 800, 400, 150, 100,100, 300, 600, 1200, 1500, 800, 400, 200, 100, 50, 0, 0]],
         loading: [100, 300, 600, 1200, 1500, 800, 400, 200, 100, 50, 0, 0],
         stickering: [50, 120, 300, 450, 400, 100, 200, 500, 600, 300, 100, 50],
         palletizing: [40, 100, 250, 400, 350, 90, 180, 450, 550, 280, 90, 40]
     };
 
-    const norms = { assembly: 210, loading: 340, stickering: 120, palletizing: 120 };
+    const norms = { assembly: 210, loading: 340, stickering: 150, palletizing: 124 };
 
     function createChart(canvasId, label, data, color, norm) {
         const fteData = data.map(val => (val / norm).toFixed(2)); // Расчет нужного кол-ва людей
