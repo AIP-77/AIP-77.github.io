@@ -156,7 +156,7 @@
         const dateCol = jsonData.columns.indexOf('Рабочий день');
         const timeCol = jsonData.columns.indexOf('Начало задачи');
         const workCol = jsonData.columns.indexOf('Вид работ');
-        const qtyCol = jsonData.columns.indexOf('Количество единиц');
+        const qtyCol = jsonData.columns.indexOf('ps.');
 
         jsonData.data.forEach(row => {
             if (row[dateCol] !== selectedDate) return;
