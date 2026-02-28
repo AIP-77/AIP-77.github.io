@@ -59,7 +59,12 @@
 
     <h2>4. Упаковка в паллет</h2>
     <div class="chart-container"><canvas id="chartPalletizing"></canvas></div>
+    
+    <h2>1. Сборка Диски (Любые виды)</h2>
+    <div class="chart-container"><canvas id="chartAssemblyRim"></canvas></div>
+    
 </div>
+    
 
 <script>
     // 🔗 ПРАВИЛЬНЫЙ RAW-URL для GitHub (используйте raw.githubusercontent.com)
@@ -68,9 +73,10 @@
     const labels = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00",
                     "21:00","22:00","23:00","00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00"];
     
-    const norms = { assembly: 210, loading: 340, stickering: 150, palletizing: 124 };
+    const norms = { assembly: 210, loading: 340, stickering: 150, palletizing: 124, assembly_rim: 48  };
     const workTypeMap = {
         'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly', 'Сборка Шины (Исключение)': 'assembly',
+        'Сборка Диски':'assembly_rim',
         'Погрузка': 'loading', 'Погрузка/Разгрузка': 'loading',
         'Стикеровка Шины': 'stickering', 'Стикеровка Диски': 'stickering',
         'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
@@ -150,7 +156,9 @@
             assembly: Array(24).fill(0), 
             loading: Array(24).fill(0), 
             stickering: Array(24).fill(0), 
-            palletizing: Array(24).fill(0) 
+            palletizing: Array(24).fill(0),
+            assembly_rim: Array(24).fill(0), 
+            
         };
         
         const dateCol = jsonData.columns.indexOf('Рабочий день');
@@ -261,6 +269,7 @@
                 createOrUpdateChart('chartLoading', data.loading, '#EA4335', norms.loading);
                 createOrUpdateChart('chartStickering', data.stickering, '#FBBC05', norms.stickering);
                 createOrUpdateChart('chartPalletizing', data.palletizing, '#34A853', norms.palletizing);
+                createOrUpdateChart('chartAssemblyRim', data.assembly_rim, '#34A853', norms.assembly_rim);
                 setStatus(`Показаны данные за ${selectedDate}`, 'success');
             } catch (e) {
                 console.error('Ошибка обработки:', e);
