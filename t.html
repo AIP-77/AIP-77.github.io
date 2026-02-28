@@ -52,18 +52,20 @@
     
     <h2>1. Сборка Шин (Любые виды)</h2>
     <div class="chart-container"><canvas id="chartAssembly"></canvas></div>
+    
+    <h2>2. Сборка Диски (Любые виды)</h2>
+    <div class="chart-container"><canvas id="chartAssemblyRim"></canvas></div>
 
-    <h2>2. Погрузка</h2>
+    <h2>3. Погрузка</h2>
     <div class="chart-container"><canvas id="chartLoading"></canvas></div>
 
-    <h2>3. Стикеровка</h2>
+    <h2>4. Стикеровка</h2>
     <div class="chart-container"><canvas id="chartStickering"></canvas></div>
 
-    <h2>4. Упаковка в паллет</h2>
+    <h2>5. Упаковка в паллет</h2>
     <div class="chart-container"><canvas id="chartPalletizing"></canvas></div>
     
-    <h2>1. Сборка Диски (Любые виды)</h2>
-    <div class="chart-container"><canvas id="chartAssemblyRim"></canvas></div>
+
     
 </div>
     
@@ -78,7 +80,7 @@
     const norms = { assembly: 210, loading: 340, stickering: 150, palletizing: 124, assembly_rim: 48  };
     const workTypeMap = {
         'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly', 'Сборка Шины (Исключение)': 'assembly',
-        'Сборка Диски':'assembly_rim',
+        'Сборка Диски':'assembly_rim','Сборка Диски МП':'assembly_rim','Сборка Диски (Исключение)':'assembly_rim',
         'Погрузка': 'loading', 'Погрузка/Разгрузка': 'loading',
         'Стикеровка Шины': 'stickering', 'Стикеровка Диски': 'stickering',
         'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
