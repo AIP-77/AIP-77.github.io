@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ пиковых нагрузок склада по Исходящему потоку</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+		
+        h1 { text-align: center; color: #1a73e8; margin-bottom: 10px; }
+		
+        .controls { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; flex-wrap: wrap; }
+        .controls label { font-weight: 600; white-space: nowrap; }
+        .controls select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; min-width: 150px; }
+        .controls button { padding: 8px 16px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        .controls button:hover { background: #1557b0; }
+        .controls button:disabled { background: #ccc; cursor: not-allowed; }
+        .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: #e8f0fe; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #d2e3fc; }
+        .stat-card span { display: block; font-size: 0.9em; color: #555; }
+        .stat-card strong { font-size: 1.2em; color: #1a73e8; }
+		
+        .chart-container { position: relative; height: 350px; width: 100%; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
+		
+        h2 { border-left: 5px solid #1a73e8; padding-left: 10px; font-size: 1.3em; margin-top: 40px; }
+        .status { text-align: center; color: #666; font-style: italic; min-height: 1.2em; }
+        .error { color: #c62828; font-weight: 500; }
+        .success { color: #2e7d32; }
+		
+		.shifts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 12px;}
+
+		.shift-block {    border: 1px solid #e0e0e0;    border-radius: 8px;    padding: 12px;    background: #fafafa;}
+
+		.shift-header {    font-weight: 600;    margin-bottom: 8px;    color: #333;    font-size: 0.95rem;}
+
+		.work-type-card {    margin-bottom: 24px;    padding: 16px;    border: 1px solid #ddd;    border-radius: 10px;    background: #fff;}
+
+		canvas {  width: 100% !important; max-height: 200px;}
+		
+		.work-type-card .chart-container { height: 200px !important; position: relative; width: 100%;}
+
+		.shift-block {border:1px solid #e0e0e0;border-radius:8px;padding:12px;background:#fafafa;}
+		.shift-header { font-weight: 600; margin-bottom: 10px;  color: #333;  font-size: 0.95rem;}
+		/* Контейнер секции графика */
+		.chart-section { margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 10px; background: #fff; overflow: hidden;}
+
+		/* Заголовок секции */
+		.chart-section-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #f8f9fa; border-bottom: 1px solid #e0e0e0;    cursor: pointer;    transition: background 0.2s;}
+
+		.chart-section-header:hover { background: #e9ecef;}
+
+		.chart-section-header h2 { margin: 0 0 5px 0; font-size: 1.2em; color: #333; border-left: 4px solid #1a73e8; padding-left: 12px;}
+
+/* Кнопка сворачивания */
+.toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+    background: #1557b0;
+    transform: translateY(-1px);
+}
+
+.toggle-icon {
+    font-size: 0.8em;
+    transition: transform 0.3s;
+}
+
+.toggle-btn.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+/* Контент секции */
+.chart-section-content { padding: 10px; max-height: 2000px; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.3s ease-out;}
+
+.chart-section-content.collapsed {
+    max-height: 0;
+    padding: 0 20px;
+}
+
+/* Скрываем графики по умолчанию */
+.chart-section-content {
+    display: block;
+}
+
+.chart-section-content.collapsed { padding: 0;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Анализ пиковых нагрузок склада<br>Исходящий поток</h1>
+	 
+   <p> Как читать графики:<br>
+   <strong>Цветная линия:</strong> Это фактический или планируемый объем в штуках по часам.<br>
+   <strong>Серые столбцы:</strong> Это количество бригад, которое необходимо вывести в этот конкретный час, чтобы закрыть объем согласно нормативам.<br>
+   <strong>Пики:</strong> Если столбец резко уходит вверх, и он <strong>красного цвета</strong> значит, в этот час нагрузка на одну бригаду превышает норму, и требуется усиление или перераспределение задач.</p>
+
+        <div class="controls">
+        <label for="dateSelect">📅 Дата:</label>
+        <select id="dateSelect" disabled><option>Загрузка...</option></select>
+        <button id="refreshBtn" disabled>🔄 Обновить</button>
+        <span id="status" class="status"></span>
+    </div>
+	
+<!-- 1. Сборка Диски -->
+<div class="chart-section">
+    <div class="chart-section-header">
+        <h2>1. Сборка Диски (Любые виды)</h2>
+        <button class="toggle-btn" data-target="chartAssemblyRim">
+            <span class="toggle-icon">▼</span>
+            <span class="toggle-text">Свернуть</span>
+        </button>
+    </div>
+    <div class="chart-section-content" id="content-chartAssemblyRim">
+        <div class="chart-container"><canvas id="chartAssemblyRim"></canvas></div>
+    </div>
+</div>
+    
+<!-- 2. Сборка Шин (Любые виды) -->
+<div class="chart-section">
+    <div class="chart-section-header">
+        <h2>2. Сборка Шин (Любые виды)</h2>
+        <button class="toggle-btn" data-target="chartAssembly">
+            <span class="toggle-icon">▼</span>
+            <span class="toggle-text">Свернуть</span>
+        </button>
+    </div>
+    <div class="chart-section-content" id="content-chartAssembly">
+        <div class="chart-container"><canvas id="chartAssembly"></canvas></div>
+        <!-- Здесь можно добавить нормативы если нужно -->
+    </div>
+</div>
+    
+<!-- 3. Погрузка - Суточный график -->
+<div class="chart-section">
+    <div class="chart-section-header">
+        <h2>3. 🚚 Погрузка</h2>
+        <button class="toggle-btn" data-target="chartLoading">
+            <span class="toggle-icon">▼</span>
+            <span class="toggle-text">Свернуть</span>
+        </button>
+    </div>
+    <div class="chart-section-content" id="content-chartLoading">
+        <!-- Заголовок добавится автоматически через JS -->
+        <div class="chart-container"><canvas id="chartLoading"></canvas></div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 2px dashed #e0e0e0;">
+        
+        <!-- Сменный график -->
+        <h3 style="margin-bottom: 15px; color: #555;">🔄 Сменный график</h3>
+        <div class="work-type-card">
+            <div class="shifts-container">
+                <div class="shift-block">
+                    <div class="shift-header">🌞 09:00 – 21:00</div>
+                    <div class="chart-container">
+                        <canvas id="chart-Погрузка-shift1"></canvas>
+                    </div>
+                </div>
+                <div class="shift-block">
+                    <div class="shift-header">🌙 21:00 – 09:00</div>
+                    <div class="chart-container">
+                        <canvas id="chart-Погрузка-shift2"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Стикеровка -->
+<div class="chart-section">
+    <div class="chart-section-header">
+        <h2>4. Стикеровка</h2>
+        <button class="toggle-btn" data-target="chartStickering">
+            <span class="toggle-icon">▼</span>
+            <span class="toggle-text">Свернуть</span>
+        </button>
+    </div>
+    <div class="chart-section-content" id="content-chartStickering">
+        <div class="chart-container"><canvas id="chartStickering"></canvas></div>
+    </div>
+</div>
+
+<!-- 5. Упаковка -->
+<div class="chart-section">
+    <div class="chart-section-header">
+        <h2>5. Упаковка в паллет</h2>
+        <button class="toggle-btn" data-target="chartPalletizing">
+            <span class="toggle-icon">▼</span>
+            <span class="toggle-text">Свернуть</span>
+        </button>
+    </div>
+    <div class="chart-section-content" id="content-chartPalletizing">
+        <div class="chart-container"><canvas id="chartPalletizing"></canvas></div>
+    </div>
+</div>
+
+    
+
+<script>
+    // 🔗 ПРАВИЛЬНЫЙ RAW-URL для GitHub (используйте raw.githubusercontent.com)
+    const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/2026-03%20fullData.json';
+	
+    // список временых интервалов
+    const labels = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00",
+                    "21:00","22:00","23:00","00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00"];
+					
+// 📊 ЕДИНАЯ КОНФИГУРАЦИЯ ВСЕХ ГРАФИКОВ
+const CHART_CONFIG = {
+    'chartAssembly': { 
+        name: 'Сборка Шин (Любые виды)', 
+        norm: 100, 
+        max: 3,
+        color: '#4285F4',
+        normText: '100 шт/ч (Плановый)',
+        teamText: '3 бригады (6 чел.)'
+    },
+    'chartAssemblyRim': { 
+        name: 'Сборка Диски (Любые виды)', 
+        norm: 50, 
+        max: 1,
+        color: '#a834a4',
+        normText: '50 шт/ч',
+        teamText: '1 бригада (1 чел.)'
+    },
+    'chartLoading': { 
+        name: 'Погрузка (Суточный график)', 
+        norm: 340, 
+        max: 1,
+        color: '#EA4335',
+        normText: '340 шт/ч',
+        teamText: '1 бригада (3 чел.)'
+    },
+    'chartLoadingShift': { 
+        name: 'Погрузка (Сменный график)', 
+        norm: 340, 
+        max: 1,
+        color: '#2ecc71',
+        normText: '340 шт/ч',
+        teamText: '1 бригада'
+    },
+    'chartStickering': { 
+        name: 'Стикеровка', 
+        norm: 150, 
+        max: 1,
+        color: '#FBBC05',
+        normText: '150 шт/ч',
+        teamText: '1 бригада (2 чел.)'
+    },
+    'chartPalletizing': { 
+        name: 'Упаковка в паллет', 
+        norm: 124, 
+        max: 1,
+        color: '#34A853',
+        normText: '124 шт/ч',
+        teamText: '1 бригада (2 чел.)'
+    }
+};
+
+// Для совместимости со старым кодом
+const CHART_NORMS = {
+    'chartAssembly': { name: 'Сборка Шин', norm: 100, max: 3 },
+    'chartAssemblyRim': { name: 'Сборка Диски', norm: 50, max: 1 },
+    'chartLoading': { name: 'Погрузка', norm: 340, max: 1 },
+    'chartStickering': { name: 'Стикеровка', norm: 150, max: 1 },
+    'chartPalletizing': { name: 'Упаковка', norm: 124, max: 1 }
+};
+
+// Нормативы для функций
+const norms = { 
+    assembly: 100, 
+    loading: 340, 
+    stickering: 150, 
+    palletizing: 124, 
+    assembly_rim: 50  
+};
+
+// WORK_NORMS для сменных графиков
+     const WORK_NORMS = {
+     'Сборка Шин': { norm: 100, maxBrigades: 3, color: '#36A2EB' }, // 3 бригады × 6 чел = 100 шт/ч план
+     'Сборка Диски': { norm: 50, maxBrigades: 1, color: '#9b59b6' },// 1 бригада × 1 чел = 50 шт/ч
+     'Погрузка': { norm: 340, maxBrigades: 1, color: '#2ecc71' },   // 1 бригада × 3 чел = 340 шт/ч
+     'Стикеровка': { norm: 150, maxBrigades: 1, color: '#f1c40f' }, // 1 бригада × 2 чел = 150 шт/ч
+     'Упаковка': { norm: 124, maxBrigades: 1, color: '#e67e22' }    // 1 бригада × 2 чел = 124 шт/ч
+    };
+	
+    // соответствия работ
+    const workTypeMap = {
+        'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly', 'Сборка Шины (Исключение)': 'assembly',
+		
+        'Сборка Диски':'assembly_rim','Сборка Диски МП':'assembly_rim','Сборка Диски (Исключение)':'assembly_rim',
+		
+        'Погрузка': 'loading', 'Погрузка/Разгрузка': 'loading',
+		
+        'Стикеровка Шины': 'stickering', 'Стикеровка Диски': 'stickering',
+		
+        'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
+    };
+
+
+// 	
+ // 🆕 Функция для создания заголовка с нормативами
+function createChartHeader(canvasId) {
+    const config = CHART_CONFIG[canvasId];
+    if (!config) return '';
+    
+    return `
+        <div class="chart-header-info">
+            <span>${config.name}</span>
+            <span class="norm-badge">
+                <span class="norm-icon">📊</span> 
+                <strong>Норма: ${config.normText}</strong>
+            </span>
+            <span class="norm-badge">
+                <span class="norm-icon">👥</span> 
+                <strong>Макс: ${config.max} бриг.</strong>
+            </span>
+        </div>
+    `;
+}
+
+// 🆕 Функция для добавления заголовка к графику
+ function addHeaderToChart(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    // Удаляем старый заголовок если есть
+    const oldHeader = canvas.parentElement.querySelector('.chart-header-info');
+    if (oldHeader) {
+        oldHeader.remove();
+    }
+    
+    // Создаем новый заголовок
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'chart-header-info';
+    headerDiv.innerHTML = createChartHeader(canvasId);
+    
+    // Вставляем перед canvas
+    canvas.parentElement.insertBefore(headerDiv, canvas);
+}
+
+
+
+
+ function renderAllShiftedCharts(rawData, workType) {
+    const config = WORK_NORMS[workType];
+    if (!config) return;
+    
+    // Разделяем данные
+    const { shift1, shift2 } = splitDataByShifts(
+        rawData.data || rawData.values,  // Проверяем оба поля 
+        rawData.labels  // 🔄 Без .map(h => `${h}:00`)
+    );
+    
+    // Отрисовываем две смены в отдельных контейнерах
+    renderShiftedChart(`chart-${workType}-shift1`, shift1, 'Смена 1 (09-21)', config);
+    renderShiftedChart(`chart-${workType}-shift2`, shift2, 'Смена 2 (21-09)', config);
+}
+
+    let jsonData = null;
+    let charts = {};
+	let shiftCharts = {};
+    const dateSelect = document.getElementById('dateSelect');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const statusEl = document.getElementById('status');
+
+    // Загрузка данных с обработкой ошибок
+    async function loadData() {
+        setStatus('Загрузка данных...', 'loading');
+        toggleControls(false);
+        
+        try {
+            const response = await fetch(DATA_URL, { cache: 'no-cache' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            jsonData = await response.json();
+            
+            if (!jsonData.data || !jsonData.columns) throw new Error('Неверная структура JSON');
+            
+            populateDateSelect();
+            setStatus('Данные загружены', 'success');
+            toggleControls(true);
+            
+            // Автовыбор последней даты
+            if (dateSelect.options.length > 1) {
+                dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
+                updateCharts(dateSelect.value);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки:', error);
+            setStatus(`❌ Ошибка: ${error.message}. Проверьте консоль (F12) и URL файла.`, 'error');
+            dateSelect.innerHTML = '<option>Нет данных</option>';
+        }
+    }
+
+    function setStatus(message, type) {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
+    }
+
+    function toggleControls(enabled) {
+        dateSelect.disabled = !enabled;
+        refreshBtn.disabled = !enabled;
+    }
+
+    function populateDateSelect() {
+        const dates = new Set();
+        const dateCol = jsonData.columns.indexOf('Рабочий день');
+        if (dateCol === -1) throw new Error('Колонка "Рабочий день" не найдена');
+        
+        jsonData.data.forEach(row => {
+            if (row[dateCol]) dates.add(row[dateCol]);
+        });
+        
+        dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
+        [...dates].sort().forEach(date => {
+            const opt = document.createElement('option');
+            opt.value = date;
+            opt.textContent = date;
+            dateSelect.appendChild(opt);
+        });
+    }
+
+    function getHourLabel(timeStr) {
+        if (!timeStr) return null;
+        const parts = timeStr.split(':');
+        const h = parseInt(parts[0]);
+        return (h < 10 ? '0' : '') + h + ':00';
+    }
+
+    function calculateDataForDate(selectedDate) {
+        const result = { 
+            assembly: Array(24).fill(0), 
+            loading: Array(24).fill(0), 
+            stickering: Array(24).fill(0), 
+            palletizing: Array(24).fill(0),
+            assembly_rim: Array(24).fill(0), 
+            
+        };
+        
+        const dateCol = jsonData.columns.indexOf('Рабочий день');
+        const timeCol = jsonData.columns.indexOf('Начало задачи');
+        const workCol = jsonData.columns.indexOf('Вид работ');
+        const qtyCol = jsonData.columns.indexOf('ps.');
+
+        jsonData.data.forEach(row => {
+            if (row[dateCol] !== selectedDate) return;
+            const workTypeRaw = row[workCol] || '';
+            const key = workTypeMap[workTypeRaw];
+            if (!key) return;
+            const hourLabel = getHourLabel(row[timeCol]);
+            if (!hourLabel) return;
+            const hourIdx = labels.indexOf(hourLabel);
+            if (hourIdx === -1) return;
+            const qty = parseFloat(row[qtyCol]) || 0;
+            result[key][hourIdx] += qty;
+        });
+        return result;
+    }
+
+    function createOrUpdateChart(canvasId, data, color, norm) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const fteData = data.map(val => (val / norm).toFixed(2));
+        
+        if (charts[canvasId]) {
+            charts[canvasId].data.datasets[0].data = data;
+            charts[canvasId].data.datasets[1].data = fteData;
+            charts[canvasId].update('none'); // 'none' для плавного обновления без анимации
+            return;
+        }
+        
+        charts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Объем (штук)',
+                        data: data,
+                        backgroundColor: color + '22',
+                        borderColor: color,
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 4
+                    },
+                    {
+                        label: 'Требуемый ресурс (бригад/час)',
+                        data: fteData,
+                        type: 'bar',
+                        backgroundColor: '#34495e88',
+                        yAxisID: 'y1',
+                        barThickness: 20
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 300 },
+                scales: {
+                    y: { 
+                        type: 'linear', 
+                        position: 'left', 
+                        title: { display: true, text: 'Штуки' }, 
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.05)' }
+                    },
+                    y1: { 
+                        type: 'linear', 
+                        position: 'right', 
+                        title: { display: true, text: 'Ресурс (Бригада)' }, 
+                        grid: { drawOnChartArea: false },
+                        beginAtZero: true 
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            afterLabel: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    const val = context.raw;
+                                    return `Загрузка: ${(val/norm).toFixed(2)} бригад/час`;
+                                }
+                            }
+                        }
+                    },
+                    legend: { labels: { font: { size: 11 } } }
+                }
+            }
+        });
+    }
+
+function updateCharts(selectedDate) {
+    if (!selectedDate || !jsonData) return;
+    setStatus(`Обработка данных за ${selectedDate}...`, 'loading');
+    
+    setTimeout(() => {
+        try {
+            const data = calculateDataForDate(selectedDate);
+            
+            // 🔄 Проходим по всем графикам из конфигурации
+            Object.keys(CHART_CONFIG).forEach(canvasId => {
+                // Пропускаем сменный график (он обрабатывается отдельно)
+                if (canvasId === 'chartLoadingShift') return;
+                
+                const config = CHART_CONFIG[canvasId];
+                let chartData;
+                
+                // Определяем какие данные использовать
+                if (canvasId === 'chartAssembly') chartData = data.assembly;
+                else if (canvasId === 'chartAssemblyRim') chartData = data.assembly_rim;
+                else if (canvasId === 'chartLoading') chartData = data.loading;
+                else if (canvasId === 'chartStickering') chartData = data.stickering;
+                else if (canvasId === 'chartPalletizing') chartData = data.palletizing;
+                
+                if (chartData) {
+                    createOrUpdateChart(canvasId, chartData, config.color, config.norm);
+                    addHeaderToChart(canvasId); // 🆕 Добавляем заголовок
+                }
+            });
+            
+            // Графики по сменам для Погрузки
+            const loadingData = {
+                labels: labels.map(h => h),
+                values: data.loading
+            };
+            renderAllShiftedCharts(loadingData, 'Погрузка');
+            
+            setStatus(`Показаны данные за ${selectedDate}`, 'success');
+        } catch (e) {
+            console.error('Ошибка обработки:', e);
+            setStatus(`Ошибка: ${e.message}`, 'error');
+        }
+    }, 30);
+}
+	
+	function splitDataByShifts(hourlyData, labels) {//Функция разделения данных по сменам
+    // Смена 1: 09:00 - 21:00 (индексы 0-11, т.к. 09:00 это индекс 0, 21:00 это индекс 12)
+    // Но 21:00 не включаем, поэтому slice(0, 12)
+    const shift1 = {
+        labels: labels.slice(0, 12),  // 09:00 до 20:00 включительно
+        data: hourlyData.slice(0, 12)
+    };
+    
+
+     // Смена 2: 21:00 - 09:00 (индексы 12-23)   
+    const shift2 = {
+        labels: labels.slice(12, 24),  // 21:00 до 08:00 включительно
+        data: hourlyData.slice(12, 24)
+    };
+    
+    return { shift1, shift2 };
+}
+
+  // Обновлённая функция отрисовки графиков по сменам
+   function renderShiftedChart(canvasId, workData, shiftName, config) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    if (shiftCharts[canvasId]) {
+        shiftCharts[canvasId].destroy();
+    }
+    
+    const labels = workData.labels;
+    const values = workData.data;
+    
+    const brigadesData = values.map(vol => 
+        config.norm > 0 ? Math.ceil(vol / config.norm) : 0
+    );
+
+    // 🔄 Расчет объема для столбцов
+    const volumeData = brigadesData.map(b => b * config.norm);
+
+    const barColors = brigadesData.map(count => {
+        if (count > config.maxBrigades) return 'rgba(220, 53, 69, 0.7)';
+        if (count === 0) return 'rgba(200, 200, 200, 0.1)';
+        return 'rgba(100, 116, 139, 0.6)';
+    });
+
+    shiftCharts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Объем (шт)',
+                    data: values,
+                    type: 'line',
+                    borderColor: config.color,
+                    backgroundColor: 'rgba(0,0,0,0)',
+                    borderWidth: 2,
+                    yAxisID: 'y',
+                    tension: 0.3,
+                    pointRadius: 2
+                },
+                {
+                    label: 'Требуется ресурс (бригад/час)',
+                    data: volumeData,  // 🔄 Объем в штуках
+                    type: 'bar',
+                    backgroundColor: barColors,
+                    yAxisID: 'y',  // 🔄 Левая ось
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { 
+                        font: { size: 10 },
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { 
+                        display: true, 
+                        text: 'Штуки',
+                        font: { size: 11 }
+                    },
+                    grid: { borderDash: [5, 5] },
+                    ticks: { font: { size: 10 } },
+                    beginAtZero: true,
+					 // 🔄 Увеличили запас сверху для видимости пиков
+                     max: Math.max(
+                         Math.max(...values) * 1.3,  // 30% запас от макс.объема
+                         (config.maxBrigades + 2) * config.norm
+                    )
+                },
+    // 🆕 Вернули ось Y1 для бригад
+    y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        title: {
+            display: true,
+            text: 'Бригады',
+            font: { size: 11 }
+        },
+        min: 0,
+        max: config.maxBrigades + 2,
+        ticks: { 
+            stepSize: 1,
+            font: { size: 10 }
+        },
+        grid: { drawOnChartArea: false }
+    }				
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            if (context.parsed.y !== null) {
+                                if (context.datasetIndex === 1) {
+                                    const brigades = Math.ceil(context.parsed.y / config.norm);
+                                    const volume = context.parsed.y;
+                                    const lines = [
+                                        `Требуется ресурс: ${brigades} бриг./час`,
+                                        `${volume} шт. (по норме)`
+                                    ];
+                                    if (brigades > config.maxBrigades) {
+                                        lines.push('⚠️ Перегрузка!');
+                                    }
+                                    return lines;
+                                } else {
+                                    return `Объем (шт): ${context.parsed.y}`;
+                                }
+                            }
+                            return context.dataset.label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    return shiftCharts[canvasId];
+}
+
+// 🆕 Функция инициализации сворачивания графиков
+function initChartToggles() {
+    const toggleButtons = document.querySelectorAll('.toggle-btn');
+    
+    toggleButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // 🆕 Останавливаем всплытие
+            const targetId = this.getAttribute('data-target');
+            const content = document.getElementById(`content-${targetId}`);
+            const icon = this.querySelector('.toggle-icon');
+            const text = this.querySelector('.toggle-text');
+            
+            // Переключаем класс collapsed
+            content.classList.toggle('collapsed');
+            this.classList.toggle('collapsed');
+            
+            // Меняем текст кнопки
+            if (content.classList.contains('collapsed')) {
+                text.textContent = 'Развернуть';
+                // Останавливаем анимацию графика при сворачивании
+                if (charts[targetId]) {
+                    charts[targetId].stop();
+                }
+            } else {
+                text.textContent = 'Свернуть';
+                // 🆕 Обновляем график при разворачивании
+                setTimeout(() => {
+                    if (charts[targetId]) {
+                        charts[targetId].resize();
+                    }
+                    // 🆕 Для сменных графиков
+                    Object.keys(shiftCharts).forEach(key => {
+                        if (key.includes(targetId)) {
+                            shiftCharts[key].resize();
+                        }
+                    });
+                }, 350);
+            }
+        });
+        
+        // 🆕 Клик по заголовку тоже сворачивает (исправлено!)
+        const header = btn.closest('.chart-section-header');
+        if (header) {
+            header.addEventListener('click', (e) => {
+                if (e.target !== btn && !btn.contains(e.target)) {
+                    btn.click();
+                }
+            });
+        }
+    });
+    
+    // 🆕 Сворачиваем все графики при первой загрузке
+    setTimeout(() => {
+        toggleButtons.forEach(btn => {
+            const targetId = btn.getAttribute('data-target');
+            const content = document.getElementById(`content-${targetId}`);
+            if (content) {
+                content.classList.add('collapsed');
+                btn.classList.add('collapsed');
+                const textEl = btn.querySelector('.toggle-text');
+                if (textEl) {
+                    textEl.textContent = 'Развернуть';
+                }
+            }
+        });
+    }, 100);
+}
+
+// 🆕 Вызов после загрузки данных
+document.addEventListener('DOMContentLoaded', function() {
+    loadData();
+    initChartToggles();  // Инициализируем сворачивание
+});
+
+
+    // События
+    dateSelect.addEventListener('change', (e) => updateCharts(e.target.value));
+    refreshBtn.addEventListener('click', () => loadData());
+
+    // Автозагрузка при открытии страницы
+    document.addEventListener('DOMContentLoaded', loadData);
+</script>
+
+</body>
+</html>
