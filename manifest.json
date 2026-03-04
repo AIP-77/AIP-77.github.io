@@ -1,0 +1,15 @@
+{
+  "name": "Склад: Анализ нагрузок",
+  "short_name": "Склад Статы",
+  "start_url": "./t3.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a73e8",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
