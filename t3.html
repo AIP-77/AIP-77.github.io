@@ -16,8 +16,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!-- 🆕 КОНЕЦ: Код для ярлыка -->
+	
 	<!-- Манифест для установки как приложения-->
 	<link rel="manifest" href="manifest.json">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
@@ -110,6 +112,37 @@
 }
 
 .chart-section-content.collapsed { padding: 0;}
+/* Кнопка экспорта */
+#exportBtn {
+    padding: 8px 16px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background 0.2s;
+}
+
+#exportBtn:hover {
+    background: #218838;
+}
+
+#exportBtn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Анимация успешного экспорта */
+@keyframes downloadSuccess {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.export-success {
+    animation: downloadSuccess 0.3s ease;
+}
     </style>
 </head>
 <body>
@@ -126,6 +159,7 @@
         <label for="dateSelect">📅 Дата:</label>
         <select id="dateSelect" disabled><option>Загрузка...</option></select>
         <button id="refreshBtn" disabled>🔄 Обновить</button>
+		<button id="exportBtn" disabled>📥 Экспорт CSV</button>
         <span id="status" class="status"></span>
     </div>
 	
@@ -390,6 +424,62 @@ function createChartHeader(canvasId) {
     const dateSelect = document.getElementById('dateSelect');
     const refreshBtn = document.getElementById('refreshBtn');
     const statusEl = document.getElementById('status');
+	
+// 📥 Функция экспорта данных в CSV
+function exportToCSV(selectedDate) {
+    if (!selectedDate || !jsonData) {
+        setStatus('❌ Нет данных для экспорта', 'error');
+        return;
+    }
+    
+    try {
+        const data = calculateDataForDate(selectedDate);
+        const headers = ['Час', 'Сборка_Шин', 'Сборка_Диски', 'Погрузка', 'Стикеровка', 'Упаковка', 
+                        'Бригады_Шин', 'Бригады_Диски', 'Бригады_Погрузка', 'Бригады_Стикеровка', 'Бригады_Упаковка'];
+        
+        let csvContent = headers.join(',') + '\n';
+        
+        for (let i = 0; i < 24; i++) {
+            const row = [
+                labels[i],
+                data.assembly[i],
+                data.assembly_rim[i],
+                data.loading[i],
+                data.stickering[i],
+                data.palletizing[i],
+                Math.ceil(data.assembly[i] / norms.assembly),
+                Math.ceil(data.assembly_rim[i] / norms.assembly_rim),
+                Math.ceil(data.loading[i] / norms.loading),
+                Math.ceil(data.stickering[i] / norms.stickering),
+                Math.ceil(data.palletizing[i] / norms.palletizing)
+            ];
+            csvContent += row.join(',') + '\n';
+        }
+        
+        // Создаем файл для скачивания
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Склад_Нагрузки_${selectedDate}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setStatus('✅ Данные экспортированы!', 'success');
+        
+        // Анимация кнопки
+        const exportBtn = document.getElementById('exportBtn');
+        exportBtn.classList.add('export-success');
+        setTimeout(() => exportBtn.classList.remove('export-success'), 300);
+        
+    } catch (error) {
+        console.error('Ошибка экспорта:', error);
+        setStatus('❌ Ошибка экспорта: ' + error.message, 'error');
+    }
+}	
 
     // Загрузка данных с обработкой ошибок
     async function loadData() {
@@ -427,6 +517,7 @@ function createChartHeader(canvasId) {
     function toggleControls(enabled) {
         dateSelect.disabled = !enabled;
         refreshBtn.disabled = !enabled;
+		document.getElementById('exportBtn').disabled = !enabled; // 🆕
     }
 
     function populateDateSelect() {
@@ -835,12 +926,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-    // События
-    dateSelect.addEventListener('change', (e) => updateCharts(e.target.value));
-    refreshBtn.addEventListener('click', () => loadData());
+// События
+dateSelect.addEventListener('change', (e) => updateCharts(e.target.value));
+refreshBtn.addEventListener('click', () => loadData());
+document.getElementById('exportBtn').addEventListener('click', () => {
+    exportToCSV(dateSelect.value);
+});
 
-    // Автозагрузка при открытии страницы
-    document.addEventListener('DOMContentLoaded', loadData);
+// Автозагрузка при открытии страницы
+document.addEventListener('DOMContentLoaded', loadData);
 </script>
 
 </body>
