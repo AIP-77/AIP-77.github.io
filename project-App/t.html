@@ -345,26 +345,14 @@ body {
     border-color: var(--border-color);
 }
 
-.chart-section-header {
-    background: var(--header-bg);
-    color: var(--text-primary);
-}
+.chart-section-header {    background: var(--header-bg);    color: var(--text-primary);}
 
-.stats-summary .stat-card {
-    background: var(--card-bg);
-    border-color: var(--border-color);
-}
+.stats-summary .stat-card {    background: var(--card-bg);    border-color: var(--border-color);}
 
 /* Для сменных графиков */
-.work-type-card {
-    background: var(--card-bg);
-    border-color: var(--border-color);
-}
+.work-type-card {    background: var(--card-bg);    border-color: var(--border-color);}
 
-.shift-block {
-    background: var(--header-bg);
-    border-color: var(--border-color);
-}
+.shift-block {    background: var(--header-bg);    border-color: var(--border-color);}
 
 /* Индикаторы перегрузки */
 .overload-panel {    background: linear-gradient(135deg,         var(--warning-color, #fff3cd) 0%,       var(--warning-color, #ffe5a8) 100%);    border-color: var(--warning-color);}
@@ -390,25 +378,17 @@ body {
    <strong>Серые столбцы:</strong> Это количество бригад, которое необходимо вывести в этот конкретный час, чтобы закрыть объем согласно нормативам.<br>
    <strong>Пики:</strong> Если столбец резко уходит вверх, и он <strong>красного цвета</strong> значит, в этот час нагрузка на одну бригаду превышает норму, и требуется усиление или перераспределение задач.</p>
 
-        <div class="controls">
-            <!-- 🆕 Переключатель темы -->
-        <button id="themeToggle" class="theme-toggle" title="Переключить тему">
-           <span class="theme-icon">🌙</span>
-           <span class="theme-text">Тёмная</span>
-		   
+     <div class="controls">  
         <label for="dateSelect">📅 Дата:</label>
         <select id="dateSelect" disabled><option>Загрузка...</option></select>
 		<span id="status" class="status"></span>
         <button id="refreshBtn" disabled>🔄 Обновить</button>
 		<button id="exportBtn" disabled>📥 Экспорт CSV</button>
-
-        </button>
-    </div>
+      </div>
 	
 	<!-- 🆕 Индикатор подключения к интернету -->
 	<div id="connectionStatus" class="connection-status online" style="display: none;">
-    <span>🌐 Подключение...</span>
-</div>
+    <span>🌐 Подключение...</span></div>
 	
 	<!-- 🆕 Панель уведомлений о перегрузке -->
 <div id="overloadPanel" class="overload-panel" style="display: none;">
