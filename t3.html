@@ -33,6 +33,8 @@
 		
         .controls { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; flex-wrap: wrap; }
 		
+		
+		
         .controls label { font-weight: 600; white-space: nowrap; }
 		
         .controls select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; min-width: 150px; }
@@ -42,6 +44,72 @@
         .controls button:hover { background: #1557b0; }
 		
         .controls button:disabled { background: #ccc; cursor: not-allowed; }
+		
+		/* 🆕 Кнопка переключения темы */
+.theme-toggle {    display: flex;    align-items: center;    gap: 6px;    padding: 8px 16px;    background: var(--accent-color);    color: white;    border: none;    border-radius: 4px;    cursor: pointer;    font-size: 1em;    transition: all 0.3s ease;    box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);}
+
+.theme-toggle:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.theme-icon {
+    font-size: 1.2em;
+}
+
+/* Анимация перехода */
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Стили для тёмной темы */
+[data-theme="dark"] body {
+    background: var(--bg-primary);
+}
+
+[data-theme="dark"] .container {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4 {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] label,
+[data-theme="dark"] span {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .overload-item {
+    background: var(--bg-secondary);
+    border-left-color: var(--danger-color);
+}
+
+[data-theme="dark"] .close-overload {
+    background: var(--warning-color);
+    color: #212529;
+}
+
+/* Индикатор текущей темы */
+[data-theme="dark"] .theme-toggle .theme-text::after {
+    content: ' (Tёмная)';
+}
+
+[data-theme="light"] .theme-toggle .theme-text::after {
+    content: ' (Светлая)';
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .theme-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+}
 		
         .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
 		
@@ -194,25 +262,11 @@
     gap: 10px;
 }
 
-.overload-item {
-    background: white;
-    padding: 10px 15px;
-    border-radius: 6px;
-    border-left: 4px solid #dc3545;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+.overload-item {    background: white;    padding: 10px 15px;    border-radius: 6px;    border-left: 4px solid #dc3545;    display: flex;    justify-content: space-between;    align-items: center;}
 
-.overload-item.critical {
-    border-left-color: #dc3545;  /* Красный - критическая */
-    background: #fff5f5;
-}
+.overload-item.critical {    border-left-color: #dc3545;  /* Красный - критическая */    background: #fff5f5;}
 
-.overload-item.warning {
-    border-left-color: #ffc107;  /* Жёлтый - предупреждение */
-    background: #fffdf5;
-}
+.overload-item.warning {    border-left-color: #ffc107;  /* Жёлтый - предупреждение */    background: #fffdf5;}
 
 .overload-work {    font-weight: 600;    color: #333;}
 
@@ -230,26 +284,96 @@
 /* 🆕 Статус подключения */
 .connection-status {    position: fixed;    bottom: 10px;    right: 10px;    padding: 6px 12px;    border-radius: 20px;    font-size: 0.85em;    color: white;    font-weight: 600;    z-index: 9999;    transition: all 0.3s ease;    box-shadow: 0 2px 8px rgba(0,0,0,0.2);}
 
-.connection-status.online {
-    background: #28a745;
-    animation: fadeInOut 3s infinite;
+.connection-status.online {    background: #28a745;    animation: fadeInOut 3s infinite;}
+
+.connection-status.offline {    background: #dc3545;    animation: shake 0.5s ease-in-out;}
+
+@keyframes fadeInOut {    0%, 100% { opacity: 1; }    50% { opacity: 0.8; }}
+
+@keyframes shake {    0%, 100% { transform: translateX(0); }    25% { transform: translateX(-5px); }    75% { transform: translateX(5px); }}
+
+/* 🆕 ПЕРЕМЕННЫЕ ТЕМЫ */
+:root {
+    /* Светлая тема (по умолчанию) */
+    --bg-primary: #f0f2f5;
+    --bg-secondary: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --card-bg: #ffffff;
+    --border-color: #e0e0e0;
+    --header-bg: #f8f9fa;
+    --accent-color: #1a73e8;
+    --accent-hover: #1557b0;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --chart-grid: rgba(0,0,0,0.05);
+    --tooltip-bg: rgba(0,0,0,0.85);
 }
 
-.connection-status.offline {
-    background: #dc3545;
-    animation: shake 0.5s ease-in-out;
+/* Тёмная тема */
+[data-theme="dark"] {
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --card-bg: #1e1e1e;
+    --border-color: #333333;
+    --header-bg: #2c2c2c;
+    --accent-color: #3d8bfd;
+    --accent-hover: #5a9bff;
+    --success-color: #4caf50;
+    --warning-color: #ffca28;
+    --danger-color: #ef5350;
+    --chart-grid: rgba(255,255,255,0.1);
+    --tooltip-bg: rgba(0,0,0,0.95);
 }
 
-@keyframes fadeInOut {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
+/* Применяем переменные */
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+.container {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
+
+.chart-section {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.chart-section-header {
+    background: var(--header-bg);
+    color: var(--text-primary);
+}
+
+.stats-summary .stat-card {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+/* Для сменных графиков */
+.work-type-card {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+.shift-block {
+    background: var(--header-bg);
+    border-color: var(--border-color);
+}
+
+/* Индикаторы перегрузки */
+.overload-panel {    background: linear-gradient(135deg,         var(--warning-color, #fff3cd) 0%,       var(--warning-color, #ffe5a8) 100%);    border-color: var(--warning-color);}
+
+/* Переключаем график Chart.js */
+.chart-container canvas {    filter: none;}
+
+[data-theme="dark"] .chart-container canvas {    filter: brightness(1.1);}
+
     </style>
 </head>
 <body>
@@ -263,11 +387,18 @@
    <strong>Пики:</strong> Если столбец резко уходит вверх, и он <strong>красного цвета</strong> значит, в этот час нагрузка на одну бригаду превышает норму, и требуется усиление или перераспределение задач.</p>
 
         <div class="controls">
+            <!-- 🆕 Переключатель темы -->
+        <button id="themeToggle" class="theme-toggle" title="Переключить тему">
+           <span class="theme-icon">🌙</span>
+           <span class="theme-text">Тёмная</span>
+		   
         <label for="dateSelect">📅 Дата:</label>
         <select id="dateSelect" disabled><option>Загрузка...</option></select>
+		<span id="status" class="status"></span>
         <button id="refreshBtn" disabled>🔄 Обновить</button>
 		<button id="exportBtn" disabled>📥 Экспорт CSV</button>
-        <span id="status" class="status"></span>
+
+        </button>
     </div>
 	
 	<!-- 🆕 Индикатор подключения к интернету -->
@@ -480,6 +611,78 @@ const norms = {
         'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
     };
 
+// 🌙 СИСТЕМА ТЁМНОЙ ТЕМЫ
+const THEME_KEY = 'warehouse_theme'; // Имя для localStorage
+
+function initTheme() {
+    // Проверяем есть ли сохранённая тема
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    
+    // Если нет — проверяем системные настройки
+    if (!savedTheme) {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
+        } else {
+            setTheme('light');
+        }
+    } else {
+        setTheme(savedTheme);
+    }
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+    updateThemeButtonText();
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    
+    // 🎉 Анимация смены
+    animateThemeSwitch(newTheme);
+}
+
+function updateThemeButtonText() {
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    
+    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+    const icon = btn.querySelector('.theme-icon');
+    const text = btn.querySelector('.theme-text');
+    
+    if (theme === 'dark') {
+        icon.textContent = '☀️';
+        text.textContent = 'Светлая';
+    } else {
+        icon.textContent = '🌙';
+        text.textContent = 'Тёмная';
+    }
+}
+
+function animateThemeSwitch(theme) {
+    const container = document.querySelector('.container');
+    
+    // Эффект вспышки при смене
+    container.style.transition = 'all 0.3s ease';
+    container.style.transform = 'scale(0.99)';
+    
+    setTimeout(() => {
+        container.style.transform = 'scale(1)';
+    }, 300);
+}
+
+// Слушатель события для кнопки
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+});
 
 // 	
  // 🆕 Функция для создания заголовка с нормативами
@@ -757,19 +960,24 @@ function exportToCSV(selectedDate) {
                 },
                 plugins: {
                     tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        callbacks: {
-                            afterLabel: function(context) {
-                                if (context.datasetIndex === 0) {
-                                    const val = context.raw;
-                                    return `Загрузка: ${(val/norm).toFixed(2)} бригад/час`;
-                                }
-                            }
-                        }
-                    },
-                    legend: { labels: { font: { size: 11 } } }
+                        backgroundColor: 'var(--tooltip-bg)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        borderColor: 'var(--border-color)',
+        borderWidth: 1,
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+            afterLabel: function(context) {
+                if (context.datasetIndex === 0) {
+                    const val = context.raw;
+                    return `Загрузка: ${(val/norm).toFixed(2)} бригад/час`;
                 }
+            }
+        }
+    },
+    legend: { labels: { font: { size: 11 }, color: 'var(--text-primary)' } }
+}
             }
         });
     }
