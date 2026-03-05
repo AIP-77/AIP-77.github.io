@@ -265,6 +265,77 @@
         }
     </style>
 </head>
+// ВСТАВИТЬ ЭТОТ КОД В КАЖДУЮ СТРАНИЦУ ПЕРЕД </body>
+
+<script>
+    // === ОБЩИЕ НАСТРОЙКИ ===
+    const APP_CONFIG = {
+        apiUrl: './archive/2026-03%20fullData.json',
+        defaultDate: null,
+        timezone: 'UTC+3',
+        chartHeight: 350,
+        refreshInterval: 300000 // 5 минут
+    };
+    
+    // === ОБЩАЯ НАВИГАЦИЯ ===
+    function showBackButton() {
+        const backBtn = document.createElement('button');
+        backBtn.innerHTML = '← На главную';
+        backBtn.className = 'back-button';
+        backBtn.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        `;
+        backBtn.onclick = () => window.location.href = 'index.html';
+        document.body.appendChild(backBtn);
+    }
+    
+    // === ИНДИКАТОР ЗАГРУЗКИ ===
+    function showLoading(message = '') {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-indicator';
+        loadingDiv.innerHTML = `
+            <div class="loading-spinner"></div>
+            <p>${message}</p>
+        `;
+        loadingDiv.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        `;
+        loadingDiv.querySelector('.loading-spinner').style.cssText = `
+            width: 50px; height: 50px;
+            border: 4px solid #ccc;
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        `;
+        document.head.insertAdjacentHTML('beforeend', `<style>@keyframes spin{to{transform:rotate(360deg)}}</style>`);
+        document.body.appendChild(loadingDiv);
+        return loadingDiv;
+    }
+    
+    function hideLoading(element) {
+        if (element && element.parentNode) {
+            element.remove();
+        }
+    }
+</script>    
 <body>
     <button class="back-button" onclick="window.location.href='index.html'">← На главную</button>
     
