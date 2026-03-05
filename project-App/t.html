@@ -918,15 +918,43 @@
         function updateConnectionStatus(){const s=document.getElementById('connectionStatus');if(!s)return;if(navigator.onLine){s.textContent='🟢 Онлайн';s.className='connection-status online';s.style.display='block';}else{s.textContent='🔴 Офлайн';s.className='connection-status offline';s.style.display='block';}}
         window.addEventListener('online',updateConnectionStatus);window.addEventListener('offline',updateConnectionStatus);window.addEventListener('load',updateConnectionStatus);
         
-        // === INIT ===
-        document.addEventListener('DOMContentLoaded',()=>{initTheme();initChartToggles();loadData();});
-        document.getElementById('themeToggle').addEventListener('click',toggleTheme);
-        dateSelect.addEventListener('change',e=>updateCharts(e.target.value));
-        refreshBtn.addEventListener('click',loadData);
-        document.getElementById('exportBtn').addEventListener('click',()=>exportToCSV(dateSelect.value));
-        
-        // === PWA ===
-        if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW err:',e));});}
+// === СВОРАЧИВАНИЕ ЗАГОЛОВКА ===
+function toggleHeader() {
+    const desc = document.getElementById('headerDescription');
+    const head = document.querySelector('#headerWrapper .header-content');
+    if (desc && head) {
+        desc.classList.toggle('collapsed');
+        head.classList.toggle('collapsed');
+    }
+}
+
+// === ИНИЦИАЛИЗАЦИЯ ===
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    initChartToggles();
+    loadData();
+});
+
+// === СОБЫТИЯ ===
+dateSelect.addEventListener('change', (e) => updateCharts(e.target.value));
+refreshBtn.addEventListener('click', () => loadData());
+document.getElementById('exportBtn').addEventListener('click', () => {
+    exportToCSV(dateSelect.value);
+});
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+// === PWA ===
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log('ServiceWorker registration successful:', registration.scope);
+            })
+            .catch(err => {
+                console.log('ServiceWorker registration failed:', err);
+            });
+    });
+}
     </script>
 </body>
 </html>
