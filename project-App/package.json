@@ -1,0 +1,10 @@
+{
+  "name": "warehouse-stats",
+  "version": "1.0.0",
+  "description": "Анализ пиковых нагрузок склада",
+  "scripts": {
+    "start": "npx http-server -p 8080"
+  },
+  "keywords": ["warehouse", "analytics"],
+  "license": "MIT"
+}
