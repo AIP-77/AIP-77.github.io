@@ -1,13 +1,12 @@
 {
-  "name": "Склад: Анализ нагрузок",
+  "name": "Склад Статы — Аналитика",
   "short_name": "Склад Статы",
-  "start_url": "./t3.html",
+  "start_url": "./index.html",
+  "scope": "/",
   "display": "standalone",
-
   "background_color": "#f0f2f5",
   "theme_color": "#1a73e8",
   "orientation": "any",
-  "scope": "/",
   "lang": "ru-RU",
   "icons": [
     {
@@ -24,11 +23,5 @@
     }
   ],
   "categories": ["business", "productivity"],
-  "shortcuts": [
-    {
-      "name": "Загрузить данные",
-      "url": "./t.html?action=load",
-      "icons": [{ "src": "favicon.png", "sizes": "192x192" }]
-    }
-  ]
+  "prefer_related_applications": false
 }
