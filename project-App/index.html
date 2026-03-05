@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Склад Статы - Главная</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f0f2f5; 
+            padding: 40px;
+            margin: 0;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 { 
+            color: #1a73e8; 
+            text-align: center; 
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        .card-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .card-desc {
+            color: #666;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1>📦 Анализ пиковых нагрузок склада</h1>
+        
+        <div class="card-grid">
+            <a href="t.html" class="card">
+                <div class="card-icon">📊</div>
+                <div class="card-title">Графики нагрузок</div>
+                <div class="card-desc">Подробные почасовые графики по всем операциям склада</div>
+            </a>
+            
+            <a href="shifts.html" class="card">
+                <div class="card-icon">🔄</div>
+                <div class="card-title">Сменные графики</div>
+                <div class="card-desc">Детальный анализ по сменам (день/ночь)</div>
+            </a>
+            
+            <a href="summary.html" class="card">
+                <div class="card-icon">📋</div>
+                <div class="card-title">Сводные отчеты</div>
+                <div class="card-desc">Итоговые таблицы и статистика</div>
+            </a>
+            
+            <a href="settings.html" class="card">
+                <div class="card-icon">⚙️</div>
+                <div class="card-title">Настройки</div>
+                <div class="card-desc">Конфигурация системы и предпочтения</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
