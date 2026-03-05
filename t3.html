@@ -4,45 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Анализ пиковых нагрузок склада по Исходящему потоку</title>
+
+    
+    <!-- Настройки для мобильных браузеров (цвет шапки) -->
+    <meta name="theme-color" content="#1a73e8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="description" content="Анализ пиковых нагрузок склада по исходящему потоку">
+
 	    <!-- 🆕 НАЧАЛО: Код для ярлыка -->
     <!-- Базовый значок для браузеров -->
     <link rel="icon" type="image/png" href="favicon.png">
     
     <!-- Значок для iPhone/iPad (Apple Touch Icon) -->
     <link rel="apple-touch-icon" href="favicon.png">
-    
-    <!-- Настройки для мобильных браузеров (цвет шапки) -->
-    <meta name="theme-color" content="#1a73e8">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <!-- 🆕 КОНЕЦ: Код для ярлыка -->
 	
 	<!-- Манифест для установки как приложения-->
 	<link rel="manifest" href="manifest.json">
-	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+		
         .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
 		
         h1 { text-align: center; color: #1a73e8; margin-bottom: 10px; }
 		
         .controls { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; flex-wrap: wrap; }
+		
         .controls label { font-weight: 600; white-space: nowrap; }
+		
         .controls select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; min-width: 150px; }
+		
         .controls button { padding: 8px 16px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+		
         .controls button:hover { background: #1557b0; }
+		
         .controls button:disabled { background: #ccc; cursor: not-allowed; }
+		
         .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+		
         .stat-card { background: #e8f0fe; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #d2e3fc; }
+		
         .stat-card span { display: block; font-size: 0.9em; color: #555; }
+		
         .stat-card strong { font-size: 1.2em; color: #1a73e8; }
 		
         .chart-container { position: relative; height: 350px; width: 100%; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
 		
         h2 { border-left: 5px solid #1a73e8; padding-left: 10px; font-size: 1.3em; margin-top: 40px; }
+		
         .status { text-align: center; color: #666; font-style: italic; min-height: 1.2em; }
+		
         .error { color: #c62828; font-weight: 500; }
+		
         .success { color: #2e7d32; }
 		
 		.shifts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 12px;}
@@ -58,8 +74,10 @@
 		.work-type-card .chart-container { height: 200px !important; position: relative; width: 100%;}
 
 		.shift-block {border:1px solid #e0e0e0;border-radius:8px;padding:12px;background:#fafafa;}
+		
 		.shift-header { font-weight: 600; margin-bottom: 10px;  color: #333;  font-size: 0.95rem;}
-		/* Контейнер секции графика */
+		
+	/* Контейнер секции графика */
 		.chart-section { margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 10px; background: #fff; overflow: hidden;}
 
 		/* Заголовок секции */
@@ -69,7 +87,7 @@
 
 		.chart-section-header h2 { margin: 0 0 5px 0; font-size: 1.2em; color: #333; border-left: 4px solid #1a73e8; padding-left: 12px;}
 
-/* Кнопка сворачивания */
+    /* Кнопка сворачивания */
 .toggle-btn {
     display: flex;
     align-items: center;
@@ -143,6 +161,71 @@
 .export-success {
     animation: downloadSuccess 0.3s ease;
 }
+
+/* 🆕 Панель уведомлений о перегрузке */
+.overload-panel {    background: linear-gradient(135deg, #fff3cd 0%, #ffe5a8 100%);    border: 2px solid #ffc107;    border-radius: 8px;    padding: 15px 20px;    margin-bottom: 20px;    box-shadow: 0 2px 10px rgba(255, 193, 7, 0.3);    animation: slideDown 0.3s ease;}
+
+@keyframes slideDown {    from {         opacity: 0;         transform: translateY(-10px);     }    to {         opacity: 1;         transform: translateY(0);    }}
+
+.overload-header {    display: flex;    justify-content: space-between;    align-items: center;    margin-bottom: 10px;}
+
+.overload-header strong {    color: #856404;    font-size: 1.1em;}
+
+.overload-icon {    font-size: 1.3em;    margin-right: 8px;}
+
+.close-overload {
+    background: #ffc107;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: #856404;
+    transition: background 0.2s;
+}
+
+.close-overload:hover {
+    background: #e0a800;
+}
+
+.overload-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+}
+
+.overload-item {
+    background: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border-left: 4px solid #dc3545;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.overload-item.critical {
+    border-left-color: #dc3545;  /* Красный - критическая */
+    background: #fff5f5;
+}
+
+.overload-item.warning {
+    border-left-color: #ffc107;  /* Жёлтый - предупреждение */
+    background: #fffdf5;
+}
+
+.overload-work {    font-weight: 600;    color: #333;}
+
+.overload-time {    color: #666;    font-size: 0.9em;}
+
+.overload-brigades {    background: #dc3545;    color: white;    padding: 3px 8px;    border-radius: 4px;    font-size: 0.85em;    font-weight: 600;}
+
+/* 🆕 Индикатор перегрузки в заголовке секции */
+.overload-indicator {    display: inline-block;    background: #dc3545;    color: white;    padding: px 8px;    border-radius: 10px;    font-size: 0.75em;    margin-left: 8px;    animation: pulse 2s infinite;}
+
+@keyframes pulse {    0%, 100% { opacity: 1; }    50% { opacity: 0.6; }}
+
+/* 🆕 Звуковое уведомление (опционально) */.notification-sound {    display: none;}
     </style>
 </head>
 <body>
@@ -162,6 +245,16 @@
 		<button id="exportBtn" disabled>📥 Экспорт CSV</button>
         <span id="status" class="status"></span>
     </div>
+	
+	<!-- 🆕 Панель уведомлений о перегрузке -->
+<div id="overloadPanel" class="overload-panel" style="display: none;">
+    <div class="overload-header">
+        <span class="overload-icon">⚠️</span>
+        <strong>Внимание! Перегрузка в следующие часы:</strong>
+        <button class="close-overload" onclick="closeOverloadPanel()">✕</button>
+    </div>
+    <div id="overloadContent" class="overload-content"></div>
+</div>
 	
 <!-- 1. Сборка Диски -->
 <div class="chart-section">
@@ -509,18 +602,18 @@ function exportToCSV(selectedDate) {
         }
     }
 
-    function setStatus(message, type) {
+  function setStatus(message, type) {
         statusEl.textContent = message;
         statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
     }
 
-    function toggleControls(enabled) {
+   function toggleControls(enabled) {
         dateSelect.disabled = !enabled;
         refreshBtn.disabled = !enabled;
 		document.getElementById('exportBtn').disabled = !enabled; // 🆕
     }
 
-    function populateDateSelect() {
+   function populateDateSelect() {
         const dates = new Set();
         const dateCol = jsonData.columns.indexOf('Рабочий день');
         if (dateCol === -1) throw new Error('Колонка "Рабочий день" не найдена');
@@ -538,14 +631,14 @@ function exportToCSV(selectedDate) {
         });
     }
 
-    function getHourLabel(timeStr) {
+   function getHourLabel(timeStr) {
         if (!timeStr) return null;
         const parts = timeStr.split(':');
         const h = parseInt(parts[0]);
         return (h < 10 ? '0' : '') + h + ':00';
     }
 
-    function calculateDataForDate(selectedDate) {
+   function calculateDataForDate(selectedDate) {
         const result = { 
             assembly: Array(24).fill(0), 
             loading: Array(24).fill(0), 
@@ -660,15 +753,13 @@ function updateCharts(selectedDate) {
         try {
             const data = calculateDataForDate(selectedDate);
             
-            // 🔄 Проходим по всем графикам из конфигурации
+            // Проходим по всем графикам из конфигурации
             Object.keys(CHART_CONFIG).forEach(canvasId => {
-                // Пропускаем сменный график (он обрабатывается отдельно)
                 if (canvasId === 'chartLoadingShift') return;
                 
                 const config = CHART_CONFIG[canvasId];
                 let chartData;
                 
-                // Определяем какие данные использовать
                 if (canvasId === 'chartAssembly') chartData = data.assembly;
                 else if (canvasId === 'chartAssemblyRim') chartData = data.assembly_rim;
                 else if (canvasId === 'chartLoading') chartData = data.loading;
@@ -677,7 +768,7 @@ function updateCharts(selectedDate) {
                 
                 if (chartData) {
                     createOrUpdateChart(canvasId, chartData, config.color, config.norm);
-                    addHeaderToChart(canvasId); // 🆕 Добавляем заголовок
+                    addHeaderToChart(canvasId);
                 }
             });
             
@@ -688,6 +779,11 @@ function updateCharts(selectedDate) {
             };
             renderAllShiftedCharts(loadingData, 'Погрузка');
             
+            // 🆕 ПРОВЕРКА ПЕРЕГРУЗКИ
+            const overloads = checkOverload(selectedDate);
+            showOverloadPanel(overloads);
+            addOverloadIndicators(overloads);
+            
             setStatus(`Показаны данные за ${selectedDate}`, 'success');
         } catch (e) {
             console.error('Ошибка обработки:', e);
@@ -695,8 +791,148 @@ function updateCharts(selectedDate) {
         }
     }, 30);
 }
+
+// 🔔 Функция проверки перегрузки
+function checkOverload(selectedDate) {
+    if (!selectedDate || !jsonData) return [];
+    
+    const data = calculateDataForDate(selectedDate);
+    const overloads = [];
+    
+    // Конфигурация для проверки
+    const overloadConfig = [
+        { key: 'assembly', name: 'Сборка Шин', norm: norms.assembly, max: 3 },
+        { key: 'assembly_rim', name: 'Сборка Диски', norm: norms.assembly_rim, max: 1 },
+        { key: 'loading', name: 'Погрузка', norm: norms.loading, max: 1 },
+        { key: 'stickering', name: 'Стикеровка', norm: norms.stickering, max: 1 },
+        { key: 'palletizing', name: 'Упаковка', norm: norms.palletizing, max: 1 }
+    ];
+    
+    overloadConfig.forEach(config => {
+        data[config.key].forEach((volume, hourIndex) => {
+            if (volume > 0) {
+                const brigadesNeeded = Math.ceil(volume / config.norm);
+                if (brigadesNeeded > config.max) {
+                    overloads.push({
+                        workType: config.name,
+                        hour: labels[hourIndex],
+                        hourIndex: hourIndex,
+                        volume: volume,
+                        brigadesNeeded: brigadesNeeded,
+                        brigadesMax: config.max,
+                        overloadLevel: brigadesNeeded - config.max,
+                        severity: brigadesNeeded > config.max * 2 ? 'critical' : 'warning'
+                    });
+                }
+            }
+        });
+    });
+    
+    // Сортировка по критичности
+    overloads.sort((a, b) => {
+        if (a.severity === 'critical' && b.severity !== 'critical') return -1;
+        if (a.severity !== 'critical' && b.severity === 'critical') return 1;
+        return b.overloadLevel - a.overloadLevel;
+    });
+    
+    return overloads;
+}
+
+// 🔔 Функция отображения панели перегрузки
+function showOverloadPanel(overloads) {
+    const panel = document.getElementById('overloadPanel');
+    const content = document.getElementById('overloadContent');
+    
+    if (overloads.length === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+    
+    panel.style.display = 'block';
+    
+    // Ограничиваем до 10 самых критичных
+    const displayOverloads = overloads.slice(0, 10);
+    
+    content.innerHTML = displayOverloads.map(item => `
+        <div class="overload-item ${item.severity}">
+            <div>
+                <div class="overload-work">${item.workType}</div>
+                <div class="overload-time">🕐 ${item.hour} | ${item.volume} шт.</div>
+            </div>
+            <div class="overload-brigades">
+                ${item.brigadesNeeded} из ${item.brigadesMax} бриг.
+            </div>
+        </div>
+    `).join('');
+    
+    // 🆕 Звуковое уведомление (опционально)
+    if (overloads.some(o => o.severity === 'critical')) {
+        playNotificationSound();
+    }
+}
+
+// 🔔 Закрыть панель
+function closeOverloadPanel() {
+    document.getElementById('overloadPanel').style.display = 'none';
+}
+
+// 🔔 Звуковое уведомление (опционально)
+function playNotificationSound() {
+    // Создаем короткий звуковой сигнал
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    gainNode.gain.value = 0.1;
+    
+    oscillator.start();
+    setTimeout(() => oscillator.stop(), 200);
+}
+
+// 🔔 Добавить индикатор перегрузки в заголовок секции
+function addOverloadIndicators(overloads) {
+    // Сбрасываем все индикаторы
+    document.querySelectorAll('.overload-indicator').forEach(el => el.remove());
+    
+    // Группируем по типам работ
+    const overloadByWork = {};
+    overloads.forEach(item => {
+        if (!overloadByWork[item.workType]) {
+            overloadByWork[item.workType] = 0;
+        }
+        overloadByWork[item.workType]++;
+    });
+    
+    // Добавляем индикаторы к заголовкам
+    const workTypeMap = {
+        'Сборка Шин': 'chartAssembly',
+        'Сборка Диски': 'chartAssemblyRim',
+        'Погрузка': 'chartLoading',
+        'Стикеровка': 'chartStickering',
+        'Упаковка': 'chartPalletizing'
+    };
+    
+    Object.entries(overloadByWork).forEach(([workType, count]) => {
+        const canvasId = workTypeMap[workType];
+        if (canvasId) {
+            const header = document.querySelector(`button[data-target="${canvasId}"]`)?.closest('.chart-section-header');
+            if (header) {
+                const indicator = document.createElement('span');
+                indicator.className = 'overload-indicator';
+                indicator.textContent = `⚠️ ${count} ч.`;
+                indicator.title = `${count} часов перегрузки`;
+                header.querySelector('h2').appendChild(indicator);
+            }
+        }
+    });
+}
 	
-	function splitDataByShifts(hourlyData, labels) {//Функция разделения данных по сменам
+function splitDataByShifts(hourlyData, labels) {//Функция разделения данных по сменам
     // Смена 1: 09:00 - 21:00 (индексы 0-11, т.к. 09:00 это индекс 0, 21:00 это индекс 12)
     // Но 21:00 не включаем, поэтому slice(0, 12)
     const shift1 = {
