@@ -378,6 +378,13 @@ body {
 </head>
 <body>
 <button class="back-button" onclick="window.location.href='index.html'">← На главную</button>
+    <div class="theme-toggle-wrapper">
+        <button class="theme-toggle-btn" id="themeToggle">🌙 Тёмная</button>
+    </div>	
+	            <!-- 🆕 Переключатель темы -->
+        <button id="themeToggle" class="theme-toggle" title="Переключить тему">
+           <span class="theme-icon">🌙</span>
+           <span class="theme-text">Тёмная</span>
 <div class="container">
     <h1>Анализ пиковых нагрузок склада<br>Исходящий поток</h1>
 	 
@@ -387,10 +394,7 @@ body {
    <strong>Пики:</strong> Если столбец резко уходит вверх, и он <strong>красного цвета</strong> значит, в этот час нагрузка на одну бригаду превышает норму, и требуется усиление или перераспределение задач.</p>
 
         <div class="controls">
-            <!-- 🆕 Переключатель темы -->
-        <button id="themeToggle" class="theme-toggle" title="Переключить тему">
-           <span class="theme-icon">🌙</span>
-           <span class="theme-text">Тёмная</span>
+
 		   
         <label for="dateSelect">📅 Дата:</label>
         <select id="dateSelect" disabled><option>Загрузка...</option></select>
