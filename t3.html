@@ -226,6 +226,30 @@
 @keyframes pulse {    0%, 100% { opacity: 1; }    50% { opacity: 0.6; }}
 
 /* 🆕 Звуковое уведомление (опционально) */.notification-sound {    display: none;}
+
+/* 🆕 Статус подключения */
+.connection-status {    position: fixed;    bottom: 10px;    right: 10px;    padding: 6px 12px;    border-radius: 20px;    font-size: 0.85em;    color: white;    font-weight: 600;    z-index: 9999;    transition: all 0.3s ease;    box-shadow: 0 2px 8px rgba(0,0,0,0.2);}
+
+.connection-status.online {
+    background: #28a745;
+    animation: fadeInOut 3s infinite;
+}
+
+.connection-status.offline {
+    background: #dc3545;
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
     </style>
 </head>
 <body>
@@ -245,6 +269,11 @@
 		<button id="exportBtn" disabled>📥 Экспорт CSV</button>
         <span id="status" class="status"></span>
     </div>
+	
+	<!-- 🆕 Индикатор подключения к интернету -->
+	<div id="connectionStatus" class="connection-status online" style="display: none;">
+    <span>🌐 Подключение...</span>
+</div>
 	
 	<!-- 🆕 Панель уведомлений о перегрузке -->
 <div id="overloadPanel" class="overload-panel" style="display: none;">
@@ -1155,6 +1184,31 @@ function initChartToggles() {
     }, 100);
 }
 
+// 🆕 Мониторинг состояния сети
+function updateConnectionStatus() {
+    const statusEl = document.getElementById('connectionStatus');
+    if (!statusEl) return;
+    
+    if (navigator.onLine) {
+        statusEl.textContent = '🟢 Онлайн';
+        statusEl.classList.remove('offline');
+        statusEl.classList.add('online');
+        statusEl.style.display = 'block';
+    } else {
+        statusEl.textContent = '🔴 Офлайн (работает кэш)';
+        statusEl.classList.remove('online');
+        statusEl.classList.add('offline');
+        statusEl.style.display = 'block';
+    }
+}
+
+// Слушаем события изменения соединения
+window.addEventListener('online', updateConnectionStatus);
+window.addEventListener('offline', updateConnectionStatus);
+
+// Проверяем при загрузке страницы
+window.addEventListener('load', updateConnectionStatus);
+
 // 🆕 Вызов после загрузки данных
 document.addEventListener('DOMContentLoaded', function() {
     loadData();
@@ -1171,7 +1225,22 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 
 // Автозагрузка при открытии страницы
 document.addEventListener('DOMContentLoaded', loadData);
+
+
 </script>
+
+// 🆕 Регистрация Service Worker для PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log('ServiceWorker registration successful:', registration.scope);
+            })
+            .catch(err => {
+                console.log('ServiceWorker registration failed:', err);
+            });
+    });
+}
 
 </body>
 </html>
