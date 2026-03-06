@@ -1229,6 +1229,10 @@ async function loadData() {
         if (dateSelect.options.length > 1) {
             dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
             updateCharts(dateSelect.value);
+               
+      setTimeout(() => { // 🆕 Небольшая задержка для гарантированной инициализации
+        initChartToggles();
+    }, 200);
         }
         
     } catch (error) {
@@ -1411,6 +1415,11 @@ function createOrUpdateChart(canvasId, data, color, norm) {
                     addOverloadIndicators(overloads);
                     
                     setStatus(`Показаны данные за ${selectedDate}`, 'success');
+
+                                // 🆕 ПЕРЕИНИЦИАЛИЗАЦИЯ СВОРАЧИВАНИЯ ПОСЛЕ ОБНОВЛЕНИЯ
+            setTimeout(() => {
+                initChartToggles();
+            }, 100);
                 } catch(e) {
                     console.error(e);
                     setStatus(`Ошибка: ${e.message}`, 'error');
@@ -1419,45 +1428,52 @@ function createOrUpdateChart(canvasId, data, color, norm) {
         }
         
         // === СВОРАЧИВАНИЕ ГРАФИКОВ ===
-        function initChartToggles() {
-            const btns = document.querySelectorAll('.toggle-btn');
-            btns.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const t = this.getAttribute('data-target');
-                    const c = document.getElementById(`content-${t}`);
-                    if (c.classList.toggle('collapsed')) {
-                        this.classList.toggle('collapsed');
-                        this.querySelector('.toggle-text').textContent = 'Развернуть';
-                        if (charts[t]) charts[t].stop();
-                    } else {
-                        this.classList.toggle('collapsed');
-                        this.querySelector('.toggle-text').textContent = 'Свернуть';
-                        setTimeout(() => {
-                            if (charts[t]) charts[t].resize();
-                        }, 350);
-                    }
-                });
-                const h = btn.closest('.chart-section-header');
-                if (h) {
-                    h.addEventListener('click', (e) => {
-                        if (e.target !== btn && !btn.contains(e.target)) btn.click();
-                    });
+// 🆕 Функция инициализации сворачивания графиков
+function initChartToggles() {
+    const toggleButtons = document.querySelectorAll('.toggle-btn');
+    
+    toggleButtons.forEach(btn => {
+        // Удаляем старые обработчики клонированием элемента
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const targetId = this.getAttribute('data-target');
+            const content = document.getElementById(`content-${targetId}`);
+            const text = this.querySelector('.toggle-text');
+            
+            if (!content) return;
+            
+            // Переключаем класс collapsed
+            const isCollapsed = content.classList.toggle('collapsed');
+            this.classList.toggle('collapsed');
+            
+            // Меняем текст кнопки
+            text.textContent = isCollapsed ? 'Развернуть' : 'Свернуть';
+            
+            // Останавливаем/обновляем анимацию графика
+            if (isCollapsed && charts[targetId]) {
+                charts[targetId].stop();
+            } else if (!isCollapsed && charts[targetId]) {
+                setTimeout(() => {
+                    charts[targetId]?.resize();
+                }, 350);
+            }
+        });
+        
+        // Клик по заголовку тоже сворачивает
+        const header = newBtn.closest('.chart-section-header');
+        if (header) {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', (e) => {
+                if (e.target === header || e.target.tagName === 'H2') {
+                    newBtn.click();
                 }
             });
-            setTimeout(() => {
-                btns.forEach(btn => {
-                    const t = btn.getAttribute('data-target');
-                    const c = document.getElementById(`content-${t}`);
-                    if (c) {
-                        c.classList.add('collapsed');
-                        btn.classList.add('collapsed');
-                        const textEl = btn.querySelector('.toggle-text');
-                        if (textEl) textEl.textContent = 'Развернуть';
-                    }
-                });
-            }, 100);
         }
+    });
+}
         // 🗑️ Функция сброса кэша и Service Worker
 async function clearCacheAndReload() {
     const btn = document.getElementById('clearCacheBtn');
@@ -1526,7 +1542,7 @@ async function clearCacheAndReload() {
         // === INIT ===
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
-            initChartToggles();
+             // Не вызываем initChartToggles() здесь - она вызывается после отрисовки графиков
             loadData();
         });
         
