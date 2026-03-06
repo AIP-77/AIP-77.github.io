@@ -1130,12 +1130,7 @@ function createOrUpdateChart(canvasId, data, color, norm) {
                         }
                     });
 
-                                // Графики по сменам для Погрузки
-            const loadingData = {
-                labels: labels.map(h => h),
-                values: data.loading
-            };
-            renderAllShiftedCharts(loadingData, 'Погрузка');
+
                     
                     // ПРОВЕРКА ПЕРЕГРУЗКИ
                     const overloads = checkOverload(selectedDate);
