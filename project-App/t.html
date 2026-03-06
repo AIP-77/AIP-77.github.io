@@ -743,54 +743,60 @@
         const statusEl = document.getElementById('status');
 
         // 📅 СИСТЕМА ВЫБОРА МЕСЯЦА И ДАТЫ
+// === ДАННЫЕ И КОНФИГУРАЦИЯ ===
 const ARCHIVE_BASE_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/';
+const DEFAULT_DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/2026-03%20fullData.json';
+
+let jsonData = null;
+let currentDataUrl = DEFAULT_DATA_URL;
 let availableMonths = [];
 let availableDates = [];
 
+// Списки месяцев для проверки (обновляйте при добавлении новых файлов)
+const KNOWN_MONTHS = [
+    { value: '2026-03', label: 'Март 2026' },
+    { value: '2026-02', label: 'Февраль 2026' },
+    { value: '2026-01', label: 'Январь 2026' },
+    { value: '2025-12', label: 'Декабрь 2025' }
+];
+
 // 🔄 Получить список доступных месяцев
 async function fetchAvailableMonths() {
-    setStatus('📂 Загрузка списка месяцев...', 'loading');
+    const monthSelect = document.getElementById('monthSelect');
+    monthSelect.innerHTML = '<option>Загрузка...</option>';
+    monthSelect.disabled = true;
+    
+    setStatus('📂 Проверка доступных месяцев...', 'loading');
     
     try {
-        // Загружаем индексный файл или пытаемся определить доступные месяцы
-        // Для GitHub Raw API нужно заранее знать список или использовать индекс
+        const available = [];
         
-        // Попробуем загрузить текущий месяц и несколько предыдущих
-        const currentDate = new Date();
-        const months = [];
-        
-        // Проверяем последние 6 месяцев
-        for (let i = 0; i <= 6; i++) {
-            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-            const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            const url = `${ARCHIVE_BASE_URL}${encodeURIComponent(monthStr + ' fullData.json')}`;
-            
+        // Проверяем известные месяцы
+        for (const month of KNOWN_MONTHS) {
+            const url = `${ARCHIVE_BASE_URL}${encodeURIComponent(month.value + ' fullData.json')}`;
             try {
-                const response = await fetch(url, { method: 'HEAD' });
+                const response = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
                 if (response.ok) {
-                    months.push({
-                        value: monthStr,
-                        label: date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
-                    });
+                    available.push(month);
                 }
             } catch (e) {
                 // Месяц не доступен, пропускаем
             }
         }
         
-        // Сортируем от нового к старому
-        months.sort((a, b) => b.value.localeCompare(a.value));
-        
-        if (months.length === 0) {
-            throw new Error('Нет доступных данных');
+        if (available.length === 0) {
+            // Если ничего не найдено, используем дефолтный месяц
+            available.push({ value: '2026-03', label: 'Март 2026' });
         }
         
-        availableMonths = months;
+        availableMonths = available;
         populateMonthSelect();
         
     } catch (error) {
         console.error('Ошибка загрузки месяцев:', error);
-        setStatus('❌ Ошибка: ' + error.message, 'error');
+        // Fallback: показываем дефолтный месяц
+        availableMonths = [{ value: '2026-03', label: 'Март 2026' }];
+        populateMonthSelect();
     }
 }
 
@@ -830,32 +836,32 @@ async function loadDatesForMonth(monthStr) {
     
     try {
         const url = `${ARCHIVE_BASE_URL}${encodeURIComponent(monthStr + ' fullData.json')}`;
-        const response = await fetch(url, { cache: 'no-cache' });
+        currentDataUrl = url;
         
+        const response = await fetch(url, { cache: 'no-cache' });
         if (!response.ok) {
-            throw new Error('Не удалось загрузить данные за месяц');
+            throw new Error(`HTTP ${response.status}: файл не найден`);
         }
         
-        const jsonData = await response.json();
+        const monthData = await response.json();
         
-        if (!jsonData.data || !jsonData.columns) {
+        if (!monthData.data || !monthData.columns) {
             throw new Error('Неверная структура данных');
         }
         
-        // Извлекаем уникальные даты
-        const dateCol = jsonData.columns.indexOf('Рабочий день');
+        // Извлекаем уникальные даты из загруженных данных
+        const dateCol = monthData.columns.indexOf('Рабочий день');
         if (dateCol === -1) {
             throw new Error('Колонка "Рабочий день" не найдена');
         }
         
         const dates = new Set();
-        jsonData.data.forEach(row => {
+        monthData.data.forEach(row => {
             if (row[dateCol]) {
                 dates.add(row[dateCol]);
             }
         });
         
-        // Сортируем даты
         availableDates = [...dates].sort();
         
         if (availableDates.length === 0) {
@@ -863,16 +869,17 @@ async function loadDatesForMonth(monthStr) {
         }
         
         // Заполняем селектор дат
-        populateDateSelect();
+        populateDateSelectFromArray(availableDates);
         
-        // Автоматически выбираем последнюю дату месяца
+        // Автоматически выбираем последнюю дату
         const lastDate = availableDates[availableDates.length - 1];
         dateSelect.value = lastDate;
         
         setStatus(`✅ Загружено ${availableDates.length} дат`, 'success');
         dateSelect.disabled = false;
         
-        // Автоматически загружаем данные для последней даты
+        // Обновляем глобальные данные и графики
+        jsonData = monthData;
         setTimeout(() => {
             updateCharts(lastDate);
         }, 100);
@@ -881,21 +888,23 @@ async function loadDatesForMonth(monthStr) {
         console.error('Ошибка загрузки дат:', error);
         setStatus('❌ Ошибка: ' + error.message, 'error');
         dateSelect.innerHTML = '<option>Нет данных</option>';
+        dateSelect.disabled = true;
     }
 }
-
-// 📋 Заполнить селектор дат
-function populateDateSelect() {
+// 📋 Заполнить селектор дат из массива
+function populateDateSelectFromArray(dates) {
     const dateSelect = document.getElementById('dateSelect');
     dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
     
-    availableDates.forEach(date => {
+    dates.forEach(date => {
         const option = document.createElement('option');
         option.value = date;
         option.textContent = date;
         dateSelect.appendChild(option);
     });
 }
+        
+
 
 // 🔄 Обновить DATA_URL для текущей загрузки
 function getCurrentDataUrl() {
@@ -1156,38 +1165,37 @@ function addDailyTotalsToHeader(canvasId, totals) {
         }
         
         // === ЗАГРУЗКА ДАННЫХ ===
-       // Загрузка данных с обработкой ошибок
+
+// Загрузка данных с обработкой ошибок
 async function loadData() {
-    const monthSelect = document.getElementById('monthSelect');
-    const dateSelect = document.getElementById('dateSelect');
-    
-    if (!monthSelect.value) {
-        setStatus('⚠️ Выберите месяц', 'error');
-        return;
-    }
-    
     setStatus('Загрузка данных...', 'loading');
     toggleControls(false);
     
     try {
-        const dataUrl = getCurrentDataUrl();
-        if (!dataUrl) throw new Error('Не выбран месяц');
-        
-        const response = await fetch(dataUrl, { cache: 'no-cache' });
+        const response = await fetch(currentDataUrl, { cache: 'no-cache' });
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         
         jsonData = await response.json();
         
         if (!jsonData.data || !jsonData.columns) throw new Error('Неверная структура JSON');
         
-        // Обновляем список дат (на случай если данные изменились)
-        await loadDatesForMonth(monthSelect.value);
+        // Обновляем список дат из загруженных данных
+        const dateCol = jsonData.columns.indexOf('Рабочий день');
+        if (dateCol !== -1) {
+            const dates = new Set();
+            jsonData.data.forEach(row => {
+                if (row[dateCol]) dates.add(row[dateCol]);
+            });
+            availableDates = [...dates].sort();
+            populateDateSelectFromArray(availableDates);
+        }
         
         setStatus('Данные загружены', 'success');
         toggleControls(true);
         
-        // Автовыбор последней даты если не выбрана
-        if (dateSelect.options.length > 1 && !dateSelect.value) {
+        // Автовыбор последней даты
+        const dateSelect = document.getElementById('dateSelect');
+        if (dateSelect.options.length > 1) {
             dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
             updateCharts(dateSelect.value);
         }
@@ -1195,6 +1203,9 @@ async function loadData() {
     } catch (error) {
         console.error('Ошибка загрузки:', error);
         setStatus(`❌ Ошибка: ${error.message}. Проверьте консоль (F12) и URL файла.`, 'error');
+        const dateSelect = document.getElementById('dateSelect');
+        dateSelect.innerHTML = '<option>Нет данных</option>';
+        dateSelect.disabled = true;
     }
 }
         
@@ -1490,21 +1501,22 @@ async function clearCacheAndReload() {
         
         // События
 // 📅 Обработчики для выбора месяца и даты
-document.getElementById('monthSelect').addEventListener('change', (e) => {
+document.getElementById('monthSelect')?.addEventListener('change', (e) => {
     if (e.target.value) {
         loadDatesForMonth(e.target.value);
     }
 });
 
-dateSelect.addEventListener('change', (e) => {
-    if (e.target.value) {
+document.getElementById('dateSelect')?.addEventListener('change', (e) => {
+    if (e.target.value && jsonData) {
         updateCharts(e.target.value);
     }
 });
 
-refreshBtn.addEventListener('click', () => loadData());
-document.getElementById('exportBtn').addEventListener('click', () => {
-    exportToCSV(dateSelect.value);
+document.getElementById('refreshBtn')?.addEventListener('click', () => loadData());
+document.getElementById('exportBtn')?.addEventListener('click', () => {
+    const dateSelect = document.getElementById('dateSelect');
+    if (dateSelect.value) exportToCSV(dateSelect.value);
 });
 document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
 
@@ -1512,7 +1524,8 @@ document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAn
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initChartToggles();
-    fetchAvailableMonths();  // 🆕 Загружаем список месяцев
+    fetchAvailableMonths();  // Загружаем список месяцев
+    updateConnectionStatus(); // Проверяем соединение
 });
         
         // === PWA ===
