@@ -746,7 +746,7 @@
 // === ДАННЫЕ И КОНФИГУРАЦИЯ ===
 const ARCHIVE_BASE_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/';
 const DEFAULT_DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/2026-03%20fullData.json';
-
+let currentDataUrl = DATA_URL;  // <-- ДОБАВИТЬ
 
 // Списки месяцев для проверки (обновляйте при добавлении новых файлов)
 const KNOWN_MONTHS = [
@@ -1097,20 +1097,55 @@ function addDailyTotalsToHeader(canvasId, totals) {
         
         function closeOverloadPanel() { document.getElementById('overloadPanel').style.display='none'; }
         
-        function playNotificationSound() {
-            try {
-                const ac = new (window.AudioContext || window.webkitAudioContext)();
-                const os = ac.createOscillator();
-                const gn = ac.createGain();
-                os.connect(gn);
-                gn.connect(ac.destination);
-                os.frequency.value = 800;
-                os.type = 'sine';
-                gn.gain.value = 0.1;
-                os.start();
-                setTimeout(() => os.stop(), 200);
-            } catch(e) { console.log('Audio error:', e); }
+// 🔔 Звуковое уведомление (безопасная версия)
+function playNotificationSound() {
+    try {
+        // Проверяем поддержку AudioContext
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        
+        const audioContext = new AudioCtx();
+        
+        // Проверяем состояние контекста
+        if (audioContext.state === 'suspended') {
+            // Пытаемся возобновить (может сработать если было взаимодействие)
+            audioContext.resume().then(() => {
+                playBeep(audioContext);
+            }).catch(() => {
+                // Если не получилось - молча выходим
+                audioContext.close();
+            });
+        } else {
+            playBeep(audioContext);
         }
+    } catch (e) {
+        // Тихо игнорируем ошибки аудио
+        console.log('🔇 Звук отключён:', e.message);
+    }
+}
+
+// Вспомогательная функция для воспроизведения сигнала
+function playBeep(audioContext) {
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.value = 0.05; // Тихий звук
+        
+        oscillator.start();
+        setTimeout(() => {
+            oscillator.stop();
+            audioContext.close();
+        }, 150);
+    } catch (e) {
+        console.log('🔇 Ошибка воспроизведения:', e.message);
+    }
+}
         
         function addOverloadIndicators(overloads) {
             document.querySelectorAll('.overload-indicator').forEach(e => e.remove());
