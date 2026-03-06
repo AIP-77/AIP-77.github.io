@@ -804,7 +804,7 @@ function calculateDailyTotals(selectedDate) {
     };
 }
 
-        // 📊 Функция добавления итогов в заголовок секции
+// 📊 Функция добавления итогов в заголовок секции
 function addDailyTotalsToHeader(canvasId, totals) {
     const section = document.querySelector(`button[data-target="${canvasId}"]`)?.closest('.chart-section');
     if (!section || !totals) return;
@@ -817,12 +817,22 @@ function addDailyTotalsToHeader(canvasId, totals) {
     const config = CHART_CONFIG[canvasId];
     if (!config) return;
     
+    // 🔄 ИСПРАВЛЕНИЕ: Правильное сопоставление canvasId с ключом данных
+    const dataKeyMap = {
+        'chartAssembly': 'assembly',
+        'chartAssemblyRim': 'assembly_rim',
+        'chartLoading': 'loading',
+        'chartStickering': 'stickering',
+        'chartPalletizing': 'palletizing'
+    };
+    
+    const dataKey = dataKeyMap[canvasId];
+    const totalVolume = dataKey ? totals[dataKey] || 0 : 0;
+    const totalBrigades = Math.ceil(totalVolume / config.norm);
+    
     // Создаём элемент с итогами
     const totalsDiv = document.createElement('div');
     totalsDiv.className = 'daily-totals';
-    
-    const totalVolume = totals[canvasId.replace('chart', '').toLowerCase()] || 0;
-    const totalBrigades = Math.ceil(totalVolume / config.norm);
     
     totalsDiv.innerHTML = `
         <span class="totals-value" title="Общий объем за сутки">
