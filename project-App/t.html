@@ -871,61 +871,85 @@
                 charts[id].update('none');
                 return;
             }
-            charts[id] = new Chart(ctx, {
+charts[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Объем (штук)',
+                data: data,
+                type: 'line',  // ✅ Явно указываем тип line
+                backgroundColor: color + '33',  // ✅ Более видимое заполнение
+                borderColor: color,
+                borderWidth: 3,  // ✅ Увеличили толщину линии
+                yAxisID: 'y',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,  // ✅ Увеличили точки
+                pointHoverRadius: 5,
+                pointBackgroundColor: color,
+                order: 1  // ✅ Линия поверх столбцов
+            },
+            {
+                label: 'Требуемый ресурс (бригад/час)',
+                data: fteData,
                 type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Объем (шт)',
-                            data: data,
-                            backgroundColor: color + '22',
-                            borderColor: color,
-                            borderWidth: 2,
-                            yAxisID: 'y',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Бригады',
-                            data: fte,
-                            type: 'bar',
-                            backgroundColor: '#34495e88',
-                            yAxisID: 'y1'
+                backgroundColor: '#34495e88',
+                yAxisID: 'y1',
+                barThickness: 20,
+                order: 2  // ✅ Столбцы под линией
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 300 },
+        scales: {
+            y: {
+                type: 'linear',
+                position: 'left',
+                title: { display: true, text: 'Штуки' },
+                beginAtZero: true,
+                grid: { color: 'var(--chart-grid)' }
+            },
+            y1: {
+                type: 'linear',
+                position: 'right',
+                title: { display: true, text: 'Бригады' },
+                grid: { drawOnChartArea: false },
+                beginAtZero: true
+            }
+        },
+        plugins: {
+            tooltip: {
+                backgroundColor: 'var(--tooltip-bg)',
+                titleColor: '#ffffff',
+                bodyColor: '#ffffff',
+                borderColor: 'var(--border-color)',
+                borderWidth: 1,
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        if (context.datasetIndex === 0) {
+                            return `Объем: ${context.parsed.y} шт.`;
+                        } else {
+                            return `Бригады: ${context.parsed.y}`;
                         }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            position: 'left',
-                            title: { display: true, text: 'Штуки' },
-                            beginAtZero: true,
-                            grid: { color: 'var(--chart-grid)' }
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            title: { display: true, text: 'Бригады' },
-                            grid: { drawOnChartArea: false },
-                            beginAtZero: true
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: c => c.dataset.label + ': ' + c.parsed.y + (c.datasetIndex ? '' : ' (по норме)')
-                            }
-                        },
-                        legend: { display: false }
                     }
                 }
-            });
+            },
+            legend: { 
+                labels: { 
+                    font: { size: 11 }, 
+                    color: 'var(--text-primary)' 
+                } 
+            }
+        }
+    }
+});
         }
         
         function addHeaderToChart(id) {
