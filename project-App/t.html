@@ -63,7 +63,7 @@
             color: var(--text-primary);
             transition: background-color 0.3s ease, color 0.3s ease;
             min-height: 100vh;
-            padding-top: 60px;
+            padding-top: 70px;
         }
         
         .page-container {
@@ -83,6 +83,8 @@
             align-items: center;
             z-index: 1000;
             pointer-events: none;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         
         .nav-btn {
@@ -104,6 +106,28 @@
         }
         
         .nav-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+        
+        .theme-toggle-btn {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle-btn:hover {
             background: var(--accent-hover);
             transform: translateY(-2px);
         }
@@ -140,7 +164,6 @@
             line-height: 1.6;
         }
         
-        /* Контейнер с описанием скрыт если свернут */
         .header-description {
             overflow: hidden;
             transition: max-height 0.3s ease, opacity 0.3s ease;
@@ -210,30 +233,17 @@
             color: white;
         }
         
-        .refresh-btn:hover {
-            background: var(--accent-hover);
-        }
-        
-        .refresh-btn:disabled {
-            background: var(--border-color);
-            cursor: not-allowed;
-        }
+        .refresh-btn:hover { background: var(--accent-hover); }
+        .refresh-btn:disabled { background: var(--border-color); cursor: not-allowed; }
         
         .export-btn {
             background: var(--success-color);
             color: white;
         }
         
-        .export-btn:hover {
-            background: #218838;
-        }
+        .export-btn:hover { background: #218838; }
+        .export-btn:disabled { background: #ccc; cursor: not-allowed; }
         
-        .export-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        /* === СТАТУС === */
         .status {
             text-align: center;
             color: var(--text-secondary);
@@ -242,14 +252,8 @@
             width: 100%;
         }
         
-        .error {
-            color: var(--danger-color);
-            font-weight: 500;
-        }
-        
-        .success {
-            color: var(--success-color);
-        }
+        .error { color: var(--danger-color); font-weight: 500; }
+        .success { color: var(--success-color); }
         
         /* === ИНДИКАТОРЫ === */
         .connection-status {
@@ -266,32 +270,15 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         
-        .connection-status.online {
-            background: var(--success-color);
-            animation: fadeInOut 3s infinite;
-        }
+        .connection-status.online { background: var(--success-color); animation: fadeInOut 3s infinite; }
+        .connection-status.offline { background: var(--danger-color); animation: shake 0.5s ease-in-out; }
         
-        .connection-status.offline {
-            background: var(--danger-color);
-            animation: shake 0.5s ease-in-out;
-        }
-        
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
+        @keyframes fadeInOut { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         
         /* === ПАНЕЛЬ ПЕРЕГРУЗКИ === */
         .overload-panel {
-            background: linear-gradient(135deg, 
-                var(--warning-color, #fff3cd) 0%, 
-                var(--warning-color, #ffe5a8) 100%);
+            background: linear-gradient(135deg, var(--warning-color, #fff3cd) 0%, var(--warning-color, #ffe5a8) 100%);
             border: 2px solid var(--warning-color);
             border-radius: 8px;
             padding: 15px 20px;
@@ -300,10 +287,7 @@
             animation: slideDown 0.3s ease;
         }
         
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
         .overload-header {
             display: flex;
@@ -312,15 +296,8 @@
             margin-bottom: 10px;
         }
         
-        .overload-header strong {
-            color: #856404;
-            font-size: 1.1em;
-        }
-        
-        .overload-icon {
-            font-size: 1.3em;
-            margin-right: 8px;
-        }
+        .overload-header strong { color: #856404; font-size: 1.1em; }
+        .overload-icon { font-size: 1.3em; margin-right: 8px; }
         
         .close-overload {
             background: var(--warning-color);
@@ -333,9 +310,7 @@
             transition: background 0.2s;
         }
         
-        .close-overload:hover {
-            background: #e0a800;
-        }
+        .close-overload:hover { background: #e0a800; }
         
         .overload-content {
             display: grid;
@@ -353,25 +328,11 @@
             align-items: center;
         }
         
-        .overload-item.critical {
-            border-left-color: var(--danger-color);
-            background: var(--bg-secondary);
-        }
+        .overload-item.critical { border-left-color: var(--danger-color); background: var(--bg-secondary); }
+        .overload-item.warning { border-left-color: var(--warning-color); background: var(--bg-secondary); }
         
-        .overload-item.warning {
-            border-left-color: var(--warning-color);
-            background: var(--bg-secondary);
-        }
-        
-        .overload-work {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        .overload-time {
-            color: var(--text-secondary);
-            font-size: 0.9em;
-        }
+        .overload-work { font-weight: 600; color: var(--text-primary); }
+        .overload-time { color: var(--text-secondary); font-size: 0.9em; }
         
         .overload-brigades {
             background: var(--danger-color);
@@ -395,10 +356,7 @@
             vertical-align: middle;
         }
         
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         
         /* === ГРАФИКИ === */
         .chart-section {
@@ -420,9 +378,7 @@
             transition: background 0.2s;
         }
         
-        .chart-section-header:hover {
-            background: var(--header-bg);
-        }
+        .chart-section-header:hover { background: var(--header-bg); }
         
         .chart-section-header h2 {
             margin: 0;
@@ -449,13 +405,8 @@
             pointer-events: auto;
         }
         
-        .toggle-btn:hover {
-            background: var(--accent-hover);
-        }
-        
-        .toggle-btn.collapsed {
-            background: var(--border-color);
-        }
+        .toggle-btn:hover { background: var(--accent-hover); }
+        .toggle-btn.collapsed { background: var(--border-color); }
         
         .toggle-icon {
             font-size: 0.8em;
@@ -490,62 +441,6 @@
             max-height: 350px;
         }
         
-        /* === ЗАГОЛОВОК С НОРМАМИ === */
-        .chart-header-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 10px 15px;
-            background: var(--header-bg);
-            border-radius: 6px 6px 0 0;
-            font-size: 0.9em;
-            color: var(--text-primary);
-            border-bottom: 2px solid var(--border-color);
-        }
-        
-        .norm-badge {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 10px;
-            background: var(--card-bg);
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            font-weight: 600;
-        }
-        
-        .norm-icon {
-            font-size: 1.1em;
-        }
-        
-        /* === ТЕМА TOGGLE === */
-        .theme-toggle-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 16px;
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .theme-toggle-btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-        }
-        
-        .theme-icon {
-            font-size: 1.2em;
-        }
-        
         /* === АДАПТИВНОСТЬ === */
         @media (max-width: 768px) {
             .nav-buttons-wrapper {
@@ -560,21 +455,8 @@
                 align-items: stretch;
             }
             
-            .controls select,
-            .controls button {
+            .controls select, .controls button {
                 width: 100%;
-            }
-            
-            .chart-header-info {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .theme-toggle-wrapper {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 1000;
             }
         }
     </style>
@@ -608,7 +490,7 @@
     
     <!-- === ОСНОВНОЙ КОНТЕЙНЕР === -->
     <div class="page-container">
-        <!-- === ЗАГОЛОВОК (СВОРЧИВАЕМЫЙ) === -->
+        <!-- === ЗАГОЛОВОК (СВОРАЧИВАЕМЫЙ) === -->
         <div class="page-header" id="headerWrapper">
             <div class="header-content collapsed" onclick="toggleHeader()" title="Нажмите чтобы свернуть">
                 <span class="header-title">📦 Анализ пиковых нагрузок склада — Исходящий поток</span>
@@ -641,7 +523,6 @@
                 </button>
             </div>
             <div class="chart-section-content" id="content-chartAssemblyRim">
-                <!-- Заголовок добавится автоматически через JS -->
                 <div class="chart-container"><canvas id="chartAssemblyRim"></canvas></div>
             </div>
         </div>
@@ -770,7 +651,7 @@
             if (!btn) return;
             const theme = document.documentElement.getAttribute('data-theme') || 'light';
             const icon = btn.querySelector('.theme-icon');
-            const text = btn.querySelector('#themeText');
+            const text = document.getElementById('themeText');
             if (theme === 'dark') {
                 icon.textContent = '☀️';
                 text.textContent = 'Светлая';
@@ -783,6 +664,16 @@
         function toggleTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
             setTheme(currentTheme === 'light' ? 'dark' : 'light');
+        }
+        
+        // === СВОРАЧИВАНИЕ ЗАГОЛОВКА ===
+        function toggleHeader() {
+            const desc = document.getElementById('headerDescription');
+            const head = document.querySelector('#headerWrapper .header-content');
+            if (desc && head) {
+                desc.classList.toggle('collapsed');
+                head.classList.toggle('collapsed');
+            }
         }
         
         // === ОБЪЁМ И ПЕРЕГРУЗКА ===
@@ -842,7 +733,11 @@
                     }
                 });
             });
-            overloads.sort((a, b) => (a.severity===critical && b.severity!=='critical')? -1 : ((a.severity!=='critical'&&b.severity==='critical')?1:b.brigadesNeeded-a.brigadesNeeded));
+            overloads.sort((a, b) => {
+                if (a.severity === 'critical' && b.severity !== 'critical') return -1;
+                if (a.severity !== 'critical' && b.severity === 'critical') return 1;
+                return b.brigadesNeeded - a.brigadesNeeded;
+            });
             return overloads;
         }
         
@@ -858,103 +753,302 @@
         function closeOverloadPanel() { document.getElementById('overloadPanel').style.display='none'; }
         
         function playNotificationSound() {
-            const ac=new AudioContext();const os=ac.createOscillator();const gn=ac.createGain();
-            os.connect(gn);gn.connect(ac.destination);os.frequency.value=800;gs.type='sine';gn.gain.value=0.1;os.start();setTimeout(()=>os.stop(),200);
+            try {
+                const ac = new (window.AudioContext || window.webkitAudioContext)();
+                const os = ac.createOscillator();
+                const gn = ac.createGain();
+                os.connect(gn);
+                gn.connect(ac.destination);
+                os.frequency.value = 800;
+                os.type = 'sine';
+                gn.gain.value = 0.1;
+                os.start();
+                setTimeout(() => os.stop(), 200);
+            } catch(e) { console.log('Audio error:', e); }
         }
         
         function addOverloadIndicators(overloads) {
-            document.querySelectorAll('.overload-indicator').forEach(e=>e.remove());
-            const byWork={};overloads.forEach(o=>{byWork[o.workType]=(byWork[o.workType]||0)+1});
-            const map={'Сборка Шин':'chartAssembly','Сборка Диски':'chartAssemblyRim','Погрузка':'chartLoading','Стикеровка':'chartStickering','Упаковка':'chartPalletizing'};
-            Object.entries(byWork).forEach(([w,c])=>{
-                const el=document.querySelector(`button[data-target="${map[w]}"]`)?.closest('.chart-section-header')?.querySelector('h2');
-                if(el){const ind=document.createElement('span');ind.className='overload-indicator';ind.textContent=`⚠️ ${c} ч.`;ind.title=`${c} часов перегрузки`;el.appendChild(ind);}
+            document.querySelectorAll('.overload-indicator').forEach(e => e.remove());
+            const byWork = {};
+            overloads.forEach(o => { byWork[o.workType] = (byWork[o.workType] || 0) + 1; });
+            const map = {
+                'Сборка Шин': 'chartAssembly',
+                'Сборка Диски': 'chartAssemblyRim',
+                'Погрузка': 'chartLoading',
+                'Стикеровка': 'chartStickering',
+                'Упаковка': 'chartPalletizing'
+            };
+            Object.entries(byWork).forEach(([w, c]) => {
+                const el = document.querySelector(`button[data-target="${map[w]}"]`)?.closest('.chart-section-header')?.querySelector('h2');
+                if (el) {
+                    const ind = document.createElement('span');
+                    ind.className = 'overload-indicator';
+                    ind.textContent = `⚠️ ${c} ч.`;
+                    ind.title = `${c} часов перегрузки`;
+                    el.appendChild(ind);
+                }
             });
         }
         
         // === ЭКСПОРТ ===
         function exportToCSV(date) {
-            if(!date||!jsonData){setStatus('❌ Нет данных для экспорта','error');return;}
-            try{
-                const d=calculateDataForDate(date);let csv=['Час','Сборка_Шин','Сборка_Диски','Погрузка','Стикеровка','Упаковка','Бригады_Шин','Бригады_Диски','Бригады_Погрузка','Бригады_Стикеровка','Бригады_Упаковка'].join(',')+'\n';
-                for(let i=0;i<24;i++){csv+=[labels[i],d.assembly[i],d.assembly_rim[i],d.loading[i],d.stickering[i],d.palletizing[i],Math.ceil(d.assembly[i]/norms.assembly),Math.ceil(d.assembly_rim[i]/norms.assembly_rim),Math.ceil(d.loading[i]/norms.loading),Math.ceil(d.stickering[i]/norms.stickering),Math.ceil(d.palletizing[i]/norms.palletizing)].join(',')+'\n';}
-                const b=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download=`Склад_Нагрузки_${date}.csv`;document.body.appendChild(l);l.click();document.body.removeChild(l);setStatus('✅ Экспортировано!', 'success');
-                document.getElementById('exportBtn').classList.add('export-success');setTimeout(()=>document.getElementById('exportBtn').classList.remove('export-success'),300);
-            }catch(e){console.error(e);setStatus('❌ Ошибка: '+e.message,'error');}
+            if (!date || !jsonData) { setStatus('❌ Нет данных для экспорта', 'error'); return; }
+            try {
+                const d = calculateDataForDate(date);
+                let csv = ['Час','Сборка_Шин','Сборка_Диски','Погрузка','Стикеровка','Упаковка','Бригады_Шин','Бригады_Диски','Бригады_Погрузка','Бригады_Стикеровка','Бригады_Упаковка'].join(',') + '\n';
+                for (let i = 0; i < 24; i++) {
+                    csv += [labels[i], d.assembly[i], d.assembly_rim[i], d.loading[i], d.stickering[i], d.palletizing[i],
+                        Math.ceil(d.assembly[i]/norms.assembly), Math.ceil(d.assembly_rim[i]/norms.assembly_rim),
+                        Math.ceil(d.loading[i]/norms.loading), Math.ceil(d.stickering[i]/norms.stickering),
+                        Math.ceil(d.palletizing[i]/norms.palletizing)].join(',') + '\n';
+                }
+                const b = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                const l = document.createElement('a');
+                l.href = URL.createObjectURL(b);
+                l.download = `Склад_Нагрузки_${date}.csv`;
+                document.body.appendChild(l);
+                l.click();
+                document.body.removeChild(l);
+                setStatus('✅ Экспортировано!', 'success');
+                document.getElementById('exportBtn').classList.add('export-success');
+                setTimeout(() => document.getElementById('exportBtn').classList.remove('export-success'), 300);
+            } catch(e) { console.error(e); setStatus('❌ Ошибка: ' + e.message, 'error'); }
         }
         
         // === ЗАГРУЗКА ДАННЫХ ===
         async function loadData() {
-            setStatus('Загрузка...', 'loading');toggleControls(false);
-            try{
-                const r=await fetch(DATA_URL,{cache:'no-cache'});if(!r.ok)throw new Error(r.status+' '+r.statusText);jsonData=await r.json();if(!jsonData.data||!jsonData.columns)throw new Error('Неверная структура JSON');populateDateSelect();setStatus('Данные загружены','success');toggleControls(true);if(dateSelect.options.length>1){dateSelect.value=dateSelect.options[dateSelect.options.length-1].value;updateCharts(dateSelect.value);}
-            }catch(e){console.error(e);setStatus('❌ Ошибка: '+e.message,'error');dateSelect.innerHTML='<option>Нет данных</option>';}
+            setStatus('Загрузка...', 'loading');
+            toggleControls(false);
+            try {
+                const r = await fetch(DATA_URL, { cache: 'no-cache' });
+                if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+                jsonData = await r.json();
+                if (!jsonData.data || !jsonData.columns) throw new Error('Неверная структура JSON');
+                populateDateSelect();
+                setStatus('Данные загружены', 'success');
+                toggleControls(true);
+                if (dateSelect.options.length > 1) {
+                    dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
+                    updateCharts(dateSelect.value);
+                }
+            } catch(e) {
+                console.error(e);
+                setStatus('❌ Ошибка: ' + e.message, 'error');
+                dateSelect.innerHTML = '<option>Нет данных</option>';
+            }
         }
         
-        function setStatus(msg,type){statusEl.textContent=msg;statusEl.className=`status ${type==='error'?'error':type==='success'?'success':''}`;}
-        function toggleControls(en){dateSelect.disabled=!en;refreshBtn.disabled=!en;document.getElementById('exportBtn').disabled=!en;}
+        function setStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
+        }
         
-        function populateDateSelect(){const dates=new Set();const dc=jsonData.columns.indexOf('Рабочий день');jsonData.data.forEach(r=>{if(r[dc])dates.add(r[dc]);});dateSelect.innerHTML='<option value="">-- Выберите дату --</option>';[...dates].sort().forEach(d=>{const o=document.createElement('option');o.value=o.textContent=d;dateSelect.appendChild(o);});}
+        function toggleControls(en) {
+            dateSelect.disabled = !en;
+            refreshBtn.disabled = !en;
+            document.getElementById('exportBtn').disabled = !en;
+        }
+        
+        function populateDateSelect() {
+            const dates = new Set();
+            const dc = jsonData.columns.indexOf('Рабочий день');
+            jsonData.data.forEach(r => { if (r[dc]) dates.add(r[dc]); });
+            dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
+            [...dates].sort().forEach(d => {
+                const o = document.createElement('option');
+                o.value = o.textContent = d;
+                dateSelect.appendChild(o);
+            });
+        }
         
         // === ГРАФИКИ ===
-        function createOrUpdateChart(id,data,color,norm){
-            const ctx=document.getElementById(id).getContext('2d');const fte=data.map(v=>(v/norm).toFixed(2));
-            if(charts[id]){charts[id].data.datasets[0].data=data;charts[id].data.datasets[1].data=fte;charts[id].update('none');return;}
-            charts[id]=new Chart(ctx,{type:'bar',data:{labels,label:[],datasets:[{label:'Объем (шт)',data,backgroundColor:color+'22',borderColor:color,borderWidth:2,yAxisID:'y',fill:true,tension:0.4},{label:'Бригады',data:fte,type:'bar',backgroundColor:'#34495e88',yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{type:'linear',position:'left',title:{display:true,text:'Штуки'},beginAtZero:true,grid:{color:'var(--chart-grid)'}},y1:{type:'linear',position:'right',title:{display:true,text:'Бригады'},grid:{drawOnChartArea:false},beginAtZero:true}},plugins:{tooltip:{mode:'index',intersect:false,callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+(c.datasetIndex?'':' (по норме)')}},legend:{display:false}}}});}
+        function createOrUpdateChart(id, data, color, norm) {
+            const ctx = document.getElementById(id).getContext('2d');
+            const fte = data.map(v => (v / norm).toFixed(2));
+            if (charts[id]) {
+                charts[id].data.datasets[0].data = data;
+                charts[id].data.datasets[1].data = fte;
+                charts[id].update('none');
+                return;
+            }
+            charts[id] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Объем (шт)',
+                            data: data,
+                            backgroundColor: color + '22',
+                            borderColor: color,
+                            borderWidth: 2,
+                            yAxisID: 'y',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Бригады',
+                            data: fte,
+                            type: 'bar',
+                            backgroundColor: '#34495e88',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Штуки' },
+                            beginAtZero: true,
+                            grid: { color: 'var(--chart-grid)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Бригады' },
+                            grid: { drawOnChartArea: false },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: c => c.dataset.label + ': ' + c.parsed.y + (c.datasetIndex ? '' : ' (по норме)')
+                            }
+                        },
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
         
-        function addHeaderToChart(id){const c=document.getElementById(id);if(!c)return;const old=c.parentElement.querySelector('.chart-header-info');if(old)old.remove();const hd=document.createElement('div');hd.className='chart-header-info';hd.innerHTML=`<span>${CHART_CONFIG[id].name}</span><span class="norm-badge"><span class="norm-icon">📊</span><strong>Норма: ${CHART_CONFIG[id].normText}</strong></span><span class="norm-badge"><span class="norm-icon">👥</span><strong>Макс: ${CHART_CONFIG[id].max} бриг.</strong></span>`;c.parentElement.insertBefore(hd,c);}
+        function addHeaderToChart(id) {
+            const c = document.getElementById(id);
+            if (!c) return;
+            const old = c.parentElement.querySelector('.chart-header-info');
+            if (old) old.remove();
+            const hd = document.createElement('div');
+            hd.className = 'chart-header-info';
+            hd.innerHTML = `<span>${CHART_CONFIG[id].name}</span><span class="norm-badge"><span class="norm-icon">📊</span><strong>Норма: ${CHART_CONFIG[id].normText}</strong></span><span class="norm-badge"><span class="norm-icon">👥</span><strong>Макс: ${CHART_CONFIG[id].max} бриг.</strong></span>`;
+            c.parentElement.insertBefore(hd, c);
+        }
         
-        function updateCharts(date){
-            if(!date||!jsonData)return;setStatus(`Обработка за ${date}...`,`loading`);
-            setTimeout(()=>{try{const d=calculateDataForDate(date);Object.keys(CHART_CONFIG).forEach(id=>{if(id==='chartLoadingShift')return;let cd;if(id==='chartAssembly')cd=d.assembly;else if(id==='chartAssemblyRim')cd=d.assembly_rim;else if(id==='chartLoading')cd=d.loading;else if(id==='chartStickering')cd=d.stickering;else if(id==='chartPalletizing')cd=d.palletizing;if(cd){createOrUpdateChart(id,cd,CHART_CONFIG[id].color,CHART_CONFIG[id].norm);addHeaderToChart(id);}};showOverloadPanel(checkOverload(date));addOverloadIndicators(checkOverload(date));setStatus(`Данные за ${date}`, 'success');}catch(e){console.error(e);setStatus(`Ошибка: ${e.message}','error')}}},30);}
+        function updateCharts(selectedDate) {
+            if (!selectedDate || !jsonData) return;
+            setStatus(`Обработка данных за ${selectedDate}...`, 'loading');
+            setTimeout(() => {
+                try {
+                    const data = calculateDataForDate(selectedDate);
+                    Object.keys(CHART_CONFIG).forEach(canvasId => {
+                        if (canvasId === 'chartLoadingShift') return;
+                        const config = CHART_CONFIG[canvasId];
+                        let chartData;
+                        if (canvasId === 'chartAssembly') chartData = data.assembly;
+                        else if (canvasId === 'chartAssemblyRim') chartData = data.assembly_rim;
+                        else if (canvasId === 'chartLoading') chartData = data.loading;
+                        else if (canvasId === 'chartStickering') chartData = data.stickering;
+                        else if (canvasId === 'chartPalletizing') chartData = data.palletizing;
+                        if (chartData) {
+                            createOrUpdateChart(canvasId, chartData, config.color, config.norm);
+                            addHeaderToChart(canvasId);
+                        }
+                    });
+                    const overloads = checkOverload(selectedDate);
+                    showOverloadPanel(overloads);
+                    addOverloadIndicators(overloads);
+                    setStatus(`Показаны данные за ${selectedDate}`, 'success');
+                } catch(e) {
+                    console.error(e);
+                    setStatus(`Ошибка: ${e.message}`, 'error');
+                }
+            }, 30);
+        }
         
-        // === СВОРЧИВАНИЕ ===
-        function initChartToggles(){const btns=document.querySelectorAll('.toggle-btn');btns.forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();const t=btn.getAttribute('data-target');const c=document.getElementById(`content-${t}`);if(c.classList.toggle('collapsed')){btn.classList.toggle('collapsed');btn.querySelector('.toggle-text').textContent='Развернуть';charts[t]?.stop();}else{btn.classList.toggle('collapsed');btn.querySelector('.toggle-text').textContent='Свернуть';setTimeout(()=>{charts[t]?.resize();shiftCharts[k]?.resize();}for(k in shiftCharts)}},350);}const h=btn.closest('.chart-section-header');if(h)h.addEventListener('click',(e)=>{if(e.target!==btn&&!btn.contains(e.target))btn.click();});});setTimeout(()=>{btns.forEach(btn=>{const t=btn.getAttribute('data-target');const c=document.getElementById(`content-${t}`);if(c){c.classList.add('collapsed');btn.classList.add('collapsed');btn.querySelector('.toggle-text').textContent='Развернуть';}},100);});}
-        
-        // === ФУНКЦИЯ ГОЛОВЫ ===
-        function toggleHeader(){const desc=document.getElementById('headerDescription');desc.classList.toggle('collapsed');const head=document.querySelector('#headerWrapper .header-content');head.classList.toggle('collapsed');}
+        // === СВОРАЧИВАНИЕ ГРАФИКОВ ===
+        function initChartToggles() {
+            const btns = document.querySelectorAll('.toggle-btn');
+            btns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const t = this.getAttribute('data-target');
+                    const c = document.getElementById(`content-${t}`);
+                    if (c.classList.toggle('collapsed')) {
+                        this.classList.toggle('collapsed');
+                        this.querySelector('.toggle-text').textContent = 'Развернуть';
+                        if (charts[t]) charts[t].stop();
+                    } else {
+                        this.classList.toggle('collapsed');
+                        this.querySelector('.toggle-text').textContent = 'Свернуть';
+                        setTimeout(() => {
+                            if (charts[t]) charts[t].resize();
+                        }, 350);
+                    }
+                });
+                const h = btn.closest('.chart-section-header');
+                if (h) {
+                    h.addEventListener('click', (e) => {
+                        if (e.target !== btn && !btn.contains(e.target)) btn.click();
+                    });
+                }
+            });
+            setTimeout(() => {
+                btns.forEach(btn => {
+                    const t = btn.getAttribute('data-target');
+                    const c = document.getElementById(`content-${t}`);
+                    if (c) {
+                        c.classList.add('collapsed');
+                        btn.classList.add('collapsed');
+                        const textEl = btn.querySelector('.toggle-text');
+                        if (textEl) textEl.textContent = 'Развернуть';
+                    }
+                });
+            }, 100);
+        }
         
         // === СЕТЬ ===
-        function updateConnectionStatus(){const s=document.getElementById('connectionStatus');if(!s)return;if(navigator.onLine){s.textContent='🟢 Онлайн';s.className='connection-status online';s.style.display='block';}else{s.textContent='🔴 Офлайн';s.className='connection-status offline';s.style.display='block';}}
-        window.addEventListener('online',updateConnectionStatus);window.addEventListener('offline',updateConnectionStatus);window.addEventListener('load',updateConnectionStatus);
+        function updateConnectionStatus() {
+            const s = document.getElementById('connectionStatus');
+            if (!s) return;
+            if (navigator.onLine) {
+                s.textContent = '🟢 Онлайн';
+                s.className = 'connection-status online';
+                s.style.display = 'block';
+            } else {
+                s.textContent = '🔴 Офлайн';
+                s.className = 'connection-status offline';
+                s.style.display = 'block';
+            }
+        }
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        window.addEventListener('load', updateConnectionStatus);
         
-// === СВОРАЧИВАНИЕ ЗАГОЛОВКА ===
-function toggleHeader() {
-    const desc = document.getElementById('headerDescription');
-    const head = document.querySelector('#headerWrapper .header-content');
-    if (desc && head) {
-        desc.classList.toggle('collapsed');
-        head.classList.toggle('collapsed');
-    }
-}
-
-// === ИНИЦИАЛИЗАЦИЯ ===
-document.addEventListener('DOMContentLoaded', () => {
-    initTheme();
-    initChartToggles();
-    loadData();
-});
-
-// === СОБЫТИЯ ===
-dateSelect.addEventListener('change', (e) => updateCharts(e.target.value));
-refreshBtn.addEventListener('click', () => loadData());
-document.getElementById('exportBtn').addEventListener('click', () => {
-    exportToCSV(dateSelect.value);
-});
-document.getElementById('themeToggle').addEventListener('click', toggleTheme);
-
-// === PWA ===
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(registration => {
-                console.log('ServiceWorker registration successful:', registration.scope);
-            })
-            .catch(err => {
-                console.log('ServiceWorker registration failed:', err);
+        // === INIT ===
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initChartToggles();
+            loadData();
+        });
+        
+        dateSelect.addEventListener('change', e => updateCharts(e.target.value));
+        refreshBtn.addEventListener('click', loadData);
+        document.getElementById('exportBtn').addEventListener('click', () => exportToCSV(dateSelect.value));
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        
+        // === PWA ===
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => console.log('ServiceWorker registration successful:', registration.scope))
+                    .catch(err => console.log('ServiceWorker registration failed:', err));
             });
-    });
-}
+        }
     </script>
 </body>
 </html>
