@@ -459,6 +459,37 @@
                 width: 100%;
             }
         }
+       /* 🆕 Кнопка сброса кэша */
+.cache-btn {
+    padding: 8px 16px;
+    background: #dc3545;  /* Красный - предупреждение */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.cache-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+.cache-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.cache-btn.clearing {
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+} 
     </style>
 </head>
 <body>
@@ -510,6 +541,9 @@
             <span id="status" class="status"></span>
             <button id="refreshBtn" class="refresh-btn" disabled>🔄 Обновить</button>
             <button id="exportBtn" class="export-btn" disabled>📥 Экспорт CSV</button>
+            <button id="clearCacheBtn" class="cache-btn" disabled title="Очистить кэш и перезагрузить свежие данные">
+    🗑️ Сбросить кэш
+</button>
         </div>
         
         <!-- === ГРАФИКИ === -->
@@ -843,11 +877,12 @@
             statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
         }
         
-        function toggleControls(en) {
-            dateSelect.disabled = !en;
-            refreshBtn.disabled = !en;
-            document.getElementById('exportBtn').disabled = !en;
-        }
+        function toggleControls(enabled) {
+    dateSelect.disabled = !enabled;
+    refreshBtn.disabled = !enabled;
+    document.getElementById('exportBtn').disabled = !enabled;
+    document.getElementById('clearCacheBtn').disabled = !enabled;  // 🆕
+}
         
         function populateDateSelect() {
             const dates = new Set();
@@ -1036,6 +1071,52 @@ function createOrUpdateChart(canvasId, data, color, norm) {
                 });
             }, 100);
         }
+        // 🗑️ Функция сброса кэша и Service Worker
+async function clearCacheAndReload() {
+    const btn = document.getElementById('clearCacheBtn');
+    if (!btn) return;
+    
+    // Визуальная обратная связь
+    btn.classList.add('clearing');
+    btn.disabled = true;
+    setStatus('🔄 Очистка кэша...', 'loading');
+    
+    try {
+        // 1. Удаляем все кэши
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+            await caches.delete(name);
+            console.log('✅ Удалён кэш:', name);
+        }
+        
+        // 2. Отменяем регистрацию Service Worker
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+                await registration.unregister();
+                console.log('✅ Service Worker отменён:', registration.scope);
+            }
+        }
+        
+        // 3. Очищаем localStorage (опционально)
+        localStorage.clear();
+        console.log('✅ localStorage очищен');
+        
+        // 4. Показываем успех
+        setStatus('✅ Кэш очищен! Перезагрузка...', 'success');
+        
+        // 5. Перезагружаем страницу с обходом кэша
+        setTimeout(() => {
+            window.location.reload(true);  // true = hard reload
+        }, 1500);
+        
+    } catch (error) {
+        console.error('❌ Ошибка очистки кэша:', error);
+        setStatus('❌ Ошибка: ' + error.message, 'error');
+        btn.disabled = false;
+        btn.classList.remove('clearing');
+    }
+}
         
         // === СЕТЬ ===
         function updateConnectionStatus() {
@@ -1062,10 +1143,12 @@ function createOrUpdateChart(canvasId, data, color, norm) {
             loadData();
         });
         
+        // События
         dateSelect.addEventListener('change', e => updateCharts(e.target.value));
         refreshBtn.addEventListener('click', loadData);
         document.getElementById('exportBtn').addEventListener('click', () => exportToCSV(dateSelect.value));
         document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);// 🆕 Обработчик сброса кэша
         
         // === PWA ===
         if ('serviceWorker' in navigator) {
