@@ -489,7 +489,54 @@
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
-} 
+}
+/* 🆕 Суточные итоги в заголовке */
+.daily-totals {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 15px;
+    padding: 4px 12px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.daily-totals .totals-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.daily-totals .totals-separator {
+    opacity: 0.6;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .daily-totals {
+        display: flex;
+        margin-left: 0;
+        margin-top: 10px;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .chart-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+/* Тёмная тема */
+[data-theme="dark"] .daily-totals {
+    background: var(--accent-color);
+    color: white;
+}        
     </style>
 </head>
 <body>
@@ -741,6 +788,58 @@
             });
             return result;
         }
+
+        // 📊 Функция расчёта суточных итогов
+function calculateDailyTotals(selectedDate) {
+    if (!selectedDate || !jsonData) return null;
+    
+    const data = calculateDataForDate(selectedDate);
+    
+    return {
+        assembly: data.assembly.reduce((a, b) => a + b, 0),
+        assembly_rim: data.assembly_rim.reduce((a, b) => a + b, 0),
+        loading: data.loading.reduce((a, b) => a + b, 0),
+        stickering: data.stickering.reduce((a, b) => a + b, 0),
+        palletizing: data.palletizing.reduce((a, b) => a + b, 0)
+    };
+}
+
+        // 📊 Функция добавления итогов в заголовок секции
+function addDailyTotalsToHeader(canvasId, totals) {
+    const section = document.querySelector(`button[data-target="${canvasId}"]`)?.closest('.chart-section');
+    if (!section || !totals) return;
+    
+    // Удаляем старые итоги если есть
+    const oldTotals = section.querySelector('.daily-totals');
+    if (oldTotals) oldTotals.remove();
+    
+    // Получаем конфиг для формата чисел
+    const config = CHART_CONFIG[canvasId];
+    if (!config) return;
+    
+    // Создаём элемент с итогами
+    const totalsDiv = document.createElement('div');
+    totalsDiv.className = 'daily-totals';
+    
+    const totalVolume = totals[canvasId.replace('chart', '').toLowerCase()] || 0;
+    const totalBrigades = Math.ceil(totalVolume / config.norm);
+    
+    totalsDiv.innerHTML = `
+        <span class="totals-value" title="Общий объем за сутки">
+            📦 ${totalVolume.toLocaleString('ru-RU')} шт.
+        </span>
+        <span class="totals-separator">|</span>
+        <span class="totals-value" title="Требуется бригадо-часов">
+            👥 ${totalBrigades} бриг.
+        </span>
+    `;
+    
+    // Вставляем после h2 в заголовке
+    const header = section.querySelector('.chart-section-header h2');
+    if (header) {
+        header.appendChild(totalsDiv);
+    }
+}
         
         function checkOverload(selectedDate) {
             if (!selectedDate || !jsonData) return [];
@@ -1003,9 +1102,15 @@ function createOrUpdateChart(canvasId, data, color, norm) {
         function updateCharts(selectedDate) {
             if (!selectedDate || !jsonData) return;
             setStatus(`Обработка данных за ${selectedDate}...`, 'loading');
+            
             setTimeout(() => {
                 try {
                     const data = calculateDataForDate(selectedDate);
+                    
+            // 🆕 Рассчитываем суточные итоги
+            const dailyTotals = calculateDailyTotals(selectedDate); 
+                    
+                    // Проходим по всем графикам из конфигурации
                     Object.keys(CHART_CONFIG).forEach(canvasId => {
                         if (canvasId === 'chartLoadingShift') return;
                         const config = CHART_CONFIG[canvasId];
@@ -1015,14 +1120,28 @@ function createOrUpdateChart(canvasId, data, color, norm) {
                         else if (canvasId === 'chartLoading') chartData = data.loading;
                         else if (canvasId === 'chartStickering') chartData = data.stickering;
                         else if (canvasId === 'chartPalletizing') chartData = data.palletizing;
+                        
                         if (chartData) {
                             createOrUpdateChart(canvasId, chartData, config.color, config.norm);
                             addHeaderToChart(canvasId);
+                            
+                        // 🆕 Добавляем суточные итоги в заголовок
+                        addDailyTotalsToHeader(canvasId, dailyTotals);
                         }
                     });
+
+                                // Графики по сменам для Погрузки
+            const loadingData = {
+                labels: labels.map(h => h),
+                values: data.loading
+            };
+            renderAllShiftedCharts(loadingData, 'Погрузка');
+                    
+                    // ПРОВЕРКА ПЕРЕГРУЗКИ
                     const overloads = checkOverload(selectedDate);
                     showOverloadPanel(overloads);
                     addOverloadIndicators(overloads);
+                    
                     setStatus(`Показаны данные за ${selectedDate}`, 'success');
                 } catch(e) {
                     console.error(e);
