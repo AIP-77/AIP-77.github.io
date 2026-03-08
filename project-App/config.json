@@ -1,0 +1,21 @@
+{
+  "version": "1.1.0",
+  "lastUpdated": "2026-03-15",
+  "archiveBaseUrl": "https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/",
+  "defaultDataUrl": "https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/2026-03%20fullData.json",
+  "knownMonths": [
+    { "value": "2026-03", "label": "Март 2026" },
+    { "value": "2026-02", "label": "Февраль 2026" },
+    { "value": "2026-01", "label": "Январь 2026" },
+    { "value": "2025-12", "label": "Декабрь 2025" }
+  ],
+  "chartNorms": {
+    "assembly": { "norm": 100, "max": 3, "name": "Сборка Шин", "color": "#4285F4" },
+    "assembly_rim": { "norm": 50, "max": 1, "name": "Сборка Диски", "color": "#a834a4" },
+    "loading": { "norm": 340, "max": 1, "name": "Погрузка", "color": "#EA4335" },
+    "stickering": { "norm": 150, "max": 1, "name": "Стикеровка", "color": "#FBBC05" },
+    "palletizing": { "norm": 124, "max": 1, "name": "Упаковка", "color": "#34A853" }
+  },
+  "cacheDuration": 86400000,
+  "githubApiUrl": "https://api.github.com/repos/AIP-77/AIP-77.github.io/contents/archive"
+}
