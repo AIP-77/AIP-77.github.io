@@ -3,24 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анализ пиковых нагрузок склада</title>
+    <title>Анализ пиковых нагрузок склада1</title>
     
-    <!-- Meta Tags -->
     <meta name="theme-color" content="#1a73e8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="Анализ пиковых нагрузок склада по исходящему потоку">
     
-    <!-- Favicon & Manifest -->
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="apple-touch-icon" href="favicon.png">
     <link rel="manifest" href="manifest.json">
     
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* === ОСНОВНЫЕ ПЕРЕМЕННЫЕ ТЕМЫ === */
+        /* === CSS ПЕРЕМЕННЫЕ ТЕМЫ === */
         :root {
             --bg-primary: #f0f2f5;
             --bg-secondary: #ffffff;
@@ -72,7 +69,7 @@
             padding: 20px;
         }
         
-        /* === КНОПКИ НАВИГАЦИИ (фиксированные вверху) === */
+        /* === НАВИГАЦИЯ === */
         .nav-buttons-wrapper {
             position: fixed;
             top: 20px;
@@ -87,7 +84,7 @@
             margin: 0 auto;
         }
         
-        .nav-btn {
+        .nav-btn, .theme-toggle-btn {
             pointer-events: auto;
             display: flex;
             align-items: center;
@@ -102,91 +99,11 @@
             font-weight: 600;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             transition: all 0.3s ease;
-            text-decoration: none;
         }
         
-        .nav-btn:hover {
+        .nav-btn:hover, .theme-toggle-btn:hover {
             background: var(--accent-hover);
             transform: translateY(-2px);
-        }
-        
-        .theme-toggle-btn {
-            pointer-events: auto;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 16px;
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .theme-toggle-btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-        }
-        
-        /* === ЗАГОЛОВОК (сворачиваемый) === */
-        .page-header {
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 15px;
-        }
-        
-        .header-content {
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 8px;
-            transition: background 0.2s;
-            display: inline-block;
-        }
-        
-        .header-content:hover {
-            background: var(--header-bg);
-        }
-        
-        .header-title {
-            font-size: 1.8em;
-            color: var(--accent-color);
-            margin-bottom: 10px;
-            display: block;
-        }
-        
-        .header-desc {
-            font-size: 0.95em;
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-        
-        .header-description {
-            overflow: hidden;
-            transition: max-height 0.3s ease, opacity 0.3s ease;
-            max-height: 500px;
-            opacity: 1;
-        }
-        
-        .header-description.collapsed {
-            max-height: 0;
-            opacity: 0;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .collapse-indicator {
-            display: inline-block;
-            margin-left: 10px;
-            font-size: 1.2em;
-            transition: transform 0.3s ease;
-        }
-        
-        .collapsed .collapse-indicator {
-            transform: rotate(-90deg);
         }
         
         /* === КОНТРОЛЫ === */
@@ -213,7 +130,7 @@
             border: 1px solid var(--border-color);
             border-radius: 4px;
             font-size: 1em;
-            min-width: 180px;
+            min-width: 150px;
             background: var(--bg-secondary);
             color: var(--text-primary);
         }
@@ -228,21 +145,26 @@
             transition: all 0.2s;
         }
         
-        .refresh-btn {
-            background: var(--accent-color);
-            color: white;
-        }
-        
+        .refresh-btn { background: var(--accent-color); color: white; }
         .refresh-btn:hover { background: var(--accent-hover); }
         .refresh-btn:disabled { background: var(--border-color); cursor: not-allowed; }
         
-        .export-btn {
-            background: var(--success-color);
-            color: white;
-        }
-        
+        .export-btn { background: var(--success-color); color: white; }
         .export-btn:hover { background: #218838; }
         .export-btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .cache-btn {
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+        }
+        .cache-btn:hover { background: #c82333; }
+        .cache-btn:disabled { background: #ccc; cursor: not-allowed; }
         
         .status {
             text-align: center;
@@ -254,109 +176,6 @@
         
         .error { color: var(--danger-color); font-weight: 500; }
         .success { color: var(--success-color); }
-        
-        /* === ИНДИКАТОРЫ === */
-        .connection-status {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            color: white;
-            font-weight: 600;
-            z-index: 9999;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        
-        .connection-status.online { background: var(--success-color); animation: fadeInOut 3s infinite; }
-        .connection-status.offline { background: var(--danger-color); animation: shake 0.5s ease-in-out; }
-        
-        @keyframes fadeInOut { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        
-        /* === ПАНЕЛЬ ПЕРЕГРУЗКИ === */
-        .overload-panel {
-            background: linear-gradient(135deg, var(--warning-color, #fff3cd) 0%, var(--warning-color, #ffe5a8) 100%);
-            border: 2px solid var(--warning-color);
-            border-radius: 8px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(255, 193, 7, 0.3);
-            animation: slideDown 0.3s ease;
-        }
-        
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .overload-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .overload-header strong { color: #856404; font-size: 1.1em; }
-        .overload-icon { font-size: 1.3em; margin-right: 8px; }
-        
-        .close-overload {
-            background: var(--warning-color);
-            border: none;
-            border-radius: 4px;
-            padding: 4px 10px;
-            cursor: pointer;
-            font-size: 1.2em;
-            color: #856404;
-            transition: background 0.2s;
-        }
-        
-        .close-overload:hover { background: #e0a800; }
-        
-        .overload-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 10px;
-        }
-        
-        .overload-item {
-            background: var(--card-bg);
-            padding: 10px 15px;
-            border-radius: 6px;
-            border-left: 4px solid var(--danger-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .overload-item.critical { border-left-color: var(--danger-color); background: var(--bg-secondary); }
-        .overload-item.warning { border-left-color: var(--warning-color); background: var(--bg-secondary); }
-        
-        .overload-work { font-weight: 600; color: var(--text-primary); }
-        .overload-time { color: var(--text-secondary); font-size: 0.9em; }
-        
-        .overload-brigades {
-            background: var(--danger-color);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-        
-        /* === ИНДИКАТОР ПЕРЕГРУЗКИ В ЗАГОЛОВКЕ === */
-        .overload-indicator {
-            display: inline-block;
-            background: var(--danger-color);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.75em;
-            margin-left: 8px;
-            animation: pulse 2s infinite;
-            vertical-align: middle;
-        }
-        
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         
         /* === ГРАФИКИ === */
         .chart-section {
@@ -375,10 +194,7 @@
             background: var(--header-bg);
             border-bottom: 1px solid var(--border-color);
             cursor: pointer;
-            transition: background 0.2s;
         }
-        
-        .chart-section-header:hover { background: var(--header-bg); }
         
         .chart-section-header h2 {
             margin: 0;
@@ -386,7 +202,6 @@
             color: var(--text-primary);
             border-left: 4px solid var(--accent-color);
             padding-left: 12px;
-            display: inline-block;
         }
         
         .toggle-btn {
@@ -401,21 +216,11 @@
             cursor: pointer;
             font-size: 0.9em;
             font-weight: 600;
-            transition: all 0.2s;
-            pointer-events: auto;
         }
         
-        .toggle-btn:hover { background: var(--accent-hover); }
         .toggle-btn.collapsed { background: var(--border-color); }
-        
-        .toggle-icon {
-            font-size: 0.8em;
-            transition: transform 0.3s;
-        }
-        
-        .toggle-btn.collapsed .toggle-icon {
-            transform: rotate(-90deg);
-        }
+        .toggle-icon { transition: transform 0.3s; }
+        .toggle-btn.collapsed .toggle-icon { transform: rotate(-90deg); }
         
         .chart-section-content {
             padding: 10px;
@@ -436,10 +241,91 @@
             margin-bottom: 20px;
         }
         
-        canvas {
-            width: 100% !important;
-            max-height: 350px;
+        /* === ИТОГИ В ЗАГОЛОВКЕ === */
+        .daily-totals {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+            padding: 4px 12px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
         }
+        
+        .daily-totals .totals-separator { opacity: 0.6; }
+        
+        /* === ПЕРЕГРУЗКА === */
+        .overload-panel {
+            background: linear-gradient(135deg, var(--warning-color, #fff3cd) 0%, var(--warning-color, #ffe5a8) 100%);
+            border: 2px solid var(--warning-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+        }
+        
+        .overload-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .overload-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+        
+        .overload-item {
+            background: var(--card-bg);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border-left: 4px solid var(--danger-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .overload-brigades {
+            background: var(--danger-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .overload-indicator {
+            display: inline-block;
+            background: var(--danger-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        /* === СТАТУС СЕТИ === */
+        .connection-status {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: white;
+            font-weight: 600;
+            z-index: 9999;
+        }
+        
+        .connection-status.online { background: var(--success-color); }
+        .connection-status.offline { background: var(--danger-color); }
         
         /* === АДАПТИВНОСТЬ === */
         @media (max-width: 768px) {
@@ -459,119 +345,10 @@
                 width: 100%;
             }
         }
-       /* 🆕 Кнопка сброса кэша */
-.cache-btn {
-    padding: 8px 16px;
-    background: #dc3545;  /* Красный - предупреждение */
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.cache-btn:hover {
-    background: #c82333;
-    transform: translateY(-1px);
-}
-
-.cache-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
-.cache-btn.clearing {
-    animation: pulse 0.5s ease-in-out;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-/* 🆕 Суточные итоги в заголовке */
-.daily-totals {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: 15px;
-    padding: 4px 12px;
-    background: var(--accent-color);
-    color: white;
-    border-radius: 20px;
-    font-size: 0.85em;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.daily-totals .totals-value {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.daily-totals .totals-separator {
-    opacity: 0.6;
-}
-
-/* Адаптивность для мобильных */
-@media (max-width: 768px) {
-    .daily-totals {
-        display: flex;
-        margin-left: 0;
-        margin-top: 10px;
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .chart-section-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-}
-
-/* Тёмная тема */
-[data-theme="dark"] .daily-totals {
-    background: var(--accent-color);
-    color: white;
-}  
-/* Стили для выбора месяца */
-#monthSelect {
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 1em;
-    min-width: 150px;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-#monthSelect:disabled {
-    background: var(--border-color);
-    cursor: not-allowed;
-}
-
-.controls label {
-    font-weight: 600;
-    white-space: nowrap;
-    color: var(--text-primary);
-}
-
-/* Анимация появления */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.controls {
-    animation: fadeIn 0.3s ease;
-}        
     </style>
 </head>
 <body>
-    <!-- === КНОПКИ НАВИГАЦИИ === -->
+    <!-- === НАВИГАЦИЯ === -->
     <div class="nav-buttons-wrapper">
         <button class="nav-btn" onclick="window.location.href='index.html'">
             🏠 На главную
@@ -582,7 +359,7 @@
         </button>
     </div>
     
-    <!-- === СТАТУС ПОДКЛЮЧЕНИЯ === -->
+    <!-- === СТАТУС СЕТИ === -->
     <div id="connectionStatus" class="connection-status online" style="display: none;">
         <span>🌐 Подключение...</span>
     </div>
@@ -597,41 +374,29 @@
         <div id="overloadContent" class="overload-content"></div>
     </div>
     
-    <!-- === ОСНОВНОЙ КОНТЕЙНЕР === -->
+    <!-- === КОНТЕЙНЕР === -->
     <div class="page-container">
-        <!-- === ЗАГОЛОВОК (СВОРАЧИВАЕМЫЙ) === -->
-        <div class="page-header" id="headerWrapper">
-            <div class="header-content collapsed" onclick="toggleHeader()" title="Нажмите чтобы свернуть">
-                <span class="header-title">📦 Анализ пиковых нагрузок склада — Исходящий поток</span>
-                <span class="collapse-indicator">▼</span>
-            </div>
-            <div class="header-description collapsed" id="headerDescription">
-                <p><strong>Цветная линия:</strong> Это фактический или планируемый объем в штуках по часам.</p>
-                <p><strong>Серые столбцы:</strong> Это количество бригад, которое необходимо вывести в этот конкретный час, чтобы закрыть объем согласно нормативам.</p>
-                <p><strong>Пики:</strong> Если столбец резко уходит вверх и он <strong>красного цвета</strong>, значит, в этот час нагрузка на одну бригаду превышает норму и требуется усиление или перераспределение задач.</p>
-            </div>
-        </div>
+        <h1 style="color: var(--accent-color); margin-bottom: 20px; font-size: 2em;">
+            📦 Анализ пиковых нагрузок склада1 — Исходящий поток
+        </h1>
         
         <!-- === КОНТРОЛЫ === -->
         <div class="controls">
-                <label for="monthSelect">📅 Месяц:</label>
-               <select id="monthSelect" disabled><option>Загрузка...</option></select>
+            <label for="monthSelect">📅 Месяц:</label>
+            <select id="monthSelect" disabled><option>Загрузка...</option></select>
             
-            <label for="dateSelect">📅 Дата:</label>
+            <label for="dateSelect">📆 Дата:</label>
             <select id="dateSelect" disabled><option>Загрузка...</option></select>
             
             <span id="status" class="status"></span>
             <button id="refreshBtn" class="refresh-btn" disabled>🔄 Обновить</button>
             <button id="exportBtn" class="export-btn" disabled>📥 Экспорт CSV</button>
-            <button id="clearCacheBtn" class="cache-btn" disabled title="Очистить кэш и перезагрузить свежие данные">
-    🗑️ Сбросить кэш
-</button>
+            <button id="clearCacheBtn" class="cache-btn" disabled>🗑️ Сбросить кэш</button>
         </div>
         
         <!-- === ГРАФИКИ === -->
-        <!-- 1. Сборка Диски -->
         <div class="chart-section">
-            <div class="chart-section-header" id="header-chartAssemblyRim">
+            <div class="chart-section-header">
                 <h2>1. Сборка Диски (Любые виды)</h2>
                 <button class="toggle-btn" data-target="chartAssemblyRim">
                     <span class="toggle-icon">▼</span>
@@ -643,9 +408,8 @@
             </div>
         </div>
         
-        <!-- 2. Сборка Шин -->
         <div class="chart-section">
-            <div class="chart-section-header" id="header-chartAssembly">
+            <div class="chart-section-header">
                 <h2>2. Сборка Шин (Любые виды)</h2>
                 <button class="toggle-btn" data-target="chartAssembly">
                     <span class="toggle-icon">▼</span>
@@ -657,9 +421,8 @@
             </div>
         </div>
         
-        <!-- 3. Погрузка -->
         <div class="chart-section">
-            <div class="chart-section-header" id="header-chartLoading">
+            <div class="chart-section-header">
                 <h2>3. 🚚 Погрузка</h2>
                 <button class="toggle-btn" data-target="chartLoading">
                     <span class="toggle-icon">▼</span>
@@ -671,9 +434,8 @@
             </div>
         </div>
         
-        <!-- 4. Стикеровка -->
         <div class="chart-section">
-            <div class="chart-section-header" id="header-chartStickering">
+            <div class="chart-section-header">
                 <h2>4. Стикеровка</h2>
                 <button class="toggle-btn" data-target="chartStickering">
                     <span class="toggle-icon">▼</span>
@@ -685,9 +447,8 @@
             </div>
         </div>
         
-        <!-- 5. Упаковка -->
         <div class="chart-section">
-            <div class="chart-section-header" id="header-chartPalletizing">
+            <div class="chart-section-header">
                 <h2>5. Упаковка в паллет</h2>
                 <button class="toggle-btn" data-target="chartPalletizing">
                     <span class="toggle-icon">▼</span>
@@ -702,264 +463,288 @@
     
     <!-- === СКРИПТЫ === -->
     <script>
-        // === ДАННЫЕ ===
-        const DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/2026-03%20fullData.json';
-        
-        // === КОНФИГУРАЦИЯ ГРАФИКОВ ===
-        const CHART_CONFIG = {
-            'chartAssembly': { name: 'Сборка Шин (Любые виды)', norm: 100, max: 3, color: '#4285F4', normText: '100 шт/ч (Плановый)', teamText: '3 бригады (6 чел.)' },
-            'chartAssemblyRim': { name: 'Сборка Диски (Любые виды)', norm: 50, max: 1, color: '#a834a4', normText: '50 шт/ч', teamText: '1 бригада (1 чел.)' },
-            'chartLoading': { name: 'Погрузка (Суточный график)', norm: 340, max: 1, color: '#EA4335', normText: '340 шт/ч', teamText: '1 бригада (3 чел.)' },
-            'chartStickering': { name: 'Стикеровка', norm: 150, max: 1, color: '#FBBC05', normText: '150 шт/ч', teamText: '1 бригада (2 чел.)' },
-            'chartPalletizing': { name: 'Упаковка в паллет', norm: 124, max: 1, color: '#34A853', normText: '124 шт/ч', teamText: '1 бригада (2 чел.)' }
-        };
-        
-        const WORK_NORMS = {
-            'Сборка Шин': { norm: 100, maxBrigades: 3, color: '#36A2EB' },
-            'Сборка Диски': { norm: 50, maxBrigades: 1, color: '#9b59b6' },
-            'Погрузка': { norm: 340, maxBrigades: 1, color: '#2ecc71' },
-            'Стикеровка': { norm: 150, maxBrigades: 1, color: '#f1c40f' },
-            'Упаковка': { norm: 124, maxBrigades: 1, color: '#e67e22' }
-        };
-        
-        const norms = { assembly: 100, loading: 340, stickering: 150, palletizing: 124, assembly_rim: 50 };
+        // === ГИБРИДНАЯ СИСТЕМА КОНФИГУРАЦИИ ===
+        let APP_CONFIG = {};
+        let jsonData = null;
+        let charts = {};
+        let shiftCharts = {};
+        let availableMonths = [];
+        let availableDates = [];
+        let currentDataUrl = '';
         
         const labels = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00",
                         "21:00","22:00","23:00","00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00"];
         
-        const workTypeMap = {
-            'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly','Сборка Шины (Исключение)':'assembly','Сборка шины МП-зона А':'assembly',
-            'Сборка Диски':'assembly_rim','Сборка Диски МП':'assembly_rim','Сборка Диски (Исключение)':'assembly_rim',
-            'Погрузка': 'loading', 'Погрузка/Разгрузка': 'loading',
-            'Стикеровка Шины': 'stickering', 'Стикеровка Диски': 'stickering',
-            'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
-        };
-        
-        let jsonData = null;
-        let charts = {};
-        let shiftCharts = {};
         const dateSelect = document.getElementById('dateSelect');
         const refreshBtn = document.getElementById('refreshBtn');
         const statusEl = document.getElementById('status');
-
-        // 📅 СИСТЕМА ВЫБОРА МЕСЯЦА И ДАТЫ
-// === ДАННЫЕ И КОНФИГУРАЦИЯ ===
-const ARCHIVE_BASE_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/';
-const DEFAULT_DATA_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/2026-03%20fullData.json';
-let currentDataUrl = DATA_URL;  // <-- ДОБАВИТЬ
-
-// Списки месяцев для проверки (обновляйте при добавлении новых файлов)
-const KNOWN_MONTHS = [
-    { value: '2026-03', label: 'Март 2026' },
-    { value: '2026-02', label: 'Февраль 2026' },
-    { value: '2026-01', label: 'Январь 2026' },
-    { value: '2025-12', label: 'Декабрь 2025' }
-];
-
-// 🔄 Получить список доступных месяцев
-async function fetchAvailableMonths() {
-    const monthSelect = document.getElementById('monthSelect');
-    monthSelect.innerHTML = '<option>Загрузка...</option>';
-    monthSelect.disabled = true;
-    
-    setStatus('📂 Проверка доступных месяцев...', 'loading');
-    
-    try {
-        const available = [];
         
-        // Проверяем известные месяцы
-        for (const month of KNOWN_MONTHS) {
-            const url = `${ARCHIVE_BASE_URL}${encodeURIComponent(month.value + ' fullData.json')}`;
+        // === 1. ЗАГРУЗКА КОНФИГУРАЦИИ ===
+        async function loadAppConfig() {
+            const CACHE_KEY = 'warehouse_config_cache';
+            const CACHE_TIME_KEY = 'warehouse_config_cache_time';
+            const CACHE_DURATION = 86400000; // 24 часа
+            
             try {
-                const response = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
-                if (response.ok) {
-                    available.push(month);
+                // Проверяем кэш
+                const cached = localStorage.getItem(CACHE_KEY);
+                const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+                
+                if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_DURATION) {
+                    APP_CONFIG = JSON.parse(cached);
+                    console.log('✅ Конфигурация из кэша:', APP_CONFIG.version);
+                    return true;
                 }
-            } catch (e) {
-                // Месяц не доступен, пропускаем
+                
+                // Загружаем из config.json
+                const response = await fetch('./config.json', { cache: 'no-cache' });
+                if (!response.ok) throw new Error('Не удалось загрузить config.json');
+                
+                APP_CONFIG = await response.json();
+                
+                // Кэшируем
+                localStorage.setItem(CACHE_KEY, JSON.stringify(APP_CONFIG));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                
+                console.log('✅ Конфигурация загружена:', APP_CONFIG.version);
+                return true;
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки конфигурации:', error);
+                // Fallback
+                APP_CONFIG = {
+                    knownMonths: [{ value: '2026-03', label: 'Март 2026' }],
+                    archiveBaseUrl: 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/',
+                    defaultDataUrl: 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/2026-03%20fullData.json',
+                    chartNorms: {
+                        assembly: { norm: 100, max: 3, name: 'Сборка Шин', color: '#4285F4' },
+                        assembly_rim: { norm: 50, max: 1, name: 'Сборка Диски', color: '#a834a4' },
+                        loading: { norm: 340, max: 1, name: 'Погрузка', color: '#EA4335' },
+                        stickering: { norm: 150, max: 1, name: 'Стикеровка', color: '#FBBC05' },
+                        palletizing: { norm: 124, max: 1, name: 'Упаковка', color: '#34A853' }
+                    }
+                };
+                return false;
             }
         }
         
-        if (available.length === 0) {
-            // Если ничего не найдено, используем дефолтный месяц
-            available.push({ value: '2026-03', label: 'Март 2026' });
-        }
-        
-        availableMonths = available;
-        populateMonthSelect();
-        
-    } catch (error) {
-        console.error('Ошибка загрузки месяцев:', error);
-        // Fallback: показываем дефолтный месяц
-        availableMonths = [{ value: '2026-03', label: 'Март 2026' }];
-        populateMonthSelect();
-    }
-}
-
-// 📋 Заполнить селектор месяцев
-function populateMonthSelect() {
-    const monthSelect = document.getElementById('monthSelect');
-    monthSelect.innerHTML = '<option value="">-- Выберите месяц --</option>';
-    
-    availableMonths.forEach(month => {
-        const option = document.createElement('option');
-        option.value = month.value;
-        option.textContent = month.label;
-        monthSelect.appendChild(option);
-    });
-    
-    // Автоматически выбираем текущий месяц
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-    const currentMonthOption = Array.from(monthSelect.options).find(opt => opt.value === currentMonth);
-    
-    if (currentMonthOption) {
-        monthSelect.value = currentMonth;
-        loadDatesForMonth(currentMonth);
-    } else if (availableMonths.length > 0) {
-        // Если текущего месяца нет, выбираем первый (самый новый)
-        monthSelect.value = availableMonths[0].value;
-        loadDatesForMonth(availableMonths[0].value);
-    }
-}
-
-// 📅 Загрузить даты для выбранного месяца
-async function loadDatesForMonth(monthStr) {
-    const dateSelect = document.getElementById('dateSelect');
-    dateSelect.innerHTML = '<option>Загрузка...</option>';
-    dateSelect.disabled = true;
-    
-    setStatus('📅 Загрузка дат...', 'loading');
-    
-    try {
-        const url = `${ARCHIVE_BASE_URL}${encodeURIComponent(monthStr + ' fullData.json')}`;
-        currentDataUrl = url;
-        
-        const response = await fetch(url, { cache: 'no-cache' });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: файл не найден`);
-        }
-        
-        const monthData = await response.json();
-        
-        if (!monthData.data || !monthData.columns) {
-            throw new Error('Неверная структура данных');
-        }
-        
-        // Извлекаем уникальные даты из загруженных данных
-        const dateCol = monthData.columns.indexOf('Рабочий день');
-        if (dateCol === -1) {
-            throw new Error('Колонка "Рабочий день" не найдена');
-        }
-        
-        const dates = new Set();
-        monthData.data.forEach(row => {
-            if (row[dateCol]) {
-                dates.add(row[dateCol]);
-            }
-        });
-        
-        availableDates = [...dates].sort();
-        
-        if (availableDates.length === 0) {
-            throw new Error('Нет доступных дат');
-        }
-        
-        // Заполняем селектор дат
-        populateDateSelectFromArray(availableDates);
-        
-        // Автоматически выбираем последнюю дату
-        const lastDate = availableDates[availableDates.length - 1];
-        dateSelect.value = lastDate;
-        
-        setStatus(`✅ Загружено ${availableDates.length} дат`, 'success');
-        dateSelect.disabled = false;
-        
-        // Обновляем глобальные данные и графики
-        jsonData = monthData;
-        setTimeout(() => {
-            updateCharts(lastDate);
-        }, 100);
-        
-    } catch (error) {
-        console.error('Ошибка загрузки дат:', error);
-        setStatus('❌ Ошибка: ' + error.message, 'error');
-        dateSelect.innerHTML = '<option>Нет данных</option>';
-        dateSelect.disabled = true;
-    }
-}
-// 📋 Заполнить селектор дат из массива
-function populateDateSelectFromArray(dates) {
-    const dateSelect = document.getElementById('dateSelect');
-    dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
-    
-    dates.forEach(date => {
-        const option = document.createElement('option');
-        option.value = date;
-        option.textContent = date;
-        dateSelect.appendChild(option);
-    });
-}
-        
-
-
-// 🔄 Обновить DATA_URL для текущей загрузки
-function getCurrentDataUrl() {
-    const monthSelect = document.getElementById('monthSelect');
-    const selectedMonth = monthSelect.value;
-    if (!selectedMonth) return null;
-    return `${ARCHIVE_BASE_URL}${encodeURIComponent(selectedMonth + ' fullData.json')}`;
-}
-        // === ТЕМА ===
-        function initTheme() {
-            const savedTheme = localStorage.getItem('warehouse_theme');
-            if (!savedTheme) {
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    setTheme('dark');
-                } else {
-                    setTheme('light');
+        // === 2. ГИБРИДНОЕ ПОЛУЧЕНИЕ МЕСЯЦЕВ ===
+        async function fetchAvailableMonths() {
+            const monthSelect = document.getElementById('monthSelect');
+            monthSelect.innerHTML = '<option>Загрузка...</option>';
+            monthSelect.disabled = true;
+            
+            setStatus('📂 Проверка доступных месяцев...', 'loading');
+            
+            const CACHE_KEY = 'warehouse_months_cache';
+            const CACHE_TIME_KEY = 'warehouse_months_cache_time';
+            const CACHE_DURATION = APP_CONFIG.cacheDuration || 86400000;
+            
+            try {
+                // 1. Проверяем кэш
+                const cached = localStorage.getItem(CACHE_KEY);
+                const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+                
+                if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_DURATION) {
+                    availableMonths = JSON.parse(cached);
+                    populateMonthSelect();
+                    console.log('✅ Месяцы из кэша');
+                    return;
                 }
-            } else {
-                setTheme(savedTheme);
+                
+                // 2. Пытаемся GitHub API (автоматическое обнаружение)
+                try {
+                    const apiResponse = await fetch(APP_CONFIG.githubApiUrl || 'https://api.github.com/repos/AIP-77/AIP-77.github.io/contents/archive');
+                    if (apiResponse.ok) {
+                        const files = await apiResponse.json();
+                        const monthFiles = files
+                            .filter(f => f.name.includes('fullData.json'))
+                            .map(f => {
+                                const match = f.name.match(/(\d{4}-\d{2})/);
+                                if (match) {
+                                    const date = new Date(match[1] + '-01');
+                                    return {
+                                        value: match[1],
+                                        label: date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+                                    };
+                                }
+                                return null;
+                            })
+                            .filter(m => m !== null);
+                        
+                        monthFiles.sort((a, b) => b.value.localeCompare(a.value));
+                        
+                        if (monthFiles.length > 0) {
+                            availableMonths = monthFiles;
+                            localStorage.setItem(CACHE_KEY, JSON.stringify(availableMonths));
+                            localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                            populateMonthSelect();
+                            console.log('✅ Месяцы из GitHub API');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.log('GitHub API недоступен, используем config.json');
+                }
+                
+                // 3. Fallback на config.json
+                availableMonths = APP_CONFIG.knownMonths || [{ value: '2026-03', label: 'Март 2026' }];
+                availableMonths.sort((a, b) => b.value.localeCompare(a.value));
+                
+                localStorage.setItem(CACHE_KEY, JSON.stringify(availableMonths));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                
+                populateMonthSelect();
+                console.log('✅ Месяцы из config.json');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки месяцев:', error);
+                availableMonths = [{ value: '2026-03', label: 'Март 2026' }];
+                populateMonthSelect();
             }
         }
         
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('warehouse_theme', theme);
-            updateThemeButtonText();
-        }
-        
-        function updateThemeButtonText() {
-            const btn = document.getElementById('themeToggle');
-            if (!btn) return;
-            const theme = document.documentElement.getAttribute('data-theme') || 'light';
-            const icon = btn.querySelector('.theme-icon');
-            const text = document.getElementById('themeText');
-            if (theme === 'dark') {
-                icon.textContent = '☀️';
-                text.textContent = 'Светлая';
-            } else {
-                icon.textContent = '🌙';
-                text.textContent = 'Тёмная';
+        function populateMonthSelect() {
+            const monthSelect = document.getElementById('monthSelect');
+            monthSelect.innerHTML = '<option value="">-- Выберите месяц --</option>';
+            
+            availableMonths.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month.value;
+                option.textContent = month.label;
+                monthSelect.appendChild(option);
+            });
+            
+            monthSelect.disabled = false;
+            
+            // Автовыбор текущего месяца
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const found = availableMonths.find(m => m.value === currentMonth);
+            
+            if (found) {
+                monthSelect.value = found.value;
+                loadDatesForMonth(found.value);
+            } else if (availableMonths.length > 0) {
+                monthSelect.value = availableMonths[0].value;
+                loadDatesForMonth(availableMonths[0].value);
             }
         }
         
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            setTheme(currentTheme === 'light' ? 'dark' : 'light');
-        }
-        
-        // === СВОРАЧИВАНИЕ ЗАГОЛОВКА ===
-        function toggleHeader() {
-            const desc = document.getElementById('headerDescription');
-            const head = document.querySelector('#headerWrapper .header-content');
-            if (desc && head) {
-                desc.classList.toggle('collapsed');
-                head.classList.toggle('collapsed');
+        // === 3. ЗАГРУЗКА ДАТ ДЛЯ МЕСЯЦА ===
+        async function loadDatesForMonth(monthStr) {
+            const dateSelect = document.getElementById('dateSelect');
+            dateSelect.innerHTML = '<option>Загрузка...</option>';
+            dateSelect.disabled = true;
+            
+            setStatus('📅 Загрузка дат...', 'loading');
+            
+            try {
+                const url = `${APP_CONFIG.archiveBaseUrl}${encodeURIComponent(monthStr + ' fullData.json')}`;
+                currentDataUrl = url;
+                
+                const response = await fetch(url, { cache: 'no-cache' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден`);
+                
+                const monthData = await response.json();
+                if (!monthData.data || !monthData.columns) throw new Error('Неверная структура данных');
+                
+                const dateCol = monthData.columns.indexOf('Рабочий день');
+                if (dateCol === -1) throw new Error('Колонка "Рабочий день" не найдена');
+                
+                const dates = new Set();
+                monthData.data.forEach(row => {
+                    if (row[dateCol]) dates.add(row[dateCol]);
+                });
+                
+                availableDates = [...dates].sort();
+                if (availableDates.length === 0) throw new Error('Нет доступных дат');
+                
+                populateDateSelectFromArray(availableDates);
+                
+                const lastDate = availableDates[availableDates.length - 1];
+                dateSelect.value = lastDate;
+                
+                setStatus(`✅ Загружено ${availableDates.length} дат`, 'success');
+                dateSelect.disabled = false;
+                
+                jsonData = monthData;
+                setTimeout(() => {
+                    updateCharts(lastDate);
+                }, 100);
+                
+            } catch (error) {
+                console.error('Ошибка загрузки дат:', error);
+                setStatus('❌ Ошибка: ' + error.message, 'error');
+                dateSelect.innerHTML = '<option>Нет данных</option>';
+                dateSelect.disabled = true;
             }
         }
         
-        // === ОБЪЁМ И ПЕРЕГРУЗКА ===
+        function populateDateSelectFromArray(dates) {
+            const dateSelect = document.getElementById('dateSelect');
+            dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
+            
+            dates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = date;
+                dateSelect.appendChild(option);
+            });
+        }
+        
+        // === 4. ЗАГРУЗКА ДАННЫХ ===
+        async function loadData() {
+            setStatus('Загрузка данных...', 'loading');
+            toggleControls(false);
+            
+            try {
+                const response = await fetch(currentDataUrl, { cache: 'no-cache' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                
+                jsonData = await response.json();
+                if (!jsonData.data || !jsonData.columns) throw new Error('Неверная структура JSON');
+                
+                const dateCol = jsonData.columns.indexOf('Рабочий день');
+                if (dateCol !== -1) {
+                    const dates = new Set();
+                    jsonData.data.forEach(row => {
+                        if (row[dateCol]) dates.add(row[dateCol]);
+                    });
+                    availableDates = [...dates].sort();
+                    populateDateSelectFromArray(availableDates);
+                }
+                
+                setStatus('Данные загружены', 'success');
+                toggleControls(true);
+                
+                if (dateSelect.options.length > 1) {
+                    dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
+                    updateCharts(dateSelect.value);
+                }
+                
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                setStatus(`❌ Ошибка: ${error.message}`, 'error');
+                const dateSelect = document.getElementById('dateSelect');
+                dateSelect.innerHTML = '<option>Нет данных</option>';
+                dateSelect.disabled = true;
+            }
+        }
+        
+        function setStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
+        }
+        
+        function toggleControls(enabled) {
+            document.getElementById('monthSelect').disabled = !enabled;
+            dateSelect.disabled = !enabled;
+            refreshBtn.disabled = !enabled;
+            document.getElementById('exportBtn').disabled = !enabled;
+            document.getElementById('clearCacheBtn').disabled = !enabled;
+        }
+        
+        // === 5. РАСЧЁТ ДАННЫХ ===
         function getHourLabel(timeStr) {
             if (!timeStr) return null;
             const parts = timeStr.split(':');
@@ -969,10 +754,13 @@ function getCurrentDataUrl() {
         
         function calculateDataForDate(selectedDate) {
             const result = {
-                assembly: Array(24).fill(0), loading: Array(24).fill(0),
-                stickering: Array(24).fill(0), palletizing: Array(24).fill(0),
+                assembly: Array(24).fill(0),
+                loading: Array(24).fill(0),
+                stickering: Array(24).fill(0),
+                palletizing: Array(24).fill(0),
                 assembly_rim: Array(24).fill(0)
             };
+            
             const dateCol = jsonData.columns.indexOf('Рабочий день');
             const timeCol = jsonData.columns.indexOf('Начало задачи');
             const workCol = jsonData.columns.indexOf('Вид работ');
@@ -980,7 +768,14 @@ function getCurrentDataUrl() {
             
             jsonData.data.forEach(row => {
                 if (row[dateCol] !== selectedDate) return;
-                const key = workTypeMap[row[workCol] || ''];
+                const key = {
+                    'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly',
+                    'Сборка Диски':'assembly_rim','Сборка Диски МП':'assembly_rim',
+                    'Погрузка': 'loading', 'Погрузка/Разгрузка': 'loading',
+                    'Стикеровка Шины': 'stickering', 'Стикеровка Диски': 'stickering',
+                    'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
+                }[row[workCol] || ''];
+                
                 if (!key) return;
                 const hourLabel = getHourLabel(row[timeCol]);
                 if (!hourLabel) return;
@@ -988,392 +783,82 @@ function getCurrentDataUrl() {
                 if (idx === -1) return;
                 result[key][idx] += parseFloat(row[qtyCol]) || 0;
             });
+            
             return result;
         }
-
-        // 📊 Функция расчёта суточных итогов
-function calculateDailyTotals(selectedDate) {
-    if (!selectedDate || !jsonData) return null;
-    
-    const data = calculateDataForDate(selectedDate);
-    
-    return {
-        assembly: data.assembly.reduce((a, b) => a + b, 0),
-        assembly_rim: data.assembly_rim.reduce((a, b) => a + b, 0),
-        loading: data.loading.reduce((a, b) => a + b, 0),
-        stickering: data.stickering.reduce((a, b) => a + b, 0),
-        palletizing: data.palletizing.reduce((a, b) => a + b, 0)
-    };
-}
-
-// 📊 Функция добавления итогов в заголовок секции
-function addDailyTotalsToHeader(canvasId, totals) {
-    const section = document.querySelector(`button[data-target="${canvasId}"]`)?.closest('.chart-section');
-    if (!section || !totals) return;
-    
-    // Удаляем старые итоги если есть
-    const oldTotals = section.querySelector('.daily-totals');
-    if (oldTotals) oldTotals.remove();
-    
-    // Получаем конфиг для формата чисел
-    const config = CHART_CONFIG[canvasId];
-    if (!config) return;
-    
-    // 🔄 ИСПРАВЛЕНИЕ: Правильное сопоставление canvasId с ключом данных
-    const dataKeyMap = {
-        'chartAssembly': 'assembly',
-        'chartAssemblyRim': 'assembly_rim',
-        'chartLoading': 'loading',
-        'chartStickering': 'stickering',
-        'chartPalletizing': 'palletizing'
-    };
-    
-    const dataKey = dataKeyMap[canvasId];
-    const totalVolume = dataKey ? totals[dataKey] || 0 : 0;
-    const totalBrigades = Math.ceil(totalVolume / config.norm);
-    
-    // Создаём элемент с итогами
-    const totalsDiv = document.createElement('div');
-    totalsDiv.className = 'daily-totals';
-    
-    totalsDiv.innerHTML = `
-        <span class="totals-value" title="Общий объем за сутки">
-            📦 ${totalVolume.toLocaleString('ru-RU')} шт.
-        </span>
-        <span class="totals-separator">|</span>
-        <span class="totals-value" title="Требуется бригадо-часов">
-            👥 ${totalBrigades} бриг.
-        </span>
-    `;
-    
-    // Вставляем после h2 в заголовке
-    const header = section.querySelector('.chart-section-header h2');
-    if (header) {
-        header.appendChild(totalsDiv);
-    }
-}
         
-        function checkOverload(selectedDate) {
-            if (!selectedDate || !jsonData) return [];
-            const data = calculateDataForDate(selectedDate);
-            const overloads = [];
-            const config = [
-                { key: 'assembly', name: 'Сборка Шин', norm: norms.assembly, max: 3 },
-                { key: 'assembly_rim', name: 'Сборка Диски', norm: norms.assembly_rim, max: 1 },
-                { key: 'loading', name: 'Погрузка', norm: norms.loading, max: 1 },
-                { key: 'stickering', name: 'Стикеровка', norm: norms.stickering, max: 1 },
-                { key: 'palletizing', name: 'Упаковка', norm: norms.palletizing, max: 1 }
-            ];
-            config.forEach(cfg => {
-                data[cfg.key].forEach((v, i) => {
-                    if (v > 0) {
-                        const b = Math.ceil(v / cfg.norm);
-                        if (b > cfg.max) {
-                            overloads.push({
-                                workType: cfg.name, hour: labels[i], volume: v,
-                                brigadesNeeded: b, brigadesMax: cfg.max,
-                                severity: b > cfg.max * 2 ? 'critical' : 'warning'
-                            });
-                        }
-                    }
-                });
-            });
-            overloads.sort((a, b) => {
-                if (a.severity === 'critical' && b.severity !== 'critical') return -1;
-                if (a.severity !== 'critical' && b.severity === 'critical') return 1;
-                return b.brigadesNeeded - a.brigadesNeeded;
-            });
-            return overloads;
-        }
-        
-        function showOverloadPanel(overloads) {
-            const panel = document.getElementById('overloadPanel');
-            const content = document.getElementById('overloadContent');
-            if (!overloads.length) { panel.style.display='none'; return; }
-            panel.style.display='block';
-            content.innerHTML = overloads.slice(0,10).map(o=>`<div class="overload-item ${o.severity}"><div><div class="overload-work">${o.workType}</div><div class="overload-time">🕐 ${o.hour} | ${o.volume} шт.</div></div><div class="overload-brigades">${o.brigadesNeeded} из ${o.brigadesMax} бриг.</div></div>`).join('');
-            if (overloads.some(o=>o.severity==='critical')) playNotificationSound();
-        }
-        
-        function closeOverloadPanel() { document.getElementById('overloadPanel').style.display='none'; }
-        
-// 🔔 Звуковое уведомление (безопасная версия)
-function playNotificationSound() {
-    try {
-        // Проверяем поддержку AudioContext
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        
-        const audioContext = new AudioCtx();
-        
-        // Проверяем состояние контекста
-        if (audioContext.state === 'suspended') {
-            // Пытаемся возобновить (может сработать если было взаимодействие)
-            audioContext.resume().then(() => {
-                playBeep(audioContext);
-            }).catch(() => {
-                // Если не получилось - молча выходим
-                audioContext.close();
-            });
-        } else {
-            playBeep(audioContext);
-        }
-    } catch (e) {
-        // Тихо игнорируем ошибки аудио
-        console.log('🔇 Звук отключён:', e.message);
-    }
-}
-
-// Вспомогательная функция для воспроизведения сигнала
-function playBeep(audioContext) {
-    try {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        gainNode.gain.value = 0.05; // Тихий звук
-        
-        oscillator.start();
-        setTimeout(() => {
-            oscillator.stop();
-            audioContext.close();
-        }, 150);
-    } catch (e) {
-        console.log('🔇 Ошибка воспроизведения:', e.message);
-    }
-}
-        
-        function addOverloadIndicators(overloads) {
-            document.querySelectorAll('.overload-indicator').forEach(e => e.remove());
-            const byWork = {};
-            overloads.forEach(o => { byWork[o.workType] = (byWork[o.workType] || 0) + 1; });
-            const map = {
-                'Сборка Шин': 'chartAssembly',
-                'Сборка Диски': 'chartAssemblyRim',
-                'Погрузка': 'chartLoading',
-                'Стикеровка': 'chartStickering',
-                'Упаковка': 'chartPalletizing'
-            };
-            Object.entries(byWork).forEach(([w, c]) => {
-                const el = document.querySelector(`button[data-target="${map[w]}"]`)?.closest('.chart-section-header')?.querySelector('h2');
-                if (el) {
-                    const ind = document.createElement('span');
-                    ind.className = 'overload-indicator';
-                    ind.textContent = `⚠️ ${c} ч.`;
-                    ind.title = `${c} часов перегрузки`;
-                    el.appendChild(ind);
-                }
-            });
-        }
-        
-        // === ЭКСПОРТ ===
-        function exportToCSV(date) {
-            if (!date || !jsonData) { setStatus('❌ Нет данных для экспорта', 'error'); return; }
-            try {
-                const d = calculateDataForDate(date);
-                let csv = ['Час','Сборка_Шин','Сборка_Диски','Погрузка','Стикеровка','Упаковка','Бригады_Шин','Бригады_Диски','Бригады_Погрузка','Бригады_Стикеровка','Бригады_Упаковка'].join(',') + '\n';
-                for (let i = 0; i < 24; i++) {
-                    csv += [labels[i], d.assembly[i], d.assembly_rim[i], d.loading[i], d.stickering[i], d.palletizing[i],
-                        Math.ceil(d.assembly[i]/norms.assembly), Math.ceil(d.assembly_rim[i]/norms.assembly_rim),
-                        Math.ceil(d.loading[i]/norms.loading), Math.ceil(d.stickering[i]/norms.stickering),
-                        Math.ceil(d.palletizing[i]/norms.palletizing)].join(',') + '\n';
-                }
-                const b = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-                const l = document.createElement('a');
-                l.href = URL.createObjectURL(b);
-                l.download = `Склад_Нагрузки_${date}.csv`;
-                document.body.appendChild(l);
-                l.click();
-                document.body.removeChild(l);
-                setStatus('✅ Экспортировано!', 'success');
-                document.getElementById('exportBtn').classList.add('export-success');
-                setTimeout(() => document.getElementById('exportBtn').classList.remove('export-success'), 300);
-            } catch(e) { console.error(e); setStatus('❌ Ошибка: ' + e.message, 'error'); }
-        }
-        
-        // === ЗАГРУЗКА ДАННЫХ ===
-
-// Загрузка данных с обработкой ошибок
-async function loadData() {
-    setStatus('Загрузка данных...', 'loading');
-    toggleControls(false);
-    
-    try {
-        const response = await fetch(currentDataUrl, { cache: 'no-cache' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        
-        jsonData = await response.json();
-        
-        if (!jsonData.data || !jsonData.columns) throw new Error('Неверная структура JSON');
-        
-        // Обновляем список дат из загруженных данных
-        const dateCol = jsonData.columns.indexOf('Рабочий день');
-        if (dateCol !== -1) {
-            const dates = new Set();
-            jsonData.data.forEach(row => {
-                if (row[dateCol]) dates.add(row[dateCol]);
-            });
-            availableDates = [...dates].sort();
-            populateDateSelectFromArray(availableDates);
-        }
-        
-        setStatus('Данные загружены', 'success');
-        toggleControls(true);
-        
-        // Автовыбор последней даты
-        const dateSelect = document.getElementById('dateSelect');
-        if (dateSelect.options.length > 1) {
-            dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
-            updateCharts(dateSelect.value);
-               
-      setTimeout(() => { // 🆕 Небольшая задержка для гарантированной инициализации
-        initChartToggles();
-    }, 200);
-        }
-        
-    } catch (error) {
-        console.error('Ошибка загрузки:', error);
-        setStatus(`❌ Ошибка: ${error.message}. Проверьте консоль (F12) и URL файла.`, 'error');
-        const dateSelect = document.getElementById('dateSelect');
-        dateSelect.innerHTML = '<option>Нет данных</option>';
-        dateSelect.disabled = true;
-    }
-}
-        
-        function setStatus(msg, type) {
-            statusEl.textContent = msg;
-            statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
-        }
- // активация кнопки выбора      
-function toggleControls(enabled) {
-    const monthSelect = document.getElementById('monthSelect');
-    const dateSelect = document.getElementById('dateSelect');
-    
-    monthSelect.disabled = !enabled;
-    dateSelect.disabled = !enabled;
-    refreshBtn.disabled = !enabled;
-    document.getElementById('exportBtn').disabled = !enabled;
-    document.getElementById('clearCacheBtn').disabled = !enabled;
-}
-        
-        function populateDateSelect() {
-            const dates = new Set();
-            const dc = jsonData.columns.indexOf('Рабочий день');
-            jsonData.data.forEach(r => { if (r[dc]) dates.add(r[dc]); });
-            dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
-            [...dates].sort().forEach(d => {
-                const o = document.createElement('option');
-                o.value = o.textContent = d;
-                dateSelect.appendChild(o);
-            });
-        }
-        
-        // === ГРАФИКИ ===
-function createOrUpdateChart(canvasId, data, color, norm) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    const fteData = data.map(val => (val / norm).toFixed(2));
-    
-    if (charts[canvasId]) {
-        charts[canvasId].data.datasets[0].data = data;
-        charts[canvasId].data.datasets[1].data = fteData;
-        charts[canvasId].update('none');
-        return;
-    }
-    
-    charts[canvasId] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Объем (штук)',
-                    data: data,
-                    type: 'line',
-                    backgroundColor: color + '33',
-                    borderColor: color,
-                    borderWidth: 3,
-                    yAxisID: 'y',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    pointBackgroundColor: color,
-                    order: 1
-                },
-                {
-                    label: 'Требуемый ресурс (бригад/час)',
-                    data: fteData,
-                    type: 'bar',
-                    backgroundColor: '#34495e88',
-                    yAxisID: 'y1',
-                    barThickness: 20,
-                    order: 2
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 300 },
-            scales: {
-                y: {
-                    type: 'linear',
-                    position: 'left',
-                    title: { display: true, text: 'Штуки' },
-                    beginAtZero: true,
-                    grid: { color: 'var(--chart-grid)' }
-                },
-                y1: {
-                    type: 'linear',
-                    position: 'right',
-                    title: { display: true, text: 'Бригады' },
-                    grid: { drawOnChartArea: false },
-                    beginAtZero: true
-                }
-            },
-            plugins: {
-                tooltip: {
-                    backgroundColor: 'var(--tooltip-bg)',
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: 'var(--border-color)',
-                    borderWidth: 1,
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                        label: function(context) {
-                            if (context.datasetIndex === 0) {
-                                return `Объем: ${context.parsed.y} шт.`;
-                            } else {
-                                return `Бригады: ${context.parsed.y}`;
-                            }
-                        }
-                    }
-                },
-                legend: { 
-                    labels: { 
-                        font: { size: 11 }, 
-                        color: 'var(--text-primary)' 
-                    } 
-                }
+        // === 6. ГРАФИКИ ===
+        function createOrUpdateChart(canvasId, data, color, norm) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const fteData = data.map(val => (val / norm).toFixed(2));
+            
+            if (charts[canvasId]) {
+                charts[canvasId].data.datasets[0].data = data;
+                charts[canvasId].data.datasets[1].data = fteData;
+                charts[canvasId].update('none');
+                return;
             }
-        }
-    });
-}
-        
-        function addHeaderToChart(id) {
-            const c = document.getElementById(id);
-            if (!c) return;
-            const old = c.parentElement.querySelector('.chart-header-info');
-            if (old) old.remove();
-            const hd = document.createElement('div');
-            hd.className = 'chart-header-info';
-            hd.innerHTML = `<span>${CHART_CONFIG[id].name}</span><span class="norm-badge"><span class="norm-icon">📊</span><strong>Норма: ${CHART_CONFIG[id].normText}</strong></span><span class="norm-badge"><span class="norm-icon">👥</span><strong>Макс: ${CHART_CONFIG[id].max} бриг.</strong></span>`;
-            c.parentElement.insertBefore(hd, c);
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Объем (штук)',
+                            data: data,
+                            type: 'line',
+                            backgroundColor: color + '33',
+                            borderColor: color,
+                            borderWidth: 3,
+                            yAxisID: 'y',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            order: 1
+                        },
+                        {
+                            label: 'Бригады',
+                            data: fteData,
+                            type: 'bar',
+                            backgroundColor: '#34495e88',
+                            yAxisID: 'y1',
+                            order: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Штуки' },
+                            beginAtZero: true,
+                            grid: { color: 'var(--chart-grid)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Бригады' },
+                            grid: { drawOnChartArea: false },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'var(--tooltip-bg)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            mode: 'index',
+                            intersect: false
+                        },
+                        legend: { display: false }
+                    }
+                }
+            });
         }
         
         function updateCharts(selectedDate) {
@@ -1384,203 +869,261 @@ function createOrUpdateChart(canvasId, data, color, norm) {
                 try {
                     const data = calculateDataForDate(selectedDate);
                     
-            // 🆕 Рассчитываем суточные итоги
-            const dailyTotals = calculateDailyTotals(selectedDate); 
-                    
-                    // Проходим по всем графикам из конфигурации
-                    Object.keys(CHART_CONFIG).forEach(canvasId => {
-                        if (canvasId === 'chartLoadingShift') return;
-                        const config = CHART_CONFIG[canvasId];
-                        let chartData;
-                        if (canvasId === 'chartAssembly') chartData = data.assembly;
-                        else if (canvasId === 'chartAssemblyRim') chartData = data.assembly_rim;
-                        else if (canvasId === 'chartLoading') chartData = data.loading;
-                        else if (canvasId === 'chartStickering') chartData = data.stickering;
-                        else if (canvasId === 'chartPalletizing') chartData = data.palletizing;
+                    Object.keys(APP_CONFIG.chartNorms).forEach(key => {
+                        const config = APP_CONFIG.chartNorms[key];
+                        const canvasId = 'chart' + key.charAt(0).toUpperCase() + key.slice(1).replace('_', '');
                         
-                        if (chartData) {
-                            createOrUpdateChart(canvasId, chartData, config.color, config.norm);
-                            addHeaderToChart(canvasId);
-                            
-                        // 🆕 Добавляем суточные итоги в заголовок
-                        addDailyTotalsToHeader(canvasId, dailyTotals);
+                        if (data[key]) {
+                            createOrUpdateChart(canvasId, data[key], config.color, config.norm);
                         }
                     });
-
-
                     
-                    // ПРОВЕРКА ПЕРЕГРУЗКИ
                     const overloads = checkOverload(selectedDate);
                     showOverloadPanel(overloads);
                     addOverloadIndicators(overloads);
                     
                     setStatus(`Показаны данные за ${selectedDate}`, 'success');
-
-                                // 🆕 ПЕРЕИНИЦИАЛИЗАЦИЯ СВОРАЧИВАНИЯ ПОСЛЕ ОБНОВЛЕНИЯ
-            setTimeout(() => {
-                initChartToggles();
-            }, 100);
-                } catch(e) {
-                    console.error(e);
+                    
+                    setTimeout(() => {
+                        initChartToggles();
+                    }, 100);
+                    
+                } catch (e) {
+                    console.error('Ошибка обработки:', e);
                     setStatus(`Ошибка: ${e.message}`, 'error');
                 }
             }, 30);
         }
         
-        // === СВОРАЧИВАНИЕ ГРАФИКОВ ===
-// 🆕 Функция инициализации сворачивания графиков
-function initChartToggles() {
-    const toggleButtons = document.querySelectorAll('.toggle-btn');
-    
-    toggleButtons.forEach(btn => {
-        // Удаляем старые обработчики клонированием элемента
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
+        // === 7. ПЕРЕГРУЗКА ===
+        function checkOverload(selectedDate) {
+            if (!selectedDate || !jsonData) return [];
+            const data = calculateDataForDate(selectedDate);
+            const overloads = [];
+            
+            Object.keys(APP_CONFIG.chartNorms).forEach(key => {
+                const config = APP_CONFIG.chartNorms[key];
+                data[key].forEach((volume, i) => {
+                    if (volume > 0) {
+                        const brigades = Math.ceil(volume / config.norm);
+                        if (brigades > config.max) {
+                            overloads.push({
+                                workType: config.name,
+                                hour: labels[i],
+                                volume: volume,
+                                brigadesNeeded: brigades,
+                                brigadesMax: config.max,
+                                severity: brigades > config.max * 2 ? 'critical' : 'warning'
+                            });
+                        }
+                    }
+                });
+            });
+            
+            overloads.sort((a, b) => {
+                if (a.severity === 'critical' && b.severity !== 'critical') return -1;
+                if (a.severity !== 'critical' && b.severity === 'critical') return 1;
+                return b.brigadesNeeded - a.brigadesNeeded;
+            });
+            
+            return overloads;
+        }
         
-        newBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const targetId = this.getAttribute('data-target');
-            const content = document.getElementById(`content-${targetId}`);
-            const text = this.querySelector('.toggle-text');
+        function showOverloadPanel(overloads) {
+            const panel = document.getElementById('overloadPanel');
+            const content = document.getElementById('overloadContent');
             
-            if (!content) return;
-            
-            // Переключаем класс collapsed
-            const isCollapsed = content.classList.toggle('collapsed');
-            this.classList.toggle('collapsed');
-            
-            // Меняем текст кнопки
-            text.textContent = isCollapsed ? 'Развернуть' : 'Свернуть';
-            
-            // Останавливаем/обновляем анимацию графика
-            if (isCollapsed && charts[targetId]) {
-                charts[targetId].stop();
-            } else if (!isCollapsed && charts[targetId]) {
-                setTimeout(() => {
-                    charts[targetId]?.resize();
-                }, 350);
+            if (!overloads.length) {
+                panel.style.display = 'none';
+                return;
             }
-        });
+            
+            panel.style.display = 'block';
+            content.innerHTML = overloads.slice(0, 10).map(o => `
+                <div class="overload-item ${o.severity}">
+                    <div>
+                        <div class="overload-work">${o.workType}</div>
+                        <div class="overload-time">🕐 ${o.hour} | ${o.volume} шт.</div>
+                    </div>
+                    <div class="overload-brigades">${o.brigadesNeeded} из ${o.brigadesMax} бриг.</div>
+                </div>
+            `).join('');
+        }
         
-        // Клик по заголовку тоже сворачивает
-        const header = newBtn.closest('.chart-section-header');
-        if (header) {
-            header.style.cursor = 'pointer';
-            header.addEventListener('click', (e) => {
-                if (e.target === header || e.target.tagName === 'H2') {
-                    newBtn.click();
+        function closeOverloadPanel() {
+            document.getElementById('overloadPanel').style.display = 'none';
+        }
+        
+        function addOverloadIndicators(overloads) {
+            document.querySelectorAll('.overload-indicator').forEach(el => el.remove());
+            
+            const byWork = {};
+            overloads.forEach(o => { byWork[o.workType] = (byWork[o.workType] || 0) + 1; });
+            
+            const map = {
+                'Сборка Шин': 'chartAssembly',
+                'Сборка Диски': 'chartAssemblyRim',
+                'Погрузка': 'chartLoading',
+                'Стикеровка': 'chartStickering',
+                'Упаковка': 'chartPalletizing'
+            };
+            
+            Object.entries(byWork).forEach(([workType, count]) => {
+                const canvasId = map[workType];
+                if (canvasId) {
+                    const header = document.querySelector(`button[data-target="${canvasId}"]`)?.closest('.chart-section-header')?.querySelector('h2');
+                    if (header) {
+                        const indicator = document.createElement('span');
+                        indicator.className = 'overload-indicator';
+                        indicator.textContent = `⚠️ ${count} ч.`;
+                        header.appendChild(indicator);
+                    }
                 }
             });
         }
-    });
-}
-        // 🗑️ Функция сброса кэша и Service Worker
-async function clearCacheAndReload() {
-    const btn = document.getElementById('clearCacheBtn');
-    if (!btn) return;
-    
-    // Визуальная обратная связь
-    btn.classList.add('clearing');
-    btn.disabled = true;
-    setStatus('🔄 Очистка кэша...', 'loading');
-    
-    try {
-        // 1. Удаляем все кэши
-        const cacheNames = await caches.keys();
-        for (const name of cacheNames) {
-            await caches.delete(name);
-            console.log('✅ Удалён кэш:', name);
-        }
         
-        // 2. Отменяем регистрацию Service Worker
-        if ('serviceWorker' in navigator) {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            for (const registration of registrations) {
-                await registration.unregister();
-                console.log('✅ Service Worker отменён:', registration.scope);
+        // === 8. ЭКСПОРТ И КЭШ ===
+        function exportToCSV(selectedDate) {
+            if (!selectedDate || !jsonData) {
+                setStatus('❌ Нет данных для экспорта', 'error');
+                return;
+            }
+            
+            try {
+                const data = calculateDataForDate(selectedDate);
+                let csv = ['Час','Сборка_Шин','Сборка_Диски','Погрузка','Стикеровка','Упаковка'].join(',') + '\n';
+                
+                for (let i = 0; i < 24; i++) {
+                    csv += [labels[i], data.assembly[i], data.assembly_rim[i], data.loading[i], data.stickering[i], data.palletizing[i]].join(',') + '\n';
+                }
+                
+                const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `Склад_Нагрузки_${selectedDate}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setStatus('✅ Экспортировано!', 'success');
+            } catch (e) {
+                setStatus('❌ Ошибка: ' + e.message, 'error');
             }
         }
         
-        // 3. Очищаем localStorage (опционально)
-        localStorage.clear();
-        console.log('✅ localStorage очищен');
+        async function clearCacheAndReload() {
+            const btn = document.getElementById('clearCacheBtn');
+            if (!btn) return;
+            
+            btn.disabled = true;
+            setStatus('🔄 Очистка кэша...', 'loading');
+            
+            try {
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) await caches.delete(name);
+                
+                localStorage.clear();
+                
+                setStatus('✅ Кэш очищен! Перезагрузка...', 'success');
+                setTimeout(() => window.location.reload(true), 1500);
+            } catch (error) {
+                setStatus('❌ Ошибка: ' + error.message, 'error');
+                btn.disabled = false;
+            }
+        }
         
-        // 4. Показываем успех
-        setStatus('✅ Кэш очищен! Перезагрузка...', 'success');
-        
-        // 5. Перезагружаем страницу с обходом кэша
-        setTimeout(() => {
-            window.location.reload(true);  // true = hard reload
-        }, 1500);
-        
-    } catch (error) {
-        console.error('❌ Ошибка очистки кэша:', error);
-        setStatus('❌ Ошибка: ' + error.message, 'error');
-        btn.disabled = false;
-        btn.classList.remove('clearing');
-    }
-}
-        
-        // === СЕТЬ ===
-        function updateConnectionStatus() {
-            const s = document.getElementById('connectionStatus');
-            if (!s) return;
-            if (navigator.onLine) {
-                s.textContent = '🟢 Онлайн';
-                s.className = 'connection-status online';
-                s.style.display = 'block';
+        // === 9. ТЕМА ===
+        function initTheme() {
+            const saved = localStorage.getItem('warehouse_theme');
+            if (!saved) {
+                setTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
             } else {
-                s.textContent = '🔴 Офлайн';
-                s.className = 'connection-status offline';
-                s.style.display = 'block';
+                setTheme(saved);
             }
         }
-        window.addEventListener('online', updateConnectionStatus);
-        window.addEventListener('offline', updateConnectionStatus);
-        window.addEventListener('load', updateConnectionStatus);
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('warehouse_theme', theme);
+            const btn = document.getElementById('themeToggle');
+            if (btn) {
+                const icon = btn.querySelector('.theme-icon');
+                const text = document.getElementById('themeText');
+                if (theme === 'dark') {
+                    icon.textContent = '☀️';
+                    text.textContent = 'Светлая';
+                } else {
+                    icon.textContent = '🌙';
+                    text.textContent = 'Тёмная';
+                }
+            }
+        }
+        
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            setTheme(current === 'light' ? 'dark' : 'light');
+        }
+        
+        // === 10. СВОРАЧИВАНИЕ ===
+        function initChartToggles() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const target = this.getAttribute('data-target');
+                    const content = document.getElementById(`content-${target}`);
+                    const text = this.querySelector('.toggle-text');
+                    
+                    const collapsed = content.classList.toggle('collapsed');
+                    this.classList.toggle('collapsed');
+                    text.textContent = collapsed ? 'Развернуть' : 'Свернуть';
+                    
+                    if (!collapsed && charts[target]) {
+                        setTimeout(() => charts[target]?.resize(), 350);
+                    }
+                });
+            });
+        }
+        
+        // === 11. СЕТЬ ===
+        function updateConnectionStatus() {
+            const el = document.getElementById('connectionStatus');
+            if (!el) return;
+            el.textContent = navigator.onLine ? '🟢 Онлайн' : '🔴 Офлайн';
+            el.className = `connection-status ${navigator.onLine ? 'online' : 'offline'}`;
+            el.style.display = 'block';
+        }
         
         // === INIT ===
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadAppConfig();
             initTheme();
-             // Не вызываем initChartToggles() здесь - она вызывается после отрисовки графиков
-            loadData();
+            fetchAvailableMonths();
+            updateConnectionStatus();
+            initChartToggles();
         });
         
-        // События
-// 📅 Обработчики для выбора месяца и даты
-document.getElementById('monthSelect')?.addEventListener('change', (e) => {
-    if (e.target.value) {
-        loadDatesForMonth(e.target.value);
-    }
-});
-
-document.getElementById('dateSelect')?.addEventListener('change', (e) => {
-    if (e.target.value && jsonData) {
-        updateCharts(e.target.value);
-    }
-});
-
-document.getElementById('refreshBtn')?.addEventListener('click', () => loadData());
-document.getElementById('exportBtn')?.addEventListener('click', () => {
-    const dateSelect = document.getElementById('dateSelect');
-    if (dateSelect.value) exportToCSV(dateSelect.value);
-});
-document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
-
-// 🚀 Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    initTheme();
-    initChartToggles();
-    fetchAvailableMonths();  // Загружаем список месяцев
-    updateConnectionStatus(); // Проверяем соединение
-});
+        document.getElementById('monthSelect')?.addEventListener('change', (e) => {
+            if (e.target.value) loadDatesForMonth(e.target.value);
+        });
         
-        // === PWA ===
+        document.getElementById('dateSelect')?.addEventListener('change', (e) => {
+            if (e.target.value && jsonData) updateCharts(e.target.value);
+        });
+        
+        document.getElementById('refreshBtn')?.addEventListener('click', loadData);
+        document.getElementById('exportBtn')?.addEventListener('click', () => exportToCSV(dateSelect.value));
+        document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
+        document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+        
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        
+        // PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(registration => console.log('ServiceWorker registration successful:', registration.scope))
-                    .catch(err => console.log('ServiceWorker registration failed:', err));
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW failed:', err));
             });
         }
     </script>
