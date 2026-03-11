@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анализ пиковых нагрузок склада 7</title>
+    <title>Анализ пиковых нагрузок склада 8</title>
     
     <meta name="theme-color" content="#1a73e8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -956,12 +956,7 @@ Object.keys(APP_CONFIG.chartNorms).forEach(key => {
     }
 });
             
-            // Графики по сменам для Погрузки
-            const loadingData = {
-                labels: labels.map(h => h),
-                values: data.loading
-            };
-            renderAllShiftedCharts(loadingData, 'Погрузка');
+
             
             // ПРОВЕРКА ПЕРЕГРУЗКИ
             const overloads = checkOverload(selectedDate);
@@ -1260,7 +1255,12 @@ function addDailyTotalsToHeader(canvasId, totals, dataKey) {
         });
         
         document.getElementById('refreshBtn')?.addEventListener('click', loadData);
-        document.getElementById('exportBtn')?.addEventListener('click', () => exportToCSV(dateSelect.value));
+        
+        document.getElementById('exportBtn')?.addEventListener('click', () => {
+    const dateSelect = document.getElementById('dateSelect');
+    if (dateSelect.value) exportToCSV(dateSelect.value);
+});
+        
         document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
         document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
         
