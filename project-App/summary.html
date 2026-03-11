@@ -4,116 +4,1240 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сводные отчеты — Склад Статы</title>
+    
     <meta name="theme-color" content="#1a73e8">
-    <link rel="icon" type="image/png" href="../favicon.png">
-    <link rel="apple-touch-icon" href="../favicon.png">
-    <link rel="manifest" href="../manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Сводные отчеты по нагрузкам склада">
+    
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
-        /* Минимальный стиль, повторяющий основную схему */
+        /* === CSS ПЕРЕМЕННЫЕ ТЕМЫ === */
         :root {
             --bg-primary: #f0f2f5;
             --bg-secondary: #ffffff;
             --text-primary: #333333;
-            --accent-color: #1a73e8;
+            --text-secondary: #666666;
+            --card-bg: #ffffff;
             --border-color: #e0e0e0;
+            --header-bg: #f8f9fa;
+            --accent-color: #1a73e8;
+            --accent-hover: #1557b0;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --chart-grid: rgba(0,0,0,0.05);
         }
         
         [data-theme="dark"] {
             --bg-primary: #121212;
             --bg-secondary: #1e1e1e;
             --text-primary: #e0e0e0;
-            --accent-color: #3d8bfd;
+            --text-secondary: #a0a0a0;
+            --card-bg: #1e1e1e;
             --border-color: #333333;
+            --header-bg: #2c2c2c;
+            --accent-color: #3d8bfd;
+            --accent-hover: #5a9bff;
+            --success-color: #4caf50;
+            --warning-color: #ffca28;
+            --danger-color: #ef5350;
+            --chart-grid: rgba(255,255,255,0.1);
         }
         
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;padding-top:60px;}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        .page-container{max-width:1200px;margin:0 auto;padding:40px 20px;}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            min-height: 100vh;
+            padding-top: 70px;
+        }
         
-        .page-header{margin-bottom:30px;padding-bottom:20px;border-bottom:2px solid var(--border-color);}
-        .page-title{font-size:2em;color:var(--accent-color);margin-bottom:10px;}
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
         
-        .report-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;margin-top:30px;}
+        /* === НАВИГАЦИЯ === */
+        .nav-buttons-wrapper {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            pointer-events: none;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
         
-        .report-card{background:var(--bg-secondary);padding:25px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.05);}
-        .report-title{font-size:1.2em;font-weight:600;margin-bottom:15px;color:var(--accent-color);}
-        .report-stat{font-size:2em;font-weight:700;margin-bottom:5px;}
-        .report-sub{font-size:0.9em;color:var(--text-secondary);}
+        .nav-btn, .theme-toggle-btn {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
         
-        .back-button{position:fixed;top:20px;left:20px;padding:10px 20px;background:var(--accent-color);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;z-index:1000;}
+        .nav-btn:hover, .theme-toggle-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
         
-        .theme-toggle-wrapper{position:fixed;top:20px;right:20px;z-index:100;}
-        .theme-toggle-btn{background:var(--accent-color);color:white;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-size:1em;display:flex;align-items:center;gap:8px;}
+        /* === КОНТРОЛЫ === */
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+        }
+        
+        .controls label {
+            font-weight: 600;
+            white-space: nowrap;
+            color: var(--text-primary);
+        }
+        
+        .controls select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1em;
+            min-width: 150px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        .controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .refresh-btn { background: var(--accent-color); color: white; }
+        .refresh-btn:hover { background: var(--accent-hover); }
+        .refresh-btn:disabled { background: var(--border-color); cursor: not-allowed; }
+        
+        .export-btn { background: var(--success-color); color: white; }
+        .export-btn:hover { background: #218838; }
+        .export-btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .cache-btn {
+            padding: 8px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+        }
+        .cache-btn:hover { background: #c82333; }
+        .cache-btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .status {
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+            min-height: 1.2em;
+            width: 100%;
+        }
+        
+        .error { color: var(--danger-color); font-weight: 500; }
+        .success { color: var(--success-color); }
+        
+        /* === КАРТОЧКИ СТАТИСТИКИ === */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+        
+        .stat-sub {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        /* === ТАБЛИЦА === */
+        .summary-table {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .table-header {
+            background: var(--header-bg);
+            padding: 15px 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .data-table th {
+            background: var(--header-bg);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9em;
+        }
+        
+        .data-table tr:hover {
+            background: var(--header-bg);
+        }
+        
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        
+        /* === ГРАФИКИ === */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .chart-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        /* === ПРОЦЕССЫ === */
+        .process-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .process-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .process-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .process-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .process-stat {
+            text-align: center;
+            padding: 10px;
+            background: var(--header-bg);
+            border-radius: 8px;
+        }
+        
+        .process-stat-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        
+        .process-stat-value {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+        
+        /* === СТАТУС СЕТИ === */
+        .connection-status {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: white;
+            font-weight: 600;
+            z-index: 9999;
+        }
+        
+        .connection-status.online { background: var(--success-color); }
+        .connection-status.offline { background: var(--danger-color); }
+        
+        /* === АДАПТИВНОСТЬ === */
+        @media (max-width: 768px) {
+            .nav-buttons-wrapper {
+                position: static;
+                margin-bottom: 20px;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .controls select, .controls button {
+                width: 100%;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-table {
+                font-size: 0.85em;
+            }
+            
+            .process-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
-    <button class="back-button" onclick="window.location.href='index.html'">← На главную</button>
-    
-    <div class="theme-toggle-wrapper">
-        <button class="theme-toggle-btn" id="themeToggle">🌙 Тёмная</button>
+    <!-- === НАВИГАЦИЯ === -->
+    <div class="nav-buttons-wrapper">
+        <button class="nav-btn" onclick="window.location.href='index.html'">
+            🏠 На главную
+        </button>
+        <button id="themeToggle" class="theme-toggle-btn">
+            <span class="theme-icon">🌙</span>
+            <span id="themeText">Тёмная</span>
+        </button>
     </div>
     
+    <!-- === СТАТУС СЕТИ === -->
+    <div id="connectionStatus" class="connection-status online" style="display: none;">
+        <span>🌐 Подключение...</span>
+    </div>
+    
+    <!-- === ОСНОВНОЙ КОНТЕЙНЕР === -->
     <div class="page-container">
-        <header class="page-header">
-            <h1 class="page-title">📋 Сводные отчеты</h1>
-            <p style="color:var(--text-secondary)">Итоговая статистика по рабочим операциям склада</p>
-        </header>
+        <h1 style="color: var(--accent-color); margin-bottom: 20px; font-size: 2em;">
+            📊 Сводные отчеты по нагрузкам склада
+        </h1>
+        <p style="color: var(--text-secondary); margin-bottom: 30px;">
+            Общая статистика и аналитика по всем процессам за выбранный период
+        </p>
         
-        <div class="report-cards">
-            <div class="report-card">
-                <div class="report-title">Всего обработано</div>
-                <div class="report-stat">124,567</div>
-                <div class="report-sub">штук за период</div>
-            </div>
+        <!-- === КОНТРОЛЫ === -->
+        <div class="controls">
+            <label for="monthSelect">📅 Месяц:</label>
+            <select id="monthSelect" disabled><option>Загрузка...</option></select>
             
-            <div class="report-card">
-                <div class="report-title">Рабочих дней</div>
-                <div class="report-stat">22</div>
-                <div class="report-sub">из календарного месяца</div>
-            </div>
+            <label for="dateSelect">📆 Дата:</label>
+            <select id="dateSelect" disabled><option>Загрузка...</option></select>
             
-            <div class="report-card">
-                <div class="report-title">Среднее время работы</div>
-                <div class="report-stat">7.5ч</div>
-                <div class="report-sub">по рабочей смене</div>
+            <span id="status" class="status"></span>
+            <button id="refreshBtn" class="refresh-btn" disabled>🔄 Обновить</button>
+            <button id="exportBtn" class="export-btn" disabled>📥 Экспорт CSV</button>
+            <button id="clearCacheBtn" class="cache-btn" disabled>🗑️ Сбросить кэш</button>
+        </div>
+        
+        <!-- === ОБЩАЯ СТАТИСТИКА === -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-label">Всего обработано</div>
+                <div class="stat-value" id="totalVolume">0</div>
+                <div class="stat-sub">штук за сутки</div>
             </div>
-            
-            <div class="report-card">
-                <div class="report-title">Количество смен</div>
-                <div class="report-stat">44</div>
-                <div class="report-sub">выполненных операций</div>
+            <div class="stat-card">
+                <div class="stat-icon">🌞</div>
+                <div class="stat-label">Дневная смена</div>
+                <div class="stat-value" id="dayVolume">0</div>
+                <div class="stat-sub">09:00 – 21:00</div>
             </div>
-            
-            <div class="report-card">
-                <div class="report-title">Пиковая нагрузка</div>
-                <div class="report-stat">400</div>
-                <div class="report-sub">шт/час (14:00)</div>
+            <div class="stat-card">
+                <div class="stat-icon">🌙</div>
+                <div class="stat-label">Ночная смена</div>
+                <div class="stat-value" id="nightVolume">0</div>
+                <div class="stat-sub">21:00 – 09:00</div>
             </div>
-            
-            <div class="report-card">
-                <div class="report-title">Эффективность</div>
-                <div class="report-stat">94%</div>
-                <div class="report-sub">выполнение плана</div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-label">Пиковый час</div>
+                <div class="stat-value" id="peakHour">--:--</div>
+                <div class="stat-sub" id="peakVolume">0 шт.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-label">Всего бригадо-часов</div>
+                <div class="stat-value" id="totalBrigades">0</div>
+                <div class="stat-sub">требуется за сутки</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-label">Часов перегрузки</div>
+                <div class="stat-value" id="overloadHours">0</div>
+                <div class="stat-sub">требуется внимание</div>
             </div>
         </div>
+        
+        <!-- === СТАТИСТИКА ПО ПРОЦЕССАМ === -->
+        <h2 style="color: var(--text-primary); margin: 30px 0 15px 0; font-size: 1.4em;">
+            📋 Детализация по процессам
+        </h2>
+        
+        <div id="processSections">
+            <!-- Заполняется динамически -->
+        </div>
+        
+        <!-- === ТАБЛИЦА ПО ЧАСАМ === -->
+        <h2 style="color: var(--text-primary); margin: 30px 0 15px 0; font-size: 1.4em;">
+            📊 Почасовая разбивка
+        </h2>
+        
+        <div class="summary-table">
+            <div class="table-header">Детальные данные по часам</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Час</th>
+                        <th>Сборка Шин</th>
+                        <th>Сборка Диски</th>
+                        <th>Погрузка</th>
+                        <th>Стикеровка</th>
+                        <th>Упаковка</th>
+                        <th>Итого</th>
+                    </tr>
+                </thead>
+                <tbody id="hourlyTable">
+                    <!-- Заполняется динамически -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- === ГРАФИКИ === -->
+        <h2 style="color: var(--text-primary); margin: 30px 0 15px 0; font-size: 1.4em;">
+            📈 Визуализация
+        </h2>
+        
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">📊 Распределение по процессам</div>
+                <div class="chart-container">
+                    <canvas id="chartDistribution"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">🕐 Нагрузка по часам</div>
+                <div class="chart-container">
+                    <canvas id="chartHourly"></canvas>
+                </div>
+            </div>
+        </div>
+        
     </div>
     
+    <!-- === СКРИПТЫ === -->
     <script>
-        (function(){
-            const THEME_KEY='warehouse_theme';
-            function setTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem(THEME_KEY,t);}
-            function initTheme(){
-                const s=localStorage.getItem(THEME_KEY);
-                if(!s&&window.matchMedia&&(window.matchMedia('(prefers-color-scheme:dark)').matches))setTheme('dark');
-                else if(s)setTheme(s);else setTheme('light');
+        // === ГИБРИДНАЯ СИСТЕМА КОНФИГУРАЦИИ ===
+        let APP_CONFIG = {};
+        let jsonData = null;
+        let summaryCharts = {};
+        let availableMonths = [];
+        let availableDates = [];
+        let currentDataUrl = '';
+        
+        const labels = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00",
+                        "21:00","22:00","23:00","00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00"];
+        
+        const dateSelect = document.getElementById('dateSelect');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const statusEl = document.getElementById('status');
+        
+        // === 1. ЗАГРУЗКА КОНФИГУРАЦИИ ===
+        async function loadAppConfig() {
+            const CACHE_KEY = 'warehouse_config_cache';
+            const CACHE_TIME_KEY = 'warehouse_config_cache_time';
+            const CACHE_DURATION = 86400000;
+            
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+                
+                if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_DURATION) {
+                    APP_CONFIG = JSON.parse(cached);
+                    console.log('✅ Конфигурация из кэша:', APP_CONFIG.version);
+                    return true;
+                }
+                
+                const response = await fetch('./config.json', { cache: 'no-cache' });
+                if (!response.ok) throw new Error('Не удалось загрузить config.json');
+                
+                APP_CONFIG = await response.json();
+                localStorage.setItem(CACHE_KEY, JSON.stringify(APP_CONFIG));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                
+                console.log('✅ Конфигурация загружена:', APP_CONFIG.version);
+                return true;
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки конфигурации:', error);
+                APP_CONFIG = {
+                    knownMonths: [{ value: '2026-03', label: 'Март 2026' }],
+                    archiveBaseUrl: 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/',
+                    chartNorms: {
+                        assembly: { norm: 100, max: 3, name: 'Сборка Шин', color: '#4285F4' },
+                        assembly_rim: { norm: 50, max: 1, name: 'Сборка Диски', color: '#a834a4' },
+                        loading: { norm: 340, max: 1, name: 'Погрузка', color: '#EA4335' },
+                        stickering: { norm: 150, max: 1, name: 'Стикеровка', color: '#FBBC05' },
+                        palletizing: { norm: 124, max: 1, name: 'Упаковка', color: '#34A853' }
+                    }
+                };
+                return false;
             }
-            initTheme();
-            document.getElementById('themeToggle').addEventListener('click',()=>{
-                setTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
+        }
+        
+        // === 2. ГИБРИДНОЕ ПОЛУЧЕНИЕ МЕСЯЦЕВ ===
+        async function fetchAvailableMonths() {
+            const monthSelect = document.getElementById('monthSelect');
+            monthSelect.innerHTML = '<option>Загрузка...</option>';
+            monthSelect.disabled = true;
+            
+            setStatus('📂 Проверка доступных месяцев...', 'loading');
+            
+            const CACHE_KEY = 'warehouse_months_cache';
+            const CACHE_TIME_KEY = 'warehouse_months_cache_time';
+            const CACHE_DURATION = APP_CONFIG.cacheDuration || 86400000;
+            
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+                
+                if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_DURATION) {
+                    availableMonths = JSON.parse(cached);
+                    populateMonthSelect();
+                    console.log('✅ Месяцы из кэша');
+                    return;
+                }
+                
+                try {
+                    const apiResponse = await fetch(APP_CONFIG.githubApiUrl || 'https://api.github.com/repos/AIP-77/AIP-77.github.io/contents/archive');
+                    if (apiResponse.ok) {
+                        const files = await apiResponse.json();
+                        const monthFiles = files
+                            .filter(f => f.name.includes('fullData.json'))
+                            .map(f => {
+                                const match = f.name.match(/(\d{4}-\d{2})/);
+                                if (match) {
+                                    const date = new Date(match[1] + '-01');
+                                    return {
+                                        value: match[1],
+                                        label: date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+                                    };
+                                }
+                                return null;
+                            })
+                            .filter(m => m !== null);
+                        
+                        monthFiles.sort((a, b) => b.value.localeCompare(a.value));
+                        
+                        if (monthFiles.length > 0) {
+                            availableMonths = monthFiles;
+                            localStorage.setItem(CACHE_KEY, JSON.stringify(availableMonths));
+                            localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                            populateMonthSelect();
+                            console.log('✅ Месяцы из GitHub API');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.log('GitHub API недоступен, используем config.json');
+                }
+                
+                availableMonths = APP_CONFIG.knownMonths || [{ value: '2026-03', label: 'Март 2026' }];
+                availableMonths.sort((a, b) => b.value.localeCompare(a.value));
+                localStorage.setItem(CACHE_KEY, JSON.stringify(availableMonths));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                populateMonthSelect();
+                console.log('✅ Месяцы из config.json');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки месяцев:', error);
+                availableMonths = [{ value: '2026-03', label: 'Март 2026' }];
+                populateMonthSelect();
+            }
+        }
+        
+        function populateMonthSelect() {
+            const monthSelect = document.getElementById('monthSelect');
+            monthSelect.innerHTML = '<option value="">-- Выберите месяц --</option>';
+            
+            availableMonths.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month.value;
+                option.textContent = month.label;
+                monthSelect.appendChild(option);
             });
-        })();
-        if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('../sw.js').catch(e=>console.log('SW error:',e)));}
+            
+            monthSelect.disabled = false;
+            
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const found = availableMonths.find(m => m.value === currentMonth);
+            
+            if (found) {
+                monthSelect.value = found.value;
+                loadDatesForMonth(found.value);
+            } else if (availableMonths.length > 0) {
+                monthSelect.value = availableMonths[0].value;
+                loadDatesForMonth(availableMonths[0].value);
+            }
+        }
+        
+        // === 3. ЗАГРУЗКА ДАТ ДЛЯ МЕСЯЦА ===
+        async function loadDatesForMonth(monthStr) {
+            const dateSelect = document.getElementById('dateSelect');
+            dateSelect.innerHTML = '<option>Загрузка...</option>';
+            dateSelect.disabled = true;
+            
+            setStatus('📅 Загрузка дат...', 'loading');
+            toggleControls(false);
+            
+            try {
+                const url = `${APP_CONFIG.archiveBaseUrl}${encodeURIComponent(monthStr + ' fullData.json')}`;
+                currentDataUrl = url;
+                
+                const response = await fetch(url, { cache: 'no-cache' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден`);
+                
+                const monthData = await response.json();
+                if (!monthData.data || !monthData.columns) throw new Error('Неверная структура данных');
+                
+                const dateCol = monthData.columns.indexOf('Рабочий день');
+                if (dateCol === -1) throw new Error('Колонка "Рабочий день" не найдена');
+                
+                const dates = new Set();
+                monthData.data.forEach(row => {
+                    if (row[dateCol]) dates.add(row[dateCol]);
+                });
+                
+                availableDates = [...dates].sort();
+                if (availableDates.length === 0) throw new Error('Нет доступных дат');
+                
+                populateDateSelectFromArray(availableDates);
+                
+                const lastDate = availableDates[availableDates.length - 1];
+                dateSelect.value = lastDate;
+                
+                setStatus(`✅ Загружено ${availableDates.length} дат`, 'success');
+                dateSelect.disabled = false;
+                
+                jsonData = monthData;
+                toggleControls(true);
+                
+                setTimeout(() => {
+                    updateSummary(lastDate);
+                }, 100);
+                
+            } catch (error) {
+                console.error('Ошибка загрузки дат:', error);
+                setStatus('❌ Ошибка: ' + error.message, 'error');
+                dateSelect.innerHTML = '<option>Нет данных</option>';
+                dateSelect.disabled = true;
+                toggleControls(false);
+            }
+        }
+        
+        function populateDateSelectFromArray(dates) {
+            const dateSelect = document.getElementById('dateSelect');
+            dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
+            
+            dates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = date;
+                dateSelect.appendChild(option);
+            });
+        }
+        
+        // === 4. ЗАГРУЗКА ДАННЫХ ===
+        async function loadData() {
+            setStatus('Загрузка данных...', 'loading');
+            toggleControls(false);
+            
+            try {
+                const response = await fetch(currentDataUrl, { cache: 'no-cache' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                
+                jsonData = await response.json();
+                if (!jsonData.data || !jsonData.columns) throw new Error('Неверная структура JSON');
+                
+                const dateCol = jsonData.columns.indexOf('Рабочий день');
+                if (dateCol !== -1) {
+                    const dates = new Set();
+                    jsonData.data.forEach(row => {
+                        if (row[dateCol]) dates.add(row[dateCol]);
+                    });
+                    availableDates = [...dates].sort();
+                    populateDateSelectFromArray(availableDates);
+                }
+                
+                setStatus('Данные загружены', 'success');
+                toggleControls(true);
+                
+                if (dateSelect.options.length > 1) {
+                    dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
+                    updateSummary(dateSelect.value);
+                }
+                
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                setStatus(`❌ Ошибка: ${error.message}`, 'error');
+                const dateSelect = document.getElementById('dateSelect');
+                dateSelect.innerHTML = '<option>Нет данных</option>';
+                dateSelect.disabled = true;
+                toggleControls(false);
+            }
+        }
+        
+        function setStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
+        }
+        
+        function toggleControls(enabled) {
+            const monthSelect = document.getElementById('monthSelect');
+            const dateSelect = document.getElementById('dateSelect');
+            
+            if (monthSelect) monthSelect.disabled = !enabled;
+            if (dateSelect) dateSelect.disabled = !enabled;
+            if (refreshBtn) refreshBtn.disabled = !enabled;
+            
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) exportBtn.disabled = !enabled;
+            
+            const clearCacheBtn = document.getElementById('clearCacheBtn');
+            if (clearCacheBtn) clearCacheBtn.disabled = !enabled;
+        }
+        
+        // === 5. РАСЧЁТ ДАННЫХ ===
+        function getHourLabel(timeStr) {
+            if (!timeStr) return null;
+            const parts = timeStr.split(':');
+            const h = parseInt(parts[0]);
+            return (h < 10 ? '0' : '') + h + ':00';
+        }
+        
+        function calculateDataForDate(selectedDate) {
+            const result = {
+                assembly: Array(24).fill(0),
+                loading: Array(24).fill(0),
+                stickering: Array(24).fill(0),
+                palletizing: Array(24).fill(0),
+                assembly_rim: Array(24).fill(0)
+            };
+            
+            const dateCol = jsonData.columns.indexOf('Рабочий день');
+            const timeCol = jsonData.columns.indexOf('Начало задачи');
+            const workCol = jsonData.columns.indexOf('Вид работ');
+            const qtyCol = jsonData.columns.indexOf('ps.');
+            
+            jsonData.data.forEach(row => {
+                if (row[dateCol] !== selectedDate) return;
+                const key = {
+                    'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly',
+                    'Сборка Шины (Исключение)': 'assembly', 'Сборка шины МП-зона А': 'assembly',
+                    'Сборка Диски':'assembly_rim','Сборка Диски МП':'assembly_rim','Сборка Диски (Исключение)':'assembly_rim',
+                    'Погрузка': 'loading', 'Погрузка/Разгрузка': 'loading',
+                    'Стикеровка Шины': 'stickering', 'Стикеровка Диски': 'stickering',
+                    'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
+                }[row[workCol] || ''];
+                
+                if (!key) return;
+                const hourLabel = getHourLabel(row[timeCol]);
+                if (!hourLabel) return;
+                const idx = labels.indexOf(hourLabel);
+                if (idx === -1) return;
+                result[key][idx] += parseFloat(row[qtyCol]) || 0;
+            });
+            
+            return result;
+        }
+        
+        // === 6. ОБНОВЛЕНИЕ СВОДКИ ===
+        function updateSummary(selectedDate) {
+            if (!selectedDate || !jsonData) return;
+            setStatus(`Обработка данных за ${selectedDate}...`, 'loading');
+            
+            setTimeout(() => {
+                try {
+                    const data = calculateDataForDate(selectedDate);
+                    
+                    // === ОБЩАЯ СТАТИСТИКА ===
+                    let totalVolume = 0;
+                    let dayVolume = 0;
+                    let nightVolume = 0;
+                    let peakValue = 0;
+                    let peakHour = '--:--';
+                    let totalBrigades = 0;
+                    let overloadHours = 0;
+                    
+                    labels.forEach((label, i) => {
+                        const hourTotal = data.assembly[i] + data.assembly_rim[i] + data.loading[i] + data.stickering[i] + data.palletizing[i];
+                        totalVolume += hourTotal;
+                        
+                        if (i < 12) dayVolume += hourTotal;
+                        else nightVolume += hourTotal;
+                        
+                        if (hourTotal > peakValue) {
+                            peakValue = hourTotal;
+                            peakHour = label;
+                        }
+                        
+                        // Расчет бригад
+                        totalBrigades += Math.ceil(data.assembly[i] / APP_CONFIG.chartNorms.assembly.norm);
+                        totalBrigades += Math.ceil(data.assembly_rim[i] / APP_CONFIG.chartNorms.assembly_rim.norm);
+                        totalBrigades += Math.ceil(data.loading[i] / APP_CONFIG.chartNorms.loading.norm);
+                        totalBrigades += Math.ceil(data.stickering[i] / APP_CONFIG.chartNorms.stickering.norm);
+                        totalBrigades += Math.ceil(data.palletizing[i] / APP_CONFIG.chartNorms.palletizing.norm);
+                        
+                        // Проверка перегрузки
+                        if (Math.ceil(data.loading[i] / APP_CONFIG.chartNorms.loading.norm) > APP_CONFIG.chartNorms.loading.max) overloadHours++;
+                    });
+                    
+                    // Обновляем карточки
+                    document.getElementById('totalVolume').textContent = totalVolume.toLocaleString('ru-RU');
+                    document.getElementById('dayVolume').textContent = dayVolume.toLocaleString('ru-RU');
+                    document.getElementById('nightVolume').textContent = nightVolume.toLocaleString('ru-RU');
+                    document.getElementById('peakHour').textContent = peakHour;
+                    document.getElementById('peakVolume').textContent = peakValue.toLocaleString('ru-RU') + ' шт.';
+                    document.getElementById('totalBrigades').textContent = totalBrigades;
+                    document.getElementById('overloadHours').textContent = overloadHours;
+                    
+                    // === СТАТИСТИКА ПО ПРОЦЕССАМ ===
+                    const processSections = document.getElementById('processSections');
+                    processSections.innerHTML = '';
+                    
+                    Object.keys(APP_CONFIG.chartNorms).forEach(key => {
+                        const config = APP_CONFIG.chartNorms[key];
+                        const hourlyData = data[key];
+                        const total = hourlyData.reduce((a, b) => a + b, 0);
+                        const daySum = hourlyData.slice(0, 12).reduce((a, b) => a + b, 0);
+                        const nightSum = hourlyData.slice(12, 24).reduce((a, b) => a + b, 0);
+                        const avgPerHour = (total / 24).toFixed(1);
+                        const peakHourValue = Math.max(...hourlyData);
+                        const peakHourIndex = hourlyData.indexOf(peakHourValue);
+                        
+                        const section = document.createElement('div');
+                        section.className = 'process-section';
+                        section.innerHTML = `
+                            <div class="process-header">
+                                <div class="process-title">${config.name}</div>
+                            </div>
+                            <div class="process-stats">
+                                <div class="process-stat">
+                                    <div class="process-stat-label">Всего за сутки</div>
+                                    <div class="process-stat-value">${total.toLocaleString('ru-RU')}</div>
+                                </div>
+                                <div class="process-stat">
+                                    <div class="process-stat-label">Дневная смена</div>
+                                    <div class="process-stat-value" style="color: #1a73e8;">${daySum.toLocaleString('ru-RU')}</div>
+                                </div>
+                                <div class="process-stat">
+                                    <div class="process-stat-label">Ночная смена</div>
+                                    <div class="process-stat-value" style="color: #6c757d;">${nightSum.toLocaleString('ru-RU')}</div>
+                                </div>
+                                <div class="process-stat">
+                                    <div class="process-stat-label">Среднее в час</div>
+                                    <div class="process-stat-value">${avgPerHour}</div>
+                                </div>
+                                <div class="process-stat">
+                                    <div class="process-stat-label">Пик</div>
+                                    <div class="process-stat-value">${peakHourValue.toLocaleString('ru-RU')}</div>
+                                </div>
+                                <div class="process-stat">
+                                    <div class="process-stat-label">Час пика</div>
+                                    <div class="process-stat-value">${labels[peakHourIndex] || '--:--'}</div>
+                                </div>
+                            </div>
+                        `;
+                        processSections.appendChild(section);
+                    });
+                    
+                    // === ТАБЛИЦА ПО ЧАСАМ ===
+                    const hourlyTable = document.getElementById('hourlyTable');
+                    hourlyTable.innerHTML = '';
+                    
+                    for (let i = 0; i < 24; i++) {
+                        const hourTotal = data.assembly[i] + data.assembly_rim[i] + data.loading[i] + data.stickering[i] + data.palletizing[i];
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><strong>${labels[i]}</strong></td>
+                            <td class="text-right">${data.assembly[i].toLocaleString('ru-RU')}</td>
+                            <td class="text-right">${data.assembly_rim[i].toLocaleString('ru-RU')}</td>
+                            <td class="text-right">${data.loading[i].toLocaleString('ru-RU')}</td>
+                            <td class="text-right">${data.stickering[i].toLocaleString('ru-RU')}</td>
+                            <td class="text-right">${data.palletizing[i].toLocaleString('ru-RU')}</td>
+                            <td class="text-right"><strong>${hourTotal.toLocaleString('ru-RU')}</strong></td>
+                        `;
+                        hourlyTable.appendChild(row);
+                    }
+                    
+                    // === ГРАФИКИ ===
+                    renderDistributionChart(data);
+                    renderHourlyChart(data);
+                    
+                    setStatus(`Показаны данные за ${selectedDate}`, 'success');
+                    
+                } catch (e) {
+                    console.error('Ошибка обработки:', e);
+                    setStatus(`Ошибка: ${e.message}`, 'error');
+                }
+            }, 30);
+        }
+        
+        // === ГРАФИК РАСПРЕДЕЛЕНИЯ ===
+        function renderDistributionChart(data) {
+            const ctx = document.getElementById('chartDistribution')?.getContext('2d');
+            if (!ctx) return;
+            
+            if (summaryCharts.distribution) {
+                summaryCharts.distribution.destroy();
+            }
+            
+            const totals = {
+                'Сборка Шин': data.assembly.reduce((a, b) => a + b, 0),
+                'Сборка Диски': data.assembly_rim.reduce((a, b) => a + b, 0),
+                'Погрузка': data.loading.reduce((a, b) => a + b, 0),
+                'Стикеровка': data.stickering.reduce((a, b) => a + b, 0),
+                'Упаковка': data.palletizing.reduce((a, b) => a + b, 0)
+            };
+            
+            summaryCharts.distribution = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(totals),
+                    datasets: [{
+                        data: Object.values(totals),
+                        backgroundColor: [
+                            APP_CONFIG.chartNorms.assembly.color,
+                            APP_CONFIG.chartNorms.assembly_rim.color,
+                            APP_CONFIG.chartNorms.loading.color,
+                            APP_CONFIG.chartNorms.stickering.color,
+                            APP_CONFIG.chartNorms.palletizing.color
+                        ],
+                        borderWidth: 2,
+                        borderColor: 'var(--card-bg)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: 'var(--text-primary)' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = Object.values(totals).reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value.toLocaleString('ru-RU')} шт. (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // === ГРАФИК ПО ЧАСАМ ===
+        function renderHourlyChart(data) {
+            const ctx = document.getElementById('chartHourly')?.getContext('2d');
+            if (!ctx) return;
+            
+            if (summaryCharts.hourly) {
+                summaryCharts.hourly.destroy();
+            }
+            
+            const hourlyTotals = labels.map((_, i) => 
+                data.assembly[i] + data.assembly_rim[i] + data.loading[i] + data.stickering[i] + data.palletizing[i]
+            );
+            
+            summaryCharts.hourly = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Общая нагрузка',
+                        data: hourlyTotals,
+                        borderColor: APP_CONFIG.chartNorms.assembly.color,
+                        backgroundColor: APP_CONFIG.chartNorms.assembly.color + '33',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Штуки' },
+                            grid: { color: 'var(--chart-grid)' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxRotation: 45, minRotation: 45 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'var(--tooltip-bg)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // === ЭКСПОРТ ===
+        function exportToCSV(selectedDate) {
+            if (!selectedDate || !jsonData) {
+                setStatus('❌ Нет данных для экспорта', 'error');
+                return;
+            }
+            
+            try {
+                const data = calculateDataForDate(selectedDate);
+                let csv = ['Час','Сборка_Шин','Сборка_Диски','Погрузка','Стикеровка','Упаковка','Итого'].join(',') + '\n';
+                
+                for (let i = 0; i < 24; i++) {
+                    const total = data.assembly[i] + data.assembly_rim[i] + data.loading[i] + data.stickering[i] + data.palletizing[i];
+                    csv += [labels[i], data.assembly[i], data.assembly_rim[i], data.loading[i], data.stickering[i], data.palletizing[i], total].join(',') + '\n';
+                }
+                
+                const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `Склад_Сводка_${selectedDate}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setStatus('✅ Экспортировано!', 'success');
+            } catch (e) {
+                setStatus('❌ Ошибка: ' + e.message, 'error');
+            }
+        }
+        
+        // === СБРОС КЭША ===
+        async function clearCacheAndReload() {
+            const btn = document.getElementById('clearCacheBtn');
+            if (!btn) return;
+            
+            btn.disabled = true;
+            setStatus('🔄 Очистка кэша...', 'loading');
+            
+            try {
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) await caches.delete(name);
+                localStorage.clear();
+                
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const reg of registrations) await reg.unregister();
+                }
+                
+                setStatus('✅ Кэш очищен! Перезагрузка...', 'success');
+                setTimeout(() => window.location.reload(true), 1500);
+                
+            } catch (error) {
+                console.error('Ошибка очистки кэша:', error);
+                setStatus('❌ Ошибка: ' + error.message, 'error');
+                btn.disabled = false;
+            }
+        }
+        
+        // === ТЕМА ===
+        function initTheme() {
+            const saved = localStorage.getItem('warehouse_theme');
+            if (!saved) {
+                setTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            } else {
+                setTheme(saved);
+            }
+        }
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('warehouse_theme', theme);
+            const btn = document.getElementById('themeToggle');
+            if (btn) {
+                const icon = btn.querySelector('.theme-icon');
+                const text = document.getElementById('themeText');
+                if (theme === 'dark') {
+                    icon.textContent = '☀️';
+                    text.textContent = 'Светлая';
+                } else {
+                    icon.textContent = '🌙';
+                    text.textContent = 'Тёмная';
+                }
+            }
+        }
+        
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            setTheme(current === 'light' ? 'dark' : 'light');
+        }
+        
+        // === СЕТЬ ===
+        function updateConnectionStatus() {
+            const el = document.getElementById('connectionStatus');
+            if (!el) return;
+            el.textContent = navigator.onLine ? '🟢 Онлайн' : '🔴 Офлайн';
+            el.className = `connection-status ${navigator.onLine ? 'online' : 'offline'}`;
+            el.style.display = 'block';
+        }
+        
+        // === INIT ===
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadAppConfig();
+            initTheme();
+            fetchAvailableMonths();
+            updateConnectionStatus();
+        });
+        
+        document.getElementById('monthSelect')?.addEventListener('change', (e) => {
+            if (e.target.value) loadDatesForMonth(e.target.value);
+        });
+        
+        document.getElementById('dateSelect')?.addEventListener('change', (e) => {
+            if (e.target.value && jsonData) updateSummary(e.target.value);
+        });
+        
+        document.getElementById('refreshBtn')?.addEventListener('click', loadData);
+        document.getElementById('exportBtn')?.addEventListener('click', () => {
+            const dateSelect = document.getElementById('dateSelect');
+            if (dateSelect.value) exportToCSV(dateSelect.value);
+        });
+        document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
+        document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+        
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        
+        // PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.log('SW failed:', err));
+            });
+        }
     </script>
 </body>
 </html>
