@@ -19,20 +19,58 @@ class ChartBuilder {
     };
   }
 
-  prepareData(hoursData, normConfig) {
-    const labels = hoursData.map(h => `${h.hour}:00`);
-    const volumes = hoursData.map(h => h[this.chartKey] || 0);
-    const brigades = volumes.map(v => {
-      const calc = this.calculateBrigades(v, normConfig.norm, normConfig.max);
-      return calc.required;
-    });
-    const peakFlags = volumes.map(v => {
-      const calc = this.calculateBrigades(v, normConfig.norm, normConfig.max);
-      return calc.isPeak;
-    });
-
-    return { labels, volumes, brigades, peakFlags };
+// chartsTeam.js — замените метод prepareData
+prepareData(rawData, normConfig) {
+  // 🔹 Шаг 1: Извлекаем массив часов из разных форматов
+  let hoursData = [];
+  
+  if (Array.isArray(rawData)) {
+    // Формат 1: прямо массив часов
+    hoursData = rawData;
+  } else if (rawData?.hours && Array.isArray(rawData.hours)) {
+    // Формат 2: { hours: [...] }
+    hoursData = rawData.hours;
+  } else if (rawData?.data && Array.isArray(rawData.data)) {
+    // Формат 3: { data: [...] }
+    hoursData = rawData.data;
+  } else {
+    // Формат 4: объект с ключами-часами { "0": {...}, "1": {...} }
+    hoursData = Object.values(rawData).filter(item => 
+      typeof item === 'object' && item !== null
+    );
   }
+  
+  // 🔹 Шаг 2: Гарантируем 24 элемента
+  if (hoursData.length !== 24) {
+    console.warn(`⚠️ Expected 24 hours, got ${hoursData.length}. Padding with zeros.`);
+    const padded = Array.from({length: 24}, (_, i) => {
+      return hoursData[i] || { hour: i, [this.chartKey]: 0 };
+    });
+    hoursData = padded;
+  }
+  
+  // 🔹 Шаг 3: Нормализуем данные (гарантируем поле chartKey)
+  hoursData = hoursData.map((item, idx) => ({
+    hour: item.hour ?? idx,
+    [this.chartKey]: item[this.chartKey] ?? item.value ?? item.count ?? 0
+  }));
+  
+  // 🔹 Шаг 4: Расчёт бригад
+  const labels = hoursData.map(h => `${String(h.hour).padStart(2, '0')}:00`);
+  const volumes = hoursData.map(h => h[this.chartKey]);
+  
+  const brigades = volumes.map(v => {
+    const calc = this.calculateBrigades(v, normConfig.norm, normConfig.max);
+    return calc.required;
+  });
+  
+  const peakFlags = volumes.map(v => {
+    const calc = this.calculateBrigades(v, normConfig.norm, normConfig.max);
+    return calc.isPeak;
+  });
+
+  return { labels, volumes, brigades, peakFlags };
+}
 
   render(data, normConfig, shiftHighlight = null) {
     if (!this.ctx) {
