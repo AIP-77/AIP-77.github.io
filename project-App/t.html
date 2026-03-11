@@ -932,25 +932,30 @@ function updateCharts(selectedDate) {
             const data = calculateDataForDate(selectedDate);
             
             // Проходим по всем графикам из конфигурации
-            Object.keys(CHART_CONFIG).forEach(canvasId => {
-                if (canvasId === 'chartLoadingShift') return;
-                
-                const config = CHART_CONFIG[canvasId];
-                let chartData;
-                
-                if (canvasId === 'chartAssembly') chartData = data.assembly;
-                else if (canvasId === 'chartAssemblyRim') chartData = data.assembly_rim;
-                else if (canvasId === 'chartLoading') chartData = data.loading;
-                else if (canvasId === 'chartStickering') chartData = data.stickering;
-                else if (canvasId === 'chartPalletizing') chartData = data.palletizing;
-                
-                if (chartData) {
-                    createOrUpdateChart(canvasId, chartData, config.color, config.norm);
-                    addHeaderToChart(canvasId);
-                    // 🆕 Добавляем суточные итоги
-                    addDailyTotalsToHeader(canvasId, data);
-                }
-            });
+// ✅ СТАЛО (работает с APP_CONFIG):
+Object.keys(APP_CONFIG.chartNorms).forEach(key => {
+    const config = APP_CONFIG.chartNorms[key];
+    
+    // 🔄 Преобразуем ключ конфигурации в ID canvas:
+    // assembly → chartAssembly
+    // assembly_rim → chartAssemblyRim
+    const canvasId = 'chart' + key.split('_')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join('');
+    
+    let chartData;
+    if (key === 'assembly') chartData = data.assembly;
+    else if (key === 'assembly_rim') chartData = data.assembly_rim;
+    else if (key === 'loading') chartData = data.loading;
+    else if (key === 'stickering') chartData = data.stickering;
+    else if (key === 'palletizing') chartData = data.palletizing;
+    
+    if (chartData) {
+        createOrUpdateChart(canvasId, chartData, config.color, config.norm);
+        addHeaderToChart(canvasId);
+        addDailyTotalsToHeader(canvasId, data, key);  // 🆕 Передаём key для итогов
+    }
+});
             
             // Графики по сменам для Погрузки
             const loadingData = {
@@ -1171,7 +1176,7 @@ function addDailyTotalsToHeader(canvasId, totals, dataKey) {
     // Удаляем старые элементы
     section.querySelectorAll('.daily-totals, .chart-header-info').forEach(el => el.remove());
     
-    const config = APP_CONFIG.chartNorms[dataKey];
+    const config = APP_CONFIG.chartNorms[dataKey];  // 🔄 Используем APP_CONFIG
     if (!config) return;
     
     const totalVolume = totals[dataKey] || 0;
