@@ -21,19 +21,29 @@ class ConfigLoader {
     }
   }
 
-  async loadData(url) {
-    try {
-      const response = await fetch(url, { cache: 'no-cache' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      this.data = await response.json();
-      console.log('✅ Data loaded:', url);
-      return this.data;
-    } catch (error) {
-      console.error('❌ Failed to load data:', error);
-      // Return empty structure for offline mode
-      return this.getEmptyData();
-    }
+async loadData(url) {
+  try {
+    const response = await fetch(url, { cache: 'no-cache' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    this.data = await response.json();
+    
+    // 🔎 DEBUG: Логируем структуру
+    console.log('📦 Data structure:', {
+      type: typeof this.data,
+      isArray: Array.isArray(this.data),
+      keys: Object.keys(this.data),
+      hasHours: 'hours' in this.data,
+      hoursType: this.data.hours ? typeof this.data.hours : 'N/A',
+      hoursLength: this.data.hours?.length
+    });
+    
+    console.log('✅ Data loaded:', url);
+    return this.data;
+  } catch (error) {
+    console.error('❌ Failed to load data:', error);
+    return this.getEmptyData();
   }
+}
 
   getShiftForDate(dateStr, team) {
     // dateStr format: "2026-03-15" or "15" for current month
