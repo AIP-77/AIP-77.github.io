@@ -1119,25 +1119,32 @@
                     });
                     
                     // === ОТРИСОВКА ГРАФИКОВ ===
-                    Object.keys(APP_CONFIG.chartNorms).forEach(key => {
-                        const config = APP_CONFIG.chartNorms[key];
-                        const workData = data[key];
-                        
-                        if (workData) {
-                            const shifts = splitDataByShifts(workData);
-                            
-                            // Добавляем нормативы в блоки
-                            addNormsToShiftBlock(key, 'day');
-                            addNormsToShiftBlock(key, 'night');
-                            
-                            // Рисуем графики
-                            const canvasIdDay = `shift-${key.charAt(0).toUpperCase() + key.slice(1).replace('_', '')}-day`;
-                            const canvasIdNight = `shift-${key.charAt(0).toUpperCase() + key.slice(1).replace('_', '')}-night`;
-                            
-                            renderShiftChart(canvasIdDay, shifts.dayShift, config);
-                            renderShiftChart(canvasIdNight, shifts.nightShift, config);
-                        }
-                    });
+// === ОТРИСОВКА ГРАФИКОВ ===
+Object.keys(APP_CONFIG.chartNorms).forEach(key => {
+    const config = APP_CONFIG.chartNorms[key];
+    const workData = data[key];
+    
+    if (workData) {
+        const shifts = splitDataByShifts(workData);
+        
+        // 🆕 ИСПРАВЛЕННОЕ формирование ID (как в t.html)
+        // assembly_rim → AssemblyRim
+        const keyName = key.split('_')
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+            .join('');
+        
+        const canvasIdDay = `shift-${keyName}-day`;
+        const canvasIdNight = `shift-${keyName}-night`;
+        
+        // Добавляем нормативы в блоки
+        addNormsToShiftBlock(key, 'day');
+        addNormsToShiftBlock(key, 'night');
+        
+        // Рисуем графики
+        renderShiftChart(canvasIdDay, shifts.dayShift, config);
+        renderShiftChart(canvasIdNight, shifts.nightShift, config);
+    }
+});
                     
                     setStatus(`Показаны данные за ${selectedDate}`, 'success');
                     
