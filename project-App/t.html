@@ -695,54 +695,60 @@
         }
         
         // === 3. ЗАГРУЗКА ДАТ ДЛЯ МЕСЯЦА ===
-        async function loadDatesForMonth(monthStr) {
-            const dateSelect = document.getElementById('dateSelect');
-            dateSelect.innerHTML = '<option>Загрузка...</option>';
-            dateSelect.disabled = true;
-            
-            setStatus('📅 Загрузка дат...', 'loading');
-            
-            try {
-                const url = `${APP_CONFIG.archiveBaseUrl}${encodeURIComponent(monthStr + ' fullData.json')}`;
-                currentDataUrl = url;
-                
-                const response = await fetch(url, { cache: 'no-cache' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден`);
-                
-                const monthData = await response.json();
-                if (!monthData.data || !monthData.columns) throw new Error('Неверная структура данных');
-                
-                const dateCol = monthData.columns.indexOf('Рабочий день');
-                if (dateCol === -1) throw new Error('Колонка "Рабочий день" не найдена');
-                
-                const dates = new Set();
-                monthData.data.forEach(row => {
-                    if (row[dateCol]) dates.add(row[dateCol]);
-                });
-                
-                availableDates = [...dates].sort();
-                if (availableDates.length === 0) throw new Error('Нет доступных дат');
-                
-                populateDateSelectFromArray(availableDates);
-                
-                const lastDate = availableDates[availableDates.length - 1];
-                dateSelect.value = lastDate;
-                
-                setStatus(`✅ Загружено ${availableDates.length} дат`, 'success');
-                dateSelect.disabled = false;
-                
-                jsonData = monthData;
-                setTimeout(() => {
-                    updateCharts(lastDate);
-                }, 100);
-                
-            } catch (error) {
-                console.error('Ошибка загрузки дат:', error);
-                setStatus('❌ Ошибка: ' + error.message, 'error');
-                dateSelect.innerHTML = '<option>Нет данных</option>';
-                dateSelect.disabled = true;
-            }
-        }
+async function loadDatesForMonth(monthStr) {
+    const dateSelect = document.getElementById('dateSelect');
+    dateSelect.innerHTML = '<option>Загрузка...</option>';
+    dateSelect.disabled = true;
+    
+    setStatus('📅 Загрузка дат...', 'loading');
+    toggleControls(false);  // 🆕 Отключаем кнопки при загрузке
+    
+    try {
+        const url = `${APP_CONFIG.archiveBaseUrl}${encodeURIComponent(monthStr + ' fullData.json')}`;
+        currentDataUrl = url;
+        
+        const response = await fetch(url, { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден`);
+        
+        const monthData = await response.json();
+        if (!monthData.data || !monthData.columns) throw new Error('Неверная структура данных');
+        
+        const dateCol = monthData.columns.indexOf('Рабочий день');
+        if (dateCol === -1) throw new Error('Колонка "Рабочий день" не найдена');
+        
+        const dates = new Set();
+        monthData.data.forEach(row => {
+            if (row[dateCol]) dates.add(row[dateCol]);
+        });
+        
+        availableDates = [...dates].sort();
+        if (availableDates.length === 0) throw new Error('Нет доступных дат');
+        
+        populateDateSelectFromArray(availableDates);
+        
+        const lastDate = availableDates[availableDates.length - 1];
+        dateSelect.value = lastDate;
+        
+        setStatus(`✅ Загружено ${availableDates.length} дат`, 'success');
+        dateSelect.disabled = false;
+        
+        jsonData = monthData;
+        
+        // 🆕 Включаем кнопки ПОСЛЕ успешной загрузки данных
+        toggleControls(true);
+        
+        setTimeout(() => {
+            updateCharts(lastDate);
+        }, 100);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки дат:', error);
+        setStatus('❌ Ошибка: ' + error.message, 'error');
+        dateSelect.innerHTML = '<option>Нет данных</option>';
+        dateSelect.disabled = true;
+        toggleControls(false);  // 🆕 Оставляем отключенными при ошибке
+    }
+}
         
         function populateDateSelectFromArray(dates) {
             const dateSelect = document.getElementById('dateSelect');
