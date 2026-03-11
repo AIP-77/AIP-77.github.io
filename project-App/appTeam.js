@@ -1,6 +1,6 @@
 // appTeam.js
 
-class DashboardApp {
+class DashboardApp 
   constructor() {
     this.charts = {};
     this.currentDate = new Date().toISOString().slice(0, 10);
@@ -140,7 +140,7 @@ async loadDataForDate(dateStr) {
       });
     }
   }
-}
+
 
 
   // 🔧 DEBUG: Тест с моковыми данными (внутри класса!)
@@ -160,7 +160,7 @@ async loadDataForDate(dateStr) {
       chart.updateData(mockHours);
     });
   }
-
+}
 
 // ✅ Экспорт для отладки в консоли
 document.addEventListener('DOMContentLoaded', () => {
