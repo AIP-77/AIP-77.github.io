@@ -142,7 +142,38 @@ async loadDataForDate(dateStr) {
   }
 }
 
-// Start app when DOM ready
+
+  // 🔧 DEBUG: Тест с моковыми данными (внутри класса!)
+  async testWithMockData() {
+    console.log('🧪 Running with mock data...');
+    
+    const mockHours = Array.from({length: 24}, (_, hour) => ({
+      hour,
+      assembly: Math.floor(Math.random() * 300),
+      assembly_rim: Math.floor(Math.random() * 60),
+      loading: Math.floor(Math.random() * 400),
+      stickering: Math.floor(Math.random() * 200),
+      palletizing: Math.floor(Math.random() * 150)
+    }));
+    
+    Object.values(this.charts).forEach(chart => {
+      chart.updateData(mockHours);
+    });
+  }
+
+
+// ✅ Экспорт для отладки в консоли
 document.addEventListener('DOMContentLoaded', () => {
   window.dashboard = new DashboardApp();
+  
+  // Проверка окружения через 1 секунду
+  setTimeout(() => {
+    console.log('🔍 Env check:', {
+      Chart: typeof Chart !== 'undefined' ? 'OK' : 'MISSING',
+      dashboard: typeof window.dashboard !== 'undefined' ? 'OK' : 'MISSING'
+    });
+  }, 1000);
 });
+
+
+
