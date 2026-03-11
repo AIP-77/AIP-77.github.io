@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анализ пиковых нагрузок склада4</title>
+    <title>Анализ пиковых нагрузок склада 5</title>
     
     <meta name="theme-color" content="#1a73e8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -931,23 +931,28 @@ function updateCharts(selectedDate) {
         try {
             const data = calculateDataForDate(selectedDate);
             
-// Проходим по всем графикам из конфигурации
-Object.keys(CHART_CONFIG).forEach(canvasId => {
-    if (canvasId === 'chartLoadingShift') return;
+// 🔄 Исправлено: используем APP_CONFIG.chartNorms вместо CHART_CONFIG
+Object.keys(APP_CONFIG.chartNorms).forEach(key => {
+    const config = APP_CONFIG.chartNorms[key];
     
-    const config = CHART_CONFIG[canvasId];
+    // 🔄 Преобразуем ключ конфигурации в ID canvas:
+    // assembly → chartAssembly
+    // assembly_rim → chartAssemblyRim
+    const canvasId = 'chart' + key.split('_')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join('');
+    
     let chartData;
-    
-    if (canvasId === 'chartAssembly') chartData = data.assembly;
-    else if (canvasId === 'chartAssemblyRim') chartData = data.assembly_rim;
-    else if (canvasId === 'chartLoading') chartData = data.loading;
-    else if (canvasId === 'chartStickering') chartData = data.stickering;
-    else if (canvasId === 'chartPalletizing') chartData = data.palletizing;
+    if (key === 'assembly') chartData = data.assembly;
+    else if (key === 'assembly_rim') chartData = data.assembly_rim;
+    else if (key === 'loading') chartData = data.loading;
+    else if (key === 'stickering') chartData = data.stickering;
+    else if (key === 'palletizing') chartData = data.palletizing;
     
     if (chartData) {
         createOrUpdateChart(canvasId, chartData, config.color, config.norm);
         // 🆕 Добавляем заголовок с нормативами и итогами
-        addDailyTotalsToHeader(canvasId, data);
+        addDailyTotalsToHeader(canvasId, data, key);
     }
 });
             
@@ -1131,28 +1136,19 @@ Object.keys(CHART_CONFIG).forEach(canvasId => {
                 }
             }
         }
-        // 📊 Функция добавления итогов и нормативов в заголовок
-function addDailyTotalsToHeader(canvasId, totals) {
+      
+// 📊 Функция добавления итогов и нормативов в заголовок
+function addDailyTotalsToHeader(canvasId, totals, dataKey) {
     const section = document.querySelector(`button[data-target="${canvasId}"]`)?.closest('.chart-section');
     if (!section || !totals) return;
     
     // Удаляем старые элементы
     section.querySelectorAll('.daily-totals, .chart-header-info').forEach(el => el.remove());
     
-    const config = CHART_CONFIG[canvasId];
+    const config = APP_CONFIG.chartNorms[dataKey];
     if (!config) return;
     
-    // 🔄 Правильное сопоставление canvasId с ключом данных
-    const dataKeyMap = {
-        'chartAssembly': 'assembly',
-        'chartAssemblyRim': 'assembly_rim', 
-        'chartLoading': 'loading',
-        'chartStickering': 'stickering',
-        'chartPalletizing': 'palletizing'
-    };
-    
-    const dataKey = dataKeyMap[canvasId];
-    const totalVolume = dataKey ? totals[dataKey] || 0 : 0;
+    const totalVolume = totals[dataKey] || 0;
     const totalBrigades = Math.ceil(totalVolume / config.norm);
     
     // Создаём контейнер с информацией
@@ -1163,7 +1159,7 @@ function addDailyTotalsToHeader(canvasId, totals) {
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <span class="norm-badge">
                 <span class="norm-icon">📊</span>
-                <strong>Норма: ${config.normText}</strong>
+                <strong>Норма: ${config.norm} шт/ч</strong>
             </span>
             <span class="norm-badge">
                 <span class="norm-icon">👥</span>
