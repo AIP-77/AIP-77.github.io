@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анализ пиковых нагрузок склада1</title>
+    <title>Анализ пиковых нагрузок склада4</title>
     
     <meta name="theme-color" content="#1a73e8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -769,8 +769,8 @@
             jsonData.data.forEach(row => {
                 if (row[dateCol] !== selectedDate) return;
                 const key = {
-                    'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly',
-                    'Сборка Диски':'assembly_rim','Сборка Диски МП':'assembly_rim',
+                    'Сборка Шины': 'assembly', 'Сборка Шины-зона А': 'assembly', 'Сборка шины МП': 'assembly','Сборка Шины (Исключение)': 'assembly','Сборка шины МП-зона А': 'assembly',
+                    'Сборка Диски':'assembly_rim','Сборка Диски МП':'assembly_rim','Сборка Диски (Исключение)':'assembly_rim',
                     'Погрузка': 'loading', 'Погрузка/Разгрузка': 'loading',
                     'Стикеровка Шины': 'stickering', 'Стикеровка Диски': 'stickering',
                     'Упаковка паллеты': 'palletizing', 'Паллетирование': 'palletizing', 'Упаковка': 'palletizing'
