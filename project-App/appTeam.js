@@ -36,21 +36,38 @@ class DashboardApp {
     });
   }
 
-  async loadDataForDate(dateStr) {
-    // Show loading state
-    document.querySelectorAll('.chart-container').forEach(el => {
-      el.innerHTML = '<div class="loading-spinner">⏳ Загрузка...</div>';
-    });
+async loadDataForDate(dateStr) {
+  // Show loading state
+  document.querySelectorAll('.chart-container').forEach(el => {
+    el.innerHTML = '<div class="loading-spinner">⏳ Загрузка...</div>';
+  });
 
-    // Try to load from archive
-    const month = dateStr.slice(0, 7); // "2026-03"
-    const day = dateStr.slice(-2); // "15"
+  try {
+    // Load data
+    const month = dateStr.slice(0, 7);
     const url = `${window.configLoader.config?.data?.archiveBaseUrl}${month}%20fullData.json`;
+    const rawData = await window.configLoader.loadData(url);
     
-    const data = await window.configLoader.loadData(url);
+    // 🔹 Адаптивное извлечение данных для конкретной даты
+    let dayData;
     
-    // Filter data for selected date
-    const dayData = data.hours || data; // Handle different structures
+    // Вариант 1: данные уже отфильтрованы по дате
+    if (rawData?.hours && Array.isArray(rawData.hours)) {
+      dayData = rawData.hours;
+    } 
+    // Вариант 2: данные по дням { "2026-03-15": { hours: [...] } }
+    else if (rawData?.[dateStr]) {
+      dayData = rawData[dateStr].hours || rawData[dateStr];
+    }
+    // Вариант 3: массив дней, ищем по дате
+    else if (Array.isArray(rawData)) {
+      const dayEntry = rawData.find(d => d.date === dateStr || d.day === dateStr.slice(-2));
+      dayData = dayEntry?.hours || dayEntry || rawData[0];
+    }
+    // Fallback
+    else {
+      dayData = rawData;
+    }
     
     // Update shift indicator
     window.shiftManager?.updateShiftIndicator(dateStr);
@@ -60,9 +77,17 @@ class DashboardApp {
       chart.updateData(dayData);
     });
     
-    // Restore containers
+  } catch (error) {
+    console.error('❌ Error loading data for date:', dateStr, error);
+    // Render empty charts on error
+    Object.values(this.charts).forEach(chart => {
+      chart.updateData(window.configLoader.getEmptyData().hours);
+    });
+  } finally {
+    // Remove loading spinners
     document.querySelectorAll('.loading-spinner').forEach(el => el.remove());
   }
+}
 
   setupListeners() {
     // Month selector
