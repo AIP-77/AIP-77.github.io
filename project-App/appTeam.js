@@ -1,23 +1,4 @@
-// app.js
-// 🔧 DEBUG: Запуск с тестовыми данными
-async testWithMockData() {
-  console.log('🧪 Running with mock data...');
-  
-  const mockHours = Array.from({length: 24}, (_, hour) => ({
-    hour,
-    assembly: Math.floor(Math.random() * 300),
-    assembly_rim: Math.floor(Math.random() * 60),
-    loading: Math.floor(Math.random() * 400),
-    stickering: Math.floor(Math.random() * 200),
-    palletizing: Math.floor(Math.random() * 150)
-  }));
-  
-  Object.values(this.charts).forEach(chart => {
-    chart.updateData(mockHours);
-  });
-}
-
-// Вызовите в консоли: window.dashboard.testWithMockData()
+// appTeam.js
 
 class DashboardApp {
   constructor() {
