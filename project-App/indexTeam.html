@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1a73e8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
+  <title>Склад Статы — Дашборд</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="favicon.png" type="image/png">
+</head>
+<body>
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>📊 Склад Статы</h1>
+      <span class="shift-indicator" id="currentShift">Загрузка смены...</span>
+    </div>
+    <div class="header-right">
+      <select id="monthSelector" class="form-control">
+        <option value="2026-03">Март 2026</option>
+        <option value="2026-02">Февраль 2026</option>
+      </select>
+      <button id="themeToggle" class="btn-icon" aria-label="Переключить тему">🌓</button>
+      <button id="refreshBtn" class="btn-primary">🔄 Обновить</button>
+    </div>
+  </header>
+
+  <main class="dashboard-grid">
+    <!-- Карточка: Сборка Шин -->
+    <section class="chart-card" data-chart="assembly">
+      <header class="card-header">
+        <h3>🟢 Сборка Шин</h3>
+        <span class="norm-badge">Норма: 100 шт/ч • Макс: 3 бригады</span>
+      </header>
+      <div class="chart-container">
+        <canvas id="chart-assembly"></canvas>
+      </div>
+      <div class="chart-legend" id="legend-assembly"></div>
+    </section>
+
+    <!-- Карточка: Сборка Диски -->
+    <section class="chart-card" data-chart="assembly_rim">
+      <header class="card-header">
+        <h3>🔵 Сборка Диски</h3>
+        <span class="norm-badge">Норма: 50 шт/ч • Макс: 1 бригада</span>
+      </header>
+      <div class="chart-container">
+        <canvas id="chart-assembly_rim"></canvas>
+      </div>
+    </section>
+
+    <!-- Карточка: Погрузка -->
+    <section class="chart-card" data-chart="loading">
+      <header class="card-header">
+        <h3>🟠 Погрузка</h3>
+        <span class="norm-badge">Норма: 340 шт/ч • Макс: 1 бригада</span>
+      </header>
+      <div class="chart-container">
+        <canvas id="chart-loading"></canvas>
+      </div>
+    </section>
+
+    <!-- Карточка: Стикеровка -->
+    <section class="chart-card" data-chart="stickering">
+      <header class="card-header">
+        <h3>🟡 Стикеровка</h3>
+        <span class="norm-badge">Норма: 150 шт/ч • Макс: 1 бригада</span>
+      </header>
+      <div class="chart-container">
+        <canvas id="chart-stickering"></canvas>
+      </div>
+    </section>
+
+    <!-- Карточка: Упаковка -->
+    <section class="chart-card" data-chart="palletizing">
+      <header class="card-header">
+        <h3>🟢 Упаковка в паллет</h3>
+        <span class="norm-badge">Норма: 124 шт/ч • Макс: 1 бригада</span>
+      </header>
+      <div class="chart-container">
+        <canvas id="chart-palletizing"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <footer class="dashboard-footer">
+    <p>📅 Дата: <span id="currentDate">—</span> | 🔄 Последнее обновление: <span id="lastUpdate">—</span></p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="theme.js"></script>
+  <script src="shifts.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
