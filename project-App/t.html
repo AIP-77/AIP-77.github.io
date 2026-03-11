@@ -875,19 +875,19 @@ function updateCharts(selectedDate) {
             const data = calculateDataForDate(selectedDate);
             
             // 🔄 Исправленное преобразование ключей в ID canvas
-            Object.keys(APP_CONFIG.chartNorms).forEach(key => {
-                const config = APP_CONFIG.chartNorms[key];
-                
-                // assembly → chartAssembly
-                // assembly_rim → chartAssemblyRim
-                const canvasId = 'chart' + key.split('_')
-                    .map((part, i) => i === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1))
-                    .join('');
-                
-                if (data[key]) {
-                    createOrUpdateChart(canvasId, data[key], config.color, config.norm);
-                }
-            });
+Object.keys(APP_CONFIG.chartNorms).forEach(key => {
+    const config = APP_CONFIG.chartNorms[key];
+    
+    // assembly → Assembly → chartAssembly
+    // assembly_rim → Assembly + Rim → chartAssemblyRim
+    const canvasId = 'chart' + key.split('_')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))  // 🆕 Капитализируем ВСЕ части
+        .join('');
+    
+    if (data[key]) {
+        createOrUpdateChart(canvasId, data[key], config.color, config.norm);
+    }
+});
             
             const overloads = checkOverload(selectedDate);
             showOverloadPanel(overloads);
