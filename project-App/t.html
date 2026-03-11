@@ -813,6 +813,8 @@ function toggleControls(enabled) {
     
     const clearCacheBtn = document.getElementById('clearCacheBtn');
     if (clearCacheBtn) clearCacheBtn.disabled = !enabled;  // 🆕 Активируем кнопку сброса кэша
+
+    console.log('🔧 toggleControls:', { enabled, monthSelect, dateSelect, refreshBtn, exportBtn, clearCacheBtn });
 }
         
         // === 5. РАСЧЁТ ДАННЫХ ===
@@ -1188,28 +1190,22 @@ function addDailyTotalsToHeader(canvasId, totals, dataKey) {
     // Удаляем старые элементы
     section.querySelectorAll('.daily-totals, .chart-header-info').forEach(el => el.remove());
     
-    const config = APP_CONFIG.chartNorms[dataKey];  // 🔄 Используем APP_CONFIG
+    const config = APP_CONFIG.chartNorms[dataKey];
     if (!config) {
         console.warn('⚠️ Config не найден для:', dataKey);
         return;
     }
     
-    const totalVolume = totals[dataKey] || 0;
+    // 🔄 ИСПРАВЛЕНИЕ: Считаем сумму из массива по часам
+    const hourlyData = totals[dataKey] || [];
+    const totalVolume = Array.isArray(hourlyData) ? hourlyData.reduce((sum, val) => sum + val, 0) : 0;
     const totalBrigades = Math.ceil(totalVolume / config.norm);
     
-    // 🆕 Создаём контейнер с информацией, если его нет
-    let infoDiv = section.querySelector('.chart-header-info');
-    if (!infoDiv) {
-        infoDiv = document.createElement('div');
-        infoDiv.className = 'chart-header-info';
-        // Вставляем перед кнопкой сворачивания
-        const toggleBtn = section.querySelector('.toggle-btn');
-        if (toggleBtn) {
-            section.querySelector('.chart-section-header').insertBefore(infoDiv, toggleBtn);
-        }
-    }
+    console.log('✅ Добавлены итоги для', canvasId, ':', totalVolume, 'шт. |', totalBrigades, 'бриг.');
     
-    // Обновляем содержимое
+    // Создаём контейнер с информацией
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'chart-header-info';
     infoDiv.innerHTML = `
         <span>${config.name}</span>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -1227,6 +1223,13 @@ function addDailyTotalsToHeader(canvasId, totals, dataKey) {
         </div>
     `;
     
+    // Вставляем в заголовок секции
+    const header = section.querySelector('.chart-section-header');
+    if (header) {
+        header.insertBefore(infoDiv, header.querySelector('.toggle-btn'));
+    }
+
+    
     console.log('✅ Добавлены итоги для', canvasId, ':', totalVolume, 'шт.');
 }
         
@@ -1235,25 +1238,29 @@ function addDailyTotalsToHeader(canvasId, totals, dataKey) {
             setTheme(current === 'light' ? 'dark' : 'light');
         }
         
-        // === 10. СВОРАЧИВАНИЕ ===
-        function initChartToggles() {
-            document.querySelectorAll('.toggle-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const target = this.getAttribute('data-target');
-                    const content = document.getElementById(`content-${target}`);
-                    const text = this.querySelector('.toggle-text');
-                    
-                    const collapsed = content.classList.toggle('collapsed');
-                    this.classList.toggle('collapsed');
-                    text.textContent = collapsed ? 'Развернуть' : 'Свернуть';
-                    
-                    if (!collapsed && charts[target]) {
-                        setTimeout(() => charts[target]?.resize(), 350);
-                    }
-                });
-            });
-        }
+// === 10. СВОРАЧИВАНИЕ ===
+function initChartToggles() {
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const target = this.getAttribute('data-target');
+            const content = document.getElementById(`content-${target}`);
+            const text = this.querySelector('.toggle-text');
+            
+            if (!content) return;
+            
+            const collapsed = content.classList.toggle('collapsed');
+            this.classList.toggle('collapsed');
+            text.textContent = collapsed ? 'Развернуть' : 'Свернуть';
+            
+            if (!collapsed && charts[target]) {
+                setTimeout(() => charts[target]?.resize(), 350);
+            }
+        });
+    });
+    
+    console.log('✅ Инициализация сворачивания завершена');
+}
         
         // === 11. СЕТЬ ===
         function updateConnectionStatus() {
@@ -1264,35 +1271,36 @@ function addDailyTotalsToHeader(canvasId, totals, dataKey) {
             el.style.display = 'block';
         }
         
-        // === INIT ===
-        document.addEventListener('DOMContentLoaded', async () => {
-            await loadAppConfig();
-            initTheme();
-            fetchAvailableMonths();
-            updateConnectionStatus();
-            initChartToggles();
-        });
-        
-        document.getElementById('monthSelect')?.addEventListener('change', (e) => {
-            if (e.target.value) loadDatesForMonth(e.target.value);
-        });
-        
-        document.getElementById('dateSelect')?.addEventListener('change', (e) => {
-            if (e.target.value && jsonData) updateCharts(e.target.value);
-        });
-        
-        document.getElementById('refreshBtn')?.addEventListener('click', loadData);
-        
-        document.getElementById('exportBtn')?.addEventListener('click', () => {
+// === INIT ===
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadAppConfig();
+    initTheme();
+    fetchAvailableMonths();
+    updateConnectionStatus();
+    // Не вызываем initChartToggles здесь - она вызывается после отрисовки графиков
+});
+
+document.getElementById('monthSelect')?.addEventListener('change', (e) => {
+    if (e.target.value) loadDatesForMonth(e.target.value);
+});
+
+document.getElementById('dateSelect')?.addEventListener('change', (e) => {
+    if (e.target.value && jsonData) updateCharts(e.target.value);
+});
+
+document.getElementById('refreshBtn')?.addEventListener('click', loadData);
+
+document.getElementById('exportBtn')?.addEventListener('click', () => {
     const dateSelect = document.getElementById('dateSelect');
     if (dateSelect.value) exportToCSV(dateSelect.value);
 });
-        
-        document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
-        document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
-        
-        window.addEventListener('online', updateConnectionStatus);
-        window.addEventListener('offline', updateConnectionStatus);
+
+document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
+
+document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+
+window.addEventListener('online', updateConnectionStatus);
+window.addEventListener('offline', updateConnectionStatus);
         
         // PWA
         if ('serviceWorker' in navigator) {
