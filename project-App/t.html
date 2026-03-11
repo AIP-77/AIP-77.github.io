@@ -395,6 +395,20 @@
         align-items: flex-start;
     }
 }
+        .chart-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 15px;
+    background: var(--header-bg);
+    border-radius: 6px 6px 0 0;
+    font-size: 0.9em;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+    margin: -15px -20px 15px -20px;
+}
     </style>
 </head>
 <body>
@@ -1163,22 +1177,39 @@ document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAn
         }
       
 // 📊 Функция добавления итогов и нормативов в заголовок
+// 📊 Функция добавления итогов и нормативов в заголовок
 function addDailyTotalsToHeader(canvasId, totals, dataKey) {
     const section = document.querySelector(`button[data-target="${canvasId}"]`)?.closest('.chart-section');
-    if (!section || !totals) return;
+    if (!section || !totals) {
+        console.warn('⚠️ Section не найдена для:', canvasId);
+        return;
+    }
     
     // Удаляем старые элементы
     section.querySelectorAll('.daily-totals, .chart-header-info').forEach(el => el.remove());
     
     const config = APP_CONFIG.chartNorms[dataKey];  // 🔄 Используем APP_CONFIG
-    if (!config) return;
+    if (!config) {
+        console.warn('⚠️ Config не найден для:', dataKey);
+        return;
+    }
     
     const totalVolume = totals[dataKey] || 0;
     const totalBrigades = Math.ceil(totalVolume / config.norm);
     
-    // Создаём контейнер с информацией
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'chart-header-info';
+    // 🆕 Создаём контейнер с информацией, если его нет
+    let infoDiv = section.querySelector('.chart-header-info');
+    if (!infoDiv) {
+        infoDiv = document.createElement('div');
+        infoDiv.className = 'chart-header-info';
+        // Вставляем перед кнопкой сворачивания
+        const toggleBtn = section.querySelector('.toggle-btn');
+        if (toggleBtn) {
+            section.querySelector('.chart-section-header').insertBefore(infoDiv, toggleBtn);
+        }
+    }
+    
+    // Обновляем содержимое
     infoDiv.innerHTML = `
         <span>${config.name}</span>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -1196,11 +1227,7 @@ function addDailyTotalsToHeader(canvasId, totals, dataKey) {
         </div>
     `;
     
-    // Вставляем в заголовок секции
-    const header = section.querySelector('.chart-section-header');
-    if (header) {
-        header.insertBefore(infoDiv, header.querySelector('.toggle-btn'));
-    }
+    console.log('✅ Добавлены итоги для', canvasId, ':', totalVolume, 'шт.');
 }
         
         function toggleTheme() {
