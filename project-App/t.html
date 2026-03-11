@@ -952,7 +952,6 @@ Object.keys(APP_CONFIG.chartNorms).forEach(key => {
     
     if (chartData) {
         createOrUpdateChart(canvasId, chartData, config.color, config.norm);
-        addHeaderToChart(canvasId);
         addDailyTotalsToHeader(canvasId, data, key);  // 🆕 Передаём key для итогов
     }
 });
