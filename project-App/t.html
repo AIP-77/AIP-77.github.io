@@ -445,18 +445,18 @@
         </h1>
         
         <!-- === КОНТРОЛЫ === -->
-        <div class="controls">
-            <label for="monthSelect">📅 Месяц:</label>
-            <select id="monthSelect" disabled><option>Загрузка...</option></select>
-            
-            <label for="dateSelect">📆 Дата:</label>
-            <select id="dateSelect" disabled><option>Загрузка...</option></select>
-            
-            <span id="status" class="status"></span>
-            <button id="refreshBtn" class="refresh-btn" disabled>🔄 Обновить</button>
-            <button id="exportBtn" class="export-btn" disabled>📥 Экспорт CSV</button>
-            <button id="clearCacheBtn" class="cache-btn" disabled>🗑️ Сбросить кэш</button>
-        </div>
+<div class="controls">
+    <label for="monthSelect">📅 Месяц:</label>
+    <select id="monthSelect" disabled><option>Загрузка...</option></select>
+    
+    <label for="dateSelect">📆 Дата:</label>
+    <select id="dateSelect" disabled><option>Загрузка...</option></select>
+    
+    <span id="status" class="status"></span>
+    <button id="refreshBtn" class="refresh-btn" disabled>🔄 Обновить</button>
+    <button id="exportBtn" class="export-btn" disabled>📥 Экспорт CSV</button>
+    <button id="clearCacheBtn" class="cache-btn" disabled>🗑️ Сбросить кэш</button>
+</div>
         
         <!-- === ГРАФИКИ === -->
         <div class="chart-section">
@@ -757,43 +757,44 @@
         }
         
         // === 4. ЗАГРУЗКА ДАННЫХ ===
-        async function loadData() {
-            setStatus('Загрузка данных...', 'loading');
-            toggleControls(false);
-            
-            try {
-                const response = await fetch(currentDataUrl, { cache: 'no-cache' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                
-                jsonData = await response.json();
-                if (!jsonData.data || !jsonData.columns) throw new Error('Неверная структура JSON');
-                
-                const dateCol = jsonData.columns.indexOf('Рабочий день');
-                if (dateCol !== -1) {
-                    const dates = new Set();
-                    jsonData.data.forEach(row => {
-                        if (row[dateCol]) dates.add(row[dateCol]);
-                    });
-                    availableDates = [...dates].sort();
-                    populateDateSelectFromArray(availableDates);
-                }
-                
-                setStatus('Данные загружены', 'success');
-                toggleControls(true);
-                
-                if (dateSelect.options.length > 1) {
-                    dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
-                    updateCharts(dateSelect.value);
-                }
-                
-            } catch (error) {
-                console.error('Ошибка загрузки:', error);
-                setStatus(`❌ Ошибка: ${error.message}`, 'error');
-                const dateSelect = document.getElementById('dateSelect');
-                dateSelect.innerHTML = '<option>Нет данных</option>';
-                dateSelect.disabled = true;
-            }
+async function loadData() {
+    setStatus('Загрузка данных...', 'loading');
+    toggleControls(false);  // ✅ Отключаем во время загрузки
+    
+    try {
+        const response = await fetch(currentDataUrl, { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        
+        jsonData = await response.json();
+        if (!jsonData.data || !jsonData.columns) throw new Error('Неверная структура JSON');
+        
+        const dateCol = jsonData.columns.indexOf('Рабочий день');
+        if (dateCol !== -1) {
+            const dates = new Set();
+            jsonData.data.forEach(row => {
+                if (row[dateCol]) dates.add(row[dateCol]);
+            });
+            availableDates = [...dates].sort();
+            populateDateSelectFromArray(availableDates);
         }
+        
+        setStatus('Данные загружены', 'success');
+        toggleControls(true);  // ✅ Включаем после успешной загрузки!
+        
+        if (dateSelect.options.length > 1) {
+            dateSelect.value = dateSelect.options[dateSelect.options.length - 1].value;
+            updateCharts(dateSelect.value);
+        }
+        
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        setStatus(`❌ Ошибка: ${error.message}`, 'error');
+        const dateSelect = document.getElementById('dateSelect');
+        dateSelect.innerHTML = '<option>Нет данных</option>';
+        dateSelect.disabled = true;
+        toggleControls(false);  // ❌ Оставляем отключенными при ошибке
+    }
+}
         
         function setStatus(msg, type) {
             statusEl.textContent = msg;
@@ -801,20 +802,35 @@
         }
         
 function toggleControls(enabled) {
+    console.log('🔧 toggleControls вызвана с enabled:', enabled);
+    
     const monthSelect = document.getElementById('monthSelect');
     const dateSelect = document.getElementById('dateSelect');
     
-    if (monthSelect) monthSelect.disabled = !enabled;
-    if (dateSelect) dateSelect.disabled = !enabled;
-    if (refreshBtn) refreshBtn.disabled = !enabled;
+    if (monthSelect) {
+        monthSelect.disabled = !enabled;
+        console.log('📅 monthSelect.disabled:', !enabled);
+    }
+    if (dateSelect) {
+        dateSelect.disabled = !enabled;
+        console.log('📆 dateSelect.disabled:', !enabled);
+    }
+    if (refreshBtn) {
+        refreshBtn.disabled = !enabled;
+        console.log('🔄 refreshBtn.disabled:', !enabled);
+    }
     
     const exportBtn = document.getElementById('exportBtn');
-    if (exportBtn) exportBtn.disabled = !enabled;
+    if (exportBtn) {
+        exportBtn.disabled = !enabled;
+        console.log('📥 exportBtn.disabled:', !enabled);
+    }
     
     const clearCacheBtn = document.getElementById('clearCacheBtn');
-    if (clearCacheBtn) clearCacheBtn.disabled = !enabled;
-    
-    console.log('🔧 toggleControls:', { enabled, monthSelect, dateSelect, refreshBtn, exportBtn, clearCacheBtn });
+    if (clearCacheBtn) {
+        clearCacheBtn.disabled = !enabled;
+        console.log('🗑️ clearCacheBtn.disabled:', !enabled);
+    }
 }
         
         // === 5. РАСЧЁТ ДАННЫХ ===
@@ -1273,6 +1289,7 @@ function initChartToggles() {
         
 // === INIT ===
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 DOM загружен');
     await loadAppConfig();
     initTheme();
     fetchAvailableMonths();
@@ -1280,28 +1297,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Не вызываем initChartToggles здесь - она вызывается после отрисовки графиков
 });
 
+console.log('📎 Добавляем обработчики событий...');
+
 document.getElementById('monthSelect')?.addEventListener('change', (e) => {
+    console.log('📅 Изменен месяц:', e.target.value);
     if (e.target.value) loadDatesForMonth(e.target.value);
 });
 
 document.getElementById('dateSelect')?.addEventListener('change', (e) => {
+    console.log('📆 Изменена дата:', e.target.value);
     if (e.target.value && jsonData) updateCharts(e.target.value);
 });
 
-document.getElementById('refreshBtn')?.addEventListener('click', loadData);
+document.getElementById('refreshBtn')?.addEventListener('click', () => {
+    console.log('🔄 Нажата кнопка Обновить');
+    loadData();
+});
 
 document.getElementById('exportBtn')?.addEventListener('click', () => {
+    console.log('📥 Нажата кнопка Экспорт');
     const dateSelect = document.getElementById('dateSelect');
     if (dateSelect.value) exportToCSV(dateSelect.value);
 });
 
-document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
+document.getElementById('clearCacheBtn')?.addEventListener('click', () => {
+    console.log('🗑️ Нажата кнопка Сбросить кэш');
+    clearCacheAndReload();
+});
 
-document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+document.getElementById('themeToggle')?.addEventListener('click', () => {
+    console.log('🌓 Нажата кнопка Тема');
+    toggleTheme();
+});
 
 window.addEventListener('online', updateConnectionStatus);
 window.addEventListener('offline', updateConnectionStatus);
-        
         // PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
