@@ -931,31 +931,35 @@ function updateCharts(selectedDate) {
         try {
             const data = calculateDataForDate(selectedDate);
             
-// 🔄 Исправлено: используем APP_CONFIG.chartNorms вместо CHART_CONFIG
-Object.keys(APP_CONFIG.chartNorms).forEach(key => {
-    const config = APP_CONFIG.chartNorms[key];
-    
-    // 🔄 Преобразуем ключ конфигурации в ID canvas:
-    // assembly → chartAssembly
-    // assembly_rim → chartAssemblyRim
-    const canvasId = 'chart' + key.split('_')
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
-    
-    let chartData;
-    if (key === 'assembly') chartData = data.assembly;
-    else if (key === 'assembly_rim') chartData = data.assembly_rim;
-    else if (key === 'loading') chartData = data.loading;
-    else if (key === 'stickering') chartData = data.stickering;
-    else if (key === 'palletizing') chartData = data.palletizing;
-    
-    if (chartData) {
-        createOrUpdateChart(canvasId, chartData, config.color, config.norm);
-        // 🆕 Добавляем заголовок с нормативами и итогами
-        addDailyTotalsToHeader(canvasId, data, key);
-    }
-});
+            // Проходим по всем графикам из конфигурации
+            Object.keys(CHART_CONFIG).forEach(canvasId => {
+                if (canvasId === 'chartLoadingShift') return;
+                
+                const config = CHART_CONFIG[canvasId];
+                let chartData;
+                
+                if (canvasId === 'chartAssembly') chartData = data.assembly;
+                else if (canvasId === 'chartAssemblyRim') chartData = data.assembly_rim;
+                else if (canvasId === 'chartLoading') chartData = data.loading;
+                else if (canvasId === 'chartStickering') chartData = data.stickering;
+                else if (canvasId === 'chartPalletizing') chartData = data.palletizing;
+                
+                if (chartData) {
+                    createOrUpdateChart(canvasId, chartData, config.color, config.norm);
+                    addHeaderToChart(canvasId);
+                    // 🆕 Добавляем суточные итоги
+                    addDailyTotalsToHeader(canvasId, data);
+                }
+            });
             
+            // Графики по сменам для Погрузки
+            const loadingData = {
+                labels: labels.map(h => h),
+                values: data.loading
+            };
+            renderAllShiftedCharts(loadingData, 'Погрузка');
+            
+            // ПРОВЕРКА ПЕРЕГРУЗКИ
             const overloads = checkOverload(selectedDate);
             showOverloadPanel(overloads);
             addOverloadIndicators(overloads);
@@ -1089,26 +1093,48 @@ Object.keys(APP_CONFIG.chartNorms).forEach(key => {
             }
         }
         
-        async function clearCacheAndReload() {
-            const btn = document.getElementById('clearCacheBtn');
-            if (!btn) return;
-            
-            btn.disabled = true;
-            setStatus('🔄 Очистка кэша...', 'loading');
-            
-            try {
-                const cacheNames = await caches.keys();
-                for (const name of cacheNames) await caches.delete(name);
-                
-                localStorage.clear();
-                
-                setStatus('✅ Кэш очищен! Перезагрузка...', 'success');
-                setTimeout(() => window.location.reload(true), 1500);
-            } catch (error) {
-                setStatus('❌ Ошибка: ' + error.message, 'error');
-                btn.disabled = false;
+// 🗑️ Функция сброса кэша
+async function clearCacheAndReload() {
+    const btn = document.getElementById('clearCacheBtn');
+    if (!btn) return;
+    
+    btn.disabled = true;
+    setStatus('🔄 Очистка кэша...', 'loading');
+    
+    try {
+        // Очищаем Cache Storage
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+            await caches.delete(name);
+        }
+        
+        // Очищаем localStorage
+        localStorage.clear();
+        
+        // Отменяем Service Worker
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const reg of registrations) {
+                await reg.unregister();
             }
         }
+        
+        setStatus('✅ Кэш очищен! Перезагрузка...', 'success');
+        
+        // Перезагружаем с обходом кэша
+        setTimeout(() => {
+            window.location.reload(true);
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Ошибка очистки кэша:', error);
+        setStatus('❌ Ошибка: ' + error.message, 'error');
+        btn.disabled = false;
+    }
+}
+
+// 🆕 Обработчик для кнопки сброса кэша
+document.getElementById('clearCacheBtn')?.addEventListener('click', clearCacheAndReload);
         
         // === 9. ТЕМА ===
         function initTheme() {
