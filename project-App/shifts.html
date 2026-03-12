@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сменные графики — 3  Склад Статы</title>
+    <title>Сменные графики — 4  Склад Статы</title>
     
     <meta name="theme-color" content="#1a73e8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1273,14 +1273,63 @@ Object.keys(APP_CONFIG.chartNorms).forEach(key => {
             el.className = `connection-status ${navigator.onLine ? 'online' : 'offline'}`;
             el.style.display = 'block';
         }
+        // Глобальные переменные
+let APP_CONFIG = {};
+let jsonData = null;
+let availableDates = [];
+let currentDataUrl = '';
+
+// Функция загрузки конфигурации
+async function loadAppConfig() {
+    try {
+        const response = await fetch('config.json', { cache: 'no-cache' });
+        if (response.ok) {
+            APP_CONFIG = await response.json();
+            
+            // 🔹 Очищаем URL от пробелов сразу после загрузки
+            if (APP_CONFIG.data?.archiveBaseUrl) {
+                APP_CONFIG.data.archiveBaseUrl = APP_CONFIG.data.archiveBaseUrl.trim();
+                APP_CONFIG.archiveBaseUrl = APP_CONFIG.data.archiveBaseUrl;
+            }
+            if (APP_CONFIG.data?.defaultDataUrl) {
+                APP_CONFIG.data.defaultDataUrl = APP_CONFIG.data.defaultDataUrl.trim();
+                APP_CONFIG.defaultDataUrl = APP_CONFIG.data.defaultDataUrl;
+            }
+            
+            console.log('✅ Shifts: Конфигурация загружена:', APP_CONFIG.version);
+        } else {
+            console.warn('⚠️ Config не загружен, используем дефолтные значения');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки config.json:', error);
+    }
+}
+
+// Инициализация приложения
+async function initShiftsApp() {
+    await loadAppConfig();
+    await loadDatesForMonth('2026-03');
+}
+
+
         
         // === INIT ===
-        document.addEventListener('DOMContentLoaded', async () => {
-            await loadAppConfig();
-            initTheme();
-            fetchAvailableMonths();
-            updateConnectionStatus();
-        });
+document.addEventListener('DOMContentLoaded', async () => {
+    // Сначала загружаем конфиг (чтобы APP_CONFIG был доступен всем функциям)
+    await loadAppConfig();
+    
+    // Затем подключаем тему
+    initTheme();
+    
+    // Получаем доступные месяцы
+    fetchAvailableMonths();
+    
+    // Проверяем подключение
+    updateConnectionStatus();
+    
+    // Теперь загружаем данные после полной инициализации
+    await initShiftsApp();
+});
         
         document.getElementById('monthSelect')?.addEventListener('change', (e) => {
             if (e.target.value) loadDatesForMonth(e.target.value);
