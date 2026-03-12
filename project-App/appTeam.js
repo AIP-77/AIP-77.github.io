@@ -90,38 +90,63 @@ class DashboardApp {
     }
   }
 
-  setupListeners() {
-    // Month selector
-    const monthSel = document.getElementById('monthSelector');
-    if (monthSel) {
-      monthSel.addEventListener('change', (e) => {
-        const newDate = e.target.value + '-' + this.currentDate.slice(-2);
-        this.loadDataForDate(newDate);
-      });
-    }
-
-    // Refresh button
-    const refreshBtn = document.getElementById('refreshBtn');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', async () => {
-        refreshBtn.disabled = true;
-        refreshBtn.textContent = '🔄...';
-        await this.loadDataForDate(this.currentDate);
-        refreshBtn.disabled = false;
-        refreshBtn.textContent = '🔄 Обновить';
-      });
-    }
-
-    // Theme change listener
-    if (window.themeManager) {
-      const observer = new MutationObserver(() => {
-        Object.values(this.charts).forEach(chart => {
-          if (chart.chart) chart.chart.update('none');
-        });
-      });
-      observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    }
+setupListeners() {
+  // Month selector
+  const monthSel = document.getElementById('monthSelector');
+  if (monthSel) {
+    monthSel.addEventListener('change', (e) => {
+      const newDate = e.target.value + '-' + this.currentDate.slice(-2);
+      this.loadDataForDate(newDate);
+    });
   }
+
+  // Team selector (кнопка переключения команды)
+  const teamBtn = document.getElementById('teamSelector');
+  const currentTeamEl = document.getElementById('currentTeam');
+  let currentTeamIndex = 0; // 0=A, 1=B, 2=C
+  
+  if (teamBtn && window.shiftManager) {
+    teamBtn.addEventListener('click', () => {
+      currentTeamIndex = (currentTeamIndex + 1) % 3;
+      const teams = ['A', 'B', 'C'];
+      const newTeam = teams[currentTeamIndex];
+      
+      // Обновляем текст кнопки
+      teamBtn.textContent = `🔄 Команда: ${newTeam}`;
+      currentTeamEl.textContent = newTeam;
+      
+      // Обновляем текущую команду в shiftManager
+      window.shiftManager.setTeam(newTeam);
+      
+      // Перерисовываем графики с новой подсветкой смен
+      Object.values(this.charts).forEach(chart => {
+        chart.updateData(window.configLoader.data?.hours || []);
+      });
+    });
+  }
+
+  // Refresh button
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = '🔄...';
+      await this.loadDataForDate(this.currentDate);
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '🔄 Обновить';
+    });
+  }
+
+  // Theme change listener
+  if (window.themeManager) {
+    const observer = new MutationObserver(() => {
+      Object.values(this.charts).forEach(chart => {
+        if (chart.chart) chart.chart.update('none');
+      });
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+}
 
   updateFooter() {
     const dateEl = document.getElementById('currentDate');
