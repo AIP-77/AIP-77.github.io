@@ -1273,11 +1273,7 @@ Object.keys(APP_CONFIG.chartNorms).forEach(key => {
             el.className = `connection-status ${navigator.onLine ? 'online' : 'offline'}`;
             el.style.display = 'block';
         }
-        // Глобальные переменные
-let APP_CONFIG = {};
-let jsonData = null;
-let availableDates = [];
-let currentDataUrl = '';
+
 
 // Функция загрузки конфигурации
 async function loadAppConfig() {
