@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анализ пиковых нагрузок склада 1</title>
+    <title>Анализ пиковых нагрузок склада 2</title>
     
     <meta name="theme-color" content="#1a73e8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -701,10 +701,29 @@ async function loadDatesForMonth(monthStr) {
     dateSelect.disabled = true;
     
     setStatus('📅 Загрузка дат...', 'loading');
-    toggleControls(false);  // 🆕 Отключаем кнопки при загрузке
+    toggleControls(false);
     
     try {
-        const url = `${APP_CONFIG.archiveBaseUrl}${encodeURIComponent(monthStr + ' fullData.json')}`;
+        // 🔹 Шаг 1: Безопасное получение baseUrl
+        let baseUrl = APP_CONFIG?.archiveBaseUrl;
+        
+        // 🔹 Шаг 2: Fallback если конфиг не загружен
+        if (!baseUrl || baseUrl === 'undefined') {
+            console.warn('⚠️ APP_CONFIG.archiveBaseUrl не определён, используем fallback');
+            baseUrl = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/';
+        }
+        
+        // 🔹 Шаг 3: Очистка от пробелов (критично!)
+        baseUrl = baseUrl.trim().replace(/\s+$/, '');
+        if (!baseUrl.endsWith('/')) baseUrl += '/';
+        
+        // 🔹 Шаг 4: Правильное формирование URL
+        // monthStr = "2026-03", файл = "2026-03 fullData.json"
+        // Пробел уже закодирован как %20 в имени файла на GitHub
+        const fileName = `${monthStr}%20fullData.json`;
+        const url = `${baseUrl}${fileName}`;
+        
+        console.log('🔗 Loading from:', url); // Для отладки
         currentDataUrl = url;
         
         const response = await fetch(url, { cache: 'no-cache' });
@@ -734,7 +753,6 @@ async function loadDatesForMonth(monthStr) {
         
         jsonData = monthData;
         
-        // 🆕 Включаем кнопки ПОСЛЕ успешной загрузки данных
         toggleControls(true);
         
         setTimeout(() => {
@@ -746,10 +764,9 @@ async function loadDatesForMonth(monthStr) {
         setStatus('❌ Ошибка: ' + error.message, 'error');
         dateSelect.innerHTML = '<option>Нет данных</option>';
         dateSelect.disabled = true;
-        toggleControls(false);  // 🆕 Оставляем отключенными при ошибке
+        toggleControls(false);
     }
-}
-        
+}     
         function populateDateSelectFromArray(dates) {
             const dateSelect = document.getElementById('dateSelect');
             dateSelect.innerHTML = '<option value="">-- Выберите дату --</option>';
