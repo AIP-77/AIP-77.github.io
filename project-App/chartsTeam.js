@@ -257,6 +257,21 @@ class ChartBuilder {
     const prepared = this.prepareData(newHoursData, normConfig);
     const shiftHighlight = window.shiftManager?.getShiftHighlight?.();
     this.render(prepared, normConfig, shiftHighlight);
+    
+    // В методе updateData() после render():
+if (this.chart && data.volumes.length > 0) {
+  const maxVolume = Math.max(...data.volumes);
+  const totalBrigades = data.brigades.reduce((a, b) => a + b, 0) / data.brigades.length;
+  
+  const legendEl = document.getElementById(`legend-${this.chartKey}`);
+  if (legendEl) {
+    legendEl.innerHTML = `
+      📦 Объём: <strong>${maxVolume} шт/ч</strong> | 
+      👥 Среднее: <strong>${totalBrigades.toFixed(1)}</strong>/
+      <strong>${this.configLoader.config?.chartNorms?.[this.chartKey]?.max || 1}</strong> бригады
+    `;
+  }
+}
   }
 }
 
