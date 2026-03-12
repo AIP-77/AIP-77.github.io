@@ -5,28 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1a73e8" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
-<!-- 1. Chart.js Core (ОБЯЗАТЕЛЬНО) -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<!-- 2. Annotation Plugin (опционально, для подсветки смен) -->
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
-
-  <title>Склад Статы — Дашборд</title>
+  <title>Склад Статы — Сменные отчёты</title>
+  
+  <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="stylesTeam.css">
   <link rel="icon" href="favicon.png" type="image/png">
+  
+  <!-- Стили -->
+  <link rel="stylesheet" href="stylesTeam.css">
+  
+  <!-- Библиотеки графиков (ДО ваших скриптов!) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js" defer></script>
 </head>
 <body>
   <header class="dashboard-header">
     <div class="header-left">
-      <h1>📊 Склад Статы</h1>
+      <h1>📊 Склад Статы — Сменные отчёты</h1>
       <span class="shift-indicator" id="currentShift">Загрузка смены...</span>
     </div>
     <div class="header-right">
       <select id="monthSelector" class="form-control">
         <option value="2026-03">Март 2026</option>
         <option value="2026-02">Февраль 2026</option>
+        <option value="2026-01">Январь 2026</option>
+        <option value="2025-12">Декабрь 2025</option>
       </select>
+      
+      <button id="teamSelector" class="btn-primary">🔄 Команда: A</button>
       <button id="themeToggle" class="btn-icon" aria-label="Переключить тему">🌓</button>
       <button id="refreshBtn" class="btn-primary">🔄 Обновить</button>
     </div>
@@ -42,7 +48,7 @@
       <div class="chart-container">
         <canvas id="chart-assembly"></canvas>
       </div>
-      <div class="chart-legend" id="legend-assembly"></div>
+      <div class="chart-legend" id="legend-assembly">Объём: 0 шт/ч | Бригады: 0/3</div>
     </section>
 
     <!-- Карточка: Сборка Диски -->
@@ -54,6 +60,7 @@
       <div class="chart-container">
         <canvas id="chart-assembly_rim"></canvas>
       </div>
+      <div class="chart-legend" id="legend-assembly_rim">Объём: 0 шт/ч | Бригады: 0/1</div>
     </section>
 
     <!-- Карточка: Погрузка -->
@@ -65,6 +72,7 @@
       <div class="chart-container">
         <canvas id="chart-loading"></canvas>
       </div>
+      <div class="chart-legend" id="legend-loading">Объём: 0 шт/ч | Бригады: 0/1</div>
     </section>
 
     <!-- Карточка: Стикеровка -->
@@ -76,6 +84,7 @@
       <div class="chart-container">
         <canvas id="chart-stickering"></canvas>
       </div>
+      <div class="chart-legend" id="legend-stickering">Объём: 0 шт/ч | Бригады: 0/1</div>
     </section>
 
     <!-- Карточка: Упаковка -->
@@ -87,17 +96,21 @@
       <div class="chart-container">
         <canvas id="chart-palletizing"></canvas>
       </div>
+      <div class="chart-legend" id="legend-palletizing">Объём: 0 шт/ч | Бригады: 0/1</div>
     </section>
   </main>
 
   <footer class="dashboard-footer">
-    <p>📅 Дата: <span id="currentDate">—</span> | 🔄 Последнее обновление: <span id="lastUpdate">—</span></p>
+    <p>📅 Дата: <span id="currentDate">—</span> | 
+       🔄 Последнее обновление: <span id="lastUpdate">—</span> | 
+       👥 Команда: <strong id="currentTeam">A</strong></p>
   </footer>
 
-  <script src="configTeam.js"></script>
-  <script src="themeTeam.js"></script>
-  <script src="shiftsTeam.js"></script>
-  <script src="chartsTeam.js"></script>
-  <script src="appTeam.js"></script>
+  <!-- Ваши скрипты ПОСЛЕ библиотек -->
+  <script src="configTeam.js" defer></script>
+  <script src="themeTeam.js" defer></script>
+  <script src="shiftsTeam.js" defer></script>
+  <script src="chartsTeam.js" defer></script>
+  <script src="appTeam.js" defer></script>
 </body>
 </html>
