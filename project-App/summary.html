@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сводные отчеты — Склад Статы</title>
+    <title>Сводные отчеты — 5 Склад Статы</title>
     
     <meta name="theme-color" content="#1a73e8">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -690,58 +690,84 @@
         }
         
         // === 3. ЗАГРУЗКА ДАТ ДЛЯ МЕСЯЦА ===
-        async function loadDatesForMonth(monthStr) {
-            const dateSelect = document.getElementById('dateSelect');
-            dateSelect.innerHTML = '<option>Загрузка...</option>';
-            dateSelect.disabled = true;
-            
-            setStatus('📅 Загрузка дат...', 'loading');
-            toggleControls(false);
-            
-            try {
-                const url = `${APP_CONFIG.archiveBaseUrl}${encodeURIComponent(monthStr + ' fullData.json')}`;
-                currentDataUrl = url;
-                
-                const response = await fetch(url, { cache: 'no-cache' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден`);
-                
-                const monthData = await response.json();
-                if (!monthData.data || !monthData.columns) throw new Error('Неверная структура данных');
-                
-                const dateCol = monthData.columns.indexOf('Рабочий день');
-                if (dateCol === -1) throw new Error('Колонка "Рабочий день" не найдена');
-                
-                const dates = new Set();
-                monthData.data.forEach(row => {
-                    if (row[dateCol]) dates.add(row[dateCol]);
-                });
-                
-                availableDates = [...dates].sort();
-                if (availableDates.length === 0) throw new Error('Нет доступных дат');
-                
-                populateDateSelectFromArray(availableDates);
-                
-                const lastDate = availableDates[availableDates.length - 1];
-                dateSelect.value = lastDate;
-                
-                setStatus(`✅ Загружено ${availableDates.length} дат`, 'success');
-                dateSelect.disabled = false;
-                
-                jsonData = monthData;
-                toggleControls(true);
-                
-                setTimeout(() => {
-                    updateSummary(lastDate);
-                }, 100);
-                
-            } catch (error) {
-                console.error('Ошибка загрузки дат:', error);
-                setStatus('❌ Ошибка: ' + error.message, 'error');
-                dateSelect.innerHTML = '<option>Нет данных</option>';
-                dateSelect.disabled = true;
-                toggleControls(false);
-            }
+async function loadDatesForMonth(monthStr) {
+    const dateSelect = document.getElementById('dateSelect');
+    dateSelect.innerHTML = '<option>Загрузка...</option>';
+    dateSelect.disabled = true;
+    
+    setStatus('📅 Загрузка дат...', 'loading');
+    toggleControls(false);
+    
+    try {
+        // 🔹 Шаг 1: Безопасное получение baseUrl из разных источников
+        let baseUrl = APP_CONFIG?.archiveBaseUrl || 
+                      CONFIG?.archiveBaseUrl || 
+                      window.configLoader?.config?.data?.archiveBaseUrl;
+        
+        // 🔹 Шаг 2: Fallback если конфиг не загружен или равен undefined
+        if (!baseUrl || baseUrl === 'undefined' || !baseUrl.trim()) {
+            console.warn('⚠️ Config не определён, используем fallback URL');
+            baseUrl = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/';
         }
+        
+        // 🔹 Шаг 3: Критично — обрезка пробелов из конца строки
+        baseUrl = baseUrl.trim().replace(/\s+$/, '');
+        if (!baseUrl.endsWith('/')) baseUrl += '/';
+        
+        // 🔹 Шаг 4: Правильное формирование URL
+        const fileName = `${monthStr}%20fullData.json`;
+        const url = `${baseUrl}${fileName}`;
+        
+        console.log('🔗 Summary: Loading from:', url);
+        currentDataUrl = url;
+        
+        const response = await fetch(url, { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}: файл не найден`);
+        
+        const monthData = await response.json();
+        if (!monthData.data || !monthData.columns) throw new Error('Неверная структура данных');
+        
+        // 🔹 Извлечение дат (адаптивно под разные названия колонок)
+        const dateColIndex = monthData.columns.findIndex(col => 
+            col.includes('Рабочий день') || 
+            col.includes('Дата') || 
+            col.includes('Day') || 
+            col.includes('День')
+        );
+        if (dateColIndex === -1) throw new Error('Колонка с датами не найдена');
+        
+        const dates = new Set();
+        monthData.data.forEach(row => {
+            const dateValue = row[dateColIndex];
+            if (dateValue) dates.add(dateValue);
+        });
+        
+        availableDates = [...dates].sort();
+        if (availableDates.length === 0) throw new Error('Нет доступных дат');
+        
+        populateDateSelectFromArray(availableDates);
+        
+        const lastDate = availableDates[availableDates.length - 1];
+        dateSelect.value = lastDate;
+        
+        setStatus(`✅ Загружено ${availableDates.length} дат`, 'success');
+        dateSelect.disabled = false;
+        
+        jsonData = monthData;
+        toggleControls(true);
+        
+        setTimeout(() => {
+            updateCharts(lastDate);
+        }, 100);
+        
+    } catch (error) {
+        console.error('Ошибка загрузки дат (summary):', error);
+        setStatus('❌ Ошибка: ' + error.message, 'error');
+        dateSelect.innerHTML = '<option>Нет данных</option>';
+        dateSelect.disabled = true;
+        toggleControls(false);
+    }
+}
         
         function populateDateSelectFromArray(dates) {
             const dateSelect = document.getElementById('dateSelect');
@@ -1202,15 +1228,58 @@
             el.className = `connection-status ${navigator.onLine ? 'online' : 'offline'}`;
             el.style.display = 'block';
         }
+   // ===== Глобальные переменные =====
+let APP_CONFIG = {};
+let jsonData = null;
+let availableDates = [];
+let currentDataUrl = '';
+
+// ===== Функция загрузки конфигурации =====
+async function loadAppConfig() {
+    try {
+        const response = await fetch('config.json', { cache: 'no-cache' });
+        if (response.ok) {
+            APP_CONFIG = await response.json();
+            
+            // 🔹 Очищаем URL от пробелов сразу после загрузки
+            if (APP_CONFIG.data?.archiveBaseUrl) {
+                APP_CONFIG.data.archiveBaseUrl = APP_CONFIG.data.archiveBaseUrl.trim();
+                APP_CONFIG.archiveBaseUrl = APP_CONFIG.data.archiveBaseUrl;
+            }
+            if (APP_CONFIG.data?.defaultDataUrl) {
+                APP_CONFIG.data.defaultDataUrl = APP_CONFIG.data.defaultDataUrl.trim();
+                APP_CONFIG.defaultDataUrl = APP_CONFIG.data.defaultDataUrl;
+            }
+            
+            console.log('✅ Summary: Конфигурация загружена:', APP_CONFIG.version);
+        } else {
+            console.warn('⚠️ Config не загружен, используем дефолтные значения');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки config.json (summary):', error);
+    }
+}
+
+// ===== Инициализация приложения =====
+async function initSummaryApp() {
+    await loadDatesForMonth('2026-03');
+}
+
+// ===== Единый слушатель DOMContentLoaded =====
+document.addEventListener('DOMContentLoaded', async () => {
+    // Сначала загружаем конфиг
+    await loadAppConfig();
+    
+    // Затем другие инициализации
+    initTheme?.();
+    fetchAvailableMonths?.();
+    updateConnectionStatus?.();
+    
+    // Теперь загружаем данные (конфиг уже готов)
+    await initSummaryApp();
+});     
         
-        // === INIT ===
-        document.addEventListener('DOMContentLoaded', async () => {
-            await loadAppConfig();
-            initTheme();
-            fetchAvailableMonths();
-            updateConnectionStatus();
-        });
-        
+         
         document.getElementById('monthSelect')?.addEventListener('change', (e) => {
             if (e.target.value) loadDatesForMonth(e.target.value);
         });
