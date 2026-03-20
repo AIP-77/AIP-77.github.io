@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Персональная панель 2026</title>
+  <title>Персональная панель 2026.03</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -114,6 +114,7 @@
     }
     .banner.show {
       display: block;
+	  animation: none; /* Убираем анимацию исчезновения для важных уведомлений */	
     }
     .banner.info { background: #e3f2fd; color: #1565c0; }
     .banner.error { background: #ffebee; color: #c62828; }
@@ -435,6 +436,9 @@ function normalizeRecords(data) {
     let dataLastUpdated = null;
     let availableMonths = [];
     let currentMonthIndex = 0;
+	 // === НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ОТСЛЕЖИВАНИЯ ДАТЫ ===
+let displayedMonthYear = null; // Какой месяц сейчас показан
+let isDataOutdated = false;    // Флаг, что данные не за текущий месяц 
 
     // DOM элементы
     const loading = document.getElementById('loading');
@@ -885,65 +889,103 @@ async function init() {
 }
 
 async function loadUserData() {
-  try {
-    // Загружаем данные сотрудников
-    const staffData = await fetchData(DATA_SOURCES.staff);
-
-    // Если chatId не найден в Telegram WebApp, предлагаем ввести вручную
-    if (!chatId || chatId === 'undefined' || chatId === 'null') {
-      const manualInput = prompt(
-        'Введите ваш Telegram ID или другой идентификатор (например, пароль):',
-        ''
-      );
-      if (!manualInput) {
-        throw new Error('Идентификатор не указан');
-      }
-      chatId = manualInput; // Используем введенный идентификатор
+    try {
+        // Загружаем данные сотрудников (справочник)
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        
+        // Если chatId не найден в Telegram WebApp, предлагаем ввести вручную
+        if (!chatId || chatId === 'undefined' || chatId === 'null') {
+            const manualInput = prompt(
+                'Введите ваш Telegram ID или другой идентификатор (например, пароль):',
+                ''
+            );
+            if (!manualInput) {
+                throw new Error('Идентификатор не указан');
+            }
+            chatId = manualInput;
+        }
+        
+        // Находим данные текущего пользователя
+        let userRecord = normalizeRecords(staffData).find(record =>
+            String(record['Telegram ID']) === chatId ||
+            String(record['Пароль']) === chatId
+        );
+        
+        if (!userRecord) {
+            throw new Error('Указанный идентификатор не найден в системе');
+        }
+        
+        currentUserData = {
+            name: userRecord['Сотрудник'],
+            department: userRecord['Отдел'],
+            role: userRecord['Роль'],
+            managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
+        };
+        
+        isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
+        isAdmin = currentUserData.role.toLowerCase() === 'админ';
+        managedDepartments = currentUserData.managedDepartments;
+        
+        // === ЛОГИКА ЗАГРУЗКИ ДАННЫХ ПО МЕСЯЦАМ ===
+        const now = new Date();
+        let year = now.getFullYear();
+        let month = now.getMonth() + 1;
+        let attemptCount = 0;
+        let loadedData = null;
+        displayedMonthYear = null;
+        isDataOutdated = false;
+        
+        // Пытаемся загрузить текущий месяц, если нет - идем назад (максимум 2 месяца)
+        while (attemptCount < 2 && !loadedData) {
+            try {
+                const monthKey = `${year}-${month.toString().padStart(2, '0')}`;
+                const data = await fetchData(DATA_SOURCES.monthlyData(year, month));
+                
+                // Проверяем, есть ли данные именно для этого сотрудника
+                const records = normalizeRecords(data);
+                const userHasData = records.some(r => r['Сотрудник'] === currentUserData.name);
+                
+                if (userHasData) {
+                    loadedData = data;
+                    displayedMonthYear = { year, month };
+                    
+                    // Если загрузили не текущий месяц - помечаем как устаревшее
+                    if (month !== now.getMonth() + 1 || year !== now.getFullYear()) {
+                        isDataOutdated = true;
+                    }
+                } else {
+                    throw new Error('Нет данных за этот месяц');
+                }
+            } catch (e) {
+                // Если данных нет, идем на месяц назад
+                month--;
+                if (month === 0) {
+                    month = 12;
+                    year--;
+                }
+                attemptCount++;
+            }
+        }
+        
+        if (!loadedData) {
+            throw new Error('Нет данных за последние 3 месяца');
+        }
+        
+        currentMonthData = loadedData;
+        dataLastUpdated = currentMonthData.lastUpdated;
+        
+        updateVersionInfo();
+        await generatePersonalReport();
+        await loadCalendarData();
+        renderUI();
+        
+        loading.classList.add('hidden');
+        
+    } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+        loading.classList.add('hidden');
+        showError('Ошибка: ' + err.message);
     }
-
-    // Находим данные текущего пользователя
-    let userRecord = normalizeRecords(staffData).find(record =>
-      String(record['Telegram ID']) === chatId ||
-      String(record['Пароль']) === chatId // Добавляем проверку по паролю
-    );
-
-    if (!userRecord) {
-      throw new Error('Указанный идентификатор не найден в системе');
-    }
-
-    currentUserData = {
-      name: userRecord['Сотрудник'],
-      department: userRecord['Отдел'],
-      role: userRecord['Роль'],
-      managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
-    };
-
-    isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
-    isAdmin = currentUserData.role.toLowerCase() === 'админ';
-    managedDepartments = currentUserData.managedDepartments;
-
-    // Загружаем данные за текущий месяц
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    currentMonthData = await fetchData(DATA_SOURCES.monthlyData(currentYear, currentMonth));
-    dataLastUpdated = currentMonthData.lastUpdated;
-    updateVersionInfo();
-
-    // Формируем персональный отчет
-    await generatePersonalReport();
-
-    // Загружаем календарь
-    await loadCalendarData();
-
-    renderUI();
-    loading.classList.add('hidden');
-
-  } catch (err) {
-    console.error('Ошибка загрузки данных:', err);
-    throw err;
-  }
 }
 
 
@@ -1123,23 +1165,35 @@ async function loadUserData() {
       mainDataContent.classList.remove('hidden');
     }
 
-    function renderUI() {
-      // Показываем соответствующие вкладки
-      if (isManager) {
+function renderUI() {
+    // Показываем соответствующие вкладки
+    if (isManager) {
         tabManager.classList.remove('hidden');
-      }
-      if (isAdmin) {
-        tabAdmin.classList.remove('hidden');
-      }
-
-      employeeView.classList.remove('hidden');
-      updateLastUpdate();
-
-      // Инициализируем вкладку отдела для менеджеров
-      if (isManager) {
-        initializeManagerView();
-      }
     }
+    if (isAdmin) {
+        tabAdmin.classList.remove('hidden');
+    }
+    employeeView.classList.remove('hidden');
+    updateLastUpdate();
+    
+    // === НОВОЕ: ПРЕДУПРЕЖДЕНИЕ ЕСЛИ ДАННЫЕ НЕ ЗА ТЕКУЩИЙ МЕСЯЦ ===
+    if (isDataOutdated && displayedMonthYear) {
+        const monthNames = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 
+                            'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+        const monthName = monthNames[displayedMonthYear.month - 1];
+        
+        showBanner(
+            `⚠️ Внимание: Отчет за текущий месяц еще не сформирован. Показаны данные за ${monthName} ${displayedMonthYear.year}`, 
+            'error', 
+            0 // 0 означает, что баннер не исчезнет сам
+        );
+    }
+    
+    // Инициализируем вкладку отдела для менеджеров
+    if (isManager) {
+        initializeManagerView();
+    }
+}
 
     async function initializeManagerView() {
       if (!isManager) return;
