@@ -375,27 +375,31 @@
   
   <!-- Кнопка очистки кэша -->
   <button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
-  
   <script>
-    // Конфигурация источников данных
-    const DATA_SOURCES = {
-      staff: 'https://AIP-77.github.io/archive/staff%20fullData.json',
-      monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')}%20fullData.json`
-    };
+// ============================================
+// 1. КОНФИГУРАЦИЯ И ПЕРЕМЕННЫЕ
+// ============================================
+const DATA_SOURCES = {
+    staff: 'https://AIP-77.github.io/archive/staff%20fullData.json',
+    monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')}%20fullData.json`
+};
 
-    let chatId = null;
-    let isManager = false;
-    let isAdmin = false;
-    let currentUserData = null;
-    let currentRecord = null;
-    let currentMonthData = null;
-    let managedDepartments = [];
-    let currentManagerDepartment = null;
-    let dataLastUpdated = null;
-    let availableMonths = [];
-    let currentMonthIndex = 0;
+let chatId = null;
+let isManager = false;
+let isAdmin = false;
+let currentUserData = null;
+let currentRecord = null;
+let currentMonthData = null;
+let managedDepartments = [];
+let dataLastUpdated = null;
+let availableMonths = [];
+let currentMonthIndex = 0;
+let displayedMonthYear = null;
+let isDataOutdated = false;
 
-// DOM элементы
+// ============================================
+// 2. DOM ЭЛЕМЕНТЫ (ДОБАВЛЕНЫ ОТСУТСТВУЮЩИЕ)
+// ============================================
 const loading = document.getElementById('loading');
 const error = document.getElementById('error');
 const employeeView = document.getElementById('employee-view');
@@ -420,751 +424,391 @@ const prevMonthBtn = document.getElementById('prevMonth');
 const nextMonthBtn = document.getElementById('nextMonth');
 const currentMonthSpan = document.getElementById('currentMonth');
 const calendar = document.getElementById('calendar');
-// === ДОБАВЛЕНО: Элементы панели отдела ===
+const authForm = document.getElementById('auth-form');
+const authInput = document.getElementById('auth-input');
+const authSubmit = document.getElementById('auth-submit');
+
+// Элементы панели отдела (БЫЛИ ОТСУТСТВУЮЩИМИ)
 const departmentSelect = document.getElementById('departmentSelect');
 const departmentSelector = document.getElementById('department-selector');
 const departmentReport = document.getElementById('department-report');
 const changeDepartmentBtn = document.getElementById('change-department-btn');
-const deptName = document.getElementById('dept-name');
-const deptLastUpdate = document.getElementById('dept-last-update');
 const deptDataLoading = document.getElementById('dept-data-loading');
 const deptDataContent = document.getElementById('dept-data-content');
-const deptReportDate = document.getElementById('dept-report-date');
-const deptAttendance = document.getElementById('dept-attendance');
-const deptAttendancePercent = document.getElementById('dept-attendance-percent');
-const deptEmployeesList = document.getElementById('dept-employees-list');
-const deptAvgEfficiency = document.getElementById('dept-avg-efficiency');
 
-    // === ИСПРАВЛЕННЫЕ ФУНКЦИИ РАСЧЕТА ===
-    
-    // Функция для парсинга русских числовых форматов с учетом пробелов
-    function parseRussianNumber(numberStr) {
-        if (!numberStr || numberStr === '0,00 ₽' || numberStr === 'р.0,00') return 0;
-        
-        // Убираем валюту и пробелы тысяч, заменяем запятую на точку
-        const cleanStr = numberStr
-            .replace(/[^\d,\s]/g, '') // Убираем все не-цифры, кроме запятых и пробелов
-            .replace(/\s/g, '') // Убираем пробелы (разделители тысяч)
-            .replace(',', '.'); // Заменяем запятую на точку
-        
-        const result = parseFloat(cleanStr);
-        return isNaN(result) ? 0 : result;
+// ============================================
+// 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================
+function normalizeRecords(data) {
+    if (data && data.columns && data.data) {
+        return data.data.map(row => {
+            const obj = {};
+            data.columns.forEach((col, idx) => { obj[col] = row[idx] || ''; });
+            return obj;
+        });
     }
+    if (data && data.records && Array.isArray(data.records)) {
+        return data.records;
+    }
+    return [];
+}
 
-    // Заработано за день = сумма всех "Расчетная сумма" + сумма всех "Доплата XIS"
-    function calculateDayPay(tasks) {
-        let total = 0;
+function parseRussianNumber(numberStr) {
+    if (!numberStr || numberStr === '0,00 ₽' || numberStr === 'р.0,00') return 0;
+    const cleanStr = numberStr.replace(/[^\d,\s]/g, '').replace(/\s/g, '').replace(',', '.');
+    const result = parseFloat(cleanStr);
+    return isNaN(result) ? 0 : result;
+}
+
+function timeToSeconds(timeStr) {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 3600 + parts[1] * 60;
+    if (parts.length === 1) return parts[0] * 3600;
+    return 0;
+}
+
+function secondsToTime(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+function formatCurrency(amount) {
+    return amount.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 2 });
+}
+
+function calculateDayPay(tasks) {
+    let total = 0;
+    tasks.forEach(task => {
+        total += (parseRussianNumber(task['Расчетная сумма'] || '0') + parseRussianNumber(task['Доплата XIS'] || '0'));
+    });
+    return total;
+}
+
+function calculateXisBonus(tasks) {
+    let total = 0;
+    tasks.forEach(task => { total += parseRussianNumber(task['Доплата XIS'] || '0'); });
+    return total;
+}
+
+function calculateMonthlyPay(tasksByDate) {
+    let total = 0;
+    Object.values(tasksByDate).forEach(tasks => {
         tasks.forEach(task => {
-            const calculatedPay = parseRussianNumber(task['Расчетная сумма'] || '0');
-            const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
-            total += (calculatedPay + xisBonus);
+            total += (parseRussianNumber(task['Расчетная сумма'] || '0') + parseRussianNumber(task['Доплата XIS'] || '0'));
         });
-        return total;
-    }
+    });
+    return total;
+}
 
-    // Сезонная доплата = сумма всех "Доплата XIS"
-    function calculateXisBonus(tasks) {
-        let total = 0;
-        tasks.forEach(task => {
-            const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
-            total += xisBonus;
+function calculateTotalTime(tasks, fieldName) {
+    let totalSeconds = 0;
+    tasks.forEach(task => {
+        if (task[fieldName]) totalSeconds += timeToSeconds(task[fieldName]);
+    });
+    return secondsToTime(totalSeconds);
+}
+
+function calculateEfficiency(worked, planned) {
+    const workedSec = timeToSeconds(worked);
+    const plannedSec = timeToSeconds(planned);
+    if (plannedSec === 0) return 0;
+    return Math.round(((workedSec / plannedSec) * 100) * 100) / 100;
+}
+
+// ============================================
+// 4. ОСНОВНЫЕ ФУНКЦИИ ПРИЛОЖЕНИЯ
+// ============================================
+async function fetchData(url) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error(`Ошибка загрузки данных из ${url}:`, error);
+        throw new Error(`Не удалось загрузить данные: ${error.message}`);
+    }
+}
+
+function showError(msg) {
+    loading.classList.add('hidden');
+    error.textContent = msg;
+    error.classList.remove('hidden');
+}
+
+function showBanner(message, type = 'info', duration = 5000) {
+    banner.textContent = message;
+    banner.className = `banner show ${type}`;
+    if (duration > 0) setTimeout(() => banner.classList.remove('show'), duration);
+}
+
+function applyTelegramTheme() {
+    if (!window.Telegram?.WebApp) return;
+    const theme = Telegram.WebApp.themeParams;
+    const root = document.documentElement;
+    root.style.setProperty('--tg-bg-color', theme.bg_color || '#f0f2f5');
+    root.style.setProperty('--tg-text-color', theme.text_color || '#1c1e21');
+    root.style.setProperty('--tg-hint-color', theme.hint_color || '#999999');
+    root.style.setProperty('--tg-link-color', theme.link_color || '#d71923');
+    root.style.setProperty('--tg-button-color', theme.button_color || '#1a8cd8');
+    root.style.setProperty('--tg-button-text-color', theme.button_text_color || '#ffffff');
+}
+
+function updateLastUpdate() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('last-update').textContent = `Последнее обновление: ${timeStr}`;
+}
+
+function updateVersionInfo() {
+    if (!dataLastUpdated) {
+        versionInfo.textContent = '(🛠 V.2026.02.06 🛠)';
+        return;
+    }
+    try {
+        const updateDate = new Date(dataLastUpdated);
+        const formattedDate = updateDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const formattedTime = updateDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        versionInfo.innerHTML = `(🛠 V.2026.02.06 | Данные: ${formattedDate} ${formattedTime} 🛠)`;
+    } catch (err) {
+        versionInfo.textContent = '(🛠 V.2026.02.06 🛠)';
+    }
+}
+
+// ============================================
+// 5. ГРУППИРОВКА ЗАДАЧ
+// ============================================
+function groupTasksByType(tasks) {
+    const groups = {};
+    tasks.forEach(task => {
+        const workType = task['Вид работ'] || 'Другие виды работ';
+        if (!groups[workType]) {
+            groups[workType] = { tasks: [], totalCount: 0, totalTime: 0, totalPay: 0, totalXisBonus: 0 };
+        }
+        const count = parseFloat(task['Количество единиц'] || '0');
+        const time = task['Рабочее время'] || '00:00';
+        const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
+        const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
+        const startTime = task['Начало задачи'] || '--:--';
+        
+        groups[workType].tasks.push({ count, time, pay, xisBonus, startTime, calculatedPay: task['Расчетная сумма'] || '0,00 ₽', calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽' });
+        groups[workType].totalCount += count;
+        groups[workType].totalTime += timeToSeconds(time);
+        groups[workType].totalPay += (pay + xisBonus);
+        groups[workType].totalXisBonus += xisBonus;
+    });
+    return groups;
+}
+
+function renderGroupedTasks(tasks) {
+    if (!tasks || tasks.length === 0) {
+        tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        return;
+    }
+    const groups = groupTasksByType(tasks);
+    let html = '';
+    Object.keys(groups).sort().forEach(workType => {
+        const group = groups[workType];
+        const totalTimeFormatted = secondsToTime(group.totalTime);
+        const totalPayFormatted = formatCurrency(group.totalPay);
+        const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
+        
+        html += `<div class="task-group"><div class="task-group-header" onclick="toggleTaskGroup(this)"><div style="flex: 1;"><div>${workType}</div><div class="task-group-summary">`;
+        html += `<div class="task-group-summary-item"><span>📊</span><span>${group.totalCount.toFixed(2)} ед.</span></div>`;
+        html += `<div class="task-group-summary-item"><span>⏱️</span><span>${totalTimeFormatted}</span></div>`;
+        html += `<div class="task-group-summary-item"><span>💰</span><span class="task-total">${totalPayFormatted}</span></div>`;
+        if (group.totalXisBonus > 0) html += `<div class="task-group-summary-item"><span>🎁</span><span class="seasonal-bonus">${totalXisBonusFormatted}</span></div>`;
+        html += `</div></div><div class="expand-icon">▼</div></div><div class="task-group-content">`;
+        
+        group.tasks.forEach(task => {
+            html += `<div class="task-item"><div style="display: flex; justify-content: space-between; align-items: flex-start;">`;
+            html += `<div style="flex: 1;"><div><strong>${task.count.toFixed(2)} ед.</strong></div><div class="task-time-info"><span class="task-start-time">Начало: ${task.startTime}</span><span> | Время работы: ${task.time}</span></div></div>`;
+            html += `<div style="text-align: right;"><div class="task-payment-info"><span>${task.calculatedPay}</span>`;
+            if (task.xisBonus > 0) html += `<span class="seasonal-bonus">${task.calculatedXisBonus}</span>`;
+            html += `</div></div></div></div>`;
         });
-        return total;
-    }
+        html += `</div></div>`;
+    });
+    tasksGrouped.innerHTML = html;
+}
 
-    // Заработано за месяц = сумма всех "Расчетная сумма" за месяц + сумма всех "Доплата XIS" за месяц
-    function calculateMonthlyPay(tasksByDate) {
-        let total = 0;
-        Object.values(tasksByDate).forEach(tasks => {
-            tasks.forEach(task => {
-                const calculatedPay = parseRussianNumber(task['Расчетная сумма'] || '0');
-                const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
-                total += (calculatedPay + xisBonus);
-            });
-        });
-        return total;
-    }
+function toggleTaskGroup(header) {
+    const group = header.parentElement;
+    group.classList.toggle('expanded');
+}
 
-    // === ФУНКЦИЯ ДЛЯ ГРУППИРОВКИ ЗАДАЧ ===
-    function groupTasksByType(tasks) {
-        const groups = {};
-        
-        tasks.forEach(task => {
-            const workType = task['Вид работ'] || 'Другие виды работ';
-            if (!groups[workType]) {
-                groups[workType] = {
-                    tasks: [],
-                    totalCount: 0,
-                    totalTime: 0,
-                    totalPay: 0,
-                    totalXisBonus: 0
-                };
-            }
-            
-            const count = parseFloat(task['Количество единиц'] || '0');
-            const time = task['Рабочее время'] || '00:00';
-            const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
-            const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
-            const startTime = task['Начало задачи'] || '--:--';
-            
-            groups[workType].tasks.push({
-                count: count,
-                time: time,
-                pay: pay,
-                xisBonus: xisBonus,
-                startTime: startTime,
-                calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
-                calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
-            });
-            
-            groups[workType].totalCount += count;
-            groups[workType].totalTime += timeToSeconds(time);
-            groups[workType].totalPay += (pay + xisBonus);
-            groups[workType].totalXisBonus += xisBonus;
-        });
-        
-        return groups;
-    }
-
-    // === ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ ГРУППИРОВАННЫХ ЗАДАЧ ===
-    function renderGroupedTasks(tasks) {
-        if (!tasks || tasks.length === 0) {
-            tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-            return;
-        }
-
-        const groups = groupTasksByType(tasks);
-        let html = '';
-
-        Object.keys(groups).sort().forEach(workType => {
-            const group = groups[workType];
-            const totalTimeFormatted = secondsToTime(group.totalTime);
-            const totalPayFormatted = formatCurrency(group.totalPay);
-            const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
-            
-            html += `
-                <div class="task-group">
-                    <div class="task-group-header" onclick="toggleTaskGroup(this)">
-                        <div style="flex: 1;">
-                            <div>${workType}</div>
-                            <div class="task-group-summary">
-                                <div class="task-group-summary-item">
-                                    <span>📊</span>
-                                    <span>${group.totalCount.toFixed(2)} ед.</span>
-                                </div>
-                                <div class="task-group-summary-item">
-                                    <span>⏱️</span>
-                                    <span>${totalTimeFormatted}</span>
-                                </div>
-                                <div class="task-group-summary-item">
-                                    <span>💰</span>
-                                    <span class="task-total">${totalPayFormatted}</span>
-                                </div>
-                                ${group.totalXisBonus > 0 ? `
-                                <div class="task-group-summary-item">
-                                    <span>🎁</span>
-                                    <span class="seasonal-bonus">${totalXisBonusFormatted}</span>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                        <div class="expand-icon">▼</div>
-                    </div>
-                    <div class="task-group-content">
-            `;
-            
-            group.tasks.forEach((task, index) => {
-                html += `
-                    <div class="task-item">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div style="flex: 1;">
-                                <div><strong>${task.count.toFixed(2)} ед.</strong></div>
-                                <div class="task-time-info">
-                                    <span class="task-start-time">Начало: ${task.startTime}</span>
-                                    <span> | Время работы: ${task.time}</span>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div class="task-payment-info">
-                                    <span>${task.calculatedPay}</span>
-                                    ${task.xisBonus > 0 ? `<span class="seasonal-bonus">${task.calculatedXisBonus}</span>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                    </div>
-                </div>
-            `;
-        });
-
-        tasksGrouped.innerHTML = html;
-    }
-
-    // === ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ГРУПП ===
-    function toggleTaskGroup(header) {
-        const group = header.parentElement;
-        group.classList.toggle('expanded');
-    }
-
-    // === ФУНКЦИИ ДЛЯ КАЛЕНДАРЯ ===
-    async function loadCalendarData() {
-        try {
-            calendarLoading.classList.remove('hidden');
-            calendarContent.classList.add('hidden');
-
-            // Получаем список доступных месяцев
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth() + 1;
-            
-            // Создаем список месяцев за последние 6 месяцев
-            availableMonths = [];
-            for (let i = 5; i >= 0; i--) {
-                const date = new Date(currentYear, currentMonth - 1 - i, 1);
-                const year = date.getFullYear();
-                const month = date.getMonth() + 1;
-                const monthKey = `${year}-${month.toString().padStart(2, '0')}`;
-                availableMonths.push(monthKey);
-            }
-
-            if (availableMonths.length === 0) {
-                calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-                return;
-            }
-
-            currentMonthIndex = availableMonths.length - 1; // Текущий месяц
-            await renderCalendarForMonth(availableMonths[currentMonthIndex]);
-            
-        } catch (err) {
-            console.error('Ошибка загрузки календаря:', err);
-            calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка загрузки календаря</p>';
-        }
-    }
-
-    async function renderCalendarForMonth(monthKey) {
-        try {
-            const [yearStr, monthStr] = monthKey.split('-');
-            const year = Number(yearStr);
-            const month = Number(monthStr);
-            
-            // Загружаем данные за выбранный месяц
-            const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
-            
-            // Получаем даты, по которым есть данные для текущего сотрудника
-            const userDates = new Set();
-            if (monthData && monthData.records) {
-                monthData.records.forEach(record => {
-                    if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
-                        userDates.add(record['Рабочий день']);
-                    }
-                });
-            }
-
-            // Отображаем календарь
-            renderCalendarGrid(year, month, userDates);
-            
-            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-            currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-            
-            // Обновляем состояние кнопок
-            prevMonthBtn.disabled = currentMonthIndex === 0;
-            nextMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
-
-            calendarLoading.classList.add('hidden');
-            calendarContent.classList.remove('hidden');
-            
-        } catch (err) {
-            console.error('Ошибка рендеринга календаря:', err);
-            calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка загрузки данных</p>';
-        }
-    }
-
-    function renderCalendarGrid(year, monthNum, userDates) {
-        calendar.innerHTML = '';
-        
-        // Добавляем заголовки дней недели
-        const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-        dayNames.forEach(day => {
-            const el = document.createElement('div');
-            el.textContent = day;
-            el.style.fontWeight = 'bold';
-            el.style.backgroundColor = 'var(--tg-bg-color)';
-            el.style.padding = '6px 0';
-            el.style.borderRadius = '6px';
-            el.style.textAlign = 'center';
-            calendar.appendChild(el);
-        });
-
-        const firstDay = new Date(year, monthNum - 1, 1);
-        const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
-        const lastDayNum = new Date(year, monthNum, 0).getDate();
-
-        // Добавляем пустые ячейки для начала месяца
-        for (let i = 0; i < startDay; i++) {
-            calendar.appendChild(document.createElement('div'));
-        }
-
-        // Добавляем дни месяца
-        for (let day = 1; day <= lastDayNum; day++) {
-            const el = document.createElement('div');
-            el.className = 'day';
-            el.textContent = day;
-            el.style.padding = '8px 0';
-            el.style.borderRadius = '6px';
-            el.style.fontSize = '14px';
-
-            // Проверяем, есть ли данные за этот день
-            const dayStr = String(day).padStart(2, '0');
-            const monthStr = String(monthNum).padStart(2, '0');
-            const dateStr = `${dayStr}.${monthStr}.${year}`;
-            
-            if (userDates.has(dateStr)) {
-                el.classList.add('available');
-                el.title = 'Есть данные за этот день';
-                el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
-            } else {
-                el.style.color = 'var(--tg-hint-color)';
-                el.style.cursor = 'default';
-            }
-            
-            calendar.appendChild(el);
-        }
-    }
-
-    async function loadRecordByDate(year, month, day) {
-        try {
-            const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
-            const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-            
-            // Загружаем данные за выбранный месяц
-            const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
-            
-            // Находим задачи сотрудника за выбранную дату
-            const userTasks = monthData.records.filter(record => 
-                record['Сотрудник'] === currentUserData.name && record['Рабочий день'] === dateStr
-            );
-
-            if (userTasks.length === 0) {
-                showBanner(`Нет данных за ${dateStr}`, 'info', 3000);
-                return;
-            }
-
-            // Группируем все задачи сотрудника за выбранный месяц для расчета заработка за месяц
-            const allUserTasksInMonth = monthData.records.filter(record => 
-                record['Сотрудник'] === currentUserData.name
-            );
-
-            // Группируем задачи по дате для расчета месячного заработка
-            const tasksByDate = {};
-            allUserTasksInMonth.forEach(task => {
-                const taskDate = task['Рабочий день'];
-                if (!tasksByDate[taskDate]) tasksByDate[taskDate] = [];
-                tasksByDate[taskDate].push(task);
-            });
-
-            // Рассчитываем показатели для выбранной даты
-            const workedTime = calculateTotalTime(userTasks, 'Рабочее время');
-            const plannedTime = calculateTotalTime(userTasks, 'Время по табелю');
-            const dayPay = calculateDayPay(userTasks);
-            const xisBonus = calculateXisBonus(userTasks);
-            const monthlyPay = calculateMonthlyPay(tasksByDate); // Заработок за ВЫБРАННЫЙ месяц
-            const efficiency = calculateEfficiency(workedTime, plannedTime);
-
-            // Обновляем основную информацию
-            document.getElementById('date').textContent = dateStr;
-            document.getElementById('worked').textContent = workedTime;
-            document.getElementById('planned').textContent = plannedTime;
-            document.getElementById('efficiency').textContent = efficiency + '%';
-            document.getElementById('pay-day').textContent = formatCurrency(dayPay);
-            document.getElementById('xisBonusDay').textContent = formatCurrency(xisBonus);
-            document.getElementById('pay-month').textContent = formatCurrency(monthlyPay);
-
-            // Обновляем детализацию
-            renderGroupedTasks(userTasks);
-            
-            showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
-            
-        } catch (err) {
-            console.error('Ошибка загрузки данных по дате:', err);
-            showBanner(`Ошибка загрузки данных: ${err.message}`, 'error', 5000);
-        }
-    }
-
-    // === ИНИЦИАЛИЗАЦИЯ ===
-    async function init() {
-      try {
-        if (!window.Telegram?.WebApp) {
-          enableTestMode();
-          return;
-        }
-
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-        applyTelegramTheme();
-
-        const user = Telegram.WebApp.initDataUnsafe.user;
-        if (!user?.id) throw new Error('Пользователь не найден');
-        chatId = String(user.id);
-
-        await loadUserData();
-        
-      } catch (err) {
-        console.error('Ошибка инициализации:', err);
-        loading.classList.add('hidden');
-        showError('Ошибка: ' + err.message);
-      }
-    }
-
-    async function loadUserData() {
-      try {
-        // Загружаем данные сотрудников
-        const staffData = await fetchData(DATA_SOURCES.staff);
-        
-        // === ДОБАВЛЕНО ДЛЯ ТЕСТИРОВАНИЯ ===
-        // Если chatId не найден в Telegram WebApp, предлагаем ввести вручную
-        if (!chatId || chatId === 'undefined' || chatId === 'null') {
-            const manualChatId = prompt('Введите Telegram ID для тестирования:', '7691264756');
-            if (manualChatId) {
-                chatId = manualChatId;
-            } else {
-                throw new Error('Telegram ID не указан');
-            }
-        }
-        // === КОНЕЦ ДОБАВЛЕНИЯ ===
-        
-        // Находим данные текущего пользователя
-        let userRecord = staffData.records.find(record => 
-          String(record['Telegram ID']) === chatId
-        );
-
-        if (!userRecord) {
-            // Показываем доступные ID для тестирования
-            const availableIds = staffData.records
-                .slice(0, 10) // Показываем только первые 10 для удобства
-                .map(record => `${record['Сотрудник']} - ${record['Telegram ID']}`)
-                .join('\n');
-            
-            const newId = prompt(
-                `Ваш ID (${chatId}) не найден в системе.\n\nДоступные ID (первые 10):\n${availableIds}\n\nВведите правильный Telegram ID:`,
-                '5702919259'
-            );
-            
-            if (newId) {
-                chatId = newId;
-                // Повторяем поиск с новым ID
-                userRecord = staffData.records.find(record => 
-                    String(record['Telegram ID']) === chatId
-                );
-                
-                if (!userRecord) {
-                    throw new Error('Указанный Telegram ID также не найден в системе');
-                }
-            } else {
-                throw new Error('Telegram ID не указан');
-            }
-        }
-
-        currentUserData = {
-          name: userRecord['Сотрудник'],
-          department: userRecord['Отдел'],
-          role: userRecord['Роль'],
-          managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
-        };
-
-        console.log('Загружен пользователь:', currentUserData.name, 'ID:', chatId);
-
-        isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
-        isAdmin = currentUserData.role.toLowerCase() === 'админ';
-        managedDepartments = currentUserData.managedDepartments;
-
-        // Загружаем данные за текущий месяц
+// ============================================
+// 6. КАЛЕНДАРЬ
+// ============================================
+async function loadCalendarData() {
+    try {
+        calendarLoading.classList.remove('hidden');
+        calendarContent.classList.add('hidden');
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
         
-        currentMonthData = await fetchData(DATA_SOURCES.monthlyData(currentYear, currentMonth));
-        
-        // Сохраняем дату последнего обновления данных
-        dataLastUpdated = currentMonthData.lastUpdated;
-        
-        // Обновляем информацию о версии с датой данных
-        updateVersionInfo();
-        
-        // Формируем персональный отчет
-        await generatePersonalReport();
-
-        // Загружаем календарь
-        await loadCalendarData();
-
-        renderUI();
-        loading.classList.add('hidden');
-        
-      } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
-        throw err;
-      }
-    }
-
-    // Функция для обновления информации о версии с датой данных
-    function updateVersionInfo() {
-      if (!dataLastUpdated) {
-        versionInfo.textContent = '(🛠 V.11.01-Новая структура данных 🛠)';
-        return;
-      }
-
-      try {
-        const updateDate = new Date(dataLastUpdated);
-        const formattedDate = updateDate.toLocaleDateString('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
-        const formattedTime = updateDate.toLocaleTimeString('ru-RU', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-
-        versionInfo.innerHTML = `(🛠 V.11.01-Новая структура данных | Данные актуальны на: ${formattedDate} ${formattedTime} 🛠)`;
-      } catch (err) {
-        console.error('Ошибка форматирования даты:', err);
-        versionInfo.textContent = '(🛠 V.11.01-Новая структура данных 🛠)';
-      }
-    }
-
-    async function generatePersonalReport() {
-      if (!currentMonthData || !currentUserData) return;
-
-      const userTasks = currentMonthData.records.filter(record => 
-        record['Сотрудник'] === currentUserData.name
-      );
-
-      if (userTasks.length === 0) {
-        showBanner('Нет данных о задачах за текущий месяц', 'info');
-        return;
-      }
-
-      // Группируем задачи по дате
-      const tasksByDate = {};
-      userTasks.forEach(task => {
-        const date = task['Рабочий день'];
-        if (!tasksByDate[date]) tasksByDate[date] = [];
-        tasksByDate[date].push(task);
-      });
-
-      // Получаем последнюю дату с задачами
-      const dates = Object.keys(tasksByDate).sort((a, b) => {
-        const [d1, m1, y1] = a.split('.').map(Number);
-        const [d2, m2, y2] = b.split('.').map(Number);
-        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
-      });
-
-      if (dates.length === 0) return;
-
-      const latestDate = dates[0];
-      const latestTasks = tasksByDate[latestDate];
-
-      // Рассчитываем показатели согласно требованиям
-      const workedTime = calculateTotalTime(latestTasks, 'Рабочее время');
-      const plannedTime = calculateTotalTime(latestTasks, 'Время по табелю');
-      
-      // ИСПРАВЛЕННЫЕ РАСЧЕТЫ ЗАРАБОТКА
-      const dayPay = calculateDayPay(latestTasks); // "Расчетная сумма" + "Доплата XIS" за день
-      const xisBonus = calculateXisBonus(latestTasks); // Только "Доплата XIS" за день
-      const monthlyPay = calculateMonthlyPay(tasksByDate); // "Расчетная сумма" + "Доплата XIS" за месяц
-      
-      const efficiency = calculateEfficiency(workedTime, plannedTime);
-
-      // Формируем текущую запись
-      currentRecord = {
-        date: latestDate,
-        worked: workedTime,
-        planned: plannedTime,
-        efficiency: efficiency + '%',
-        payDay: formatCurrency(dayPay), // Общий заработок за день
-        xisBonusDay: formatCurrency(xisBonus), // Только сезонная доплата
-        payMonth: formatCurrency(monthlyPay), // Общий заработок за месяц
-        details: latestTasks
-      };
-
-      // Обновляем UI
-      updateMainData();
-      updateDetails();
-    }
-
-    function calculateTotalTime(tasks, fieldName) {
-      let totalSeconds = 0;
-      
-      tasks.forEach(task => {
-        const timeValue = task[fieldName];
-        if (timeValue) {
-          totalSeconds += timeToSeconds(timeValue);
+        availableMonths = [];
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(currentYear, currentMonth - 1 - i, 1);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            availableMonths.push(`${year}-${month.toString().padStart(2, '0')}`);
         }
-      });
-
-      return secondsToTime(totalSeconds);
-    }
-
-    function calculateEfficiency(worked, planned) {
-      const workedSec = timeToSeconds(worked);
-      const plannedSec = timeToSeconds(planned);
-      
-      if (plannedSec === 0) return 0;
-      
-      // Производительность = (Рабочее время / Время по табелю) * 100
-      const efficiency = (workedSec / plannedSec) * 100;
-      return Math.round(efficiency * 100) / 100; // Округляем до 2 знаков
-    }
-
-    function updateDetails() {
-      if (!currentRecord?.details) {
-        tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-        return;
-      }
-
-      renderGroupedTasks(currentRecord.details);
-      detailsLoading.classList.add('hidden');
-      detailsContent.classList.remove('hidden');
-    }
-
-    // Вспомогательные функции для работы со временем
-    function timeToSeconds(timeStr) {
-      if (!timeStr) return 0;
-      
-      // Обрабатываем разные форматы времени: "4:00:00", "4:00", "04:00:00"
-      const parts = timeStr.split(':').map(Number);
-      
-      if (parts.length === 3) {
-        // Формат ЧЧ:ММ:СС
-        return parts[0] * 3600 + parts[1] * 60 + parts[2];
-      } else if (parts.length === 2) {
-        // Формат ЧЧ:ММ
-        return parts[0] * 3600 + parts[1] * 60;
-      } else if (parts.length === 1) {
-        // Только часы
-        return parts[0] * 3600;
-      }
-      
-      return 0;
-    }
-
-    function secondsToTime(seconds) {
-      const hrs = Math.floor(seconds / 3600);
-      const mins = Math.floor((seconds % 3600) / 60);
-      
-      // Без секунд, как просили
-      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-    }
-
-    function formatCurrency(amount) {
-      return amount.toLocaleString('ru-RU', { 
-        style: 'currency', 
-        currency: 'RUB', 
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2 
-      });
-    }
-
-    function updateMainData() {
-      if (!currentUserData || !currentRecord) return;
-
-      document.getElementById('name').textContent = currentUserData.name;
-      document.getElementById('department').textContent = currentUserData.department;
-      document.getElementById('date').textContent = currentRecord.date;
-      document.getElementById('worked').textContent = currentRecord.worked;
-      document.getElementById('planned').textContent = currentRecord.planned;
-      document.getElementById('efficiency').textContent = currentRecord.efficiency;
-      document.getElementById('pay-day').textContent = currentRecord.payDay;
-      document.getElementById('xisBonusDay').textContent = currentRecord.xisBonusDay;
-      document.getElementById('pay-month').textContent = currentRecord.payMonth;
-
-      mainDataLoading.classList.add('hidden');
-      mainDataContent.classList.remove('hidden');
-    }
-
-function renderUI() {
-    // Показываем соответствующие вкладки
-    if (isManager) {
-        tabManager.classList.remove('hidden');
-    }
-    if (isAdmin) {
-        tabAdmin.classList.remove('hidden');
-    }
-    employeeView.classList.remove('hidden');
-    updateLastUpdate();
-    
-    // === ИСПРАВЛЕНО: Инициализируем вкладку отдела для менеджеров ===
-    if (isManager) {
-        initializeManagerView();
+        
+        if (availableMonths.length === 0) {
+            calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+            return;
+        }
+        
+        currentMonthIndex = availableMonths.length - 1;
+        await renderCalendarForMonth(availableMonths[currentMonthIndex]);
+    } catch (err) {
+        console.error('Ошибка загрузки календаря:', err);
+        calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
 }
 
-async function initializeManagerView() {
-    if (!isManager) return;
+async function renderCalendarForMonth(monthKey) {
     try {
-        const staffData = await fetchData(DATA_SOURCES.staff);
-        // === ИСПРАВЛЕНО: используем normalizeRecords ===
-        const records = normalizeRecords(staffData);
+        const [yearStr, monthStr] = monthKey.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
         
-        // Получаем список отделов, которыми управляет пользователь
-        const departments = new Set();
+        const userDates = new Set();
+        const records = normalizeRecords(monthData);
         records.forEach(record => {
-            if (managedDepartments.includes(record['Руководит отделом']) ||
-                (currentUserData.managedDepartments.includes(record['Отдел']) && isManager)) {
-                departments.add(record['Отдел']);
+            if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
+                userDates.add(record['Рабочий день']);
             }
         });
-        managedDepartments = Array.from(departments);
         
-        if (managedDepartments.length > 0) {
-            renderDepartmentSelector();
-        }
+        renderCalendarGrid(year, month, userDates);
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+        
+        prevMonthBtn.disabled = currentMonthIndex === 0;
+        nextMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
+        
+        calendarLoading.classList.add('hidden');
+        calendarContent.classList.remove('hidden');
     } catch (err) {
-        console.error('Ошибка инициализации manager view:', err);
+        console.error('Ошибка рендеринга календаря:', err);
+        calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
 }
 
-        managedDepartments = Array.from(departments);
-
-        if (managedDepartments.length > 0) {
-          renderDepartmentSelector();
+function renderCalendarGrid(year, monthNum, userDates) {
+    calendar.innerHTML = '';
+    const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    dayNames.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        el.style.backgroundColor = 'var(--tg-bg-color)';
+        el.style.padding = '6px 0';
+        el.style.borderRadius = '6px';
+        el.style.textAlign = 'center';
+        calendar.appendChild(el);
+    });
+    
+    const firstDay = new Date(year, monthNum - 1, 1);
+    const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+    const lastDayNum = new Date(year, monthNum, 0).getDate();
+    
+    for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
+    
+    for (let day = 1; day <= lastDayNum; day++) {
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = day;
+        el.style.padding = '8px 0';
+        el.style.borderRadius = '6px';
+        el.style.fontSize = '14px';
+        
+        const dateStr = `${String(day).padStart(2, '0')}.${String(monthNum).padStart(2, '0')}.${year}`;
+        if (userDates.has(dateStr)) {
+            el.classList.add('available');
+            el.title = 'Есть данные за этот день';
+            el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
+        } else {
+            el.style.color = 'var(--tg-hint-color)';
+            el.style.cursor = 'default';
         }
-      } catch (err) {
-        console.error('Ошибка инициализации manager view:', err);
-      }
+        calendar.appendChild(el);
     }
+}
 
-    // === НОВАЯ ФУНКЦИЯ: Загрузка данных отдела ===
+async function loadRecordByDate(year, month, day) {
+    try {
+        const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
+        const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
+        const records = normalizeRecords(monthData);
+        
+        const userTasks = records.filter(record => record['Сотрудник'] === currentUserData.name && record['Рабочий день'] === dateStr);
+        if (userTasks.length === 0) {
+            showBanner(`Нет данных за ${dateStr}`, 'info', 3000);
+            return;
+        }
+        
+        const allUserTasksInMonth = records.filter(record => record['Сотрудник'] === currentUserData.name);
+        const tasksByDate = {};
+        allUserTasksInMonth.forEach(task => {
+            const taskDate = task['Рабочий день'];
+            if (!tasksByDate[taskDate]) tasksByDate[taskDate] = [];
+            tasksByDate[taskDate].push(task);
+        });
+        
+        const workedTime = calculateTotalTime(userTasks, 'Рабочее время');
+        const plannedTime = calculateTotalTime(userTasks, 'Время по табелю');
+        const dayPay = calculateDayPay(userTasks);
+        const xisBonus = calculateXisBonus(userTasks);
+        const monthlyPay = calculateMonthlyPay(tasksByDate);
+        const efficiency = calculateEfficiency(workedTime, plannedTime);
+        
+        document.getElementById('date').textContent = dateStr;
+        document.getElementById('worked').textContent = workedTime;
+        document.getElementById('planned').textContent = plannedTime;
+        document.getElementById('efficiency').textContent = efficiency + '%';
+        document.getElementById('pay-day').textContent = formatCurrency(dayPay);
+        document.getElementById('xisBonusDay').textContent = formatCurrency(xisBonus);
+        document.getElementById('pay-month').textContent = formatCurrency(monthlyPay);
+        
+        renderGroupedTasks(userTasks);
+        showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
+    } catch (err) {
+        console.error('Ошибка загрузки данных по дате:', err);
+        showBanner(`Ошибка: ${err.message}`, 'error', 5000);
+    }
+}
+
+// ============================================
+// 7. ОТЧЕТ ПО ОТДЕЛУ (ИСПРАВЛЕНО)
+// ============================================
 async function loadDepartmentData(departmentName) {
     try {
         deptDataLoading.classList.remove('hidden');
         deptDataContent.classList.add('hidden');
         
-        // Загружаем данные за текущий месяц
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
-        const monthData = await fetchData(DATA_SOURCES.monthlyData(currentYear, currentMonth));
         
-        // Загружаем справочник сотрудников
+        const monthData = await fetchData(DATA_SOURCES.monthlyData(currentYear, currentMonth));
         const staffData = await fetchData(DATA_SOURCES.staff);
+        
         const staffRecords = normalizeRecords(staffData);
         const monthRecords = normalizeRecords(monthData);
         
-        // Получаем список сотрудников отдела
-        const deptEmployees = staffRecords.filter(record => 
-            record['Отдел'] === departmentName
-        );
-        
+        const deptEmployees = staffRecords.filter(record => record['Отдел'] === departmentName);
         if (deptEmployees.length === 0) {
             deptDataLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Сотрудники не найдены</p>';
             return;
         }
         
-        // Получаем данные о работе за последнюю доступную дату
         const tasksByDate = {};
         monthRecords.forEach(task => {
             const date = task['Рабочий день'];
@@ -1175,7 +819,6 @@ async function loadDepartmentData(departmentName) {
             }
         });
         
-        // Находим последнюю дату с данными
         const dates = Object.keys(tasksByDate).sort((a, b) => {
             const [d1, m1, y1] = a.split('.').map(Number);
             const [d2, m2, y2] = b.split('.').map(Number);
@@ -1184,7 +827,6 @@ async function loadDepartmentData(departmentName) {
         
         const latestDate = dates.length > 0 ? dates[0] : '—';
         
-        // Рассчитываем статистику
         let totalEmployees = deptEmployees.length;
         let presentEmployees = 0;
         let totalEfficiency = 0;
@@ -1193,9 +835,7 @@ async function loadDepartmentData(departmentName) {
         
         deptEmployees.forEach(emp => {
             const empName = emp['Сотрудник'];
-            const empTasks = monthRecords.filter(task => 
-                task['Сотрудник'] === empName && task['Рабочий день'] === latestDate
-            );
+            const empTasks = monthRecords.filter(task => task['Сотрудник'] === empName && task['Рабочий день'] === latestDate);
             
             if (empTasks.length > 0) {
                 presentEmployees++;
@@ -1213,136 +853,335 @@ async function loadDepartmentData(departmentName) {
         const attendancePercent = totalEmployees > 0 ? Math.round((presentEmployees / totalEmployees) * 100) : 0;
         const avgEfficiency = efficiencyCount > 0 ? Math.round((totalEfficiency / efficiencyCount) * 100) / 100 : 0;
         
-        // Обновляем UI
-        deptReportDate.textContent = `Отчёт на дату: ${latestDate}`;
-        deptAttendance.textContent = `Сотрудники: ${presentEmployees} из ${totalEmployees}`;
-        deptAttendancePercent.textContent = `📊 Процент явки: ${attendancePercent}%`;
-        deptEmployeesList.textContent = employeeStats.join('\n');
-        deptAvgEfficiency.textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
-        deptLastUpdate.textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;
+        document.getElementById('dept-report-date').textContent = `Отчёт на дату: ${latestDate}`;
+        document.getElementById('dept-attendance').textContent = `Сотрудники: ${presentEmployees} из ${totalEmployees}`;
+        document.getElementById('dept-attendance-percent').textContent = `📊 Процент явки: ${attendancePercent}%`;
+        document.getElementById('dept-employees-list').textContent = employeeStats.join('\n');
+        document.getElementById('dept-avg-efficiency').textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
+        document.getElementById('dept-last-update').textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;
         
         deptDataLoading.classList.add('hidden');
         deptDataContent.classList.remove('hidden');
-        
     } catch (err) {
         console.error('Ошибка загрузки данных отдела:', err);
         deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка загрузки данных</p>';
     }
 }
 
-    function renderDepartmentSelector() {
-      departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
-      managedDepartments.forEach(dept => {
+async function initializeManagerView() {
+    if (!isManager) return;
+    try {
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        const records = normalizeRecords(staffData); // ИСПРАВЛЕНО: используется normalizeRecords
+        
+        const departments = new Set();
+        records.forEach(record => {
+            if (managedDepartments.includes(record['Руководит отделом']) ||
+                (currentUserData.managedDepartments.includes(record['Отдел']) && isManager)) {
+                departments.add(record['Отдел']);
+            }
+        });
+        managedDepartments = Array.from(departments);
+        
+        if (managedDepartments.length > 0) {
+            renderDepartmentSelector();
+        }
+    } catch (err) {
+        console.error('Ошибка инициализации manager view:', err);
+    }
+}
+
+function renderDepartmentSelector() {
+    departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
+    managedDepartments.forEach(dept => {
         const opt = document.createElement('option');
         opt.value = dept;
         opt.textContent = dept;
         departmentSelect.appendChild(opt);
-      });
+    });
+    departmentSelector.classList.remove('hidden');
+}
 
-      departmentSelector.classList.remove('hidden');
-    }
-
-    // Основные функции приложения
-    async function fetchData(url) {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
-        return await response.json();
-      } catch (error) {
-        console.error(`Ошибка загрузки данных из ${url}:`, error);
-        throw new Error(`Не удалось загрузить данные: ${error.message}`);
-      }
-    }
-
-    function showError(msg) {
-      loading.classList.add('hidden');
-      error.textContent = msg;
-      error.classList.remove('hidden');
-    }
-
-    function showBanner(message, type = 'info', duration = 5000) {
-      banner.textContent = message;
-      banner.className = `banner show ${type}`;
-      if (duration > 0) setTimeout(() => banner.classList.remove('show'), duration);
-    }
-
-    function applyTelegramTheme() {
-      if (!window.Telegram?.WebApp) return;
-      const theme = Telegram.WebApp.themeParams;
-      const root = document.documentElement;
-      root.style.setProperty('--tg-bg-color', theme.bg_color || '#f0f2f5');
-      root.style.setProperty('--tg-text-color', theme.text_color || '#1c1e21');
-      root.style.setProperty('--tg-hint-color', theme.hint_color || '#999999');
-      root.style.setProperty('--tg-link-color', theme.link_color || '#d71923');
-      root.style.setProperty('--tg-button-color', theme.button_color || '#1a8cd8');
-      root.style.setProperty('--tg-button-text-color', theme.button_text_color || '#ffffff');
-      root.style.setProperty('--card-bg', theme.bg_color && parseInt(theme.bg_color.replace('#', ''), 16) < 0xffffff/2 ? '#333' : '#ffffff');
-    }
-
-    function updateLastUpdate() {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('last-update').textContent = `Последнее обновление: ${timeStr}`;
-    }
-
-    function enableTestMode() {
-      chatId = null; // Сбрасываем chatId для тестирования
-      setTimeout(async () => {
-        try {
-          await loadUserData();
-        } catch (err) {
-          showError('Ошибка тестового режима: ' + err.message);
+// ============================================
+// 8. ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
+// ============================================
+async function loadUserData() {
+    try {
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        
+        if (!chatId || chatId === 'undefined' || chatId === 'null') {
+            const manualInput = prompt('Введите ваш Telegram ID или пароль:', '');
+            if (!manualInput) throw new Error('Идентификатор не указан');
+            chatId = manualInput;
         }
-      }, 1000);
+        
+        const records = normalizeRecords(staffData);
+        let userRecord = records.find(record =>
+            String(record['Telegram ID']) === chatId ||
+            String(record['Пароль']) === chatId
+        );
+        
+        if (!userRecord) throw new Error('Идентификатор не найден в системе');
+        
+        currentUserData = {
+            name: userRecord['Сотрудник'],
+            department: userRecord['Отдел'],
+            role: userRecord['Роль'],
+            managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
+        };
+        
+        isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
+        isAdmin = currentUserData.role.toLowerCase() === 'админ';
+        managedDepartments = currentUserData.managedDepartments;
+        
+        // Логика загрузки месяца (с проверкой наличия данных)
+        const now = new Date();
+        let year = now.getFullYear();
+        let month = now.getMonth() + 1;
+        let attemptCount = 0;
+        let loadedData = null;
+        displayedMonthYear = null;
+        isDataOutdated = false;
+        
+        while (attemptCount < 2 && !loadedData) {
+            try {
+                const data = await fetchData(DATA_SOURCES.monthlyData(year, month));
+                const recs = normalizeRecords(data);
+                const userHasData = recs.some(r => r['Сотрудник'] === currentUserData.name);
+                
+                if (userHasData) {
+                    loadedData = data;
+                    displayedMonthYear = { year, month };
+                    if (month !== now.getMonth() + 1 || year !== now.getFullYear()) isDataOutdated = true;
+                } else {
+                    throw new Error('Нет данных за этот месяц');
+                }
+            } catch (e) {
+                month--;
+                if (month === 0) { month = 12; year--; }
+                attemptCount++;
+            }
+        }
+        
+        if (!loadedData) throw new Error('Нет данных за последние 3 месяца');
+        
+        currentMonthData = loadedData;
+        dataLastUpdated = currentMonthData.lastUpdated;
+        
+        updateVersionInfo();
+        await generatePersonalReport();
+        await loadCalendarData();
+        renderUI();
+        loading.classList.add('hidden');
+    } catch (err) {
+        console.error('Ошибка загрузки данных:', err);
+        loading.classList.add('hidden');
+        showError('Ошибка: ' + err.message);
     }
+}
 
-    // Обработчики событий для календаря
-    prevMonthBtn.addEventListener('click', async () => {
-      if (currentMonthIndex > 0) {
+async function generatePersonalReport() {
+    if (!currentMonthData || !currentUserData) return;
+    const userTasks = normalizeRecords(currentMonthData).filter(record => record['Сотрудник'] === currentUserData.name);
+    
+    if (userTasks.length === 0) {
+        showBanner('Нет данных о задачах за текущий месяц', 'info');
+        return;
+    }
+    
+    const tasksByDate = {};
+    userTasks.forEach(task => {
+        const date = task['Рабочий день'];
+        if (!tasksByDate[date]) tasksByDate[date] = [];
+        tasksByDate[date].push(task);
+    });
+    
+    const dates = Object.keys(tasksByDate).sort((a, b) => {
+        const [d1, m1, y1] = a.split('.').map(Number);
+        const [d2, m2, y2] = b.split('.').map(Number);
+        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+    });
+    
+    if (dates.length === 0) return;
+    const latestDate = dates[0];
+    const latestTasks = tasksByDate[latestDate];
+    
+    const workedTime = calculateTotalTime(latestTasks, 'Рабочее время');
+    const plannedTime = calculateTotalTime(latestTasks, 'Время по табелю');
+    const dayPay = calculateDayPay(latestTasks);
+    const xisBonus = calculateXisBonus(latestTasks);
+    const monthlyPay = calculateMonthlyPay(tasksByDate);
+    const efficiency = calculateEfficiency(workedTime, plannedTime);
+    
+    currentRecord = {
+        date: latestDate,
+        worked: workedTime,
+        planned: plannedTime,
+        efficiency: efficiency + '%',
+        payDay: formatCurrency(dayPay),
+        xisBonusDay: formatCurrency(xisBonus),
+        payMonth: formatCurrency(monthlyPay),
+        details: latestTasks
+    };
+    
+    updateMainData();
+    updateDetails();
+}
+
+function updateDetails() {
+    if (!currentRecord?.details) {
+        tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        return;
+    }
+    renderGroupedTasks(currentRecord.details);
+    detailsLoading.classList.add('hidden');
+    detailsContent.classList.remove('hidden');
+}
+
+function updateMainData() {
+    if (!currentUserData || !currentRecord) return;
+    document.getElementById('name').textContent = currentUserData.name;
+    document.getElementById('department').textContent = currentUserData.department;
+    document.getElementById('date').textContent = currentRecord.date;
+    document.getElementById('worked').textContent = currentRecord.worked;
+    document.getElementById('planned').textContent = currentRecord.planned;
+    document.getElementById('efficiency').textContent = currentRecord.efficiency;
+    document.getElementById('pay-day').textContent = currentRecord.payDay;
+    document.getElementById('xisBonusDay').textContent = currentRecord.xisBonusDay;
+    document.getElementById('pay-month').textContent = currentRecord.payMonth;
+    mainDataLoading.classList.add('hidden');
+    mainDataContent.classList.remove('hidden');
+}
+
+function renderUI() {
+    if (isManager) tabManager.classList.remove('hidden');
+    if (isAdmin) tabAdmin.classList.remove('hidden');
+    employeeView.classList.remove('hidden');
+    updateLastUpdate();
+    
+    if (isManager) initializeManagerView();
+    
+    // Предупреждение если данные не за текущий месяц
+    if (isDataOutdated && displayedMonthYear) {
+        const monthNames = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+        const monthName = monthNames[displayedMonthYear.month - 1];
+        showBanner(`⚠️ Внимание: Отчет за текущий месяц еще не сформирован. Показаны данные за ${monthName} ${displayedMonthYear.year}`, 'error', 0);
+    }
+}
+
+// ============================================
+// 9. ИНИЦИАЛИЗАЦИЯ
+// ============================================
+async function init() {
+    try {
+        if (window.Telegram?.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            applyTelegramTheme();
+            const user = Telegram.WebApp.initDataUnsafe.user;
+            if (user?.id) {
+                chatId = String(user.id);
+                localStorage.setItem('userAuthId', chatId);
+                document.getElementById('auth-form').style.display = 'none';
+                await loadUserData();
+                return;
+            }
+        }
+        
+        const savedId = localStorage.getItem('userAuthId');
+        if (savedId) {
+            chatId = savedId;
+            document.getElementById('auth-form').style.display = 'none';
+            await loadUserData();
+        } else {
+            document.getElementById('auth-form').style.display = 'block';
+            authInput.focus();
+        }
+    } catch (err) {
+        console.error('Ошибка инициализации:', err);
+        loading.classList.add('hidden');
+        showError('Ошибка: ' + err.message);
+    }
+}
+
+// ============================================
+// 10. ОБРАБОТЧИКИ СОБЫТИЙ
+// ============================================
+prevMonthBtn.addEventListener('click', async () => {
+    if (currentMonthIndex > 0) {
         currentMonthIndex--;
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
-      }
-    });
+    }
+});
 
-    nextMonthBtn.addEventListener('click', async () => {
-      if (currentMonthIndex < availableMonths.length - 1) {
+nextMonthBtn.addEventListener('click', async () => {
+    if (currentMonthIndex < availableMonths.length - 1) {
         currentMonthIndex++;
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
-      }
-    });
+    }
+});
 
-    // Обработчики событий
-    refreshBtn.addEventListener('click', async () => {
-      refreshBtn.disabled = true;
-      refreshBtn.textContent = 'Обновление...';
-      
-      try {
+refreshBtn.addEventListener('click', async () => {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = 'Обновление...';
+    try {
         await loadUserData();
         showBanner('Данные обновлены', 'success', 3000);
-      } catch (err) {
+    } catch (err) {
         showBanner('Ошибка обновления: ' + err.message, 'error', 5000);
-      } finally {
+    } finally {
         refreshBtn.disabled = false;
         refreshBtn.textContent = '🔄 Обновить данные';
-      }
-    });
+    }
+});
 
-    clearCacheBtn.addEventListener('click', () => {
-      if (confirm('Вы уверены, что хотите очистить кэш?')) {
-        localStorage.clear();
+clearCacheBtn.addEventListener('click', () => {
+    if (confirm('Вы уверены, что хотите очистить кэш?')) {
+        localStorage.removeItem('userAuthId');
         showBanner('Кэш очищен', 'success', 2000);
         setTimeout(() => location.reload(), 1500);
-      }
-    });
+    }
+});
 
-    // === Обработчик кнопки "Выбрать другой отдел" ===
+tabEmployee.addEventListener('click', () => switchTab('employee'));
+tabManager.addEventListener('click', () => switchTab('manager'));
+tabAdmin.addEventListener('click', () => { if (isAdmin) window.location.href = 'HTML/admin.html'; });
+tabStatistics.addEventListener('click', () => { if (isManager || isAdmin) window.location.href = 'HTML/statistics.html'; });
+
+function switchTab(tabName) {
+    employeeView.classList.add('hidden');
+    managerView.classList.add('hidden');
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    
+    if (tabName === 'employee') {
+        employeeView.classList.remove('hidden');
+        tabEmployee.classList.add('active');
+    } else if (tabName === 'manager' && isManager) {
+        managerView.classList.remove('hidden');
+        tabManager.classList.add('active');
+    }
+}
+
+// Обработчик кнопки "Войти"
+authSubmit.addEventListener('click', async () => {
+    const manualInput = authInput.value.trim();
+    if (!manualInput) {
+        showBanner('Введите идентификатор!', 'error', 3000);
+        return;
+    }
+    chatId = manualInput;
+    localStorage.setItem('userAuthId', chatId);
+    authForm.style.display = 'none';
+    await loadUserData();
+});
+
+// === ОБРАБОТЧИКИ ОТДЕЛА (БЫЛИ ОТСУТСТВУЮЩИМИ) ===
 changeDepartmentBtn.addEventListener('click', () => {
     departmentReport.classList.add('hidden');
     departmentSelector.classList.remove('hidden');
     departmentSelect.value = '';
 });
 
-// === Обработчик выбора отдела из списка ===
 departmentSelect.addEventListener('change', async () => {
     const selectedDept = departmentSelect.value;
     if (!selectedDept) return;
@@ -1354,50 +1193,13 @@ departmentSelect.addEventListener('change', async () => {
     await loadDepartmentData(selectedDept);
 });
 
-    // Переключение вкладок
-    tabEmployee.addEventListener('click', () => switchTab('employee'));
-    tabManager.addEventListener('click', () => switchTab('manager'));
-    tabAdmin.addEventListener('click', () => {
-      if (isAdmin) window.location.href = 'HTML/admin.html';
-    });
-    tabStatistics.addEventListener('click', () => {
-      if (isManager || isAdmin) {
-        window.location.href = 'HTML/statistics.html';
-      }
-    });
+// Глобальные обработчики ошибок
+window.addEventListener('error', (event) => { console.error('Global error:', event.error); showError(`Ошибка: ${event.message}`); });
+window.addEventListener('unhandledrejection', (event) => { console.error('Unhandled promise rejection:', event.reason); showError(`Ошибка: ${event.reason}`); });
 
-    function switchTab(tabName) {
-      // Скрыть все вкладки
-      employeeView.classList.add('hidden');
-      managerView.classList.add('hidden');
-      
-      // Убрать активный класс со всех вкладок
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-      
-      // Показать выбранную вкладку
-      if (tabName === 'employee') {
-        employeeView.classList.remove('hidden');
-        tabEmployee.classList.add('active');
-      } else if (tabName === 'manager' && isManager) {
-        managerView.classList.remove('hidden');
-        tabManager.classList.add('active');
-      }
-    }
-    
+// Запуск приложения
+window.onload = init;
+</script>
 
-    // Глобальные обработчики ошибок
-    window.addEventListener('error', (event) => {
-      console.error('Global error:', event.error);
-      showError(`Ошибка: ${event.message}`);
-    });
-
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      showError(`Ошибка: ${event.reason}`);
-    });
-
-    // Запуск приложения
-    window.onload = init;
-  </script>
 </body>
 </html>
