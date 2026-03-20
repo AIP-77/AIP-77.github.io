@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Персональная панель</title>
+  <title>Персональная панель 2026</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -395,34 +395,45 @@
     let availableMonths = [];
     let currentMonthIndex = 0;
 
-    // DOM элементы
-    const loading = document.getElementById('loading');
-    const error = document.getElementById('error');
-    const employeeView = document.getElementById('employee-view');
-    const managerView = document.getElementById('manager-view');
-    const banner = document.getElementById('banner');
-    const versionInfo = document.getElementById('version-info');
-    const tasksGrouped = document.getElementById('tasks-grouped');
-
-    const tabEmployee = document.getElementById('tab-employee');
-    const tabManager = document.getElementById('tab-manager');
-    const tabInfo = document.getElementById('tab-info');
-    const tabAdmin = document.getElementById('tab-admin');
-    const tabStatistics = document.getElementById('tab-statistics');
-
-    const mainDataLoading = document.getElementById('main-data-loading');
-    const mainDataContent = document.getElementById('main-data-content');
-    const detailsLoading = document.getElementById('details-loading');
-    const detailsContent = document.getElementById('details-content');
-    const calendarLoading = document.getElementById('calendar-loading');
-    const calendarContent = document.getElementById('calendar-content');
-
-    const refreshBtn = document.getElementById('refreshBtn');
-    const clearCacheBtn = document.getElementById('clearCacheBtn');
-    const prevMonthBtn = document.getElementById('prevMonth');
-    const nextMonthBtn = document.getElementById('nextMonth');
-    const currentMonthSpan = document.getElementById('currentMonth');
-    const calendar = document.getElementById('calendar');
+// DOM элементы
+const loading = document.getElementById('loading');
+const error = document.getElementById('error');
+const employeeView = document.getElementById('employee-view');
+const managerView = document.getElementById('manager-view');
+const banner = document.getElementById('banner');
+const versionInfo = document.getElementById('version-info');
+const tasksGrouped = document.getElementById('tasks-grouped');
+const tabEmployee = document.getElementById('tab-employee');
+const tabManager = document.getElementById('tab-manager');
+const tabInfo = document.getElementById('tab-info');
+const tabAdmin = document.getElementById('tab-admin');
+const tabStatistics = document.getElementById('tab-statistics');
+const mainDataLoading = document.getElementById('main-data-loading');
+const mainDataContent = document.getElementById('main-data-content');
+const detailsLoading = document.getElementById('details-loading');
+const detailsContent = document.getElementById('details-content');
+const calendarLoading = document.getElementById('calendar-loading');
+const calendarContent = document.getElementById('calendar-content');
+const refreshBtn = document.getElementById('refreshBtn');
+const clearCacheBtn = document.getElementById('clearCacheBtn');
+const prevMonthBtn = document.getElementById('prevMonth');
+const nextMonthBtn = document.getElementById('nextMonth');
+const currentMonthSpan = document.getElementById('currentMonth');
+const calendar = document.getElementById('calendar');
+// === ДОБАВЛЕНО: Элементы панели отдела ===
+const departmentSelect = document.getElementById('departmentSelect');
+const departmentSelector = document.getElementById('department-selector');
+const departmentReport = document.getElementById('department-report');
+const changeDepartmentBtn = document.getElementById('change-department-btn');
+const deptName = document.getElementById('dept-name');
+const deptLastUpdate = document.getElementById('dept-last-update');
+const deptDataLoading = document.getElementById('dept-data-loading');
+const deptDataContent = document.getElementById('dept-data-content');
+const deptReportDate = document.getElementById('dept-report-date');
+const deptAttendance = document.getElementById('dept-attendance');
+const deptAttendancePercent = document.getElementById('dept-attendance-percent');
+const deptEmployeesList = document.getElementById('dept-employees-list');
+const deptAvgEfficiency = document.getElementById('dept-avg-efficiency');
 
     // === ИСПРАВЛЕННЫЕ ФУНКЦИИ РАСЧЕТА ===
     
@@ -1074,38 +1085,47 @@
       mainDataContent.classList.remove('hidden');
     }
 
-    function renderUI() {
-      // Показываем соответствующие вкладки
-      if (isManager) {
+function renderUI() {
+    // Показываем соответствующие вкладки
+    if (isManager) {
         tabManager.classList.remove('hidden');
-      }
-      if (isAdmin) {
-        tabAdmin.classList.remove('hidden');
-      }
-
-      employeeView.classList.remove('hidden');
-      updateLastUpdate();
-
-      // Инициализируем вкладку отдела для менеджеров
-      if (isManager) {
-        initializeManagerView();
-      }
     }
+    if (isAdmin) {
+        tabAdmin.classList.remove('hidden');
+    }
+    employeeView.classList.remove('hidden');
+    updateLastUpdate();
+    
+    // === ИСПРАВЛЕНО: Инициализируем вкладку отдела для менеджеров ===
+    if (isManager) {
+        initializeManagerView();
+    }
+}
 
-    async function initializeManagerView() {
-      if (!isManager) return;
-
-      try {
+async function initializeManagerView() {
+    if (!isManager) return;
+    try {
         const staffData = await fetchData(DATA_SOURCES.staff);
+        // === ИСПРАВЛЕНО: используем normalizeRecords ===
+        const records = normalizeRecords(staffData);
         
         // Получаем список отделов, которыми управляет пользователь
         const departments = new Set();
-        staffData.records.forEach(record => {
-          if (managedDepartments.includes(record['Руководит отделом']) || 
-              (currentUserData.managedDepartments.includes(record['Отдел']) && isManager)) {
-            departments.add(record['Отдел']);
-          }
+        records.forEach(record => {
+            if (managedDepartments.includes(record['Руководит отделом']) ||
+                (currentUserData.managedDepartments.includes(record['Отдел']) && isManager)) {
+                departments.add(record['Отдел']);
+            }
         });
+        managedDepartments = Array.from(departments);
+        
+        if (managedDepartments.length > 0) {
+            renderDepartmentSelector();
+        }
+    } catch (err) {
+        console.error('Ошибка инициализации manager view:', err);
+    }
+}
 
         managedDepartments = Array.from(departments);
 
@@ -1116,6 +1136,99 @@
         console.error('Ошибка инициализации manager view:', err);
       }
     }
+
+    // === НОВАЯ ФУНКЦИЯ: Загрузка данных отдела ===
+async function loadDepartmentData(departmentName) {
+    try {
+        deptDataLoading.classList.remove('hidden');
+        deptDataContent.classList.add('hidden');
+        
+        // Загружаем данные за текущий месяц
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const monthData = await fetchData(DATA_SOURCES.monthlyData(currentYear, currentMonth));
+        
+        // Загружаем справочник сотрудников
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        const staffRecords = normalizeRecords(staffData);
+        const monthRecords = normalizeRecords(monthData);
+        
+        // Получаем список сотрудников отдела
+        const deptEmployees = staffRecords.filter(record => 
+            record['Отдел'] === departmentName
+        );
+        
+        if (deptEmployees.length === 0) {
+            deptDataLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Сотрудники не найдены</p>';
+            return;
+        }
+        
+        // Получаем данные о работе за последнюю доступную дату
+        const tasksByDate = {};
+        monthRecords.forEach(task => {
+            const date = task['Рабочий день'];
+            const employee = task['Сотрудник'];
+            if (deptEmployees.some(e => e['Сотрудник'] === employee)) {
+                if (!tasksByDate[date]) tasksByDate[date] = [];
+                tasksByDate[date].push(task);
+            }
+        });
+        
+        // Находим последнюю дату с данными
+        const dates = Object.keys(tasksByDate).sort((a, b) => {
+            const [d1, m1, y1] = a.split('.').map(Number);
+            const [d2, m2, y2] = b.split('.').map(Number);
+            return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+        });
+        
+        const latestDate = dates.length > 0 ? dates[0] : '—';
+        
+        // Рассчитываем статистику
+        let totalEmployees = deptEmployees.length;
+        let presentEmployees = 0;
+        let totalEfficiency = 0;
+        let efficiencyCount = 0;
+        let employeeStats = [];
+        
+        deptEmployees.forEach(emp => {
+            const empName = emp['Сотрудник'];
+            const empTasks = monthRecords.filter(task => 
+                task['Сотрудник'] === empName && task['Рабочий день'] === latestDate
+            );
+            
+            if (empTasks.length > 0) {
+                presentEmployees++;
+                const workedTime = calculateTotalTime(empTasks, 'Рабочее время');
+                const plannedTime = calculateTotalTime(empTasks, 'Время по табелю');
+                const efficiency = calculateEfficiency(workedTime, plannedTime);
+                totalEfficiency += efficiency;
+                efficiencyCount++;
+                employeeStats.push(`${empName}: ${efficiency}%`);
+            } else {
+                employeeStats.push(`${empName}: отсутствует`);
+            }
+        });
+        
+        const attendancePercent = totalEmployees > 0 ? Math.round((presentEmployees / totalEmployees) * 100) : 0;
+        const avgEfficiency = efficiencyCount > 0 ? Math.round((totalEfficiency / efficiencyCount) * 100) / 100 : 0;
+        
+        // Обновляем UI
+        deptReportDate.textContent = `Отчёт на дату: ${latestDate}`;
+        deptAttendance.textContent = `Сотрудники: ${presentEmployees} из ${totalEmployees}`;
+        deptAttendancePercent.textContent = `📊 Процент явки: ${attendancePercent}%`;
+        deptEmployeesList.textContent = employeeStats.join('\n');
+        deptAvgEfficiency.textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
+        deptLastUpdate.textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;
+        
+        deptDataLoading.classList.add('hidden');
+        deptDataContent.classList.remove('hidden');
+        
+    } catch (err) {
+        console.error('Ошибка загрузки данных отдела:', err);
+        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка загрузки данных</p>';
+    }
+}
 
     function renderDepartmentSelector() {
       departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
@@ -1222,6 +1335,25 @@
       }
     });
 
+    // === Обработчик кнопки "Выбрать другой отдел" ===
+changeDepartmentBtn.addEventListener('click', () => {
+    departmentReport.classList.add('hidden');
+    departmentSelector.classList.remove('hidden');
+    departmentSelect.value = '';
+});
+
+// === Обработчик выбора отдела из списка ===
+departmentSelect.addEventListener('change', async () => {
+    const selectedDept = departmentSelect.value;
+    if (!selectedDept) return;
+    
+    departmentSelector.classList.add('hidden');
+    departmentReport.classList.remove('hidden');
+    document.getElementById('dept-name').textContent = selectedDept;
+    
+    await loadDepartmentData(selectedDept);
+});
+
     // Переключение вкладок
     tabEmployee.addEventListener('click', () => switchTab('employee'));
     tabManager.addEventListener('click', () => switchTab('manager'));
@@ -1251,6 +1383,7 @@
         tabManager.classList.add('active');
       }
     }
+    
 
     // Глобальные обработчики ошибок
     window.addEventListener('error', (event) => {
