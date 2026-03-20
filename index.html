@@ -836,38 +836,53 @@ function checkAuth() {
     }
 
     // === ИНИЦИАЛИЗАЦИЯ ===
+// === ИСПРАВЛЕННАЯ ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ ===
 async function init() {
-  try {
-    // Проверяем, зашли ли через Telegram Mini App
-    if (window.Telegram?.WebApp) {
-      Telegram.WebApp.ready();
-      Telegram.WebApp.expand();
-      applyTelegramTheme();
-      const user = Telegram.WebApp.initDataUnsafe.user;
-      if (user?.id) {
-        chatId = String(user.id);
-        localStorage.setItem('userAuthId', chatId); // Сохраняем ID
-        await loadUserData();
-        return;
-      }
+    try {
+        // 1. Сначала проверяем Telegram WebApp
+        if (window.Telegram?.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            applyTelegramTheme();
+            
+            const user = Telegram.WebApp.initDataUnsafe.user;
+            
+            if (user?.id) {
+                // Пользователь зашел через Телеграм - автоматический вход
+                console.log('Вход через Telegram Mini App, ID:', user.id);
+                chatId = String(user.id);
+                localStorage.setItem('userAuthId', chatId);
+                
+                // Скрываем форму авторизации (на всякий случай)
+                document.getElementById('auth-form').style.display = 'none';
+                
+                await loadUserData();
+                return; // Завершаем функцию, чтобы не шли проверки ниже
+            }
+        }
+        
+        // 2. Если не Телеграм (или нет данных пользователя), проверяем localStorage
+        const savedId = localStorage.getItem('userAuthId');
+        
+        if (savedId) {
+            // Есть сохраненный ID (пароль) - автоматический вход
+            console.log('Вход по сохраненному ID из localStorage');
+            chatId = savedId;
+            document.getElementById('auth-form').style.display = 'none';
+            await loadUserData();
+        } else {
+            // Нет сохраненных данных - показываем форму ручного ввода
+            console.log('Требуется ручная авторизация');
+            document.getElementById('auth-form').style.display = 'block';
+            document.getElementById('auth-input').focus();
+            loading.classList.add('hidden'); // Скрываем спиннер загрузки
+        }
+    } catch (err) {
+        console.error('Ошибка инициализации:', err);
+        loading.classList.add('hidden');
+        showError('Ошибка: ' + err.message);
     }
-
-    // Если не через Telegram Mini App, проверяем localStorage
-    if (!checkAuth()) {
-      // Показываем форму ввода
-      document.getElementById('auth-form').style.display = 'block';
-      document.getElementById('auth-input').focus();
-    } else {
-      await loadUserData();
-    }
-
-  } catch (err) {
-    console.error('Ошибка инициализации:', err);
-    loading.classList.add('hidden');
-    showError('Ошибка: ' + err.message);
-  }
 }
-
 
 async function loadUserData() {
   try {
@@ -1250,11 +1265,18 @@ async function loadUserData() {
 	  
 // обработчик кнопки "Очистить кэш":
 clearCacheBtn.addEventListener('click', () => {
-  if (confirm('Вы уверены, что хотите очистить кэш?')) {
-    localStorage.removeItem('userAuthId'); // Удаляем сохраненный ID
-    showBanner('Кэш очищен', 'success', 2000);
-    setTimeout(() => location.reload(), 1500);
-  }
+    if (confirm('Вы уверены, что хотите очистить кэш? Вам потребуется ввести ID или пароль заново.')) {
+        localStorage.removeItem('userAuthId'); // Удаляем сохраненный ID/Пароль
+        
+        // Если мы внутри Телеграма, можно также очистить данные сессии Телеграм
+        if (window.Telegram?.WebApp) {
+            // Опционально: можно закрыть мини-апп, чтобы при следующем открытии данные обновились
+            // Telegram.WebApp.close(); 
+        }
+        
+        showBanner('Кэш очищен. Перезагрузка...', 'success', 1500);
+        setTimeout(() => location.reload(), 1500);
+    }
 });
 
 
