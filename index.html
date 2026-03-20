@@ -261,10 +261,29 @@
       border-radius: 3px;
       font-size: 11px;
     }
+	  #auth-form {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+
   </style>
 </head>
 <body>
   <div class="container">
+<div id="auth-form" class="card">
+  <h2>🔐 Авторизация</h2>
+  <p>Введите ваш Telegram ID или пароль:</p>
+  <input type="text" id="auth-input" placeholder="Telegram ID или пароль" style="width: 100%; padding: 10px; margin: 10px 0; border-radius: 6px; border: 1px solid #ccc;">
+  <button id="auth-submit" class="refresh-btn" style="width: 100%;">Войти</button>
+</div>
+	  
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">
       (🛠 V.2026.02.06 🛠)
@@ -445,8 +464,18 @@ function normalizeRecords(data) {
     const nextMonthBtn = document.getElementById('nextMonth');
     const currentMonthSpan = document.getElementById('currentMonth');
     const calendar = document.getElementById('calendar');
+	  
+	  //Проверка localStorage и автоматический вход через Telegram Mini App
+function checkAuth() {
+  // Проверяем, есть ли сохраненный идентификатор
+  const savedId = localStorage.getItem('userAuthId');
+  if (savedId) {
+    chatId = savedId;
+    return true;
+  }
+  return false;
+}
 
-    // === ИСПРАВЛЕННЫЕ ФУНКЦИИ РАСЧЕТА ===
     
     // Функция для парсинга русских числовых форматов с учетом пробелов
     function parseRussianNumber(numberStr) {
@@ -807,29 +836,38 @@ function normalizeRecords(data) {
     }
 
     // === ИНИЦИАЛИЗАЦИЯ ===
-    async function init() {
-      try {
-        if (!window.Telegram?.WebApp) {
-          enableTestMode();
-          return;
-        }
-
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-        applyTelegramTheme();
-
-        const user = Telegram.WebApp.initDataUnsafe.user;
-        if (!user?.id) throw new Error('Пользователь не найден');
+async function init() {
+  try {
+    // Проверяем, зашли ли через Telegram Mini App
+    if (window.Telegram?.WebApp) {
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+      applyTelegramTheme();
+      const user = Telegram.WebApp.initDataUnsafe.user;
+      if (user?.id) {
         chatId = String(user.id);
-
+        localStorage.setItem('userAuthId', chatId); // Сохраняем ID
         await loadUserData();
-        
-      } catch (err) {
-        console.error('Ошибка инициализации:', err);
-        loading.classList.add('hidden');
-        showError('Ошибка: ' + err.message);
+        return;
       }
     }
+
+    // Если не через Telegram Mini App, проверяем localStorage
+    if (!checkAuth()) {
+      // Показываем форму ввода
+      document.getElementById('auth-form').style.display = 'block';
+      document.getElementById('auth-input').focus();
+    } else {
+      await loadUserData();
+    }
+
+  } catch (err) {
+    console.error('Ошибка инициализации:', err);
+    loading.classList.add('hidden');
+    showError('Ошибка: ' + err.message);
+  }
+}
+
 
 async function loadUserData() {
   try {
@@ -1209,14 +1247,16 @@ async function loadUserData() {
         refreshBtn.textContent = '🔄 Обновить данные';
       }
     });
+	  
+// обработчик кнопки "Очистить кэш":
+clearCacheBtn.addEventListener('click', () => {
+  if (confirm('Вы уверены, что хотите очистить кэш?')) {
+    localStorage.removeItem('userAuthId'); // Удаляем сохраненный ID
+    showBanner('Кэш очищен', 'success', 2000);
+    setTimeout(() => location.reload(), 1500);
+  }
+});
 
-    clearCacheBtn.addEventListener('click', () => {
-      if (confirm('Вы уверены, что хотите очистить кэш?')) {
-        localStorage.clear();
-        showBanner('Кэш очищен', 'success', 2000);
-        setTimeout(() => location.reload(), 1500);
-      }
-    });
 
     // Переключение вкладок
     tabEmployee.addEventListener('click', () => switchTab('employee'));
@@ -1247,6 +1287,19 @@ async function loadUserData() {
         tabManager.classList.add('active');
       }
     }
+	 // обработчик для кнопки "Войти":
+	document.getElementById('auth-submit').addEventListener('click', async () => {
+  const manualInput = document.getElementById('auth-input').value.trim();
+  if (!manualInput) {
+    showBanner('Введите идентификатор!', 'error', 3000);
+    return;
+  }
+  chatId = manualInput;
+  localStorage.setItem('userAuthId', chatId); // Сохраняем в localStorage
+  document.getElementById('auth-form').style.display = 'none';
+  await loadUserData();
+});
+  
 
     // Глобальные обработчики ошибок
     window.addEventListener('error', (event) => {
