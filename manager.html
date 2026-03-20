@@ -1,383 +1,286 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Панель Руководителя 2026 03</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <style>
-    :root {
-      --tg-bg-color: #f0f2f5;
-      --tg-text-color: #1c1e21;
-      --tg-hint-color: #999;
-      --tg-link-color: #d71923;
-      --tg-button-color: #1a8cd8;
-      --tg-button-text-color: #ffffff;
-      --card-bg: #ffffff;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: var(--tg-bg-color);
-      color: var(--tg-text-color);
-      min-height: 100vh;
-    }
-    .container { max-width: 600px; margin: 0 auto; }
-    .card { 
-      background: var(--card-bg); 
-      border-radius: 12px; 
-      padding: 18px; 
-      margin-bottom: 14px; 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-    }
-    h1 { margin: 0 0 10px 0; color: var(--tg-link-color); }
-    h2, h3 { margin: 0 0 8px 0; color: var(--tg-link-color); }
-    h5 { margin: 0 0 6px 0; color: var(--tg-link-color); }
-    .tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid var(--tg-hint-color); }
-    .tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: var(--tg-hint-color); }
-    .tab.active { color: var(--tg-link-color); border-bottom: 2px solid var(--tg-link-color); }
-    .loading { text-align: center; padding: 20px; color: var(--tg-hint-color); font-size: 16px; }
-    .spinner { 
-      width: 40px; 
-      height: 40px; 
-      border: 4px solid #e0e0e0; 
-      border-top: 4px solid var(--tg-link-color); 
-      border-radius: 50%; 
-      animation: spin 1s linear infinite; 
-      margin: 20px auto; 
-    }
-    @keyframes spin { 
-      0% { transform: rotate(0deg); } 
-      100% { transform: rotate(360deg); } 
-    }
-    .error { 
-      color: #e53935; 
-      text-align: center; 
-      padding: 20px; 
-      background: #ffebee; 
-      border-radius: 8px; 
-      margin: 16px 0; 
-    }
-    .hidden { display: none !important; }
-    .calendar { 
-      display: grid; 
-      gap: 4px; 
-      margin: 10px 0; 
-      grid-template-columns: repeat(7, 1fr); 
-    }
-    .day { 
-      text-align: center; 
-      padding: 6px 0; 
-      font-size: 12px; 
-      border-radius: 4px; 
-      color: var(--tg-text-color); 
-      cursor: pointer; 
-    }
-    .day.available { 
-      background: var(--tg-link-color); 
-      color: var(--tg-button-text-color); 
-      font-weight: bold; 
-    }
-    .day:hover { 
-      background: #e0e0e0; 
-    }
-    .footer { 
-      text-align: center; 
-      margin-top: 30px; 
-      color: var(--tg-hint-color); 
-      font-size: 13px; 
-    }
-    .month-selector { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin: 10px 0; 
-    }
-    .month-selector button { 
-      background: var(--tg-button-color); 
-      color: var(--tg-button-text-color); 
-      border: none; 
-      padding: 8px 12px; 
-      border-radius: 6px; 
-      cursor: pointer; 
-    }
-    .month-selector span { font-weight: bold; }
-    .banner {
-      padding: 12px;
-      margin: 12px 0;
-      border-radius: 8px;
-      text-align: center;
-      font-weight: 500;
-      display: none;
-    }
-    .banner.show {
-      display: block;
-    }
-    .banner.info { background: #e3f2fd; color: #1565c0; }
-    .banner.error { background: #ffebee; color: #c62828; }
-    .banner.success { background: #e8f5e9; color: #2e7d32; }
-    .last-update {
-      font-size: 13px;
-      color: var(--tg-hint-color);
-      margin-top: 8px;
-    }
-    .refresh-btn {
-      background: var(--tg-button-color);
-      color: var(--tg-button-text-color);
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      margin-top: 10px;
-      display: inline-block;
-    }
-    .refresh-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    .fade {
-      opacity: 1;
-      transition: opacity 0.3s ease;
-    }
-    .fade.hidden {
-      opacity: 0;
-    }
-    .clear-cache-btn {
-      background: #dc3545;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      margin: 10px 0;
-      display: block;
-      width: 100%;
-      text-align: center;
-    }
-    .clear-cache-btn:hover {
-      background: #c82333;
-    }
-    .version-info {
-      font-size: 12px;
-      color: var(--tg-hint-color);
-      margin: 5px 0;
-      text-align: center;
-    }
-    /* Стили для группировки задач */
-    .task-group {
-      margin-bottom: 12px;
-      border: 1px solid var(--tg-hint-color);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .task-group-header {
-      background: var(--card-bg);
-      padding: 12px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 600;
-      border-bottom: 1px solid var(--tg-hint-color);
-    }
-    .task-group-header:hover {
-      background: var(--tg-bg-color);
-    }
-    .task-group-content {
-      background: var(--card-bg);
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-    }
-    .task-group.expanded .task-group-content {
-      max-height: 1000px;
-    }
-    .task-item {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--tg-hint-color);
-      font-size: 14px;
-    }
-    .task-item:last-child {
-      border-bottom: none;
-    }
-    .task-group-summary {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      font-size: 13px;
-      color: var(--tg-text-color);
-      margin-top: 6px;
-    }
-    .task-group-summary-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .expand-icon {
-      transition: transform 0.3s ease;
-      font-size: 12px;
-      color: var(--tg-text-color);
-    }
-    .task-group.expanded .expand-icon {
-      transform: rotate(180deg);
-    }
-    .task-total {
-      font-weight: bold;
-      color: var(--tg-link-color);
-      background: var(--tg-bg-color);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 13px;
-      border: 1px solid var(--tg-hint-color);
-    }
-    .task-detail-row {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 4px;
-      font-size: 13px;
-    }
-    .task-time-info {
-      color: var(--tg-text-color);
-      font-size: 12px;
-      margin-top: 2px;
-    }
-    .task-payment-info {
-      display: flex;
-      gap: 12px;
-      color: var(--tg-text-color);
-    }
-    .seasonal-bonus {
-      color: #28a745;
-      font-weight: 500;
-    }
-    .task-start-time {
-      background: var(--tg-button-color);
-      color: var(--tg-button-text-color);
-      padding: 1px 4px;
-      border-radius: 3px;
-      font-size: 11px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Персональная панель AIP</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+    --tg-bg-color: #f0f2f5;
+    --tg-text-color: #1c1e21;
+    --tg-hint-color: #999;
+    --tg-link-color: #d71923;
+    --tg-button-color: #1a8cd8;
+    --tg-button-text-color: #ffffff;
+    --card-bg: #ffffff;
+}
+* { box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: var(--tg-bg-color);
+    color: var(--tg-text-color);
+    min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+}
+.container { max-width: 600px; margin: 0 auto; }
+.card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+h1 { margin: 0 0 10px 0; color: var(--tg-link-color); font-size: 22px; }
+h2 { margin: 0 0 8px 0; color: var(--tg-link-color); font-size: 18px; }
+h3 { margin: 0 0 6px 0; color: var(--tg-link-color); font-size: 16px; }
+h4 { margin: 0 0 6px 0; color: var(--tg-text-color); font-size: 14px; }
+h5 { margin: 0 0 6px 0; color: var(--tg-hint-color); font-size: 13px; font-weight: normal; }
+.tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid var(--tg-hint-color); overflow-x: auto; }
+.tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: var(--tg-hint-color); white-space: nowrap; }
+.tab.active { color: var(--tg-link-color); border-bottom: 2px solid var(--tg-link-color); }
+.loading { text-align: center; padding: 20px; color: var(--tg-hint-color); font-size: 16px; }
+.spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #e0e0e0;
+    border-top: 4px solid var(--tg-link-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.error {
+    color: #e53935; text-align: center; padding: 20px;
+    background: #ffebee; border-radius: 8px; margin: 16px 0;
+}
+.hidden { display: none !important; }
+.calendar {
+    display: grid; gap: 4px; margin: 10px 0;
+    grid-template-columns: repeat(7, 1fr);
+}
+.day {
+    text-align: center; padding: 6px 0; font-size: 12px;
+    border-radius: 4px; color: var(--tg-text-color); cursor: pointer;
+}
+.day.available {
+    background: var(--tg-link-color); color: var(--tg-button-text-color); font-weight: bold;
+}
+.month-selector {
+    display: flex; justify-content: space-between; align-items: center; margin: 10px 0;
+}
+.month-selector button {
+    background: var(--tg-button-color); color: var(--tg-button-text-color);
+    border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;
+}
+.banner {
+    padding: 12px; margin: 12px 0; border-radius: 8px;
+    text-align: center; font-weight: 500; display: none; font-size: 14px;
+}
+.banner.show { display: block; }
+.banner.info { background: #e3f2fd; color: #1565c0; }
+.banner.error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+.banner.success { background: #e8f5e9; color: #2e7d32; }
+.last-update { font-size: 13px; color: var(--tg-hint-color); margin-top: 8px; }
+.refresh-btn {
+    background: var(--tg-button-color); color: var(--tg-button-text-color);
+    border: none; padding: 8px 16px; border-radius: 6px;
+    font-size: 14px; cursor: pointer; margin-top: 10px; display: inline-block;
+}
+.refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.clear-cache-btn {
+    background: #dc3545; color: white; border: none;
+    padding: 8px 16px; border-radius: 6px; font-size: 14px;
+    cursor: pointer; margin: 10px 0; display: block; width: 100%; text-align: center;
+}
+.version-info { font-size: 12px; color: var(--tg-hint-color); margin: 5px 0; text-align: center; }
+.footer { text-align: center; margin-top: 30px; color: var(--tg-hint-color); font-size: 13px; }
+/* Стили для авторизации */
+#auth-form {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: none; justify-content: center; align-items: center;
+}
+#auth-form .card { width: 90%; max-width: 400px; text-align: center; }
+#auth-input {
+    width: 100%; padding: 12px; margin: 10px 0;
+    border-radius: 6px; border: 1px solid #ccc; font-size: 16px;
+}
+/* Группировка задач */
+.task-group {
+    margin-bottom: 12px; border: 1px solid var(--tg-hint-color);
+    border-radius: 8px; overflow: hidden;
+}
+.task-group-header {
+    background: var(--card-bg); padding: 12px; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; font-weight: 600;
+    border-bottom: 1px solid var(--tg-hint-color);
+}
+.task-group-content {
+    background: var(--card-bg); max-height: 0; overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.task-group.expanded .task-group-content { max-height: 1000px; }
+.task-item {
+    padding: 10px 12px; border-bottom: 1px solid var(--tg-hint-color); font-size: 14px;
+}
+.task-item:last-child { border-bottom: none; }
+.task-group-summary {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    font-size: 13px; color: var(--tg-text-color); margin-top: 6px;
+}
+.task-group-summary-item { display: flex; align-items: center; gap: 4px; }
+.expand-icon { transition: transform 0.3s ease; font-size: 12px; }
+.task-group.expanded .expand-icon { transform: rotate(180deg); }
+.task-total {
+    font-weight: bold; color: var(--tg-link-color);
+    background: var(--tg-bg-color); padding: 2px 6px;
+    border-radius: 4px; font-size: 13px; border: 1px solid var(--tg-hint-color);
+}
+.task-time-info { color: var(--tg-text-color); font-size: 12px; margin-top: 2px; }
+.task-payment-info { display: flex; gap: 12px; color: var(--tg-text-color); }
+.seasonal-bonus { color: #28a745; font-weight: 500; }
+.task-start-time {
+    background: var(--tg-button-color); color: var(--tg-button-text-color);
+    padding: 1px 4px; border-radius: 3px; font-size: 11px;
+}
+select {
+    width: 100%; padding: 10px; margin: 10px 0;
+    border-radius: 6px; border: 1px solid #ccc; font-size: 16px;
+}
+pre {
+    white-space: pre-wrap; font-family: monospace;
+    background: #f5f5f5; padding: 10px; border-radius: 6px; font-size: 13px;
+}
+.fade { opacity: 1; transition: opacity 0.3s ease; }
+.fade.hidden { opacity: 0; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>📊 Персональная панель</h1>
-    <div id="version-info" class="version-info">
-      (🛠 V.11.02 🛠)
+<div class="container">
+    <!-- Форма авторизации -->
+    <div id="auth-form">
+        <div class="card">
+            <h2>🔐 Авторизация</h2>
+            <p>Введите ваш Telegram ID или пароль сотрудника:</p>
+            <input type="text" id="auth-input" placeholder="Telegram ID или пароль" />
+            <button id="auth-submit" class="refresh-btn" style="width: 100%;">Войти</button>
+        </div>
     </div>
 
+    <h1>📊 Персональная панель</h1>
+    <div id="version-info" class="version-info">(🛠 V.2026.02.06 🛠)</div>
     <div id="banner" class="banner"></div>
-
+    
     <div class="tabs">
-      <div id="tab-employee" class="tab active">Мой отчёт</div>
-      <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
-      <div id="tab-manager" class="tab hidden">Отдел</div>
-      <div id="tab-statistics" class="tab hidden">📊 Статистика</div>
-      <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
+        <div id="tab-employee" class="tab active">Мой отчёт</div>
+        <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
+        <div id="tab-manager" class="tab hidden">Отдел</div>
+        <div id="tab-statistics" class="tab hidden">📊 Статистика</div>
+        <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
     </div>
 
     <div id="loading" class="loading">
-      <div class="spinner"></div>
-      <p>Загрузка данных...</p>
+        <div class="spinner"></div>
+        <p>Загрузка данных...</p>
     </div>
     <div id="error" class="error hidden"></div>
 
     <!-- Вкладка "Мой отчёт" -->
     <div id="employee-view" class="hidden">
-      <div class="card">
-        <h2>👷‍♂️ Персональный отчет</h2>
-        <p id="last-update" class="last-update">Последнее обновление: —</p>
-        <button id="refreshBtn" class="refresh-btn">🔄 Обновить данные</button>
-        <h5>(🛠 Приложение находится в разработке. Представленная информация носит информационный характер 🛠)</h5>
-        <div id="main-data-loading" class="loading">
-          <div class="spinner"></div>
-          <p>Загрузка основных данных...</p>
+        <div class="card">
+            <h2>👷‍♂️ Персональный отчет</h2>
+            <p id="last-update" class="last-update">Последнее обновление: —</p>
+            <button id="refreshBtn" class="refresh-btn">🔄 Обновить данные</button>
+            <h5>(🛠 Приложение находится в разработке. Информация носит информационный характер 🛠)</h5>
+            <h4>❗ Внимание: изменение даты происходит в 8:45 (все что до 8:45 это прошлый день)</h4>
+            
+            <div id="main-data-loading" class="loading">
+                <div class="spinner"></div>
+                <p>Загрузка основных данных...</p>
+            </div>
+            <div id="main-data-content" class="hidden fade">
+                <p><strong>Сотрудник:</strong> <span id="name">—</span></p>
+                <p><strong>Отдел:</strong> <span id="department">—</span></p>
+                <p><strong>Дата:</strong> <span id="date">—</span></p>
+                <p><strong>Отработано:</strong> <span id="worked">—</span></p>
+                <p><strong>Рабочее время:</strong> <span id="planned">—</span></p>
+                <p><strong>Производительность:</strong> <span id="efficiency">—</span></p>
+                <p><strong>Заработано за день:</strong> <span id="pay-day">—</span></p>
+                <p><strong>Из них сезонная доплата:</strong> <span id="xisBonusDay">—</span></p>
+                <p><strong>Заработано за месяц:</strong> <span id="pay-month">—</span></p>
+            </div>
         </div>
-        <div id="main-data-content" class="hidden fade">
-          <p><span class="label">Сотрудник:</span> <span id="name">—</span></p>
-          <p><span class="label">Отдел:</span> <span id="department">—</span></p>
-          <p><span class="label">Дата:</span> <span id="date">—</span></p>
-          <p><span class="label">Отработано:</span> <span id="worked">—</span></p>
-          <p><span class="label">Рабочее время:</span> <span id="planned">—</span></p>
-          <p><span class="label">Производительность:</span> <span id="efficiency">—</span></p>
-          <p><span class="label">Заработано за день:</span> <span id="pay-day">—</span></p>
-          <p><span class="label">Из них сезонная доплата:</span> <span id="xisBonusDay">—</span></p>
-          <p><span class="label">Заработано за месяц:</span> <span id="pay-month">—</span></p>
+        <h5>🔄 Обновление данных происходит по расписанию, если заметили неточности сообщите Руководителю</h5>
+        
+        <div class="card">
+            <h2>📋 Детализация задач</h2>
+            <div id="details-loading" class="loading">
+                <div class="spinner"></div>
+                <p>Загрузка детализации...</p>
+            </div>
+            <div id="details-content" class="hidden fade">
+                <div id="tasks-grouped"></div>
+            </div>
         </div>
-      </div>
-      <h5>🔄 Обновление данных происходит по расписанию, если заметили не точности сообшите Руководителю</h5>
-      <div class="card">
-        <h2>📋 Детализация задач</h2>
-        <div id="details-loading" class="loading">
-          <div class="spinner"></div>
-          <p>Загрузка детализации...</p>
+
+        <div class="card">
+            <h2>📅 Календарь посещаемости</h2>
+            <div id="calendar-loading" class="loading">
+                <div class="spinner"></div>
+                <p>Загрузка календаря...</p>
+            </div>
+            <div id="calendar-content" class="hidden">
+                <div class="month-selector">
+                    <button id="prevMonth">◀</button>
+                    <span id="currentMonth">Загрузка...</span>
+                    <button id="nextMonth">▶</button>
+                </div>
+                <div class="calendar" id="calendar"></div>
+            </div>
         </div>
-        <div id="details-content" class="hidden fade">
-          <div id="tasks-grouped"></div>
-        </div>
-      </div>
-      
-      <!-- Календарь посещаемости -->
-      <div class="card">
-        <h2>📅 Календарь посещаемости</h2>
-        <div id="calendar-loading" class="loading">
-          <div class="spinner"></div>
-          <p>Загрузка календаря...</p>
-        </div>
-        <div id="calendar-content" class="hidden">
-          <div class="month-selector">
-            <button id="prevMonth">◀</button>
-            <span id="currentMonth">Загрузка...</span>
-            <button id="nextMonth">▶</button>
-          </div>
-          <div class="calendar" id="calendar"></div>
-        </div>
-      </div>
     </div>
 
     <!-- Вкладка "Отдел" -->
     <div id="manager-view" class="hidden">
-      <div id="department-selector" class="card hidden">
-        <h2>👨‍💼 Выберите отдел</h2>
-        <select id="departmentSelect" style="width:100%; padding:8px; margin:10px 0; border-radius:6px; border:1px solid #ccc;">
-          <option value="">— Выберите отдел —</option>
-        </select>
-      </div>
-      <div id="department-report" class="hidden">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <h2>📊 Отчёт по отделу: <span id="dept-name">—</span></h2>
-            <button id="change-department-btn" class="refresh-btn" style="padding:6px 12px;font-size:12px;">Выбрать другой отдел</button>
-          </div>
-          <p id="dept-last-update" class="last-update">Последнее обновление: —</p>
-          <div id="dept-data-loading" class="loading">
-            <div class="spinner"></div>
-            <p>Загрузка данных отдела...</p>
-          </div>
-          <div id="dept-data-content" class="hidden fade">
-            <p id="dept-report-date">Отчёт на дату: —</p>
-            <p id="dept-attendance">Сотрудники: —</p>
-            <p id="dept-attendance-percent">📊 Процент явки: —</p>
-            <h3>👥 Производительность сотрудников:</h3>
-            <pre id="dept-employees-list" style="white-space:pre-wrap;font-family:monospace;"></pre>
-            <p id="dept-avg-efficiency">📊 Средняя производительность команды: —</p>
-          </div>
+        <div id="department-selector" class="card hidden">
+            <h2>👨‍💼 Выберите отдел</h2>
+            <select id="departmentSelect">
+                <option value="">— Выберите отдел —</option>
+            </select>
         </div>
-      </div>
+        <div id="department-report" class="hidden">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                    <h2>📊 Отчёт по отделу: <span id="dept-name">—</span></h2>
+                    <button id="change-department-btn" class="refresh-btn" style="padding:6px 12px;font-size:12px;">Выбрать другой отдел</button>
+                </div>
+                <p id="dept-last-update" class="last-update">Последнее обновление: —</p>
+                <div id="dept-data-loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Загрузка данных отдела...</p>
+                </div>
+                <div id="dept-data-content" class="hidden fade">
+                    <p id="dept-report-date">Отчёт на дату: —</p>
+                    <p id="dept-attendance">Сотрудники: —</p>
+                    <p id="dept-attendance-percent">📊 Процент явки: —</p>
+                    <h3>👥 Производительность сотрудников:</h3>
+                    <pre id="dept-employees-list">—</pre>
+                    <p id="dept-avg-efficiency">📊 Средняя производительность команды: —</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="footer">Система малой автоматизации AIP • © 09.2025</div>
-  </div>
-  
-  <!-- Кнопка очистки кэша -->
-  <button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
-  <script>
+    <div class="footer">Система малой автоматизации AIP • © 2025-2026</div>
+</div>
+
+<button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
+
+<script>
 // ============================================
-// 1. КОНФИГУРАЦИЯ И ПЕРЕМЕННЫЕ
+// 1. КОНФИГУРАЦИЯ
 // ============================================
 const DATA_SOURCES = {
     staff: 'https://AIP-77.github.io/archive/staff%20fullData.json',
@@ -398,7 +301,7 @@ let displayedMonthYear = null;
 let isDataOutdated = false;
 
 // ============================================
-// 2. DOM ЭЛЕМЕНТЫ (ДОБАВЛЕНЫ ОТСУТСТВУЮЩИЕ)
+// 2. DOM ЭЛЕМЕНТЫ
 // ============================================
 const loading = document.getElementById('loading');
 const error = document.getElementById('error');
@@ -427,8 +330,6 @@ const calendar = document.getElementById('calendar');
 const authForm = document.getElementById('auth-form');
 const authInput = document.getElementById('auth-input');
 const authSubmit = document.getElementById('auth-submit');
-
-// Элементы панели отдела (БЫЛИ ОТСУТСТВУЮЩИМИ)
 const departmentSelect = document.getElementById('departmentSelect');
 const departmentSelector = document.getElementById('department-selector');
 const departmentReport = document.getElementById('department-report');
@@ -447,14 +348,12 @@ function normalizeRecords(data) {
             return obj;
         });
     }
-    if (data && data.records && Array.isArray(data.records)) {
-        return data.records;
-    }
+    if (data && data.records && Array.isArray(data.records)) return data.records;
     return [];
 }
 
 function parseRussianNumber(numberStr) {
-    if (!numberStr || numberStr === '0,00 ₽' || numberStr === 'р.0,00') return 0;
+    if (!numberStr || numberStr === '0,00 ₽') return 0;
     const cleanStr = numberStr.replace(/[^\d,\s]/g, '').replace(/\s/g, '').replace(',', '.');
     const result = parseFloat(cleanStr);
     return isNaN(result) ? 0 : result;
@@ -518,18 +417,10 @@ function calculateEfficiency(worked, planned) {
     return Math.round(((workedSec / plannedSec) * 100) * 100) / 100;
 }
 
-// ============================================
-// 4. ОСНОВНЫЕ ФУНКЦИИ ПРИЛОЖЕНИЯ
-// ============================================
 async function fetchData(url) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error(`Ошибка загрузки данных из ${url}:`, error);
-        throw new Error(`Не удалось загрузить данные: ${error.message}`);
-    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
+    return await response.json();
 }
 
 function showError(msg) {
@@ -550,7 +441,7 @@ function applyTelegramTheme() {
     const root = document.documentElement;
     root.style.setProperty('--tg-bg-color', theme.bg_color || '#f0f2f5');
     root.style.setProperty('--tg-text-color', theme.text_color || '#1c1e21');
-    root.style.setProperty('--tg-hint-color', theme.hint_color || '#999999');
+    root.style.setProperty('--tg-hint-color', theme.hint_color || '#999');
     root.style.setProperty('--tg-link-color', theme.link_color || '#d71923');
     root.style.setProperty('--tg-button-color', theme.button_color || '#1a8cd8');
     root.style.setProperty('--tg-button-text-color', theme.button_text_color || '#ffffff');
@@ -558,8 +449,7 @@ function applyTelegramTheme() {
 
 function updateLastUpdate() {
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('last-update').textContent = `Последнее обновление: ${timeStr}`;
+    document.getElementById('last-update').textContent = `Последнее обновление: ${now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 function updateVersionInfo() {
@@ -569,30 +459,25 @@ function updateVersionInfo() {
     }
     try {
         const updateDate = new Date(dataLastUpdated);
-        const formattedDate = updateDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const formattedTime = updateDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        versionInfo.innerHTML = `(🛠 V.2026.02.06 | Данные: ${formattedDate} ${formattedTime} 🛠)`;
+        versionInfo.innerHTML = `(🛠 V.2026.02.06 | Данные: ${updateDate.toLocaleDateString('ru-RU')} ${updateDate.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})} 🛠)`;
     } catch (err) {
         versionInfo.textContent = '(🛠 V.2026.02.06 🛠)';
     }
 }
 
 // ============================================
-// 5. ГРУППИРОВКА ЗАДАЧ
+// 4. ГРУППИРОВКА ЗАДАЧ
 // ============================================
 function groupTasksByType(tasks) {
     const groups = {};
     tasks.forEach(task => {
         const workType = task['Вид работ'] || 'Другие виды работ';
-        if (!groups[workType]) {
-            groups[workType] = { tasks: [], totalCount: 0, totalTime: 0, totalPay: 0, totalXisBonus: 0 };
-        }
+        if (!groups[workType]) groups[workType] = { tasks: [], totalCount: 0, totalTime: 0, totalPay: 0, totalXisBonus: 0 };
         const count = parseFloat(task['Количество единиц'] || '0');
         const time = task['Рабочее время'] || '00:00';
         const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
         const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
         const startTime = task['Начало задачи'] || '--:--';
-        
         groups[workType].tasks.push({ count, time, pay, xisBonus, startTime, calculatedPay: task['Расчетная сумма'] || '0,00 ₽', calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽' });
         groups[workType].totalCount += count;
         groups[workType].totalTime += timeToSeconds(time);
@@ -611,17 +496,12 @@ function renderGroupedTasks(tasks) {
     let html = '';
     Object.keys(groups).sort().forEach(workType => {
         const group = groups[workType];
-        const totalTimeFormatted = secondsToTime(group.totalTime);
-        const totalPayFormatted = formatCurrency(group.totalPay);
-        const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
-        
         html += `<div class="task-group"><div class="task-group-header" onclick="toggleTaskGroup(this)"><div style="flex: 1;"><div>${workType}</div><div class="task-group-summary">`;
         html += `<div class="task-group-summary-item"><span>📊</span><span>${group.totalCount.toFixed(2)} ед.</span></div>`;
-        html += `<div class="task-group-summary-item"><span>⏱️</span><span>${totalTimeFormatted}</span></div>`;
-        html += `<div class="task-group-summary-item"><span>💰</span><span class="task-total">${totalPayFormatted}</span></div>`;
-        if (group.totalXisBonus > 0) html += `<div class="task-group-summary-item"><span>🎁</span><span class="seasonal-bonus">${totalXisBonusFormatted}</span></div>`;
+        html += `<div class="task-group-summary-item"><span>⏱️</span><span>${secondsToTime(group.totalTime)}</span></div>`;
+        html += `<div class="task-group-summary-item"><span>💰</span><span class="task-total">${formatCurrency(group.totalPay)}</span></div>`;
+        if (group.totalXisBonus > 0) html += `<div class="task-group-summary-item"><span>🎁</span><span class="seasonal-bonus">${formatCurrency(group.totalXisBonus)}</span></div>`;
         html += `</div></div><div class="expand-icon">▼</div></div><div class="task-group-content">`;
-        
         group.tasks.forEach(task => {
             html += `<div class="task-item"><div style="display: flex; justify-content: space-between; align-items: flex-start;">`;
             html += `<div style="flex: 1;"><div><strong>${task.count.toFixed(2)} ед.</strong></div><div class="task-time-info"><span class="task-start-time">Начало: ${task.startTime}</span><span> | Время работы: ${task.time}</span></div></div>`;
@@ -640,33 +520,22 @@ function toggleTaskGroup(header) {
 }
 
 // ============================================
-// 6. КАЛЕНДАРЬ
+// 5. КАЛЕНДАРЬ
 // ============================================
 async function loadCalendarData() {
     try {
         calendarLoading.classList.remove('hidden');
         calendarContent.classList.add('hidden');
         const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-        
         availableMonths = [];
         for (let i = 5; i >= 0; i--) {
-            const date = new Date(currentYear, currentMonth - 1 - i, 1);
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            availableMonths.push(`${year}-${month.toString().padStart(2, '0')}`);
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            availableMonths.push(`${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`);
         }
-        
-        if (availableMonths.length === 0) {
-            calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-            return;
-        }
-        
+        if (availableMonths.length === 0) throw new Error('Нет месяцев');
         currentMonthIndex = availableMonths.length - 1;
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
     } catch (err) {
-        console.error('Ошибка загрузки календаря:', err);
         calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
 }
@@ -677,62 +546,44 @@ async function renderCalendarForMonth(monthKey) {
         const year = Number(yearStr);
         const month = Number(monthStr);
         const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
-        
         const userDates = new Set();
-        const records = normalizeRecords(monthData);
-        records.forEach(record => {
+        normalizeRecords(monthData).forEach(record => {
             if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
                 userDates.add(record['Рабочий день']);
             }
         });
-        
         renderCalendarGrid(year, month, userDates);
         const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
-        
         prevMonthBtn.disabled = currentMonthIndex === 0;
         nextMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
-        
         calendarLoading.classList.add('hidden');
         calendarContent.classList.remove('hidden');
     } catch (err) {
-        console.error('Ошибка рендеринга календаря:', err);
         calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
 }
 
 function renderCalendarGrid(year, monthNum, userDates) {
     calendar.innerHTML = '';
-    const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-    dayNames.forEach(day => {
+    ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(day => {
         const el = document.createElement('div');
         el.textContent = day;
         el.style.fontWeight = 'bold';
-        el.style.backgroundColor = 'var(--tg-bg-color)';
-        el.style.padding = '6px 0';
-        el.style.borderRadius = '6px';
         el.style.textAlign = 'center';
         calendar.appendChild(el);
     });
-    
     const firstDay = new Date(year, monthNum - 1, 1);
     const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
     const lastDayNum = new Date(year, monthNum, 0).getDate();
-    
     for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
-    
     for (let day = 1; day <= lastDayNum; day++) {
         const el = document.createElement('div');
         el.className = 'day';
         el.textContent = day;
-        el.style.padding = '8px 0';
-        el.style.borderRadius = '6px';
-        el.style.fontSize = '14px';
-        
         const dateStr = `${String(day).padStart(2, '0')}.${String(monthNum).padStart(2, '0')}.${year}`;
         if (userDates.has(dateStr)) {
             el.classList.add('available');
-            el.title = 'Есть данные за этот день';
             el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
         } else {
             el.style.color = 'var(--tg-hint-color)';
@@ -747,124 +598,79 @@ async function loadRecordByDate(year, month, day) {
         const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
         const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
         const records = normalizeRecords(monthData);
-        
         const userTasks = records.filter(record => record['Сотрудник'] === currentUserData.name && record['Рабочий день'] === dateStr);
         if (userTasks.length === 0) {
             showBanner(`Нет данных за ${dateStr}`, 'info', 3000);
             return;
         }
-        
-        const allUserTasksInMonth = records.filter(record => record['Сотрудник'] === currentUserData.name);
         const tasksByDate = {};
-        allUserTasksInMonth.forEach(task => {
-            const taskDate = task['Рабочий день'];
-            if (!tasksByDate[taskDate]) tasksByDate[taskDate] = [];
-            tasksByDate[taskDate].push(task);
+        records.filter(r => r['Сотрудник'] === currentUserData.name).forEach(task => {
+            if (!tasksByDate[task['Рабочий день']]) tasksByDate[task['Рабочий день']] = [];
+            tasksByDate[task['Рабочий день']].push(task);
         });
-        
-        const workedTime = calculateTotalTime(userTasks, 'Рабочее время');
-        const plannedTime = calculateTotalTime(userTasks, 'Время по табелю');
-        const dayPay = calculateDayPay(userTasks);
-        const xisBonus = calculateXisBonus(userTasks);
-        const monthlyPay = calculateMonthlyPay(tasksByDate);
-        const efficiency = calculateEfficiency(workedTime, plannedTime);
-        
         document.getElementById('date').textContent = dateStr;
-        document.getElementById('worked').textContent = workedTime;
-        document.getElementById('planned').textContent = plannedTime;
-        document.getElementById('efficiency').textContent = efficiency + '%';
-        document.getElementById('pay-day').textContent = formatCurrency(dayPay);
-        document.getElementById('xisBonusDay').textContent = formatCurrency(xisBonus);
-        document.getElementById('pay-month').textContent = formatCurrency(monthlyPay);
-        
+        document.getElementById('worked').textContent = calculateTotalTime(userTasks, 'Рабочее время');
+        document.getElementById('planned').textContent = calculateTotalTime(userTasks, 'Время по табелю');
+        document.getElementById('efficiency').textContent = calculateEfficiency(calculateTotalTime(userTasks, 'Рабочее время'), calculateTotalTime(userTasks, 'Время по табелю')) + '%';
+        document.getElementById('pay-day').textContent = formatCurrency(calculateDayPay(userTasks));
+        document.getElementById('xisBonusDay').textContent = formatCurrency(calculateXisBonus(userTasks));
+        document.getElementById('pay-month').textContent = formatCurrency(calculateMonthlyPay(tasksByDate));
         renderGroupedTasks(userTasks);
         showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
     } catch (err) {
-        console.error('Ошибка загрузки данных по дате:', err);
         showBanner(`Ошибка: ${err.message}`, 'error', 5000);
     }
 }
 
 // ============================================
-// 7. ОТЧЕТ ПО ОТДЕЛУ (ИСПРАВЛЕНО)
+// 6. ОТДЕЛ
 // ============================================
 async function loadDepartmentData(departmentName) {
     try {
         deptDataLoading.classList.remove('hidden');
         deptDataContent.classList.add('hidden');
-        
         const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-        
-        const monthData = await fetchData(DATA_SOURCES.monthlyData(currentYear, currentMonth));
+        const monthData = await fetchData(DATA_SOURCES.monthlyData(now.getFullYear(), now.getMonth() + 1));
         const staffData = await fetchData(DATA_SOURCES.staff);
-        
         const staffRecords = normalizeRecords(staffData);
         const monthRecords = normalizeRecords(monthData);
-        
         const deptEmployees = staffRecords.filter(record => record['Отдел'] === departmentName);
-        if (deptEmployees.length === 0) {
-            deptDataLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Сотрудники не найдены</p>';
-            return;
-        }
-        
+        if (deptEmployees.length === 0) throw new Error('Сотрудники не найдены');
         const tasksByDate = {};
         monthRecords.forEach(task => {
-            const date = task['Рабочий день'];
-            const employee = task['Сотрудник'];
-            if (deptEmployees.some(e => e['Сотрудник'] === employee)) {
-                if (!tasksByDate[date]) tasksByDate[date] = [];
-                tasksByDate[date].push(task);
+            if (deptEmployees.some(e => e['Сотрудник'] === task['Сотрудник'])) {
+                if (!tasksByDate[task['Рабочий день']]) tasksByDate[task['Рабочий день']] = [];
+                tasksByDate[task['Рабочий день']].push(task);
             }
         });
-        
         const dates = Object.keys(tasksByDate).sort((a, b) => {
-            const [d1, m1, y1] = a.split('.').map(Number);
-            const [d2, m2, y2] = b.split('.').map(Number);
-            return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+            const [d1,m1,y1] = a.split('.').map(Number);
+            const [d2,m2,y2] = b.split('.').map(Number);
+            return new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1);
         });
-        
         const latestDate = dates.length > 0 ? dates[0] : '—';
-        
-        let totalEmployees = deptEmployees.length;
-        let presentEmployees = 0;
-        let totalEfficiency = 0;
-        let efficiencyCount = 0;
-        let employeeStats = [];
-        
+        let present = 0, totalEff = 0, effCount = 0, stats = [];
         deptEmployees.forEach(emp => {
-            const empName = emp['Сотрудник'];
-            const empTasks = monthRecords.filter(task => task['Сотрудник'] === empName && task['Рабочий день'] === latestDate);
-            
+            const empTasks = monthRecords.filter(task => task['Сотрудник'] === emp['Сотрудник'] && task['Рабочий день'] === latestDate);
             if (empTasks.length > 0) {
-                presentEmployees++;
-                const workedTime = calculateTotalTime(empTasks, 'Рабочее время');
-                const plannedTime = calculateTotalTime(empTasks, 'Время по табелю');
-                const efficiency = calculateEfficiency(workedTime, plannedTime);
-                totalEfficiency += efficiency;
-                efficiencyCount++;
-                employeeStats.push(`${empName}: ${efficiency}%`);
+                present++;
+                const eff = calculateEfficiency(calculateTotalTime(empTasks, 'Рабочее время'), calculateTotalTime(empTasks, 'Время по табелю'));
+                totalEff += eff; effCount++;
+                stats.push(`${emp['Сотрудник']}: ${eff}%`);
             } else {
-                employeeStats.push(`${empName}: отсутствует`);
+                stats.push(`${emp['Сотрудник']}: отсутствует`);
             }
         });
-        
-        const attendancePercent = totalEmployees > 0 ? Math.round((presentEmployees / totalEmployees) * 100) : 0;
-        const avgEfficiency = efficiencyCount > 0 ? Math.round((totalEfficiency / efficiencyCount) * 100) / 100 : 0;
-        
         document.getElementById('dept-report-date').textContent = `Отчёт на дату: ${latestDate}`;
-        document.getElementById('dept-attendance').textContent = `Сотрудники: ${presentEmployees} из ${totalEmployees}`;
-        document.getElementById('dept-attendance-percent').textContent = `📊 Процент явки: ${attendancePercent}%`;
-        document.getElementById('dept-employees-list').textContent = employeeStats.join('\n');
-        document.getElementById('dept-avg-efficiency').textContent = `📊 Средняя производительность команды: ${avgEfficiency}%`;
+        document.getElementById('dept-attendance').textContent = `Сотрудники: ${present} из ${deptEmployees.length}`;
+        document.getElementById('dept-attendance-percent').textContent = `📊 Процент явки: ${deptEmployees.length ? Math.round(present/deptEmployees.length*100) : 0}%`;
+        document.getElementById('dept-employees-list').textContent = stats.join('\n');
+        document.getElementById('dept-avg-efficiency').textContent = `📊 Средняя производительность: ${effCount ? Math.round(totalEff/effCount*100)/100 : 0}%`;
         document.getElementById('dept-last-update').textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;
-        
         deptDataLoading.classList.add('hidden');
         deptDataContent.classList.remove('hidden');
     } catch (err) {
-        console.error('Ошибка загрузки данных отдела:', err);
-        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка загрузки данных</p>';
+        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
 }
 
@@ -872,55 +678,44 @@ async function initializeManagerView() {
     if (!isManager) return;
     try {
         const staffData = await fetchData(DATA_SOURCES.staff);
-        const records = normalizeRecords(staffData); // ИСПРАВЛЕНО: используется normalizeRecords
-        
+        const records = normalizeRecords(staffData);
         const departments = new Set();
         records.forEach(record => {
-            if (managedDepartments.includes(record['Руководит отделом']) ||
-                (currentUserData.managedDepartments.includes(record['Отдел']) && isManager)) {
+            if (managedDepartments.includes(record['Руководит отделом']) || currentUserData.managedDepartments.includes(record['Отдел'])) {
                 departments.add(record['Отдел']);
             }
         });
         managedDepartments = Array.from(departments);
-        
-        if (managedDepartments.length > 0) {
-            renderDepartmentSelector();
-        }
-    } catch (err) {
-        console.error('Ошибка инициализации manager view:', err);
-    }
+        if (managedDepartments.length > 0) renderDepartmentSelector();
+    } catch (err) { console.error(err); }
 }
 
 function renderDepartmentSelector() {
     departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
     managedDepartments.forEach(dept => {
         const opt = document.createElement('option');
-        opt.value = dept;
-        opt.textContent = dept;
+        opt.value = dept; opt.textContent = dept;
         departmentSelect.appendChild(opt);
     });
     departmentSelector.classList.remove('hidden');
 }
 
 // ============================================
-// 8. ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
+// 7. ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
 // ============================================
 async function loadUserData() {
     try {
         const staffData = await fetchData(DATA_SOURCES.staff);
-        
         if (!chatId || chatId === 'undefined' || chatId === 'null') {
             const manualInput = prompt('Введите ваш Telegram ID или пароль:', '');
             if (!manualInput) throw new Error('Идентификатор не указан');
             chatId = manualInput;
         }
-        
         const records = normalizeRecords(staffData);
         let userRecord = records.find(record =>
             String(record['Telegram ID']) === chatId ||
             String(record['Пароль']) === chatId
         );
-        
         if (!userRecord) throw new Error('Идентификатор не найден в системе');
         
         currentUserData = {
@@ -929,7 +724,6 @@ async function loadUserData() {
             role: userRecord['Роль'],
             managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
         };
-        
         isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
         isAdmin = currentUserData.role.toLowerCase() === 'админ';
         managedDepartments = currentUserData.managedDepartments;
@@ -948,7 +742,6 @@ async function loadUserData() {
                 const data = await fetchData(DATA_SOURCES.monthlyData(year, month));
                 const recs = normalizeRecords(data);
                 const userHasData = recs.some(r => r['Сотрудник'] === currentUserData.name);
-                
                 if (userHasData) {
                     loadedData = data;
                     displayedMonthYear = { year, month };
@@ -962,19 +755,16 @@ async function loadUserData() {
                 attemptCount++;
             }
         }
-        
         if (!loadedData) throw new Error('Нет данных за последние 3 месяца');
         
         currentMonthData = loadedData;
         dataLastUpdated = currentMonthData.lastUpdated;
-        
         updateVersionInfo();
         await generatePersonalReport();
         await loadCalendarData();
         renderUI();
         loading.classList.add('hidden');
     } catch (err) {
-        console.error('Ошибка загрузки данных:', err);
         loading.classList.add('hidden');
         showError('Ошибка: ' + err.message);
     }
@@ -983,47 +773,32 @@ async function loadUserData() {
 async function generatePersonalReport() {
     if (!currentMonthData || !currentUserData) return;
     const userTasks = normalizeRecords(currentMonthData).filter(record => record['Сотрудник'] === currentUserData.name);
-    
     if (userTasks.length === 0) {
         showBanner('Нет данных о задачах за текущий месяц', 'info');
         return;
     }
-    
     const tasksByDate = {};
     userTasks.forEach(task => {
-        const date = task['Рабочий день'];
-        if (!tasksByDate[date]) tasksByDate[date] = [];
-        tasksByDate[date].push(task);
+        if (!tasksByDate[task['Рабочий день']]) tasksByDate[task['Рабочий день']] = [];
+        tasksByDate[task['Рабочий день']].push(task);
     });
-    
     const dates = Object.keys(tasksByDate).sort((a, b) => {
-        const [d1, m1, y1] = a.split('.').map(Number);
-        const [d2, m2, y2] = b.split('.').map(Number);
-        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+        const [d1,m1,y1] = a.split('.').map(Number);
+        const [d2,m2,y2] = b.split('.').map(Number);
+        return new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1);
     });
-    
     if (dates.length === 0) return;
-    const latestDate = dates[0];
-    const latestTasks = tasksByDate[latestDate];
-    
-    const workedTime = calculateTotalTime(latestTasks, 'Рабочее время');
-    const plannedTime = calculateTotalTime(latestTasks, 'Время по табелю');
-    const dayPay = calculateDayPay(latestTasks);
-    const xisBonus = calculateXisBonus(latestTasks);
-    const monthlyPay = calculateMonthlyPay(tasksByDate);
-    const efficiency = calculateEfficiency(workedTime, plannedTime);
-    
+    const latestTasks = tasksByDate[dates[0]];
     currentRecord = {
-        date: latestDate,
-        worked: workedTime,
-        planned: plannedTime,
-        efficiency: efficiency + '%',
-        payDay: formatCurrency(dayPay),
-        xisBonusDay: formatCurrency(xisBonus),
-        payMonth: formatCurrency(monthlyPay),
+        date: dates[0],
+        worked: calculateTotalTime(latestTasks, 'Рабочее время'),
+        planned: calculateTotalTime(latestTasks, 'Время по табелю'),
+        efficiency: calculateEfficiency(calculateTotalTime(latestTasks, 'Рабочее время'), calculateTotalTime(latestTasks, 'Время по табелю')) + '%',
+        payDay: formatCurrency(calculateDayPay(latestTasks)),
+        xisBonusDay: formatCurrency(calculateXisBonus(latestTasks)),
+        payMonth: formatCurrency(calculateMonthlyPay(tasksByDate)),
         details: latestTasks
     };
-    
     updateMainData();
     updateDetails();
 }
@@ -1058,19 +833,17 @@ function renderUI() {
     if (isAdmin) tabAdmin.classList.remove('hidden');
     employeeView.classList.remove('hidden');
     updateLastUpdate();
-    
     if (isManager) initializeManagerView();
     
     // Предупреждение если данные не за текущий месяц
     if (isDataOutdated && displayedMonthYear) {
         const monthNames = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
-        const monthName = monthNames[displayedMonthYear.month - 1];
-        showBanner(`⚠️ Внимание: Отчет за текущий месяц еще не сформирован. Показаны данные за ${monthName} ${displayedMonthYear.year}`, 'error', 0);
+        showBanner(`⚠️ Внимание: Отчет за текущий месяц еще не сформирован. Показаны данные за ${monthNames[displayedMonthYear.month - 1]} ${displayedMonthYear.year}`, 'error', 0);
     }
 }
 
 // ============================================
-// 9. ИНИЦИАЛИЗАЦИЯ
+// 8. ИНИЦИАЛИЗАЦИЯ
 // ============================================
 async function init() {
     try {
@@ -1082,67 +855,44 @@ async function init() {
             if (user?.id) {
                 chatId = String(user.id);
                 localStorage.setItem('userAuthId', chatId);
-                document.getElementById('auth-form').style.display = 'none';
+                authForm.style.display = 'none';
                 await loadUserData();
                 return;
             }
         }
-        
         const savedId = localStorage.getItem('userAuthId');
         if (savedId) {
             chatId = savedId;
-            document.getElementById('auth-form').style.display = 'none';
+            authForm.style.display = 'none';
             await loadUserData();
         } else {
-            document.getElementById('auth-form').style.display = 'block';
+            authForm.style.display = 'flex';
             authInput.focus();
         }
     } catch (err) {
-        console.error('Ошибка инициализации:', err);
         loading.classList.add('hidden');
         showError('Ошибка: ' + err.message);
     }
 }
 
 // ============================================
-// 10. ОБРАБОТЧИКИ СОБЫТИЙ
+// 9. ОБРАБОТЧИКИ СОБЫТИЙ
 // ============================================
 prevMonthBtn.addEventListener('click', async () => {
-    if (currentMonthIndex > 0) {
-        currentMonthIndex--;
-        await renderCalendarForMonth(availableMonths[currentMonthIndex]);
-    }
+    if (currentMonthIndex > 0) { currentMonthIndex--; await renderCalendarForMonth(availableMonths[currentMonthIndex]); }
 });
-
 nextMonthBtn.addEventListener('click', async () => {
-    if (currentMonthIndex < availableMonths.length - 1) {
-        currentMonthIndex++;
-        await renderCalendarForMonth(availableMonths[currentMonthIndex]);
-    }
+    if (currentMonthIndex < availableMonths.length - 1) { currentMonthIndex++; await renderCalendarForMonth(availableMonths[currentMonthIndex]); }
 });
-
 refreshBtn.addEventListener('click', async () => {
-    refreshBtn.disabled = true;
-    refreshBtn.textContent = 'Обновление...';
-    try {
-        await loadUserData();
-        showBanner('Данные обновлены', 'success', 3000);
-    } catch (err) {
-        showBanner('Ошибка обновления: ' + err.message, 'error', 5000);
-    } finally {
-        refreshBtn.disabled = false;
-        refreshBtn.textContent = '🔄 Обновить данные';
-    }
+    refreshBtn.disabled = true; refreshBtn.textContent = 'Обновление...';
+    try { await loadUserData(); showBanner('Данные обновлены', 'success', 3000); }
+    catch (err) { showBanner('Ошибка: ' + err.message, 'error', 5000); }
+    finally { refreshBtn.disabled = false; refreshBtn.textContent = '🔄 Обновить данные'; }
 });
-
 clearCacheBtn.addEventListener('click', () => {
-    if (confirm('Вы уверены, что хотите очистить кэш?')) {
-        localStorage.removeItem('userAuthId');
-        showBanner('Кэш очищен', 'success', 2000);
-        setTimeout(() => location.reload(), 1500);
-    }
+    if (confirm('Очистить кэш?')) { localStorage.removeItem('userAuthId'); location.reload(); }
 });
-
 tabEmployee.addEventListener('click', () => switchTab('employee'));
 tabManager.addEventListener('click', () => switchTab('manager'));
 tabAdmin.addEventListener('click', () => { if (isAdmin) window.location.href = 'HTML/admin.html'; });
@@ -1152,54 +902,34 @@ function switchTab(tabName) {
     employeeView.classList.add('hidden');
     managerView.classList.add('hidden');
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-    
-    if (tabName === 'employee') {
-        employeeView.classList.remove('hidden');
-        tabEmployee.classList.add('active');
-    } else if (tabName === 'manager' && isManager) {
-        managerView.classList.remove('hidden');
-        tabManager.classList.add('active');
-    }
-}
-
-// Обработчик кнопки "Войти"
-authSubmit.addEventListener('click', async () => {
-    const manualInput = authInput.value.trim();
-    if (!manualInput) {
-        showBanner('Введите идентификатор!', 'error', 3000);
-        return;
-    }
-    chatId = manualInput;
-    localStorage.setItem('userAuthId', chatId);
-    authForm.style.display = 'none';
-    await loadUserData();
+    if (tabName === 'employee') { employeeView.classList.remove('hidden'); tabEmployee.classList.add('active'); }
+    else if (tabName === 'manager' && isManager) { window.location.href = 'manager.html'; }
 });
 
-// === ОБРАБОТЧИКИ ОТДЕЛА (БЫЛИ ОТСУТСТВУЮЩИМИ) ===
+authSubmit.addEventListener('click', async () => {
+    const val = authInput.value.trim();
+    if (!val) { showBanner('Введите ID!', 'error', 3000); return; }
+    chatId = val; localStorage.setItem('userAuthId', chatId);
+    authForm.style.display = 'none'; await loadUserData();
+});
+
 changeDepartmentBtn.addEventListener('click', () => {
     departmentReport.classList.add('hidden');
     departmentSelector.classList.remove('hidden');
     departmentSelect.value = '';
 });
-
 departmentSelect.addEventListener('change', async () => {
-    const selectedDept = departmentSelect.value;
-    if (!selectedDept) return;
-    
+    if (!departmentSelect.value) return;
     departmentSelector.classList.add('hidden');
     departmentReport.classList.remove('hidden');
-    document.getElementById('dept-name').textContent = selectedDept;
-    
-    await loadDepartmentData(selectedDept);
+    document.getElementById('dept-name').textContent = departmentSelect.value;
+    await loadDepartmentData(departmentSelect.value);
 });
 
-// Глобальные обработчики ошибок
 window.addEventListener('error', (event) => { console.error('Global error:', event.error); showError(`Ошибка: ${event.message}`); });
 window.addEventListener('unhandledrejection', (event) => { console.error('Unhandled promise rejection:', event.reason); showError(`Ошибка: ${event.reason}`); });
 
-// Запуск приложения
 window.onload = init;
 </script>
-
 </body>
 </html>
