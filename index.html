@@ -1346,23 +1346,24 @@ clearCacheBtn.addEventListener('click', () => {
       }
     });
 
-    function switchTab(tabName) {
-      // Скрыть все вкладки
-      employeeView.classList.add('hidden');
-      managerView.classList.add('hidden');
-      
-      // Убрать активный класс со всех вкладок
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-      
-      // Показать выбранную вкладку
-      if (tabName === 'employee') {
+function switchTab(tabName) {
+    // Скрыть все вкладки
+    employeeView.classList.add('hidden');
+    managerView.classList.add('hidden');
+    
+    // Убрать активный класс со всех вкладок
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    
+    if (tabName === 'employee') {
         employeeView.classList.remove('hidden');
         tabEmployee.classList.add('active');
-      } else if (tabName === 'manager' && isManager) {
-        managerView.classList.remove('hidden');
-        tabManager.classList.add('active');
-      }
+    } 
+    // === ИЗМЕНЕНИЕ: Переход на отдельную страницу manager.html ===
+    else if (tabName === 'manager' && isManager) {
+        // Не показываем div на этой странице, а перенаправляем
+        window.location.href = 'manager.html';
     }
+}
 	 // обработчик для кнопки "Войти":
 	document.getElementById('auth-submit').addEventListener('click', async () => {
   const manualInput = document.getElementById('auth-input').value.trim();
