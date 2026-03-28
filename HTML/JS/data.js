@@ -1,6 +1,6 @@
 
 async function loadStandards() {
-  const standardsUrl = `${window.location.origin}/archive/standard%20fullData.json`;
+  const standardsUrl = `${window.location.origin}/archive/standard.json`;
   try {
     console.log('Загрузка нормативов из:', standardsUrl);
     const response = await fetch(`${standardsUrl}?t=${Date.now()}`);
@@ -44,7 +44,7 @@ async function loadStandards() {
 }
 
 async function loadStaffData() {
-  const staffUrl = `${window.location.origin}/archive/staff%20fullData.json`;
+  const staffUrl = `${window.location.origin}/archive/staff.json`;
   try {
     console.log('Загрузка данных персонала из:', staffUrl);
     const response = await fetch(`${staffUrl}?t=${Date.now()}`);
