@@ -530,123 +530,119 @@ function checkAuth() {
     }
 
     // === ФУНКЦИЯ ДЛЯ ГРУППИРОВКИ ЗАДАЧ ===
-    function groupTasksByType(tasks) {
-        const groups = {};
+function groupTasksByType(tasks) {
+    const groups = {};
+    tasks.forEach(task => {
+        const workType = task['Вид работ'] || 'Другие виды работ';
+        if (!groups[workType]) {
+            groups[workType] = {
+                tasks: [],
+                totalCount: 0,
+                totalTime: 0,
+                totalPay: 0,
+                totalXisBonus: 0
+            };
+        }
+        const count = parseFloat(task['Количество единиц'] || '0');
+        const time = task['Рабочее время'] || '00:00';
+        const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
+        const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
+        const startTime = task['Начало задачи'] || '--:--';
+        // === ДОБАВЛЕНО: Сохраняем номер поставки ===
+        const supply = task['Поставка'] || '—';
         
-        tasks.forEach(task => {
-            const workType = task['Вид работ'] || 'Другие виды работ';
-            if (!groups[workType]) {
-                groups[workType] = {
-                    tasks: [],
-                    totalCount: 0,
-                    totalTime: 0,
-                    totalPay: 0,
-                    totalXisBonus: 0
-                };
-            }
-            
-            const count = parseFloat(task['Количество единиц'] || '0');
-            const time = task['Рабочее время'] || '00:00';
-            const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
-            const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
-            const startTime = task['Начало задачи'] || '--:--';
-            
-            groups[workType].tasks.push({
-                count: count,
-                time: time,
-                pay: pay,
-                xisBonus: xisBonus,
-                startTime: startTime,
-                calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
-                calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
-            });
-            
-            groups[workType].totalCount += count;
-            groups[workType].totalTime += timeToSeconds(time);
-            groups[workType].totalPay += (pay + xisBonus);
-            groups[workType].totalXisBonus += xisBonus;
+        groups[workType].tasks.push({
+            count: count,
+            time: time,
+            pay: pay,
+            xisBonus: xisBonus,
+            startTime: startTime,
+            supply: supply, // === ДОБАВЛЕНО ===
+            calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
+            calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
         });
-        
-        return groups;
-    }
+        groups[workType].totalCount += count;
+        groups[workType].totalTime += timeToSeconds(time);
+        groups[workType].totalPay += (pay + xisBonus);
+        groups[workType].totalXisBonus += xisBonus;
+    });
+    return groups;
+}
 
     // === ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ ГРУППИРОВАННЫХ ЗАДАЧ ===
-    function renderGroupedTasks(tasks) {
-        if (!tasks || tasks.length === 0) {
-            tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
-            return;
-        }
-
-        const groups = groupTasksByType(tasks);
-        let html = '';
-
-        Object.keys(groups).sort().forEach(workType => {
-            const group = groups[workType];
-            const totalTimeFormatted = secondsToTime(group.totalTime);
-            const totalPayFormatted = formatCurrency(group.totalPay);
-            const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
-            
+function renderGroupedTasks(tasks) {
+    if (!tasks || tasks.length === 0) {
+        tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        return;
+    }
+    const groups = groupTasksByType(tasks);
+    let html = '';
+    Object.keys(groups).sort().forEach(workType => {
+        const group = groups[workType];
+        const totalTimeFormatted = secondsToTime(group.totalTime);
+        const totalPayFormatted = formatCurrency(group.totalPay);
+        const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
+        html += `
+        <div class="task-group">
+        <div class="task-group-header" onclick="toggleTaskGroup(this)">
+        <div style="flex: 1;">
+        <div>${workType}</div>
+        <div class="task-group-summary">
+        <div class="task-group-summary-item">
+        <span>📊</span>
+        <span>${group.totalCount.toFixed(2)} ед.</span>
+        </div>
+        <div class="task-group-summary-item">
+        <span>⏱️</span>
+        <span>${totalTimeFormatted}</span>
+        </div>
+        <div class="task-group-summary-item">
+        <span>💰</span>
+        <span class="task-total">${totalPayFormatted}</span>
+        </div>
+        ${group.totalXisBonus > 0 ? `
+        <div class="task-group-summary-item">
+        <span>🎁</span>
+        <span class="seasonal-bonus">${totalXisBonusFormatted}</span>
+        </div>
+        ` : ''}
+        </div>
+        </div>
+        <div class="expand-icon">▼</div>
+        </div>
+        <div class="task-group-content">
+        `;
+        group.tasks.forEach((task, index) => {
             html += `
-                <div class="task-group">
-                    <div class="task-group-header" onclick="toggleTaskGroup(this)">
-                        <div style="flex: 1;">
-                            <div>${workType}</div>
-                            <div class="task-group-summary">
-                                <div class="task-group-summary-item">
-                                    <span>📊</span>
-                                    <span>${group.totalCount.toFixed(2)} ед.</span>
-                                </div>
-                                <div class="task-group-summary-item">
-                                    <span>⏱️</span>
-                                    <span>${totalTimeFormatted}</span>
-                                </div>
-                                <div class="task-group-summary-item">
-                                    <span>💰</span>
-                                    <span class="task-total">${totalPayFormatted}</span>
-                                </div>
-                                ${group.totalXisBonus > 0 ? `
-                                <div class="task-group-summary-item">
-                                    <span>🎁</span>
-                                    <span class="seasonal-bonus">${totalXisBonusFormatted}</span>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                        <div class="expand-icon">▼</div>
-                    </div>
-                    <div class="task-group-content">
-            `;
-            
-            group.tasks.forEach((task, index) => {
-                html += `
-                    <div class="task-item">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div style="flex: 1;">
-                                <div><strong>${task.count.toFixed(2)} ед.</strong></div>
-                                <div class="task-time-info">
-                                    <span class="task-start-time">Начало: ${task.startTime}</span>
-                                    <span> | Время работы: ${task.time}</span>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div class="task-payment-info">
-                                    <span>${task.calculatedPay}</span>
-                                    ${task.xisBonus > 0 ? `<span class="seasonal-bonus">${task.calculatedXisBonus}</span>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                    </div>
-                </div>
+            <div class="task-item">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1;">
+            <div><strong>${task.count.toFixed(2)} ед.</strong></div>
+            <div class="task-time-info">
+            <!-- === ИЗМЕНЕНО: Добавлен номер поставки перед Начало: === -->
+            <span class="task-start-time">№ ${task.supply}</span>
+            <span> | </span>
+            <span class="task-start-time">Начало: ${task.startTime}</span>
+            <span> | Время работы: ${task.time}</span>
+            </div>
+            </div>
+            <div style="text-align: right;">
+            <div class="task-payment-info">
+            <span>${task.calculatedPay}</span>
+            ${task.xisBonus > 0 ? `<span class="seasonal-bonus">${task.calculatedXisBonus}</span>` : ''}
+            </div>
+            </div>
+            </div>
+            </div>
             `;
         });
-
-        tasksGrouped.innerHTML = html;
-    }
+        html += `
+        </div>
+        </div>
+        `;
+    });
+    tasksGrouped.innerHTML = html;
+}
 
     // === ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ГРУПП ===
     function toggleTaskGroup(header) {
