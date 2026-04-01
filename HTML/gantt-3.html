@@ -303,58 +303,52 @@
     '2025-11',
     '2025-12',
     '2026-01',
-    '2026-02'
+    '2026-02',
+    '2026-03',
+    '2026-04'
   ];
 
   // Функция загрузки данных по месяцу
-  async function loadMonthData(month) {
-    const url = `https://aip-77.github.io/archive/${month} fullData.json`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      const text = await res.text();
-      const data = JSON.parse(text);
+async function loadMonthData(month) {
+  const url = `https://aip-77.github.io/archive/${month} fullData.json`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const text = await res.text();
+    const data = JSON.parse(text);
+    
+    // 🔁 Нормализация: приводим любой формат к единому виду (массив объектов)
+    if (data.columns && Array.isArray(data.data)) {
+      // 🆕 Новый компактный формат: {columns: [...], data: [[...], [...]]}
+      allData = data.data.map((row, index) => {
+        const obj = { id: index };
+        data.columns.forEach((col, i) => {
+          // Пропускаем пустые названия колонок и добавляем только заполненные
+          if (col && col.trim()) {
+            obj[col] = row[i];
+          }
+        });
+        return obj;
+      });
+      showDebug(`✅ Загружено (компактный формат): ${allData.length} записей из ${url}`);
       
-      // Обновляем информацию о данных
-      if (data.lastUpdated) {
-        updateDataSourceInfo(data.lastUpdated);
-      } else {
-        updateDataSourceInfo(`файл ${month} fullData.json`);
-      }
-      
-      if (!data.records || !Array.isArray(data.records)) {
-        throw new Error('Нет records[]');
-      }
+    } else if (data.records && Array.isArray(data.records)) {
+      // 🔄 Старый формат: {records: [{...}, {...}]}
       allData = data.records.map((task, index) => ({ ...task, id: index }));
-      showDebug(`Загружено записей: ${allData.length} из ${url}`);
-      populateFilters();
-    } catch (err) {
-      showError(`Ошибка загрузки данных за ${month}: ${err.message}`);
-      showDebug(`Проверьте URL: ${url}`);
-      updateDataSourceInfo(`ошибка загрузки данных`);
+      showDebug(`✅ Загружено (старый формат): ${allData.length} записей из ${url}`);
+      
+    } else {
+      throw new Error('Неизвестный формат JSON: нет ни records[], ни columns+data');
     }
+    
+    populateFilters();
+    
+  } catch (err) {
+    showError(`Ошибка загрузки данных за ${month}: ${err.message}`);
+    showDebug(`🔗 Проверьте URL: ${url}`);
+    console.error(err);
   }
-
-  // Инициализация: загрузка данных за последний месяц
-  window.addEventListener('DOMContentLoaded', () => {
-    const savedMonth = localStorage.getItem('selectedMonth');
-    const defaultMonth = availableMonths[availableMonths.length - 1]; // Последний месяц
-    const monthToLoad = savedMonth && availableMonths.includes(savedMonth) ? savedMonth : defaultMonth;
-
-    // Заполняем выпадающий список месяцев
-    const ms = document.getElementById('monthSelect');
-    ms.innerHTML = '<option value="">Выберите месяц</option>';
-    availableMonths.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m;
-      if (m === monthToLoad) opt.selected = true;
-      ms.appendChild(opt);
-    });
-
-    // Загружаем данные
-    loadMonthData(monthToLoad);
-  });
+}
 
   function populateFilters() {
     // Получаем все даты с нормализацией по 5:00:00
