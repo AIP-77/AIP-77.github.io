@@ -311,6 +311,7 @@
   // Функция загрузки данных по месяцу
 async function loadMonthData(month) {
   const url = `https://aip-77.github.io/archive/${month} fullData.json`;
+  showDebug(`🌐 Запрос: ${url}`);
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -762,6 +763,35 @@ async function loadMonthData(month) {
   });
 
   document.getElementById('employeeSelect').addEventListener('change', renderTimeline);
+  // 🚀 Инициализация при загрузке страницы
+window.addEventListener('DOMContentLoaded', async () => {
+  showDebug('📄 Страница загружена, инициализация...');
+  
+  const ms = document.getElementById('monthSelect');
+  ms.innerHTML = '<option value="">Выберите месяц</option>';
+  
+  availableMonths.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m;
+    ms.appendChild(opt);
+  });
+
+  // Выбираем месяц: из localStorage или последний доступный
+  const savedMonth = localStorage.getItem('selectedMonth');
+  const defaultMonth = availableMonths[availableMonths.length - 1];
+  const monthToLoad = savedMonth && availableMonths.includes(savedMonth) 
+    ? savedMonth 
+    : defaultMonth;
+  
+  if (monthToLoad) {
+    ms.value = monthToLoad;
+    showDebug(`🔄 Загружаем данные за: ${monthToLoad}`);
+    await loadMonthData(monthToLoad);
+  } else {
+    showError('Нет доступных месяцев для загрузки');
+  }
+});
 </script>
 
 </body>
