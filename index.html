@@ -37,7 +37,6 @@ body {
     line-height: 1.5;
 }
 
-/* ОГРАНИЧИВАЮЩИЙ КОНТЕЙНЕР */
 .container { 
     max-width: 600px; 
     margin: 0 auto;
@@ -135,7 +134,6 @@ pre {
     overflow-x: auto;
 }
 
-/* ПОЛЯ ВВОДА И SELECT */
 select, input {
     background: var(--input-bg);
     color: var(--tg-text-color);
@@ -254,7 +252,6 @@ select, input {
     font-size: 13px; 
 }
 
-/* ГРУППИРОВКА ЗАДАЧ */
 .task-group {
     margin-bottom: 12px; 
     border: 1px solid var(--tg-hint-color);
@@ -342,31 +339,62 @@ select, input {
     font-size: 11px;
 }
 
-/* ФОРМА АВТОРИЗАЦИИ - ИСПРАВЛЕНО */
-
-
-
-
-
-
-#auth-form select {
-    width: 100%; 
-    padding: 12px; 
-    margin: 10px 0;
-    border-radius: 6px; 
-    border: 1px solid #ccc; 
-    font-size: 16px;
-    background: white;
-    max-width: 100%;
+/* === ФОРМА АВТОРИЗАЦИИ - ОДИН ЧИСТЫЙ БЛОК === */
+#auth-form {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    width: 90%;
+    max-width: 350px;
+    padding: 20px;
 }
 
-/* КНОПКА ВОЙТИ В ФОРМЕ */
-#auth-form .refresh-btn,
+#auth-form .card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    text-align: center;
+}
+
+#auth-form h2 {
+    margin: 0 0 16px 0;
+    color: var(--tg-link-color);
+    font-size: 20px;
+}
+
+#auth-form p {
+    margin: 0 0 16px 0;
+    color: var(--tg-text-color);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+#auth-input {
+    width: 100%;
+    padding: 12px 16px;
+    margin: 0 0 12px 0;
+    border-radius: 8px;
+    border: 2px solid var(--tg-hint-color);
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+#auth-input:focus {
+    outline: none;
+    border-color: var(--tg-button-color);
+}
+
 #auth-submit {
     width: 100%;
-    max-width: 100%;
-    margin-top: 10px;
     padding: 12px;
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 .fade { 
@@ -392,7 +420,6 @@ select, input {
     text-align: center;
 }
 
-/* АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ */
 @media (max-width: 480px) {
     body {
         padding: 10px;
@@ -425,86 +452,7 @@ select, input {
         font-size: 13px;
     }
 }
-/* Форма авторизации - ИСПРАВЛЕННАЯ ВЕРСИЯ */
-#auth-form {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
-    width: 90%;
-    max-width: 320px;
-    padding: 0;
-}
 
-#auth-form .card {
-    background: var(--card-bg);
-    border-radius: 12px;
-    padding: 24px 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    text-align: center;
-    width: 100%;
-}
-
-#auth-form h2 {
-    margin: 0 0 12px 0;
-    color: var(--tg-link-color);
-    font-size: 20px;
-    font-weight: 600;
-    text-align: center;
-}
-
-#auth-form p {
-    margin: 0 0 16px 0;
-    color: var(--tg-text-color);
-    font-size: 13px;
-    line-height: 1.4;
-    text-align: center;
-}
-
-#auth-input {
-    width: 100%;
-    padding: 12px 14px;
-    margin: 0 0 12px 0;
-    border: 2px solid var(--tg-hint-color);
-    border-radius: 8px;
-    font-size: 15px;
-    box-sizing: border-box;
-    background: var(--input-bg);
-    color: var(--tg-text-color);
-    transition: border-color 0.3s;
-}
-
-#auth-input:focus {
-    outline: none;
-    border-color: var(--tg-button-color);
-}
-
-#auth-submit {
-    width: 100%;
-    padding: 12px;
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    background: var(--tg-button-color);
-    color: var(--tg-button-text-color);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: opacity 0.3s;
-}
-
-#auth-submit:hover {
-    opacity: 0.9;
-}
-
-#auth-submit:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* ДЛЯ ОЧЕНЬ МАЛЕНЬКИХ ЭКРАНОВ */
 @media (max-width: 360px) {
     .task-group-summary-item {
         flex-basis: 100%;
@@ -516,10 +464,6 @@ select, input {
     }
 }
 </style>
-    <!-- В <head> добавьте -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 </head>
 <body>
 <div class="container">
