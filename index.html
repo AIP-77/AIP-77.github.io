@@ -273,7 +273,12 @@
   max-width: 400px;
   text-align: center;
 }
-
+.task-normative {
+    font-weight: bold;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 11px;
+}
   </style>
 </head>
 <body>
@@ -548,8 +553,9 @@ function groupTasksByType(tasks) {
         const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
         const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
         const startTime = task['Начало задачи'] || '--:--';
-        // === ДОБАВЛЕНО: Сохраняем номер поставки ===
         const supply = task['Поставка'] || '—';
+        // === ДОБАВЛЕНО: Сохраняем выполнение норматива ===
+        const normative = task['Выполнение норматива'] || null;
         
         groups[workType].tasks.push({
             count: count,
@@ -557,7 +563,8 @@ function groupTasksByType(tasks) {
             pay: pay,
             xisBonus: xisBonus,
             startTime: startTime,
-            supply: supply, // === ДОБАВЛЕНО ===
+            supply: supply,
+            normative: normative, // === ДОБАВЛЕНО ===
             calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
             calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
         });
@@ -569,7 +576,18 @@ function groupTasksByType(tasks) {
     return groups;
 }
 
-    // === ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ ГРУППИРОВАННЫХ ЗАДАЧ ===
+// === ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ: Цвет норматива ===
+function getNormativeColor(value) {
+    if (value === null || value === undefined || value === '') return '#999999'; // Серый если нет данных
+    const num = parseFloat(value);
+    if (isNaN(num)) return '#999999';
+    if (num < 70) return '#e53935';      // Красный (0-70%)
+    if (num < 95) return '#fb8c00';      // Оранжевый (70-95%)
+    if (num <= 120) return '#43a047';    // Зеленый (95-120%)
+    return '#1565c0';                     // Темно-синий (120%+)
+}
+
+// === ФУНКЦИЯ ДЛЯ ОТОБРАЖЕНИЯ ГРУППИРОВАННЫХ ЗАДАЧ ===
 function renderGroupedTasks(tasks) {
     if (!tasks || tasks.length === 0) {
         tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
@@ -613,17 +631,29 @@ function renderGroupedTasks(tasks) {
         <div class="task-group-content">
         `;
         group.tasks.forEach((task, index) => {
+            // === ДОБАВЛЕНО: Определение цвета и отображение норматива ===
+            const normativeColor = getNormativeColor(task.normative);
+            const normativeDisplay = (task.normative !== null && task.normative !== undefined && task.normative !== '') 
+                ? `${task.normative}%` 
+                : '—';
+            
             html += `
             <div class="task-item">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div style="flex: 1;">
             <div><strong>${task.count.toFixed(2)} ед.</strong></div>
             <div class="task-time-info">
-            <!-- === ИЗМЕНЕНО: Добавлен номер поставки перед Начало: === -->
+            <!-- Номер поставки -->
             <span class="task-start-time">№ ${task.supply}</span>
             <span> | </span>
+            <!-- Начало задачи -->
             <span class="task-start-time">Начало: ${task.startTime}</span>
-            <span> | Время работы: ${task.time}</span>
+            <span> | </span>
+            <!-- Время работы -->
+            <span>Время работы: ${task.time}</span>
+            <!-- === ДОБАВЛЕНО: Выполнение норматива с цветом === -->
+            <span> | </span>
+            <span style="color: ${normativeColor}; font-weight: bold;">📊 ${normativeDisplay}</span>
             </div>
             </div>
             <div style="text-align: right;">
