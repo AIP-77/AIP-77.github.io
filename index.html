@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Персональная панель AIP</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+    --tg-bg-color: #f0f2f5;
+    --tg-text-color: #1c1e21;
+    --tg-hint-color: #999;
+    --tg-link-color: #d71923;
+    --tg-button-color: #1a8cd8;
+    --tg-button-text-color: #ffffff;
+    --card-bg: #ffffff;
+}
+* { box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: var(--tg-bg-color);
+    color: var(--tg-text-color);
+    min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+}
+.container { max-width: 600px; margin: 0 auto; }
+.card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+h1 { margin: 0 0 10px 0; color: var(--tg-link-color); font-size: 22px; }
+h2 { margin: 0 0 8px 0; color: var(--tg-link-color); font-size: 18px; }
+h3 { margin: 0 0 6px 0; color: var(--tg-link-color); font-size: 16px; }
+h4 { margin: 0 0 6px 0; color: var(--tg-text-color); font-size: 14px; }
+h5 { margin: 0 0 6px 0; color: var(--tg-hint-color); font-size: 13px; font-weight: normal; }
+.tabs { display: flex; margin-bottom: 16px; border-bottom: 1px solid var(--tg-hint-color); overflow-x: auto; }
+.tab { padding: 10px 16px; cursor: pointer; font-weight: 600; color: var(--tg-hint-color); white-space: nowrap; }
+.tab.active { color: var(--tg-link-color); border-bottom: 2px solid var(--tg-link-color); }
+.loading { text-align: center; padding: 20px; color: var(--tg-hint-color); font-size: 16px; }
+.spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #e0e0e0;
+    border-top: 4px solid var(--tg-link-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.error {
+    color: #e53935; text-align: center; padding: 20px;
+    background: #ffebee; border-radius: 8px; margin: 16px 0;
+}
+.hidden { display: none !important; }
+.calendar {
+    display: grid; gap: 4px; margin: 10px 0;
+    grid-template-columns: repeat(7, 1fr);
+}
+.day {
+    text-align: center; padding: 6px 0; font-size: 12px;
+    border-radius: 4px; color: var(--tg-text-color); cursor: pointer;
+}
+.day.available {
+    background: var(--tg-link-color); color: var(--tg-button-text-color); font-weight: bold;
+}
+.month-selector {
+    display: flex; justify-content: space-between; align-items: center; margin: 10px 0;
+}
+.month-selector button {
+    background: var(--tg-button-color); color: var(--tg-button-text-color);
+    border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;
+}
+.banner {
+    padding: 12px; margin: 12px 0; border-radius: 8px;
+    text-align: center; font-weight: 500; display: none; font-size: 14px;
+}
+.banner.show { display: block; }
+.banner.info { background: #e3f2fd; color: #1565c0; }
+.banner.error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+.banner.success { background: #e8f5e9; color: #2e7d32; }
+.last-update { font-size: 13px; color: var(--tg-hint-color); margin-top: 8px; }
+.refresh-btn {
+    background: var(--tg-button-color); color: var(--tg-button-text-color);
+    border: none; padding: 8px 16px; border-radius: 6px;
+    font-size: 14px; cursor: pointer; margin-top: 10px; display: inline-block;
+}
+.refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.version-info { font-size: 12px; color: var(--tg-hint-color); margin: 5px 0; text-align: center; }
+.footer { text-align: center; margin-top: 30px; color: var(--tg-hint-color); font-size: 13px; }
+/* Стили для группировки задач */
+.task-group {
+    margin-bottom: 12px; border: 1px solid var(--tg-hint-color);
+    border-radius: 8px; overflow: hidden;
+}
+.task-group-header {
+    background: var(--card-bg); padding: 12px; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; font-weight: 600;
+    border-bottom: 1px solid var(--tg-hint-color);
+}
+.task-group-content {
+    background: var(--card-bg); max-height: 0; overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.task-group.expanded .task-group-content { max-height: 1000px; }
+.task-item {
+    padding: 10px 12px; border-bottom: 1px solid var(--tg-hint-color); font-size: 14px;
+}
+.task-item:last-child { border-bottom: none; }
+.task-group-summary {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    font-size: 13px; color: var(--tg-text-color); margin-top: 6px;
+}
+.task-group-summary-item { display: flex; align-items: center; gap: 4px; }
+.expand-icon { transition: transform 0.3s ease; font-size: 12px; }
+.task-group.expanded .expand-icon { transform: rotate(180deg); }
+.task-total {
+    font-weight: bold; color: var(--tg-link-color);
+    background: var(--tg-bg-color); padding: 2px 6px;
+    border-radius: 4px; font-size: 13px; border: 1px solid var(--tg-hint-color);
+}
+.task-time-info { color: var(--tg-text-color); font-size: 12px; margin-top: 2px; }
+.task-payment-info { display: flex; gap: 12px; color: var(--tg-text-color); }
+.seasonal-bonus { color: #28a745; font-weight: 500; }
+.task-start-time {
+    background: var(--tg-button-color); color: var(--tg-button-text-color);
+    padding: 1px 4px; border-radius: 3px; font-size: 11px;
+}
+.task-normative {
+    font-weight: bold; padding: 1px 4px; border-radius: 3px; font-size: 11px;
+}
+/* Стили для формы авторизации */
+#auth-form {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: none; justify-content: center; align-items: center;
+}
+#auth-form .card { width: 90%; max-width: 400px; text-align: center; }
+#auth-input {
+    width: 100%; padding: 12px; margin: 10px 0;
+    border-radius: 6px; border: 1px solid #ccc; font-size: 16px;
+}
+select {
+    width: 100%; padding: 12px; margin: 10px 0;
+    border-radius: 6px; border: 1px solid #ccc; font-size: 16px;
+    background: white;
+}
+pre {
+    white-space: pre-wrap; font-family: monospace;
+    background: #f5f5f5; padding: 10px; border-radius: 6px;
+    font-size: 13px; color: var(--tg-text-color);
+}
+.fade { opacity: 1; transition: opacity 0.3s ease; }
+.fade.hidden { opacity: 0; }
+.clear-cache-btn {
+    background: #dc3545; color: white; border: none;
+    padding: 8px 16px; border-radius: 6px; font-size: 14px;
+    cursor: pointer; margin: 10px 0; display: block; width: 100%; text-align: center;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <!-- Форма авторизации -->
+    <div id="auth-form">
+        <div class="card">
+            <h2>🔐 Авторизация</h2>
+            <p>Введите ваш Telegram ID или пароль сотрудника:</p>
+            <input type="text" id="auth-input" name="auth-input" placeholder="Telegram ID или пароль" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            <button id="auth-submit" class="refresh-btn" style="width: 100%;">Войти</button>
+        </div>
+    </div>
+
+    <h1>📊 Персональная панель</h1>
+    <div id="version-info" class="version-info">(🛠 V.2026.02.06 🛠)</div>
+    <div id="banner" class="banner"></div>
+    
+    <div class="tabs">
+        <div id="tab-employee" class="tab active">Мой отчёт</div>
+        <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
+        <div id="tab-manager" class="tab hidden">Отдел</div>
+        <div id="tab-statistics" class="tab hidden">📊 Статистика</div>
+        <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
+    </div>
+
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Загрузка данных...</p>
+    </div>
+    <div id="error" class="error hidden"></div>
+
+    <!-- Вкладка "Мой отчёт" -->
+    <div id="employee-view" class="hidden">
+        <div class="card">
+            <h2>👷‍♂️ Персональный отчет</h2>
+            <p id="last-update" class="last-update">Последнее обновление: —</p>
+            <button id="refreshBtn" class="refresh-btn">🔄 Обновить данные</button>
+            <h5>(🛠 Приложение находится в разработке. Представленная информация носит информационный характер 🛠)</h5>
+            <h4>❗ Внимание: изменение даты происходит в 8:45 (все что до 8:45 это прошлый день)</h4>
+            
+            <div id="main-data-loading" class="loading">
+                <div class="spinner"></div>
+                <p>Загрузка основных данных...</p>
+            </div>
+            <div id="main-data-content" class="hidden fade">
+                <p><strong>Сотрудник:</strong> <span id="name">—</span></p>
+                <p><strong>Отдел:</strong> <span id="department">—</span></p>
+                <p><strong>Дата:</strong> <span id="date">—</span></p>
+                <p><strong>Отработано:</strong> <span id="worked">—</span></p>
+                <p><strong>Рабочее время:</strong> <span id="planned">—</span></p>
+                <p><strong>Производительность:</strong> <span id="efficiency">—</span></p>
+                <!-- === ДОБАВЛЕНО: Средний процент выполнения нормативов === -->
+                <p><strong>📊 Выполнение нормативов:</strong> <span id="avg-normative">—</span></p>
+                <p><strong>Заработано за день:</strong> <span id="pay-day">—</span></p>
+                <p><strong>Из них сезонная доплата:</strong> <span id="xisBonusDay">—</span></p>
+                <p><strong>Заработано за месяц:</strong> <span id="pay-month">—</span></p>
+            </div>
+        </div>
+        <h5>🔄 Обновление данных происходит по расписанию, если заметили неточности сообщите Руководителю</h5>
+        
+        <div class="card">
+            <h2>📋 Детализация задач</h2>
+            <div id="details-loading" class="loading">
+                <div class="spinner"></div>
+                <p>Загрузка детализации...</p>
+            </div>
+            <div id="details-content" class="hidden fade">
+                <div id="tasks-grouped"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📅 Календарь посещаемости</h2>
+            <div id="calendar-loading" class="loading">
+                <div class="spinner"></div>
+                <p>Загрузка календаря...</p>
+            </div>
+            <div id="calendar-content" class="hidden">
+                <div class="month-selector">
+                    <button id="prevMonth">◀</button>
+                    <span id="currentMonth">Загрузка...</span>
+                    <button id="nextMonth">▶</button>
+                </div>
+                <div class="calendar" id="calendar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Вкладка "Отдел" -->
+    <div id="manager-view" class="hidden">
+        <div id="department-selector" class="card hidden">
+            <h2>👨‍💼 Выберите отдел</h2>
+            <select id="departmentSelect">
+                <option value="">— Выберите отдел —</option>
+            </select>
+        </div>
+        <div id="department-report" class="hidden">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                    <h2>Отчёт: <span id="dept-name">—</span></h2>
+                    <button id="change-department-btn" class="refresh-btn" style="padding:6px 12px;font-size:12px;">Выбрать другой</button>
+                </div>
+                <p id="dept-last-update" class="last-update">Последнее обновление: —</p>
+                
+                <div id="dept-data-loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Загрузка данных отдела...</p>
+                </div>
+                
+                <div id="dept-data-content" class="hidden fade">
+                    <p><strong>📅 Отчёт на дату:</strong> <span id="dept-report-date">—</span></p>
+                    <p><strong>👥 Явка:</strong> <span id="dept-attendance">—</span></p>
+                    <p><strong>📊 Процент явки:</strong> <span id="dept-attendance-percent">—</span></p>
+                    
+                    <h3>📋 Производительность сотрудников:</h3>
+                    <pre id="dept-employees-list">—</pre>
+                    
+                    <p><strong>📈 Средняя эффективность команды:</strong> <span id="dept-avg-efficiency">—</span></p>
+                    
+                    <h5 style="margin-top:15px;">🔄 Обновление данных происходит по расписанию, если заметили неточности сообщите Руководителю</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">Система малой автоматизации AIP • © 2025-2026</div>
+</div>
+
+<button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
+
+<script>
+// ============================================
+// 1. КОНФИГУРАЦИЯ
+// ============================================
+const DATA_SOURCES = {
+    staff: 'https://AIP-77.github.io/archive/staff%20fullData.json',
+    monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')}%20fullData.json`
+};
+
+let chatId = null;
+let isManager = false;
+let isAdmin = false;
+let currentUserData = null;
+let currentRecord = null;
+let currentMonthData = null;
+let managedDepartments = [];
+let dataLastUpdated = null;
+let availableMonths = [];
+let currentMonthIndex = 0;
+let displayedMonthYear = null;
+let isDataOutdated = false;
+
+// Виды работ, которые исключаются из расчета норматива
+const EXCLUDED_WORK_TYPES = [
+    'Дополнительное время для работ',
+    'Рабочий день',
+    'Переупаковка паллеты',
+    'Другие виды работ'
+];
+
+// ============================================
+// 2. DOM ЭЛЕМЕНТЫ
+// ============================================
+const loading = document.getElementById('loading');
+const error = document.getElementById('error');
+const employeeView = document.getElementById('employee-view');
+const managerView = document.getElementById('manager-view');
+const banner = document.getElementById('banner');
+const versionInfo = document.getElementById('version-info');
+const tasksGrouped = document.getElementById('tasks-grouped');
+const tabEmployee = document.getElementById('tab-employee');
+const tabManager = document.getElementById('tab-manager');
+const tabInfo = document.getElementById('tab-info');
+const tabAdmin = document.getElementById('tab-admin');
+const tabStatistics = document.getElementById('tab-statistics');
+const mainDataLoading = document.getElementById('main-data-loading');
+const mainDataContent = document.getElementById('main-data-content');
+const detailsLoading = document.getElementById('details-loading');
+const detailsContent = document.getElementById('details-content');
+const calendarLoading = document.getElementById('calendar-loading');
+const calendarContent = document.getElementById('calendar-content');
+const refreshBtn = document.getElementById('refreshBtn');
+const clearCacheBtn = document.getElementById('clearCacheBtn');
+const prevMonthBtn = document.getElementById('prevMonth');
+const nextMonthBtn = document.getElementById('nextMonth');
+const currentMonthSpan = document.getElementById('currentMonth');
+const calendar = document.getElementById('calendar');
+const authForm = document.getElementById('auth-form');
+const authInput = document.getElementById('auth-input');
+const authSubmit = document.getElementById('auth-submit');
+const departmentSelect = document.getElementById('departmentSelect');
+const departmentSelector = document.getElementById('department-selector');
+const departmentReport = document.getElementById('department-report');
+const changeDepartmentBtn = document.getElementById('change-department-btn');
+const deptDataLoading = document.getElementById('dept-data-loading');
+const deptDataContent = document.getElementById('dept-data-content');
+
+// ============================================
+// 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================
+function normalizeRecords(data) {
+    if (data && data.columns && data.data) {
+        return data.data.map(row => {
+            const obj = {};
+            data.columns.forEach((col, idx) => { obj[col] = row[idx] || ''; });
+            return obj;
+        });
+    }
+    if (data && data.records && Array.isArray(data.records)) return data.records;
+    return [];
+}
+
+function parseRussianNumber(numberStr) {
+    if (!numberStr || numberStr === '0,00 ₽') return 0;
+    const cleanStr = numberStr.replace(/[^\d,\s]/g, '').replace(/\s/g, '').replace(',', '.');
+    const result = parseFloat(cleanStr);
+    return isNaN(result) ? 0 : result;
+}
+
+function timeToSeconds(timeStr) {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 3600 + parts[1] * 60;
+    if (parts.length === 1) return parts[0] * 3600;
+    return 0;
+}
+
+function secondsToTime(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+function formatCurrency(amount) {
+    return amount.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 2 });
+}
+
+function calculateDayPay(tasks) {
+    let total = 0;
+    tasks.forEach(task => {
+        total += (parseRussianNumber(task['Расчетная сумма'] || '0') + parseRussianNumber(task['Доплата XIS'] || '0'));
+    });
+    return total;
+}
+
+function calculateXisBonus(tasks) {
+    let total = 0;
+    tasks.forEach(task => { total += parseRussianNumber(task['Доплата XIS'] || '0'); });
+    return total;
+}
+
+function calculateMonthlyPay(tasksByDate) {
+    let total = 0;
+    Object.values(tasksByDate).forEach(tasks => {
+        tasks.forEach(task => {
+            total += (parseRussianNumber(task['Расчетная сумма'] || '0') + parseRussianNumber(task['Доплата XIS'] || '0'));
+        });
+    });
+    return total;
+}
+
+function calculateTotalTime(tasks, fieldName) {
+    let totalSeconds = 0;
+    tasks.forEach(task => {
+        if (task[fieldName]) totalSeconds += timeToSeconds(task[fieldName]);
+    });
+    return secondsToTime(totalSeconds);
+}
+
+function calculateEfficiency(worked, planned) {
+    const workedSec = timeToSeconds(worked);
+    const plannedSec = timeToSeconds(planned);
+    if (plannedSec === 0) return 0;
+    return Math.round(((workedSec / plannedSec) * 100) * 100) / 100;
+}
+
+// === ФУНКЦИЯ: Цвет норматива ===
+function getNormativeColor(value) {
+    if (value === null || value === undefined || value === '' || isNaN(value)) return '#999999';
+    const num = parseFloat(value);
+    if (num < 70) return '#e53935';
+    if (num < 95) return '#fb8c00';
+    if (num <= 120) return '#43a047';
+    return '#1565c0';
+}
+
+// === ФУНКЦИЯ: Проверка на исключенный вид работ ===
+function isExcludedWorkType(workType) {
+    return EXCLUDED_WORK_TYPES.includes(workType);
+}
+
+// === ФУНКЦИЯ: Расчет среднего норматива ===
+function calculateAverageNormative(tasks, excludeTypes = true) {
+    let total = 0;
+    let count = 0;
+    tasks.forEach(task => {
+        const workType = task['Вид работ'] || '';
+        const normative = task['Выполнение норматива'];
+        
+        if (excludeTypes && isExcludedWorkType(workType)) return;
+        
+        if (normative !== null && normative !== undefined && normative !== '') {
+            const num = parseFloat(normative);
+            if (!isNaN(num)) {
+                total += num;
+                count++;
+            }
+        }
+    });
+    return count > 0 ? Math.round((total / count) * 100) / 100 : null;
+}
+
+async function fetchData(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
+    return await response.json();
+}
+
+function showError(msg) {
+    loading.classList.add('hidden');
+    error.textContent = msg;
+    error.classList.remove('hidden');
+}
+
+function showBanner(message, type = 'info', duration = 5000) {
+    banner.textContent = message;
+    banner.className = `banner show ${type}`;
+    if (duration > 0) setTimeout(() => banner.classList.remove('show'), duration);
+}
+
+function applyTelegramTheme() {
+    if (!window.Telegram?.WebApp) return;
+    const theme = Telegram.WebApp.themeParams;
+    const root = document.documentElement;
+    root.style.setProperty('--tg-bg-color', theme.bg_color || '#f0f2f5');
+    root.style.setProperty('--tg-text-color', theme.text_color || '#1c1e21');
+    root.style.setProperty('--tg-hint-color', theme.hint_color || '#999');
+    root.style.setProperty('--tg-link-color', theme.link_color || '#d71923');
+    root.style.setProperty('--tg-button-color', theme.button_color || '#1a8cd8');
+    root.style.setProperty('--tg-button-text-color', theme.button_text_color || '#ffffff');
+}
+
+function updateLastUpdate() {
+    const now = new Date();
+    document.getElementById('last-update').textContent = `Последнее обновление: ${now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function updateVersionInfo() {
+    if (!dataLastUpdated) {
+        versionInfo.textContent = '(🛠 V.2026.02.06 🛠)';
+        return;
+    }
+    try {
+        const updateDate = new Date(dataLastUpdated);
+        versionInfo.innerHTML = `(🛠 V.2026.02.06 | Данные: ${updateDate.toLocaleDateString('ru-RU')} ${updateDate.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})} 🛠)`;
+    } catch (err) {
+        versionInfo.textContent = '(🛠 V.2026.02.06 🛠)';
+    }
+}
+
+// ============================================
+// 4. ГРУППИРОВКА ЗАДАЧ
+// ============================================
+function groupTasksByType(tasks) {
+    const groups = {};
+    tasks.forEach(task => {
+        const workType = task['Вид работ'] || 'Другие виды работ';
+        if (!groups[workType]) {
+            groups[workType] = {
+                tasks: [],
+                totalCount: 0,
+                totalTime: 0,
+                totalPay: 0,
+                totalXisBonus: 0,
+                normativeValues: []
+            };
+        }
+        const count = parseFloat(task['Количество единиц'] || '0');
+        const time = task['Рабочее время'] || '00:00';
+        const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
+        const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
+        const startTime = task['Начало задачи'] || '--:--';
+        const supply = task['Поставка'] || '—';
+        const normative = task['Выполнение норматива'] !== undefined ? task['Выполнение норматива'] : null;
+        
+        groups[workType].tasks.push({
+            count: count,
+            time: time,
+            pay: pay,
+            xisBonus: xisBonus,
+            startTime: startTime,
+            supply: supply,
+            normative: normative,
+            calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
+            calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
+        });
+        
+        // Собираем значения норматива для расчета среднего (исключая определенные виды работ)
+        if (!isExcludedWorkType(workType) && normative !== null && normative !== undefined && normative !== '') {
+            const num = parseFloat(normative);
+            if (!isNaN(num)) {
+                groups[workType].normativeValues.push(num);
+            }
+        }
+        
+        groups[workType].totalCount += count;
+        groups[workType].totalTime += timeToSeconds(time);
+        groups[workType].totalPay += (pay + xisBonus);
+        groups[workType].totalXisBonus += xisBonus;
+    });
+    return groups;
+}
+
+function renderGroupedTasks(tasks) {
+    if (!tasks || tasks.length === 0) {
+        tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        return;
+    }
+    const groups = groupTasksByType(tasks);
+    let html = '';
+    Object.keys(groups).sort().forEach(workType => {
+        const group = groups[workType];
+        const totalTimeFormatted = secondsToTime(group.totalTime);
+        const totalPayFormatted = formatCurrency(group.totalPay);
+        const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
+        
+        // === ДОБАВЛЕНО: Расчет среднего норматива для группы ===
+        let avgNormativeHtml = '';
+        if (group.normativeValues.length > 0) {
+            const avgNorm = Math.round((group.normativeValues.reduce((a, b) => a + b, 0) / group.normativeValues.length) * 100) / 100;
+            const normColor = getNormativeColor(avgNorm);
+            avgNormativeHtml = `<div class="task-group-summary-item"><span>📊</span><span style="color: ${normColor};">Ср: ${avgNorm}%</span></div>`;
+        }
+        
+        html += `
+        <div class="task-group">
+        <div class="task-group-header" onclick="toggleTaskGroup(this)">
+        <div style="flex: 1;">
+        <div>${workType}</div>
+        <div class="task-group-summary">
+        <div class="task-group-summary-item">
+        <span>📊</span>
+        <span>${group.totalCount.toFixed(2)} ед.</span>
+        </div>
+        <div class="task-group-summary-item">
+        <span>⏱️</span>
+        <span>${totalTimeFormatted}</span>
+        </div>
+        <div class="task-group-summary-item">
+        <span>💰</span>
+        <span class="task-total">${totalPayFormatted}</span>
+        </div>
+        ${group.totalXisBonus > 0 ? `
+        <div class="task-group-summary-item">
+        <span>🎁</span>
+        <span class="seasonal-bonus">${totalXisBonusFormatted}</span>
+        </div>
+        ` : ''}
+        ${avgNormativeHtml}
+        </div>
+        </div>
+        <div class="expand-icon">▼</div>
+        </div>
+        <div class="task-group-content">
+        `;
+        group.tasks.forEach((task, index) => {
+            // === ИЗМЕНЕНО: Цвет и отображение норматива ===
+            const normativeColor = getNormativeColor(task.normative);
+            const normativeDisplay = (task.normative !== null && task.normative !== undefined && task.normative !== '') 
+                ? `${task.normative}%` 
+                : '—';
+            
+            html += `
+            <div class="task-item">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1;">
+            <div>
+            <strong>${task.count.toFixed(2)} ед.</strong>
+            ${task.normative !== null && task.normative !== undefined && task.normative !== '' ? 
+                `<span class="task-normative" style="color: ${normativeColor}; margin-left: 8px;">📊 ${task.normative}%</span>` : ''}
+            </div>
+            <div class="task-time-info">
+            <span class="task-start-time">№ ${task.supply}</span>
+            <span> | </span>
+            <span class="task-start-time">Начало: ${task.startTime}</span>
+            <span> | </span>
+            <span>Время работы: ${task.time}</span>
+            </div>
+            </div>
+            <div style="text-align: right;">
+            <div class="task-payment-info">
+            <span>${task.calculatedPay}</span>
+            ${task.xisBonus > 0 ? `<span class="seasonal-bonus">${task.calculatedXisBonus}</span>` : ''}
+            </div>
+            </div>
+            </div>
+            </div>
+            `;
+        });
+        html += `
+        </div>
+        </div>
+        `;
+    });
+    tasksGrouped.innerHTML = html;
+}
+
+function toggleTaskGroup(header) {
+    const group = header.parentElement;
+    group.classList.toggle('expanded');
+}
+
+// ============================================
+// 5. КАЛЕНДАРЬ
+// ============================================
+async function loadCalendarData() {
+    try {
+        calendarLoading.classList.remove('hidden');
+        calendarContent.classList.add('hidden');
+        const now = new Date();
+        availableMonths = [];
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            availableMonths.push(`${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`);
+        }
+        if (availableMonths.length === 0) throw new Error('Нет месяцев');
+        currentMonthIndex = availableMonths.length - 1;
+        await renderCalendarForMonth(availableMonths[currentMonthIndex]);
+    } catch (err) {
+        calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
+    }
+}
+
+async function renderCalendarForMonth(monthKey) {
+    try {
+        const [yearStr, monthStr] = monthKey.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
+        const userDates = new Set();
+        normalizeRecords(monthData).forEach(record => {
+            if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
+                userDates.add(record['Рабочий день']);
+            }
+        });
+        renderCalendarGrid(year, month, userDates);
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+        prevMonthBtn.disabled = currentMonthIndex === 0;
+        nextMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
+        calendarLoading.classList.add('hidden');
+        calendarContent.classList.remove('hidden');
+    } catch (err) {
+        calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
+    }
+}
+
+function renderCalendarGrid(year, monthNum, userDates) {
+    calendar.innerHTML = '';
+    ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        el.style.textAlign = 'center';
+        calendar.appendChild(el);
+    });
+    const firstDay = new Date(year, monthNum - 1, 1);
+    const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+    const lastDayNum = new Date(year, monthNum, 0).getDate();
+    for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
+    for (let day = 1; day <= lastDayNum; day++) {
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.textContent = day;
+        const dateStr = `${String(day).padStart(2, '0')}.${String(monthNum).padStart(2, '0')}.${year}`;
+        if (userDates.has(dateStr)) {
+            el.classList.add('available');
+            el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
+        } else {
+            el.style.color = 'var(--tg-hint-color)';
+            el.style.cursor = 'default';
+        }
+        calendar.appendChild(el);
+    }
+}
+
+async function loadRecordByDate(year, month, day) {
+    try {
+        const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
+        const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
+        const records = normalizeRecords(monthData);
+        const userTasks = records.filter(record => record['Сотрудник'] === currentUserData.name && record['Рабочий день'] === dateStr);
+        if (userTasks.length === 0) {
+            showBanner(`Нет данных за ${dateStr}`, 'info', 3000);
+            return;
+        }
+        const tasksByDate = {};
+        records.filter(r => r['Сотрудник'] === currentUserData.name).forEach(task => {
+            if (!tasksByDate[task['Рабочий день']]) tasksByDate[task['Рабочий день']] = [];
+            tasksByDate[task['Рабочий день']].push(task);
+        });
+        document.getElementById('date').textContent = dateStr;
+        document.getElementById('worked').textContent = calculateTotalTime(userTasks, 'Рабочее время');
+        document.getElementById('planned').textContent = calculateTotalTime(userTasks, 'Время по табелю');
+        document.getElementById('efficiency').textContent = calculateEfficiency(calculateTotalTime(userTasks, 'Рабочее время'), calculateTotalTime(userTasks, 'Время по табелю')) + '%';
+        
+        // === ДОБАВЛЕНО: Расчет среднего норматива для даты ===
+        const avgNorm = calculateAverageNormative(userTasks, true);
+        const avgNormDisplay = avgNorm !== null ? `${avgNorm}%` : '—';
+        const avgNormColor = avgNorm !== null ? getNormativeColor(avgNorm) : '#999';
+        document.getElementById('avg-normative').innerHTML = `<span style="color: ${avgNormColor}; font-weight: bold;">${avgNormDisplay}</span>`;
+        
+        document.getElementById('pay-day').textContent = formatCurrency(calculateDayPay(userTasks));
+        document.getElementById('xisBonusDay').textContent = formatCurrency(calculateXisBonus(userTasks));
+        document.getElementById('pay-month').textContent = formatCurrency(calculateMonthlyPay(tasksByDate));
+        renderGroupedTasks(userTasks);
+        showBanner(`Данные за ${dateStr} загружены`, 'success', 3000);
+    } catch (err) {
+        showBanner(`Ошибка: ${err.message}`, 'error', 5000);
+    }
+}
+
+// ============================================
+// 6. ОТДЕЛ
+// ============================================
+async function loadDepartmentData(departmentName) {
+    try {
+        deptDataLoading.classList.remove('hidden');
+        deptDataContent.classList.add('hidden');
+        const now = new Date();
+        let year = now.getFullYear();
+        let month = now.getMonth() + 1;
+        let attemptCount = 0;
+        let loadedData = null;
+        displayedMonthYear = null;
+        isDataOutdated = false;
+        
+        while (attemptCount < 2 && !loadedData) {
+            try {
+                const data = await fetchData(DATA_SOURCES.monthlyData(year, month));
+                const recs = normalizeRecords(data);
+                const deptHasData = recs.some(r => r['Отдел'] === departmentName);
+                if (deptHasData) {
+                    loadedData = data;
+                    displayedMonthYear = { year, month };
+                    if (month !== now.getMonth() + 1 || year !== now.getFullYear()) isDataOutdated = true;
+                } else {
+                    throw new Error('Нет данных за этот месяц');
+                }
+            } catch (e) {
+                month--;
+                if (month === 0) { month = 12; year--; }
+                attemptCount++;
+            }
+        }
+        if (!loadedData) throw new Error('Нет данных за последние 3 месяца');
+        
+        dataLastUpdated = loadedData.lastUpdated;
+        updateVersionInfo();
+        
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        const staffRecords = normalizeRecords(staffData);
+        const monthRecords = normalizeRecords(loadedData);
+        const deptEmployees = staffRecords.filter(r => r['Отдел'] === departmentName);
+        if (deptEmployees.length === 0) throw new Error('Сотрудники не найдены');
+        
+        const tasksByDate = {};
+        monthRecords.forEach(task => {
+            if (deptEmployees.some(e => e['Сотрудник'] === task['Сотрудник'])) {
+                if (!tasksByDate[task['Рабочий день']]) tasksByDate[task['Рабочий день']] = [];
+                tasksByDate[task['Рабочий день']].push(task);
+            }
+        });
+        
+        const dates = Object.keys(tasksByDate).sort((a, b) => {
+            const [d1,m1,y1] = a.split('.').map(Number);
+            const [d2,m2,y2] = b.split('.').map(Number);
+            return new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1);
+        });
+        
+        const latestDate = dates.length > 0 ? dates[0] : '—';
+        let present = 0, totalEff = 0, effCount = 0, stats = [];
+        
+        deptEmployees.forEach(emp => {
+            const empTasks = monthRecords.filter(task => task['Сотрудник'] === emp['Сотрудник'] && task['Рабочий день'] === latestDate);
+            if (empTasks.length > 0) {
+                present++;
+                const eff = calculateEfficiency(calculateTotalTime(empTasks, 'Рабочее время'), calculateTotalTime(empTasks, 'Время по табелю'));
+                totalEff += eff; effCount++;
+                stats.push(`${emp['Сотрудник']}: ${eff}%`);
+            } else {
+                stats.push(`${emp['Сотрудник']}: отсутствует`);
+            }
+        });
+        
+        document.getElementById('dept-report-date').textContent = latestDate;
+        document.getElementById('dept-attendance').textContent = `${present} из ${deptEmployees.length}`;
+        document.getElementById('dept-attendance-percent').textContent = `${deptEmployees.length ? Math.round(present/deptEmployees.length*100) : 0}%`;
+        document.getElementById('dept-employees-list').textContent = stats.join('\n');
+        document.getElementById('dept-avg-efficiency').textContent = `${effCount ? Math.round(totalEff/effCount*100)/100 : 0}%`;
+        document.getElementById('dept-last-update').textContent = `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}`;
+        
+        deptDataLoading.classList.add('hidden');
+        deptDataContent.classList.remove('hidden');
+        
+        if (isDataOutdated && displayedMonthYear) {
+            const monthNames = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+            showBanner(`⚠️ Внимание: Отчет за текущий месяц еще не сформирован. Показаны данные за ${monthNames[displayedMonthYear.month - 1]} ${displayedMonthYear.year}`, 'error', 0);
+        }
+    } catch (err) {
+        deptDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
+    }
+}
+
+async function initializeManagerView() {
+    if (!isManager) return;
+    try {
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        const records = normalizeRecords(staffData);
+        const departments = new Set();
+        records.forEach(record => {
+            if (managedDepartments.includes(record['Руководит отделом']) || currentUserData.managedDepartments.includes(record['Отдел'])) {
+                departments.add(record['Отдел']);
+            }
+        });
+        managedDepartments = Array.from(departments);
+        if (managedDepartments.length > 0) renderDepartmentSelector();
+    } catch (err) { console.error(err); }
+}
+
+function renderDepartmentSelector() {
+    departmentSelect.innerHTML = '<option value="">— Выберите отдел —</option>';
+    managedDepartments.forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = dept; opt.textContent = dept;
+        departmentSelect.appendChild(opt);
+    });
+    departmentSelector.classList.remove('hidden');
+}
+
+// ============================================
+// 7. ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
+// ============================================
+async function loadUserData() {
+    try {
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        if (!chatId || chatId === 'undefined' || chatId === 'null') {
+            const manualInput = prompt('Введите ваш Telegram ID или пароль:', '');
+            if (!manualInput) throw new Error('Идентификатор не указан');
+            chatId = manualInput;
+        }
+        const records = normalizeRecords(staffData);
+        let userRecord = records.find(record =>
+            String(record['Telegram ID']) === chatId ||
+            String(record['Пароль']) === chatId
+        );
+        if (!userRecord) throw new Error('Идентификатор не найден в системе');
+        
+        currentUserData = {
+            name: userRecord['Сотрудник'],
+            department: userRecord['Отдел'],
+            role: userRecord['Роль'],
+            managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
+        };
+        isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
+        isAdmin = currentUserData.role.toLowerCase() === 'админ';
+        managedDepartments = currentUserData.managedDepartments;
+        
+        const now = new Date();
+        let year = now.getFullYear();
+        let month = now.getMonth() + 1;
+        let attemptCount = 0;
+        let loadedData = null;
+        displayedMonthYear = null;
+        isDataOutdated = false;
+        
+        while (attemptCount < 2 && !loadedData) {
+            try {
+                const data = await fetchData(DATA_SOURCES.monthlyData(year, month));
+                const recs = normalizeRecords(data);
+                const userHasData = recs.some(r => r['Сотрудник'] === currentUserData.name);
+                if (userHasData) {
+                    loadedData = data;
+                    displayedMonthYear = { year, month };
+                    if (month !== now.getMonth() + 1 || year !== now.getFullYear()) isDataOutdated = true;
+                } else {
+                    throw new Error('Нет данных за этот месяц');
+                }
+            } catch (e) {
+                month--;
+                if (month === 0) { month = 12; year--; }
+                attemptCount++;
+            }
+        }
+        if (!loadedData) throw new Error('Нет данных за последние 3 месяца');
+        
+        currentMonthData = loadedData;
+        dataLastUpdated = currentMonthData.lastUpdated;
+        updateVersionInfo();
+        await generatePersonalReport();
+        await loadCalendarData();
+        renderUI();
+        loading.classList.add('hidden');
+    } catch (err) {
+        loading.classList.add('hidden');
+        showError('Ошибка: ' + err.message);
+    }
+}
+
+async function generatePersonalReport() {
+    if (!currentMonthData || !currentUserData) return;
+    const userTasks = normalizeRecords(currentMonthData).filter(record => record['Сотрудник'] === currentUserData.name);
+    if (userTasks.length === 0) {
+        showBanner('Нет данных о задачах за текущий месяц', 'info');
+        return;
+    }
+    const tasksByDate = {};
+    userTasks.forEach(task => {
+        if (!tasksByDate[task['Рабочий день']]) tasksByDate[task['Рабочий день']] = [];
+        tasksByDate[task['Рабочий день']].push(task);
+    });
+    const dates = Object.keys(tasksByDate).sort((a, b) => {
+        const [d1,m1,y1] = a.split('.').map(Number);
+        const [d2,m2,y2] = b.split('.').map(Number);
+        return new Date(y2,m2-1,d2) - new Date(y1,m1-1,d1);
+    });
+    if (dates.length === 0) return;
+    const latestTasks = tasksByDate[dates[0]];
+    
+    // === ДОБАВЛЕНО: Расчет среднего норматива ===
+    const avgNorm = calculateAverageNormative(latestTasks, true);
+    const avgNormDisplay = avgNorm !== null ? `${avgNorm}%` : '—';
+    const avgNormColor = avgNorm !== null ? getNormativeColor(avgNorm) : '#999';
+    
+    currentRecord = {
+        date: dates[0],
+        worked: calculateTotalTime(latestTasks, 'Рабочее время'),
+        planned: calculateTotalTime(latestTasks, 'Время по табелю'),
+        efficiency: calculateEfficiency(calculateTotalTime(latestTasks, 'Рабочее время'), calculateTotalTime(latestTasks, 'Время по табелю')) + '%',
+        avgNormative: `<span style="color: ${avgNormColor}; font-weight: bold;">${avgNormDisplay}</span>`,
+        payDay: formatCurrency(calculateDayPay(latestTasks)),
+        xisBonusDay: formatCurrency(calculateXisBonus(latestTasks)),
+        payMonth: formatCurrency(calculateMonthlyPay(tasksByDate)),
+        details: latestTasks
+    };
+    updateMainData();
+    updateDetails();
+}
+
+function updateDetails() {
+    if (!currentRecord?.details) {
+        tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        return;
+    }
+    renderGroupedTasks(currentRecord.details);
+    detailsLoading.classList.add('hidden');
+    detailsContent.classList.remove('hidden');
+}
+
+function updateMainData() {
+    if (!currentUserData || !currentRecord) return;
+    document.getElementById('name').textContent = currentUserData.name;
+    document.getElementById('department').textContent = currentUserData.department;
+    document.getElementById('date').textContent = currentRecord.date;
+    document.getElementById('worked').textContent = currentRecord.worked;
+    document.getElementById('planned').textContent = currentRecord.planned;
+    document.getElementById('efficiency').textContent = currentRecord.efficiency;
+    document.getElementById('avg-normative').innerHTML = currentRecord.avgNormative;
+    document.getElementById('pay-day').textContent = currentRecord.payDay;
+    document.getElementById('xisBonusDay').textContent = currentRecord.xisBonusDay;
+    document.getElementById('pay-month').textContent = currentRecord.payMonth;
+    mainDataLoading.classList.add('hidden');
+    mainDataContent.classList.remove('hidden');
+}
+
+function renderUI() {
+    if (isManager) tabManager.classList.remove('hidden');
+    if (isAdmin) tabAdmin.classList.remove('hidden');
+    employeeView.classList.remove('hidden');
+    updateLastUpdate();
+    if (isManager) initializeManagerView();
+    
+    if (isDataOutdated && displayedMonthYear) {
+        const monthNames = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+        showBanner(`⚠️ Внимание: Отчет за текущий месяц еще не сформирован. Показаны данные за ${monthNames[displayedMonthYear.month - 1]} ${displayedMonthYear.year}`, 'error', 0);
+    }
+}
+
+// ============================================
+// 8. ИНИЦИАЛИЗАЦИЯ
+// ============================================
+async function init() {
+    try {
+        if(authInput) authInput.value = '';
+        
+        if (window.Telegram?.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            applyTelegramTheme();
+            const user = Telegram.WebApp.initDataUnsafe.user;
+            if (user?.id) {
+                chatId = String(user.id);
+                localStorage.setItem('userAuthId', chatId);
+                if(authForm) authForm.style.display = 'none';
+                await loadUserData();
+                return;
+            }
+        }
+        
+        const savedId = localStorage.getItem('userAuthId');
+        if (savedId) {
+            chatId = savedId;
+            if(authForm) authForm.style.display = 'none';
+            await loadUserData();
+        } else {
+            if(authForm) authForm.style.display = 'flex';
+            if(authInput) authInput.focus();
+        }
+    } catch (err) {
+        loading.classList.add('hidden');
+        showError('Ошибка: ' + err.message);
+    }
+}
+
+// ============================================
+// 9. ОБРАБОТЧИКИ СОБЫТИЙ
+// ============================================
+prevMonthBtn.addEventListener('click', async () => {
+    if (currentMonthIndex > 0) { currentMonthIndex--; await renderCalendarForMonth(availableMonths[currentMonthIndex]); }
+});
+nextMonthBtn.addEventListener('click', async () => {
+    if (currentMonthIndex < availableMonths.length - 1) { currentMonthIndex++; await renderCalendarForMonth(availableMonths[currentMonthIndex]); }
+});
+refreshBtn.addEventListener('click', async () => {
+    refreshBtn.disabled = true; refreshBtn.textContent = 'Обновление...';
+    try { await loadUserData(); showBanner('Данные обновлены', 'success', 3000); }
+    catch (err) { showBanner('Ошибка: ' + err.message, 'error', 5000); }
+    finally { refreshBtn.disabled = false; refreshBtn.textContent = '🔄 Обновить данные'; }
+});
+clearCacheBtn.addEventListener('click', () => {
+    if (confirm('Очистить кэш?')) { localStorage.removeItem('userAuthId'); location.reload(); }
+});
+tabEmployee.addEventListener('click', () => switchTab('employee'));
+tabManager.addEventListener('click', () => switchTab('manager'));
+tabAdmin.addEventListener('click', () => { if (isAdmin) window.location.href = 'HTML/admin.html'; });
+tabStatistics.addEventListener('click', () => { if (isManager || isAdmin) window.location.href = 'HTML/statistics.html'; });
+
+function switchTab(tabName) {
+    employeeView.classList.add('hidden');
+    managerView.classList.add('hidden');
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    if (tabName === 'employee') { employeeView.classList.remove('hidden'); tabEmployee.classList.add('active'); }
+    else if (tabName === 'manager' && isManager) { window.location.href = 'manager.html'; }
+});
+
+authSubmit.addEventListener('click', async () => {
+    const val = authInput.value.trim();
+    if (!val) { showBanner('Введите ID!', 'error', 3000); return; }
+    chatId = val; localStorage.setItem('userAuthId', chatId);
+    authForm.style.display = 'none'; await loadUserData();
+});
+
+changeDepartmentBtn.addEventListener('click', () => {
+    departmentReport.classList.add('hidden');
+    departmentSelector.classList.remove('hidden');
+    departmentSelect.value = '';
+});
+departmentSelect.addEventListener('change', async () => {
+    if (!departmentSelect.value) return;
+    departmentSelector.classList.add('hidden');
+    departmentReport.classList.remove('hidden');
+    document.getElementById('dept-name').textContent = departmentSelect.value;
+    await loadDepartmentData(departmentSelect.value);
+});
+
+window.addEventListener('error', (event) => { console.error('Global error:', event.error); showError(`Ошибка: ${event.message}`); });
+window.addEventListener('unhandledrejection', (event) => { console.error('Unhandled promise rejection:', event.reason); showError(`Ошибка: ${event.reason}`); });
+
+window.onload = init;
+</script>
+</body>
+</html>
