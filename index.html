@@ -907,29 +907,47 @@ function renderDepartmentSelector() {
 // ============================================
 async function loadUserData() {
     try {
+        // 1. Загружаем справочник сотрудников
         const staffData = await fetchData(DATA_SOURCES.staff);
+        const staffRecords = normalizeRecords(staffData); // === ВАЖНО: Используем нормализацию ===
+        
+        // 2. Если ID не определен, запрашиваем вручную
         if (!chatId || chatId === 'undefined' || chatId === 'null') {
             const manualInput = prompt('Введите ваш Telegram ID или пароль:', '');
             if (!manualInput) throw new Error('Идентификатор не указан');
-            chatId = manualInput;
+            chatId = manualInput.trim();
         }
-        const records = normalizeRecords(staffData);
-        let userRecord = records.find(record =>
-            String(record['Telegram ID']) === chatId ||
-            String(record['Пароль']) === chatId
-        );
-        if (!userRecord) throw new Error('Идентификатор не найден в системе');
+
+        // 3. Ищем пользователя (сравниваем как строки, игнорируя пробелы)
+        // Проверяем оба поля: и 'Telegram ID', и 'Пароль'
+        let userRecord = staffRecords.find(record => {
+            const recordTgId = String(record['Telegram ID'] || '').trim();
+            const recordPass = String(record['Пароль'] || '').trim();
+            const inputId = String(chatId).trim();
+            
+            return recordTgId === inputId || recordPass === inputId;
+        });
+
+        // 4. Если не нашли — выводим подробную ошибку
+        if (!userRecord) {
+            console.error('Введенный ID:', chatId);
+            console.error('Доступные ID в системе:', staffRecords.slice(0, 5).map(r => r['Telegram ID']));
+            throw new Error('Идентификатор не найден в системе. Проверьте правильность ввода.');
+        }
         
+        // 5. Сохраняем данные пользователя
         currentUserData = {
             name: userRecord['Сотрудник'],
             department: userRecord['Отдел'],
             role: userRecord['Роль'],
             managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
         };
+        
         isManager = ['менеджер', 'руководитель', 'админ'].includes(currentUserData.role.toLowerCase());
         isAdmin = currentUserData.role.toLowerCase() === 'админ';
         managedDepartments = currentUserData.managedDepartments;
         
+        // 6. Умная загрузка данных месяца (текущий или прошлый)
         const now = new Date();
         let year = now.getFullYear();
         let month = now.getMonth() + 1;
@@ -942,7 +960,8 @@ async function loadUserData() {
             try {
                 const data = await fetchData(DATA_SOURCES.monthlyData(year, month));
                 const recs = normalizeRecords(data);
-                const userHasData = recs.some(r => r['Сотрудник'] === currentUserData.name);
+                const userHasData = recs.some(r => String(r['Сотрудник']).trim() === String(currentUserData.name).trim());
+                
                 if (userHasData) {
                     loadedData = data;
                     displayedMonthYear = { year, month };
@@ -956,6 +975,7 @@ async function loadUserData() {
                 attemptCount++;
             }
         }
+        
         if (!loadedData) throw new Error('Нет данных за последние 3 месяца');
         
         currentMonthData = loadedData;
