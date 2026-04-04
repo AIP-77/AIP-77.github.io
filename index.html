@@ -468,15 +468,14 @@ select, input {
 <body>
 <div class="container">
     <!-- Форма авторизации -->
-    <div id="auth-form" class="card">
-    <h2>🔐 Авторизация</h2>
-    <p>Введите ваш Telegram ID или пароль сотрудника:</p>
-    <input type="text" id="auth-input" name="auth-input" 
-           placeholder="Telegram ID или пароль" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-    <button id="auth-submit" class="refresh-btn" style="width: 100%;">Войти</button>
-</div>
+    <div id="auth-form">
+    <div class="card">
+        <h2>🔐 Авторизация</h2>
+        <p>Введите ваш Telegram ID или пароль сотрудника</p>
+        <input type="text" id="auth-input" placeholder="Telegram ID или пароль" autocomplete="off" />
+        <button id="auth-submit" class="refresh-btn">Войти</button>
     </div>
+</div>
 
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">(🛠 V.2026.04.03 🛠)</div>
