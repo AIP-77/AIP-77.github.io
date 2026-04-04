@@ -326,24 +326,24 @@
                 
                 Object.keys(columnMappingByIndex).forEach(colIndex => {
                     const key = columnMappingByIndex[colIndex];
-                    if (row[colIndex] !== undefined) {
-                        let value = row[colIndex];
-                        
-                        if (key === 'production_date' && value) {
-                            const date = new Date(value);
-                            if (!isNaN(date)) {
-                                value = date.getFullYear().toString();
-                            } else {
-                                const yearMatch = value.toString().match(/\b(20\d{2})\b/);
-                                value = yearMatch ? yearMatch[1] : 'Не указан';
-                            }
-                        }
-                        
-                        if (['start_balance', 'end_balance', 'income', 'expense', 'for_picking', 'for_placement', 'volume'].includes(key)) {
-                            processedRow[key] = parseFloat(value) || 0;
+                    // Получаем значение из строки данных
+                    let value = row[colIndex];
+
+                    if (key === 'production_date' && value) {
+                        const date = new Date(value);
+                        if (!isNaN(date)) {
+                            value = date.getFullYear().toString();
                         } else {
-                            processedRow[key] = value || 'Не указано';
+                            const yearMatch = value.toString().match(/\b(20\d{2})\b/);
+                            value = yearMatch ? yearMatch[1] : 'Не указан';
                         }
+                    }
+
+                    if (['start_balance', 'end_balance', 'income', 'expense', 'for_picking', 'for_placement', 'volume'].includes(key)) {
+                        processedRow[key] = parseFloat(value) || 0;
+                    } else {
+                        // Для текстовых полей: если значение есть - используем его, иначе 'Не указано'
+                        processedRow[key] = (value !== undefined && value !== null && value !== '') ? String(value) : 'Не указано';
                     }
                 });
 
