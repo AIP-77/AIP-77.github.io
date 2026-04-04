@@ -17,7 +17,15 @@ import {
     calculateXisBonus,
     calculateMonthlyPay
 } from './utils.js';
-import { renderGroupedTasks, toggleTaskGroup } from './ui.js';
+
+import { 
+    renderHeader, 
+    renderPersonalReport, 
+    showLoading, 
+    showError, 
+    clearInterface 
+} from './ui.js';
+
 import { 
     fetchData, 
     loadCalendarData, 
