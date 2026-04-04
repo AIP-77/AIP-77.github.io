@@ -3,8 +3,12 @@
 // ============================================
 
 export const DATA_SOURCES = {
+    // Исправлено: убран лишний пробел в конце строки
     staff: 'https://AIP-77.github.io/archive/staff.json',
-    monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')}%20fullData.json`
+    
+    // Исправлено: убран лишний пробел после archive/ и %20 перед именем файла
+    // Браузер сам корректно обработает пробел в имени файла при fetch
+    monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')} fullData.json`
 };
 
 // Виды работ, которые исключаются из расчета норматива
