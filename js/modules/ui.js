@@ -305,3 +305,17 @@ export function renderCalendarGrid(year, monthNum, userDates) {
     const monthLabel = document.getElementById('currentMonth');
     if (monthLabel) monthLabel.textContent = `${monthNames[monthNum - 1]} ${year}`;
 }
+
+/**
+ * Рендеринг основной панели (дашборда)
+ */
+export function renderDashboard(userData) {
+    // Эта функция может быть заглушкой, если вся отрисовка уже делается 
+    // через renderHeader, renderPersonalReport и renderGroupedTasks
+    console.log('📊 Рендеринг дашборда для:', userData['ФИО']);
+    
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.style.display = 'block';
+    }
+}
