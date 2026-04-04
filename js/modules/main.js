@@ -327,66 +327,90 @@ async function handleAuth() {
 }
 
 /**
- * Загрузка основных данных
+ * Загрузка основных данных за текущий или предыдущий месяц
  */
 async function loadMainData() {
-    try {
-        elements.mainDataLoading.classList.remove('hidden');
-        elements.mainDataContent.classList.add('hidden');
-        
-        const now = new Date();
-        let year = now.getFullYear();
-        let month = now.getMonth() + 1;
-        let monthData = null;
-        let attemptCount = 0;
-        
-        // Пробуем загрузить данные за текущий месяц, затем за предыдущий
-        while (attemptCount < 2 && !monthData) {
-            try {
-                monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
-                const records = normalizeRecords(monthData);
-                // Проверяем, есть ли данные для текущего пользователя
-                const userRecord = records.find(r => r['Сотрудник'] === state.currentUserData.name);
-                if (!userRecord) {
-                    throw new Error('Нет данных для пользователя');
-                }
-            } catch (e) {
-                // Переходим к предыдущему месяцу
-                month--;
-                if (month === 0) { month = 12; year--; }
-                attemptCount++;
-                monthData = null;
-            }
-        }
-        
-        if (!monthData) {
-            throw new Error('Нет данных за последние 2 месяца');
-        }
-        
-        state.dataLastUpdated = monthData.lastUpdated;
-        updateVersionInfo();
-        updateLastUpdate();
-        
-        const records = normalizeRecords(monthData);
-        state.currentMonthData = records;
-        
-        const userRecord = records.find(r => r['Сотрудник'] === state.currentUserData.name);
-        state.currentRecord = userRecord;
-        updateMainData();
-        
-        elements.mainDataLoading.classList.add('hidden');
-        elements.mainDataContent.classList.remove('hidden');
-        elements.detailsLoading.classList.add('hidden');
-        elements.detailsContent.classList.remove('hidden');
-        
-        if (attemptCount > 0) {
-            const monthNames = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
-            showBanner(`⚠️ Данные за текущий месяц еще не сформированы. Показаны данные за ${monthNames[month - 1]} ${year}`, 'info', 0);
-        }
-    } catch (err) {
-        elements.mainDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
-        console.error('Load main data error:', err);
+    if (!state.currentUserData) throw new Error('Пользователь не авторизован');
+
+    console.log(`🔍 Начало загрузки данных для: ${state.currentUserData['ФИО']}`);
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    
+    // Формируем список месяцев для проверки (текущий и предыдущий)
+    const monthsToCheck = [];
+    
+    // Текущий месяц
+    monthsToCheck.push({ year: currentYear, month: currentMonth });
+    
+    // Предыдущий месяц
+    let prevMonth = currentMonth - 1;
+    let prevYear = currentYear;
+    if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear--;
     }
+    monthsToCheck.push({ year: prevYear, month: prevMonth });
+
+    let loadedData = null;
+    let lastError = null;
+
+    // Перебираем месяцы
+    for (const { year, month } of monthsToCheck) {
+        // Используем исправленную функцию из config.js
+        const url = DATA_SOURCES.monthlyData(year, month);
+        const fileName = `${year}-${month.toString().padStart(2, '0')} fullData.json`;
+        
+        console.log(`📂 Проверка файла: ${fileName}`);
+        console.log(`📡 Запрос к URL: ${url}`);
+
+        try {
+            const response = await fetch(url);
+            console.log(`📥 Статус ответа: ${response.status} ${response.statusText}`);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log(`⚠️ Файл не найден (404), переходим к следующему месяцу...`);
+                    continue; 
+                }
+                throw new Error(`HTTP ошибка: ${response.status}`);
+            }
+
+            const jsonData = await response.json();
+            
+            // Пытаемся найти данные пользователя по разным ключам
+            // В рабочей версии использовалось обращение по ФИО или Табельному номеру
+            const userData = jsonData[state.currentUserData['ФИО']] || 
+                             jsonData[state.currentUserData['Табельный номер']] ||
+                             jsonData[state.currentUserData['id']];
+
+            if (userData) {
+                console.log(`✅ Данные найдены за ${month}.${year}`);
+                loadedData = userData;
+                break; 
+            } else {
+                console.log(`⚠️ Файл загружен, но данных для "${state.currentUserData['ФИО']}" не найдено.`);
+                console.log(`Доступные ключи в файле (первые 5):`, Object.keys(jsonData).slice(0, 5));
+                lastError = new Error('Данные сотрудника отсутствуют в файле');
+            }
+
+        } catch (error) {
+            console.error(`❌ Ошибка при загрузке ${fileName}:`, error);
+            lastError = error;
+        }
+    }
+
+    if (!loadedData) {
+        const errorMsg = lastError ? lastError.message : 'Нет данных за последние 2 месяца';
+        console.error('Load main data error:', errorMsg);
+        throw new Error(errorMsg);
+    }
+
+    state.currentMonthData = loadedData;
+    state.dataLastUpdated = new Date();
+    
+    return loadedData;
 }
 
 /**
