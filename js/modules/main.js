@@ -398,8 +398,12 @@ async function handleAuth() {
 /**
  * Загрузка основных данных за текущий или предыдущий месяц
  */
+/**
+ * Загрузка основных данных за текущий или предыдущий месяц
+ */
 async function loadMainData() {
     if (!state.currentUser) {
+        console.error('❌ Ошибка: state.currentUser не определен');
         throw new Error('Пользователь не авторизован');
     }
 
@@ -410,7 +414,7 @@ async function loadMainData() {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1; // 1-12
     
-    // Формируем список месяцев: текущий и предыдущий
+    // Формируем список месяцев для проверки (текущий и предыдущий)
     const monthsToCheck = [];
     monthsToCheck.push({ year: currentYear, month: currentMonth });
     
@@ -422,13 +426,13 @@ async function loadMainData() {
     }
     monthsToCheck.push({ year: prevYear, month: prevMonth });
 
-    let foundRecord = null;
+    let loadedData = null; 
     let lastError = null;
 
     for (const { year, month } of monthsToCheck) {
         const monthStr = month.toString().padStart(2, '0');
         const fileName = `${year}-${monthStr} fullData.json`;
-        // Формируем URL (пробел в имени файла браузер обработает сам или закодирует)
+        // Убираем лишний пробел в URL, который был в логах
         const url = `https://AIP-77.github.io/archive/${fileName}`;
         
         console.log(`📂 Проверка файла: ${fileName}`);
@@ -439,57 +443,75 @@ async function loadMainData() {
             if (!response.ok) {
                 if (response.status === 404) {
                     console.log(`⚠️ Файл не найден (404)`);
-                    continue;
+                    continue; 
                 }
                 throw new Error(`HTTP ошибка: ${response.status}`);
             }
 
             const jsonData = await response.json();
             
-            // ВАЖНО: Получаем массив данных. 
-            // В новых файлах структура: { lastUpdated, columns, data: [...] }
-            const records = jsonData.data || jsonData; 
-
-            if (!Array.isArray(records)) {
-                console.warn(`⚠️ Ожидался массив данных, получен тип: ${typeof records}`);
+            // Получаем массив данных. Структура: { data: [ ["Дата", "Время", "ФИО", ...], ... ] }
+            const rows = jsonData.data;
+            
+            if (!Array.isArray(rows)) {
+                console.warn(`⚠️ В файле ${fileName} поле 'data' отсутствует или не является массивом.`);
                 continue;
             }
 
-            // Ищем запись, где колонка "Сотрудник" точно равна ФИО пользователя
-            // Это точная копия логики рабочей версии
-            const record = records.find(row => {
-                // row может быть объектом { "Сотрудник": "Имя", ... }
-                return row['Сотрудник'] === userFio;
+            console.log(`📊 В файле за ${month}.${year} записей: ${rows.length}. Поиск сотрудника...`);
+
+            // Ищем строки, где ФИО (индекс 2) совпадает с искомым
+            // Структура строки согласно примеру: [0]="Дата", [1]="Время", [2]="Сотрудник"
+            const userRows = rows.filter(row => {
+                // Проверяем, что строка достаточно длинная и элемент существует
+                if (row.length > 2) {
+                    const rowFio = String(row[2]).trim();
+                    return rowFio === userFio;
+                }
+                return false;
             });
 
-            if (record) {
-                console.log(`✅ Данные найдены за ${month}.${year}`);
-                foundRecord = record;
+            if (userRows.length > 0) {
+                console.log(`✅ Найдено записей для сотрудника: ${userRows.length}`);
+                
+                // Преобразуем массив массивов обратно в удобный формат, если нужно, 
+                // или сохраняем как есть. Для совместимости со старым кодом, 
+                // который мог ожидать объект, можно создать обертку, но лучше работать с массивом.
+                // Старый код, скорее всего, просто брал данные и строил графики.
+                // Сохраним найденные строки в состояние.
+                
+                loadedData = {
+                    columns: jsonData.columns || [],
+                    data: userRows,
+                    meta: { year, month, count: userRows.length }
+                };
+                
                 state.dataPeriod = { year, month };
-                break; // Данные найдены, выходим
+                break; 
             } else {
-                console.log(`⚠️ В файле за ${month}.${year} записей: ${records.length}, но сотрудник "${userFio}" не найден.`);
+                console.log(`⚠️ В файле за ${month}.${year} сотрудник "${userFio}" не найден.`);
+                lastError = new Error('Данные сотрудника отсутствуют в файле');
             }
 
         } catch (error) {
-            console.error(`❌ Ошибка при чтении ${fileName}:`, error);
+            console.error(`❌ Ошибка загрузки ${fileName}:`, error);
             lastError = error;
         }
     }
 
-    if (!foundRecord) {
+    if (!loadedData) {
         const errorMsg = 'Нет данных за последние 2 месяца';
         console.error('Load main data error:', errorMsg);
         throw new Error(errorMsg);
     }
 
-    // Сохраняем найденную запись
-    state.currentUserData = foundRecord;
-    state.currentMonthData = foundRecord; // Для совместимости
+    state.currentUserData = loadedData;
+    state.currentMonthData = loadedData;
     state.lastUpdate = new Date();
     state.dataLastUpdated = new Date();
     
-    return foundRecord;
+    console.log('✅ Данные успешно загружены и готовы к отображению');
+    return loadedData;
 }
 
 /**
