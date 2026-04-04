@@ -400,23 +400,20 @@ async function handleAuth() {
  */
 async function loadMainData() {
     if (!state.currentUser) {
-        console.error('❌ Ошибка: state.currentUser не определен');
-        throw new Error('Пользователь не авторизован (currentUser is null)');
+        throw new Error('Пользователь не авторизован');
     }
 
-    console.log(`🔍 Начало загрузки данных для: ${state.currentUser['ФИО'] || 'Неизвестно'}`);
+    const userFio = state.currentUser['ФИО'];
+    console.log(`🔍 Начало загрузки данных для: ${userFio}`);
     
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1; // 1-12
     
-    // Формируем список месяцев для проверки (текущий и предыдущий)
+    // Формируем список месяцев: текущий и предыдущий
     const monthsToCheck = [];
-    
-    // Текущий месяц
     monthsToCheck.push({ year: currentYear, month: currentMonth });
     
-    // Предыдущий месяц
     let prevMonth = currentMonth - 1;
     let prevYear = currentYear;
     if (prevMonth === 0) {
@@ -425,98 +422,74 @@ async function loadMainData() {
     }
     monthsToCheck.push({ year: prevYear, month: prevMonth });
 
-    let loadedData = null; // Здесь будем хранить найденную запись сотрудника
+    let foundRecord = null;
     let lastError = null;
 
-    // Перебираем месяцы
     for (const { year, month } of monthsToCheck) {
         const monthStr = month.toString().padStart(2, '0');
-        // Исправлено: убран лишний пробел перед fullData.json
         const fileName = `${year}-${monthStr} fullData.json`;
+        // Формируем URL (пробел в имени файла браузер обработает сам или закодирует)
         const url = `https://AIP-77.github.io/archive/${fileName}`;
         
         console.log(`📂 Проверка файла: ${fileName}`);
-        console.log(`📡 Запрос к URL: ${url}`);
 
         try {
             const response = await fetch(url);
-            console.log(`📥 Статус ответа: ${response.status}`);
             
             if (!response.ok) {
                 if (response.status === 404) {
-                    console.log(`⚠️ Файл не найден (404), переходим к следующему...`);
-                    continue; 
+                    console.log(`⚠️ Файл не найден (404)`);
+                    continue;
                 }
                 throw new Error(`HTTP ошибка: ${response.status}`);
             }
 
             const jsonData = await response.json();
             
-            // НОВАЯ ЛОГИКА: Структура файла изменилась на { lastUpdated, columns, data: [...] }
-            const recordsArray = jsonData.data || jsonData; // Пробуем взять data, если нет - считаем что это сам массив
-            
-            if (!Array.isArray(recordsArray)) {
-                console.warn(`⚠️ В файле ${fileName} поле 'data' не является массивом. Тип:`, typeof recordsArray);
+            // ВАЖНО: Получаем массив данных. 
+            // В новых файлах структура: { lastUpdated, columns, data: [...] }
+            const records = jsonData.data || jsonData; 
+
+            if (!Array.isArray(records)) {
+                console.warn(`⚠️ Ожидался массив данных, получен тип: ${typeof records}`);
                 continue;
             }
 
-            console.log(`📊 В файле найдено записей: ${recordsArray.length}. Поиск сотрудника...`);
-
-            // Ищем запись текущего сотрудника в массиве данных
-            // Критерии поиска: Табельный номер, id или ФИО
-            const userRecord = recordsArray.find(record => {
-                const recTabNum = String(record['Табельный номер'] || record['tab_num'] || '');
-                const recId = String(record['id'] || '');
-                const recFio = String(record['ФИО'] || record['fio'] || '');
-                
-                const curTabNum = String(state.currentUser['Табельный номер'] || '');
-                const curId = String(state.currentUser['id'] || state.currentUser['Telegram ID'] || '');
-                const curFio = String(state.currentUser['ФИО'] || '');
-
-                // Сравнение по табельному номеру (если он есть у сотрудника)
-                if (curTabNum && recTabNum && recTabNum === curTabNum) return true;
-                
-                // Сравнение по ID (Telegram ID или внутренний id)
-                if (curId && recId && recId === curId) return true;
-                
-                // Сравнение по ФИО (как запасной вариант)
-                if (curFio && recFio && recFio === curFio) return true;
-
-                return false;
+            // Ищем запись, где колонка "Сотрудник" точно равна ФИО пользователя
+            // Это точная копия логики рабочей версии
+            const record = records.find(row => {
+                // row может быть объектом { "Сотрудник": "Имя", ... }
+                return row['Сотрудник'] === userFio;
             });
 
-            if (userRecord) {
+            if (record) {
                 console.log(`✅ Данные найдены за ${month}.${year}`);
-                console.log(`📝 Найдена запись:`, userRecord);
-                loadedData = userRecord;
-                // Сохраняем период загруженных данных
+                foundRecord = record;
                 state.dataPeriod = { year, month };
-                break; // Выходим из цикла, данные найдены
+                break; // Данные найдены, выходим
             } else {
-                console.log(`⚠️ Файл загружен, но данных для "${state.currentUser['ФИО']}" не найдено.`);
-                console.log(`Доступные ключи в первой записи файла:`, recordsArray.length > 0 ? Object.keys(recordsArray[0]) : 'Пустой массив');
-                lastError = new Error('Данные сотрудника отсутствуют в файле');
+                console.log(`⚠️ В файле за ${month}.${year} записей: ${records.length}, но сотрудник "${userFio}" не найден.`);
             }
 
         } catch (error) {
-            console.error(`❌ Ошибка загрузки ${fileName}:`, error);
+            console.error(`❌ Ошибка при чтении ${fileName}:`, error);
             lastError = error;
         }
     }
 
-    if (!loadedData) {
-        const errorMsg = lastError ? lastError.message : 'Нет данных за последние 2 месяца';
+    if (!foundRecord) {
+        const errorMsg = 'Нет данных за последние 2 месяца';
         console.error('Load main data error:', errorMsg);
         throw new Error(errorMsg);
     }
 
-    // Обновляем состояние
-    state.currentUserData = loadedData; // Сохраняем данные пользователя
-    state.currentMonthData = loadedData; // Для совместимости со старым кодом
+    // Сохраняем найденную запись
+    state.currentUserData = foundRecord;
+    state.currentMonthData = foundRecord; // Для совместимости
     state.lastUpdate = new Date();
     state.dataLastUpdated = new Date();
     
-    return loadedData;
+    return foundRecord;
 }
 
 /**
