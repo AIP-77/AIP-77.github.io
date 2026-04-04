@@ -15,35 +15,97 @@ import {
 } from './utils.js';
 
 /**
+ * Отображение индикатора загрузки
+ */
+export function showLoading(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.innerHTML = '<div class="loading-spinner">Загрузка данных...</div>';
+        el.style.display = 'block';
+    }
+}
+
+/**
+ * Очистка интерфейса перед новой загрузкой
+ */
+export function clearInterface() {
+    const mainContent = document.getElementById('main-content');
+    const tasksGrouped = document.getElementById('tasks-grouped');
+    const calendar = document.getElementById('calendar');
+    
+    if (mainContent) mainContent.style.display = 'none';
+    if (tasksGrouped) tasksGrouped.innerHTML = '';
+    if (calendar) calendar.innerHTML = '';
+    
+    // Скрываем сообщения об ошибках
+    const errorEl = document.getElementById('error-message');
+    if (errorEl) errorEl.style.display = 'none';
+}
+
+/**
  * Рендеринг шапки профиля пользователя
  */
-export function renderHeader() {
-    const headerElement = document.getElementById('user-header');
-    if (!headerElement || !state.currentUserData) return;
+export function renderHeader(user) {
+    const headerEl = document.getElementById('user-header');
+    if (!headerEl || !user) return;
 
-    const user = state.currentUserData;
-    // В модульных данных пользователь может быть в поле currentUser или лежать в корне state
-    // Но так как мы передали данные в currentMonthData, берем их оттуда или из аргумента
-    
-    // Получаем ФИО (оно уже есть в state.currentUser от авторизации, но продублируем для надежности)
-    const fio = state.currentUser['ФИО'] || 'Сотрудник';
-    const department = state.currentUser['Отдел'] || 'Не указан';
-    const role = state.currentUser['Роль'] || 'Сотрудник';
-    
-    // Формируем HTML шапки
-    headerElement.innerHTML = `
-        <div class="profile-card">
-            <div class="profile-avatar">${fio.charAt(0)}</div>
-            <div class="profile-info">
-                <h2 class="profile-name">${fio}</h2>
-                <div class="profile-details">
-                    <span class="badge">${role}</span>
-                    <span class="department">${department}</span>
-                </div>
+    const fio = user['ФИО'] || 'Неизвестно';
+    const department = user['Отдел'] || user['Департамент'] || 'Нет данных';
+    const role = user['Роль'] || 'Сотрудник';
+    const shift = user['Смена'] ? `Смена ${user['Смена']}` : '';
+
+    headerEl.innerHTML = `
+        <div class="profile-avatar">${fio.charAt(0)}</div>
+        <div class="profile-info">
+            <h2 class="profile-name">${fio}</h2>
+            <div class="profile-details">
+                <span class="badge">${role}</span>
+                <span>${department}</span>
+                ${shift ? `<span>• ${shift}</span>` : ''}
             </div>
         </div>
     `;
-    headerElement.style.display = 'block';
+    headerEl.style.display = 'flex';
+}
+
+/**
+ * Рендеринг персонального отчета (сводка)
+ */
+export function renderPersonalReport(userData) {
+    const reportEl = document.getElementById('personal-report-summary');
+    if (!reportEl || !userData) return;
+
+    // Предполагаем, что userData - это массив задач или объект с данными
+    // Если это массив задач из loadMainData:
+    const tasks = Array.isArray(userData) ? userData : [];
+    
+    const totalPay = calculateDayPay(tasks);
+    const totalXis = calculateXisBonus(tasks);
+    const totalTimeSec = tasks.reduce((sum, t) => sum + timeToSeconds(t['Рабочее время'] || '0'), 0);
+    const avgNorm = tasks.length > 0 ? (tasks.reduce((sum, t) => {
+        const n = parseFloat(t['Выполнение норматива']);
+        return sum + (isNaN(n) ? 0 : n);
+    }, 0) / tasks.filter(t => t['Выполнение норматива']).length) : 0;
+
+    reportEl.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Отработано</div>
+            <div class="stat-value">${secondsToTime(totalTimeSec)}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Начислено</div>
+            <div class="stat-value" style="color: var(--tg-link-color);">${formatCurrency(totalPay)}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Премия XIS</div>
+            <div class="stat-value seasonal-bonus">${formatCurrency(totalXis)}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Ср. норматив</div>
+            <div class="stat-value" style="color: ${getNormativeColor(avgNorm)}">${avgNorm.toFixed(1)}%</div>
+        </div>
+    `;
+    reportEl.style.display = 'grid';
 }
 
 /**
@@ -106,7 +168,7 @@ export function renderGroupedTasks(tasks) {
     const tasksGrouped = document.getElementById('tasks-grouped');
     
     if (!tasks || tasks.length === 0) {
-        tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+        if (tasksGrouped) tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных за выбранный период</p>';
         return;
     }
     
@@ -199,7 +261,7 @@ export function renderGroupedTasks(tasks) {
         `;
     });
     
-    tasksGrouped.innerHTML = html;
+    if (tasksGrouped) tasksGrouped.innerHTML = html;
 }
 
 /**
@@ -207,7 +269,9 @@ export function renderGroupedTasks(tasks) {
  */
 export function toggleTaskGroup(header) {
     const group = header.parentElement;
-    group.classList.toggle('expanded');
+    if (group) {
+        group.classList.toggle('expanded');
+    }
 }
 
 /**
@@ -215,6 +279,8 @@ export function toggleTaskGroup(header) {
  */
 export function renderCalendarGrid(year, monthNum, userDates) {
     const calendar = document.getElementById('calendar');
+    if (!calendar) return;
+
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
     const daysInMonth = new Date(year, monthNum, 0).getDate();
     const firstDay = new Date(year, monthNum - 1, 1).getDay();
@@ -236,5 +302,6 @@ export function renderCalendarGrid(year, monthNum, userDates) {
     }
     
     calendar.innerHTML = html;
-    document.getElementById('currentMonth').textContent = `${monthNames[monthNum - 1]} ${year}`;
+    const monthLabel = document.getElementById('currentMonth');
+    if (monthLabel) monthLabel.textContent = `${monthNames[monthNum - 1]} ${year}`;
 }
