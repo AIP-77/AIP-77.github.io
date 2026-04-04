@@ -21,8 +21,7 @@ import {
 import { 
     renderHeader, 
     renderPersonalReport, 
-    showLoading, 
-    showError, 
+    showLoading,   
     clearInterface 
 } from './ui.js';
 
