@@ -12,6 +12,7 @@ import {
 import { 
     renderHeader, 
     renderPersonalReport, 
+    renderDashboard,  // <--- Добавить эту строку
     renderCalendarGrid, 
     renderGroupedTasks, 
     toggleTaskGroup, 
