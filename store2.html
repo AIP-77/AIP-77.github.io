@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Складской учет - Расширенный поиск</title>
+    <title>Складской учет - Расширенный поиск1</title>
+    <!-- Подключаем библиотеку для работы с Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -441,7 +442,7 @@
 
     <div class="footer-info">
         <span id="last-updated">Последнее обновление: <span id="update-time">-</span></span>
-        <span>Данные загружаются из fulldata.json</span>
+        <span>Данные загружаются из data.xlsx</span>
     </div>
 
     <script>
@@ -451,13 +452,12 @@
         let uniqueWarehouses = new Set();
         
         // Конфигурация колонок для Excel (индексы начинаются с 0)
-        // Данные в Excel начинаются с 9 строки (индекс 8), но заголовки обычно в первой строке данных
-        // Предполагаем, что мы читаем сырые данные и мапим их
+        // A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7
         const columnMapping = {
             'name': 0,        // Номенклатура (Колонка A)
             'warehouse': 1,   // Склад (Колонка B)
             'zone': 2,        // Зона (Колонка C)
-            'address': 6,     // Адрес (Колонка G) - ИСПРАВЛЕНО: было 7, стало 6
+            'address': 6,     // Адрес (Колонка G)
             'quantity': 3,    // Количество (Колонка D)
             'unit': 4,        // Ед. изм. (Колонка E)
             'year': 5,        // Год (Колонка F)
@@ -471,23 +471,34 @@
             document.getElementById('update-time').textContent = new Date().toLocaleTimeString();
         });
 
-        // Загрузка данных
+        // Загрузка данных из Excel
         async function loadData() {
             const statusText = document.getElementById('status-text');
             const spinner = document.querySelector('.loading-spinner');
             
             try {
                 spinner.style.display = 'inline-block';
-                statusText.textContent = 'Загрузка данных...';
+                statusText.textContent = 'Загрузка data.xlsx...';
                 
-                // Загружаем JSON файл
-                const response = await fetch('fulldata.json');
+                // Загружаем Excel файл как ArrayBuffer
+                const response = await fetch('data.xlsx');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
-                const jsonData = await response.json();
+                const arrayBuffer = await response.arrayBuffer();
+                
+                // Читаем workbook
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                
+                // Берем первый лист
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Конвертируем в массив массивов (raw данные)
+                // header: 1 означает, что результат будет массивом массивов, без авто-заголовков
+                const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                 
                 // Обрабатываем данные
-                processData(jsonData);
+                processData(rawData);
                 
                 spinner.style.display = 'none';
                 statusText.textContent = 'Данные загружены';
@@ -499,76 +510,40 @@
                 statusText.textContent = 'Ошибка загрузки данных';
                 document.getElementById('data-status').style.color = '#e74c3c';
                 document.getElementById('no-data-message').style.display = 'block';
-                document.getElementById('no-data-message').textContent = `Ошибка: ${error.message}. Проверьте консоль.`;
+                document.getElementById('no-data-message').textContent = `Ошибка: ${error.message}. Проверьте наличие файла data.xlsx в корне сайта.`;
             }
         }
 
-        // Обработка данных из JSON/Excel
-        function processData(data) {
+        // Обработка данных из массива Excel
+        function processData(rows) {
             allData = [];
             uniqueWarehouses.clear();
 
-            // Если данные пришли как объект с ключами (например, листы Excel), берем первый массив
-            let rows = [];
-            if (Array.isArray(data)) {
-                rows = data;
-            } else if (typeof data === 'object') {
-                // Пытаемся найти первый массив в объекте
-                const keys = Object.keys(data);
-                for (let key of keys) {
-                    if (Array.isArray(data[key])) {
-                        rows = data[key];
-                        break;
-                    }
-                }
-            }
+            // Данные начинаются с 9-й строки (индекс 8), т.к. 0-8 это шапка/пустые строки
+            const startIndex = 8; 
 
-            // Пропускаем заголовки (первые 8 строк согласно задаче, данные с 9-й строки, индекс 8)
-            // Но если JSON уже чистый, то пропускаем только если это явно заголовки
-            // В данном случае считаем, что входной массив может содержать мусор в начале, 
-            // но так как мы читаем JSON, предположим, что он уже подготовлен или нужно проверить структуру.
-            // Если это сырой экспорт Excel в JSON, там могут быть пустые строки.
-            
-            // Фильтруем пустые строки и начинаем обработку
-            // Предположение: если в первой колонке пусто, строка не нужна.
-            
-            let startIndex = 0;
-            // Эвристика: если первая строка содержит "Номенклатура" или похожее, пропускаем её
-            if (rows.length > 0 && rows[0][0] && String(rows[0][0]).includes("Номенклатура")) {
-                startIndex = 1;
-            }
-            // Также учтем требование "данные начинаются с 9 строки". 
-            // Если файл Excel был конвертирован в JSON неправильно и содержит пустые строки сверху:
-            let validRowCount = 0;
-            for(let i=0; i<rows.length; i++) {
-                if (rows[i] && rows[i][0]) {
-                    validRowCount++;
-                    if(validRowCount === 1 && i > 0) {
-                         // Возможно, это и есть та самая 9-я строка, если до нее были пустые
-                         // Но надежнее ориентироваться на контент.
-                         // Оставим логику простой: берем все строки, где есть имя товара.
-                    }
-                }
-            }
+            for (let i = startIndex; i < rows.length; i++) {
+                const row = rows[i];
+                
+                // Пропускаем совсем пустые строки
+                if (!row || !row[0] || String(row[0]).trim() === '') continue;
 
-            rows.forEach((row, index) => {
-                // Пропускаем заголовок и пустые строки
-                if (index < startIndex) return;
-                if (!row || !row[0] || String(row[0]).trim() === '') return;
-
-                // Извлекаем данные по индексам
-                // Важно: проверяем наличие столбца, иначе берем пустое значение
-                const getName = (idx) => (row[idx] !== undefined && row[idx] !== null) ? String(row[idx]).trim() : '';
+                // Функция безопасного получения значения
+                const getVal = (idx) => {
+                    const val = row[idx];
+                    if (val === undefined || val === null) return '';
+                    return String(val).trim();
+                };
                 
                 const item = {
-                    name: getName(columnMapping.name),
-                    warehouse: getName(columnMapping.warehouse),
-                    zone: getName(columnMapping.zone),
-                    address: getName(columnMapping.address), // Теперь берет из колонки G (индекс 6)
-                    quantity: parseFloat(getName(columnMapping.quantity)) || 0,
-                    unit: getName(columnMapping.unit),
-                    year: parseInt(getName(columnMapping.year)) || null,
-                    expiration: getName(columnMapping.expiration)
+                    name: getVal(columnMapping.name),
+                    warehouse: getVal(columnMapping.warehouse),
+                    zone: getVal(columnMapping.zone),
+                    address: getVal(columnMapping.address), 
+                    quantity: parseFloat(getVal(columnMapping.quantity)) || 0,
+                    unit: getVal(columnMapping.unit),
+                    year: parseInt(getVal(columnMapping.year)) || null,
+                    expiration: getVal(columnMapping.expiration)
                 };
 
                 // Добавляем склад в список уникальных
@@ -577,7 +552,7 @@
                 }
 
                 allData.push(item);
-            });
+            }
 
             // Сортировка по умолчанию (по имени)
             allData.sort((a, b) => a.name.localeCompare(b.name));
@@ -588,7 +563,8 @@
             // Первый рендер
             applyFilters();
         }
-                // Инициализация фильтра складов (Множественный выбор)
+
+        // Инициализация фильтра складов (Множественный выбор)
         function initWarehouseFilter() {
             const dropdown = document.getElementById('warehouse-dropdown');
             const display = document.getElementById('warehouse-display');
@@ -599,9 +575,11 @@
             sortedWarehouses.forEach(warehouse => {
                 const option = document.createElement('div');
                 option.className = 'multi-select-option';
+                // Экранируем ID для безопасности
+                const safeId = 'wh-' + warehouse.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
                 option.innerHTML = `
-                    <input type="checkbox" value="${warehouse}" id="wh-${warehouse.replace(/\s+/g, '-')}">
-                    <label for="wh-${warehouse.replace(/\s+/g, '-')}" style="cursor:pointer; flex:1;">${warehouse}</label>
+                    <input type="checkbox" value="${warehouse}" id="${safeId}">
+                    <label for="${safeId}" style="cursor:pointer; flex:1;">${warehouse}</label>
                 `;
                 dropdown.appendChild(option);
             });
@@ -826,8 +804,6 @@
 
             noDataMsg.style.display = 'none';
 
-            // Оптимизация: рендерим только первые 100 элементов для скорости, если нужно
-            // Но пока рендерим все, так как фильтр уже отработал
             const fragment = document.createDocumentFragment();
 
             filteredData.forEach(item => {
