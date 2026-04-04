@@ -270,59 +270,82 @@ export async function init() {
  * Обработка авторизации
  */
 async function handleAuth() {
-    const inputValue = elements.authInput.value.trim();
-    if (!inputValue) {
-        showBanner('Введите Telegram ID или пароль', 'error', 3000);
+    const telegramId = document.getElementById('telegramId').value.trim();
+    
+    if (!telegramId) {
+        showNotification('Введите Telegram ID', 'error');
         return;
     }
-    
+
+    toggleLoading(true);
+    state.error = null;
+
     try {
-        elements.authSubmit.disabled = true;
-        elements.authSubmit.textContent = 'Проверка...';
+        console.log('🔐 Попытка авторизации по ID:', telegramId);
         
-        const staffData = await fetchData(DATA_SOURCES.staff);
-        const records = normalizeRecords(staffData);
+        // Загружаем файл сотрудников
+        const response = await fetch(DATA_SOURCES.staff);
+        if (!response.ok) throw new Error(`Ошибка загрузки staff.json: ${response.status}`);
         
-        // Поиск по Telegram ID (поле "Пароль" отсутствует в данных)
-        const user = records.find(r => String(r['Telegram ID']) === inputValue);
+        const staffData = await response.json();
         
+        // Ищем пользователя. 
+        // ВНИМАНИЕ: Проверяем разные варианты ключей, так как структура может отличаться
+        let user = null;
+        
+        // Вариант 1: Массив объектов (как в новой структуре)
+        if (Array.isArray(staffData)) {
+            user = staffData.find(s => 
+                String(s['Telegram ID']) === telegramId || 
+                String(s['ChatID']) === telegramId ||
+                String(s['chat_id']) === telegramId
+            );
+        } 
+        // Вариант 2: Объект с ключами (старая структура)
+        else if (typeof staffData === 'object') {
+            // Пробуем найти по значению в объекте
+            Object.values(staffData).forEach(person => {
+                if (String(person['Telegram ID']) === telegramId || 
+                    String(person['ChatID']) === telegramId ||
+                    String(person['chat_id']) === telegramId) {
+                    user = person;
+                }
+            });
+        }
+
         if (!user) {
-            showBanner('Пользователь не найден', 'error', 3000);
-            elements.authSubmit.disabled = false;
-            elements.authSubmit.textContent = 'Войти';
-            return;
+            throw new Error('Пользователь не найден. Проверьте Telegram ID.');
         }
+
+        console.log('✅ Пользователь найден:', user['ФИО'] || user['FIO']);
+
+        // Сохраняем пользователя в состояние
+        state.currentUser = user;
+        state.chatId = telegramId;
         
-        state.currentUserData = user;
-        state.chatId = user['ChatID'];
-        state.isManager = user['Руководит отделом'] || user['managedDepartments'];
-        state.isAdmin = user['Admin'] === true || user['Admin'] === 'true';
+        // Определяем права доступа
+        const role = user['Должность'] || user['Role'] || '';
+        state.isManager = role.includes('Начальник') || role.includes('Менеджер');
+        state.isAdmin = role.includes('Администратор') || role.includes('Admin');
+
+        // Скрываем форму входа, показываем приложение
+        document.getElementById('authSection').classList.add('hidden');
+        document.getElementById('appContent').classList.remove('hidden');
         
-        if (state.isManager) {
-            state.managedDepartments = (user['Руководит отделом'] ? [user['Руководит отделом']] : [])
-                .concat(user['managedDepartments'] || []);
-        }
-        
-        elements.authForm.style.display = 'none';
-        elements.employeeView.classList.remove('hidden');
-        
-        if (state.isManager) {
-            elements.tabManager.classList.remove('hidden');
-            await initializeManagerView();
-        }
-        
-        if (state.isAdmin) {
-            elements.tabAdmin.classList.remove('hidden');
-        }
-        
+        // Загружаем основные данные
         await loadMainData();
-        await loadCalendarData();
         
-        showBanner('Авторизация успешна', 'success', 2000);
-    } catch (err) {
-        showBanner('Ошибка авторизации: ' + err.message, 'error', 5000);
-        elements.authSubmit.disabled = false;
-        elements.authSubmit.textContent = 'Войти';
+        // Рендерим интерфейс
+        renderDashboard();
+        renderPersonalReport();
+        renderCharts();
+
+    } catch (error) {
+        console.error('Ошибка авторизации:', error);
+        showNotification(`Ошибка авторизации: ${error.message}`, 'error');
+        toggleLoading(false);
+    } finally {
+        toggleLoading(false);
     }
 }
 
