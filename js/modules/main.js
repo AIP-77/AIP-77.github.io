@@ -4,26 +4,23 @@
 
 import { state, DATA_SOURCES } from './config.js';
 import { 
-    normalizeRecords, 
-    showError, 
-    showBanner, 
-    isColorDark,
-    calculateTotalTime,
-    calculateEfficiency,
-    calculateAverageNormative,
-    getNormativeColor,
-    formatCurrency,
-    calculateDayPay,
-    calculateXisBonus,
-    calculateMonthlyPay
+    timeToSeconds, 
+    secondsToTime, 
+    formatCurrency, 
+    parseRussianNumber 
 } from './utils.js';
-
 import { 
     renderHeader, 
     renderPersonalReport, 
-    showLoading,   
+    renderCalendarGrid, 
+    renderGroupedTasks, 
+    toggleTaskGroup, 
+    showLoading, 
     clearInterface 
 } from './ui.js';
+
+// Делаем функцию переключения групп доступной глобально для onclick в HTML
+window.toggleTaskGroup = toggleTaskGroup;
 
 import { 
     fetchData, 
