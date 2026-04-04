@@ -3,15 +3,13 @@
 // ============================================
 
 export const DATA_SOURCES = {
-    // Исправлено: убран лишний пробел в конце строки
+    // Убраны пробелы в конце строки
     staff: 'https://AIP-77.github.io/archive/staff.json',
     
-    // Исправлено: убран лишний пробел после archive/ и %20 перед именем файла
-    // Браузер сам корректно обработает пробел в имени файла при fetch
+    // Убраны пробелы после archive/ и перед именем файла
     monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')} fullData.json`
 };
 
-// Виды работ, которые исключаются из расчета норматива
 export const EXCLUDED_WORK_TYPES = [
     'Дополнительное время для работ',
     'Рабочий день',
@@ -19,11 +17,11 @@ export const EXCLUDED_WORK_TYPES = [
     'Другие виды работ'
 ];
 
-// Глобальное состояние приложения
 export const state = {
     chatId: null,
     isManager: false,
     isAdmin: false,
+    currentUser: null, // Важно для новой логики
     currentUserData: null,
     currentRecord: null,
     currentMonthData: null,
@@ -32,5 +30,7 @@ export const state = {
     availableMonths: [],
     currentMonthIndex: 0,
     displayedMonthYear: null,
-    isDataOutdated: false
+    isDataOutdated: false,
+    currentData: null, // Для хранения массива записей
+    lastUpdate: null
 };
