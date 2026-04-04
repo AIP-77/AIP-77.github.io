@@ -268,114 +268,107 @@ export async function init() {
 
 
 /**
- * Обработка авторизации пользователя
+ * Обработка авторизации
  */
 async function handleAuth() {
-    const loginInput = document.getElementById('login-input');
-    const authError = document.getElementById('auth-error');
-    
-    // Проверка наличия элементов
-    if (!loginInput) {
-        console.error('Элемент #login-input не найден в DOM');
-        if (authError) {
-            authError.textContent = 'Ошибка интерфейса: поле ввода не найдено';
-            authError.style.display = 'block';
-        }
-        return;
-    }
-
-    const telegramId = loginInput.value.trim();
-
-    if (!telegramId) {
-        if (authError) {
-            authError.textContent = 'Введите ваш Telegram ID';
-            authError.style.display = 'block';
-        }
-        return;
-    }
-
-    // Блокируем кнопку и показываем индикатор загрузки
     const authBtn = document.querySelector('.auth-btn');
-    if (authBtn) {
-        authBtn.disabled = true;
-        authBtn.textContent = 'Проверка...';
-    }
-    if (authError) authError.style.display = 'none';
+    if (!authBtn) return;
+
+    // Блокируем кнопку на время проверки
+    authBtn.disabled = true;
+    authBtn.textContent = 'Проверка...';
 
     try {
-        console.log('🔍 Загрузка списка сотрудников...');
-        // Загружаем данные сотрудников
+        // 1. Пытаемся найти поле ввода по нескольким возможным ID
+        let loginInput = document.getElementById('login-input') || 
+                         document.getElementById('username') || 
+                         document.getElementById('login') ||
+                         document.getElementById('chatId') ||
+                         document.getElementById('telegram-id');
+
+        // 2. Если не нашли по ID, ищем первый input с типом text или number внутри формы авторизации
+        if (!loginInput) {
+            loginInput = document.querySelector('.auth-form input[type="text"], .auth-form input[type="number"], input[placeholder*="ID"], input[placeholder*="Логин"]');
+        }
+
+        // 3. Если элемент все еще не найден — выбрасываем понятную ошибку
+        if (!loginInput) {
+            console.error('❌ Ошибка: Не найдено поле ввода для авторизации.');
+            console.log('Доступные инпуты на странице:', document.querySelectorAll('input'));
+            throw new Error('Поле ввода не найдено. Проверьте ID элемента в HTML.');
+        }
+
+        const loginValue = loginInput.value.trim();
+
+        if (!loginValue) {
+            alert('Пожалуйста, введите ваш Telegram ID или логин');
+            authBtn.disabled = false;
+            authBtn.textContent = 'Войти';
+            return;
+        }
+
+        console.log(`🔐 Попытка входа для: ${loginValue}`);
+
+        // Загружаем список сотрудников
         const response = await fetch(DATA_SOURCES.staff);
-        if (!response.ok) throw new Error(`Ошибка сети: ${response.status}`);
+        if (!response.ok) throw new Error('Не удалось загрузить базу сотрудников');
         
         const staffData = await response.json();
-        console.log('✅ Сотрудники загружены. Формат данных:', Array.isArray(staffData) ? 'Массив' : 'Объект');
+        
+        // Структура файла сотрудников может быть разной: массив или объект с ключом 'data'
+        const staffArray = Array.isArray(staffData) ? staffData : (staffData.data || Object.values(staffData));
 
-        let user = null;
-
-        // Логика поиска в зависимости от формата файла
-        if (Array.isArray(staffData)) {
-            // Формат: [{...}, {...}]
-            user = staffData.find(emp => {
-                const empId = String(emp['Telegram ID'] || emp['telegram_id'] || emp['id'] || '');
-                const empTabNum = String(emp['Табельный номер'] || emp['tab_num'] || '');
-                return empId === telegramId || empTabNum === telegramId;
-            });
-        } else if (typeof staffData === 'object') {
-            // Формат: { "key": {...}, "key2": {...} } или { "data": [...] }
-            // Если есть ключ 'data', ищем внутри него
-            const searchArray = staffData.data || Object.values(staffData);
+        // Ищем пользователя
+        // Приводим к строке для надежного сравнения
+        const searchId = String(loginValue);
+        
+        const user = staffArray.find(emp => {
+            const empId = String(emp['Telegram ID'] || emp['id'] || emp['Табельный номер'] || '');
+            const empLogin = String(emp['Логин'] || emp['login'] || '');
             
-            user = searchArray.find(emp => {
-                if (!emp || typeof emp !== 'object') return false;
-                const empId = String(emp['Telegram ID'] || emp['telegram_id'] || emp['id'] || '');
-                const empTabNum = String(emp['Табельный номер'] || emp['tab_num'] || '');
-                return empId === telegramId || empTabNum === telegramId;
-            });
-        }
+            return empId === searchId || empLogin === searchId;
+        });
 
         if (!user) {
-            throw new Error('Пользователь с таким ID не найден');
+            throw new Error('Сотрудник с таким ID не найден');
         }
 
+        // Успешная авторизация
         console.log('✅ Авторизация успешна:', user['ФИО']);
         
-        // Сохраняем текущего пользователя
+        // Сохраняем текущего пользователя в состояние
         state.currentUser = user;
-        state.chatId = user['Telegram ID'] || user['telegram_id'];
+        state.chatId = user['Telegram ID'] || user['id'];
         
-        // Проверка прав (если есть соответствующие поля)
-        state.isManager = user['Роль'] === 'Менеджер' || user['is_manager'] === true;
-        state.isAdmin = user['Роль'] === 'Администратор' || user['is_admin'] === true;
+        // Проверяем права (если есть соответствующие поля)
+        state.isManager = user['Роль'] === 'Менеджер' || user['isManager'] === true;
+        state.isAdmin = user['Роль'] === 'Администратор' || user['isAdmin'] === true;
 
-        // Переключаем интерфейс
-        const authSection = document.getElementById('auth-section');
-        const mainApp = document.getElementById('main-app');
-        
+        // Скрываем форму входа, показываем основной интерфейс
+        const authSection = document.querySelector('.auth-section') || document.getElementById('auth-screen');
+        const mainApp = document.querySelector('.app-container') || document.getElementById('main-app') || document.body;
+
         if (authSection) authSection.style.display = 'none';
-        if (mainApp) mainApp.style.display = 'block';
+        // Если есть отдельный блок приложения, показываем его, иначе просто рендерим данные
+        if (mainApp && mainApp.id !== 'main-app') mainApp.style.display = 'block';
+
+        // Обновляем UI с приветствием
+        const welcomeEl = document.getElementById('user-name') || document.querySelector('.user-welcome');
+        if (welcomeEl) welcomeEl.textContent = user['ФИО'] || 'Пользователь';
 
         // Загружаем основные данные
         await loadMainData();
         
         // Рендерим интерфейс
-        renderHeader();
-        renderPersonalStats();
-        renderCharts();
-        renderHistory();
+        renderDashboard();
 
     } catch (error) {
         console.error('❌ Ошибка авторизации:', error);
-        if (authError) {
-            authError.textContent = `Ошибка: ${error.message}`;
-            authError.style.display = 'block';
-        }
+        alert(`Ошибка входа: ${error.message}`);
     } finally {
         // Возвращаем кнопку в исходное состояние
-        if (authBtn) {
-            authBtn.disabled = false;
-            authBtn.textContent = 'Войти';
-        }
+        authBtn.disabled = false;
+        authBtn.textContent = 'Войти';
     }
 }
 
