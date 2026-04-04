@@ -15,6 +15,38 @@ import {
 } from './utils.js';
 
 /**
+ * Рендеринг шапки профиля пользователя
+ */
+export function renderHeader() {
+    const headerElement = document.getElementById('user-header');
+    if (!headerElement || !state.currentUserData) return;
+
+    const user = state.currentUserData;
+    // В модульных данных пользователь может быть в поле currentUser или лежать в корне state
+    // Но так как мы передали данные в currentMonthData, берем их оттуда или из аргумента
+    
+    // Получаем ФИО (оно уже есть в state.currentUser от авторизации, но продублируем для надежности)
+    const fio = state.currentUser['ФИО'] || 'Сотрудник';
+    const department = state.currentUser['Отдел'] || 'Не указан';
+    const role = state.currentUser['Роль'] || 'Сотрудник';
+    
+    // Формируем HTML шапки
+    headerElement.innerHTML = `
+        <div class="profile-card">
+            <div class="profile-avatar">${fio.charAt(0)}</div>
+            <div class="profile-info">
+                <h2 class="profile-name">${fio}</h2>
+                <div class="profile-details">
+                    <span class="badge">${role}</span>
+                    <span class="department">${department}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    headerElement.style.display = 'block';
+}
+
+/**
  * Группировка задач по типу работ
  */
 export function groupTasksByType(tasks) {
