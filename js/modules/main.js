@@ -283,10 +283,8 @@ async function handleAuth() {
         const staffData = await fetchData(DATA_SOURCES.staff);
         const records = normalizeRecords(staffData);
         
-        const user = records.find(r => 
-            String(r['ChatID']) === inputValue || 
-            String(r['Пароль']) === inputValue
-        );
+        // Поиск по Telegram ID (поле "Пароль" отсутствует в данных)
+        const user = records.find(r => String(r['Telegram ID']) === inputValue);
         
         if (!user) {
             showBanner('Пользователь не найден', 'error', 3000);
