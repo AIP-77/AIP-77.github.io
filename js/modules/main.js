@@ -2,7 +2,7 @@
 // ГЛАВНЫЙ МОДУЛЬ ПРИЛОЖЕНИЯ (MAIN)
 // ============================================
 
-import { state } from './config.js';
+import { state, DATA_SOURCES } from './config.js';
 import { 
     normalizeRecords, 
     showError, 
