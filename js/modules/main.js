@@ -9,10 +9,11 @@ import {
     formatCurrency, 
     parseRussianNumber 
 } from './utils.js';
+// Объединенный импорт из ui.js
 import { 
     renderHeader, 
     renderPersonalReport, 
-    renderDashboard,  // <--- Добавить эту строку
+    renderDashboard, 
     renderCalendarGrid, 
     renderGroupedTasks, 
     toggleTaskGroup, 
@@ -23,6 +24,7 @@ import {
 // Делаем функцию переключения групп доступной глобально для onclick в HTML
 window.toggleTaskGroup = toggleTaskGroup;
 
+// Импорт из dataService (если функции используются в main.js)
 import { 
     fetchData, 
     loadCalendarData, 
