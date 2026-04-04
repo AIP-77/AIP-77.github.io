@@ -335,10 +335,34 @@ async function loadMainData() {
         elements.mainDataContent.classList.add('hidden');
         
         const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth() + 1;
+        let year = now.getFullYear();
+        let month = now.getMonth() + 1;
+        let monthData = null;
+        let attemptCount = 0;
         
-        const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
+        // Пробуем загрузить данные за текущий месяц, затем за предыдущий
+        while (attemptCount < 2 && !monthData) {
+            try {
+                monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
+                const records = normalizeRecords(monthData);
+                // Проверяем, есть ли данные для текущего пользователя
+                const userRecord = records.find(r => r['Сотрудник'] === state.currentUserData.name);
+                if (!userRecord) {
+                    throw new Error('Нет данных для пользователя');
+                }
+            } catch (e) {
+                // Переходим к предыдущему месяцу
+                month--;
+                if (month === 0) { month = 12; year--; }
+                attemptCount++;
+                monthData = null;
+            }
+        }
+        
+        if (!monthData) {
+            throw new Error('Нет данных за последние 2 месяца');
+        }
+        
         state.dataLastUpdated = monthData.lastUpdated;
         updateVersionInfo();
         updateLastUpdate();
@@ -347,11 +371,6 @@ async function loadMainData() {
         state.currentMonthData = records;
         
         const userRecord = records.find(r => r['Сотрудник'] === state.currentUserData.name);
-        
-        if (!userRecord) {
-            throw new Error('Нет данных за текущий месяц');
-        }
-        
         state.currentRecord = userRecord;
         updateMainData();
         
@@ -359,6 +378,11 @@ async function loadMainData() {
         elements.mainDataContent.classList.remove('hidden');
         elements.detailsLoading.classList.add('hidden');
         elements.detailsContent.classList.remove('hidden');
+        
+        if (attemptCount > 0) {
+            const monthNames = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+            showBanner(`⚠️ Данные за текущий месяц еще не сформированы. Показаны данные за ${monthNames[month - 1]} ${year}`, 'info', 0);
+        }
     } catch (err) {
         elements.mainDataLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
         console.error('Load main data error:', err);
