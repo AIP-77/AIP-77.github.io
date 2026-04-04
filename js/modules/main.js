@@ -349,13 +349,17 @@ async function handleAuth() {
     }
 }
 
+
 /**
  * Загрузка основных данных за текущий или предыдущий месяц
  */
 async function loadMainData() {
-    if (!state.currentUserData) throw new Error('Пользователь не авторизован');
+    if (!state.currentUser) {
+        console.error('❌ Ошибка: state.currentUser не определен');
+        throw new Error('Пользователь не авторизован (currentUser is null)');
+    }
 
-    console.log(`🔍 Начало загрузки данных для: ${state.currentUserData['ФИО']}`);
+    console.log(`🔍 Начало загрузки данных для: ${state.currentUser['ФИО'] || 'Неизвестно'}`);
     
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -376,25 +380,26 @@ async function loadMainData() {
     }
     monthsToCheck.push({ year: prevYear, month: prevMonth });
 
-    let loadedData = null;
+    let loadedData = null; // Здесь будем хранить найденную запись сотрудника
     let lastError = null;
 
     // Перебираем месяцы
     for (const { year, month } of monthsToCheck) {
-        // Используем исправленную функцию из config.js
-        const url = DATA_SOURCES.monthlyData(year, month);
-        const fileName = `${year}-${month.toString().padStart(2, '0')} fullData.json`;
+        const monthStr = month.toString().padStart(2, '0');
+        // Исправлено: убран лишний пробел перед fullData.json
+        const fileName = `${year}-${monthStr} fullData.json`;
+        const url = `https://AIP-77.github.io/archive/${fileName}`;
         
         console.log(`📂 Проверка файла: ${fileName}`);
         console.log(`📡 Запрос к URL: ${url}`);
 
         try {
             const response = await fetch(url);
-            console.log(`📥 Статус ответа: ${response.status} ${response.statusText}`);
+            console.log(`📥 Статус ответа: ${response.status}`);
             
             if (!response.ok) {
                 if (response.status === 404) {
-                    console.log(`⚠️ Файл не найден (404), переходим к следующему месяцу...`);
+                    console.log(`⚠️ Файл не найден (404), переходим к следующему...`);
                     continue; 
                 }
                 throw new Error(`HTTP ошибка: ${response.status}`);
@@ -402,24 +407,54 @@ async function loadMainData() {
 
             const jsonData = await response.json();
             
-            // Пытаемся найти данные пользователя по разным ключам
-            // В рабочей версии использовалось обращение по ФИО или Табельному номеру
-            const userData = jsonData[state.currentUserData['ФИО']] || 
-                             jsonData[state.currentUserData['Табельный номер']] ||
-                             jsonData[state.currentUserData['id']];
+            // НОВАЯ ЛОГИКА: Структура файла изменилась на { lastUpdated, columns, data: [...] }
+            const recordsArray = jsonData.data || jsonData; // Пробуем взять data, если нет - считаем что это сам массив
+            
+            if (!Array.isArray(recordsArray)) {
+                console.warn(`⚠️ В файле ${fileName} поле 'data' не является массивом. Тип:`, typeof recordsArray);
+                continue;
+            }
 
-            if (userData) {
+            console.log(`📊 В файле найдено записей: ${recordsArray.length}. Поиск сотрудника...`);
+
+            // Ищем запись текущего сотрудника в массиве данных
+            // Критерии поиска: Табельный номер, id или ФИО
+            const userRecord = recordsArray.find(record => {
+                const recTabNum = String(record['Табельный номер'] || record['tab_num'] || '');
+                const recId = String(record['id'] || '');
+                const recFio = String(record['ФИО'] || record['fio'] || '');
+                
+                const curTabNum = String(state.currentUser['Табельный номер'] || '');
+                const curId = String(state.currentUser['id'] || state.currentUser['Telegram ID'] || '');
+                const curFio = String(state.currentUser['ФИО'] || '');
+
+                // Сравнение по табельному номеру (если он есть у сотрудника)
+                if (curTabNum && recTabNum && recTabNum === curTabNum) return true;
+                
+                // Сравнение по ID (Telegram ID или внутренний id)
+                if (curId && recId && recId === curId) return true;
+                
+                // Сравнение по ФИО (как запасной вариант)
+                if (curFio && recFio && recFio === curFio) return true;
+
+                return false;
+            });
+
+            if (userRecord) {
                 console.log(`✅ Данные найдены за ${month}.${year}`);
-                loadedData = userData;
-                break; 
+                console.log(`📝 Найдена запись:`, userRecord);
+                loadedData = userRecord;
+                // Сохраняем период загруженных данных
+                state.dataPeriod = { year, month };
+                break; // Выходим из цикла, данные найдены
             } else {
-                console.log(`⚠️ Файл загружен, но данных для "${state.currentUserData['ФИО']}" не найдено.`);
-                console.log(`Доступные ключи в файле (первые 5):`, Object.keys(jsonData).slice(0, 5));
+                console.log(`⚠️ Файл загружен, но данных для "${state.currentUser['ФИО']}" не найдено.`);
+                console.log(`Доступные ключи в первой записи файла:`, recordsArray.length > 0 ? Object.keys(recordsArray[0]) : 'Пустой массив');
                 lastError = new Error('Данные сотрудника отсутствуют в файле');
             }
 
         } catch (error) {
-            console.error(`❌ Ошибка при загрузке ${fileName}:`, error);
+            console.error(`❌ Ошибка загрузки ${fileName}:`, error);
             lastError = error;
         }
     }
@@ -430,7 +465,10 @@ async function loadMainData() {
         throw new Error(errorMsg);
     }
 
-    state.currentMonthData = loadedData;
+    // Обновляем состояние
+    state.currentUserData = loadedData; // Сохраняем данные пользователя
+    state.currentMonthData = loadedData; // Для совместимости со старым кодом
+    state.lastUpdate = new Date();
     state.dataLastUpdated = new Date();
     
     return loadedData;
