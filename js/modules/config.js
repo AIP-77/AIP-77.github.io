@@ -3,7 +3,7 @@
 // ============================================
 
 export const DATA_SOURCES = {
-    staff: 'https://AIP-77.github.io/archive/staff%20fullData.json',
+    staff: 'https://AIP-77.github.io/archive/staff.json',
     monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')}%20fullData.json`
 };
 
