@@ -412,9 +412,27 @@
             const productionYearFilter = document.getElementById('filter-production-year').value;
             const maxQuantity = document.getElementById('max-quantity').value ? parseFloat(document.getElementById('max-quantity').value) : null;
             
+            // Функция для проверки совпадения по нескольким условиям (разделённым пробелом)
+            function matchesMultipleConditions(itemValue, filterValue) {
+                if (!filterValue) return true;
+                if (!itemValue) return false;
+                
+                const itemStr = itemValue.toString().toLowerCase();
+                // Разбиваем фильтр на отдельные условия по пробелам
+                const conditions = filterValue.split(/\s+/).filter(cond => cond.length > 0);
+                
+                // Все условия должны совпадать (логическое И)
+                for (const condition of conditions) {
+                    if (!itemStr.includes(condition)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
             currentFilteredData = allData.filter(item => {
                 const matchesCode = !codeFilter || (item.code && item.code.toString().toLowerCase().includes(codeFilter));
-                const matchesNomenclature = !nomenclatureFilter || (item.nomenclature && item.nomenclature.toString().toLowerCase().includes(nomenclatureFilter));
+                const matchesNomenclature = !nomenclatureFilter || matchesMultipleConditions(item.nomenclature, nomenclatureFilter);
                 const matchesAddress = !addressFilter || (item.address && item.address.toString().toLowerCase().includes(addressFilter));
                 const matchesWarehouse = !warehouseFilter || (item.warehouse && item.warehouse === warehouseFilter);
                 const matchesSeason = !seasonFilter || (item.season && item.season.toString().toLowerCase() === seasonFilter);
