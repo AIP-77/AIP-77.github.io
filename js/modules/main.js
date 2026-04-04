@@ -266,86 +266,116 @@ export async function init() {
     });
 }
 
+
 /**
- * Обработка авторизации
+ * Обработка авторизации пользователя
  */
 async function handleAuth() {
-    const telegramId = document.getElementById('telegramId').value.trim();
+    const loginInput = document.getElementById('login-input');
+    const authError = document.getElementById('auth-error');
     
-    if (!telegramId) {
-        showNotification('Введите Telegram ID', 'error');
+    // Проверка наличия элементов
+    if (!loginInput) {
+        console.error('Элемент #login-input не найден в DOM');
+        if (authError) {
+            authError.textContent = 'Ошибка интерфейса: поле ввода не найдено';
+            authError.style.display = 'block';
+        }
         return;
     }
 
-    toggleLoading(true);
-    state.error = null;
+    const telegramId = loginInput.value.trim();
+
+    if (!telegramId) {
+        if (authError) {
+            authError.textContent = 'Введите ваш Telegram ID';
+            authError.style.display = 'block';
+        }
+        return;
+    }
+
+    // Блокируем кнопку и показываем индикатор загрузки
+    const authBtn = document.querySelector('.auth-btn');
+    if (authBtn) {
+        authBtn.disabled = true;
+        authBtn.textContent = 'Проверка...';
+    }
+    if (authError) authError.style.display = 'none';
 
     try {
-        console.log('🔐 Попытка авторизации по ID:', telegramId);
-        
-        // Загружаем файл сотрудников
+        console.log('🔍 Загрузка списка сотрудников...');
+        // Загружаем данные сотрудников
         const response = await fetch(DATA_SOURCES.staff);
-        if (!response.ok) throw new Error(`Ошибка загрузки staff.json: ${response.status}`);
+        if (!response.ok) throw new Error(`Ошибка сети: ${response.status}`);
         
         const staffData = await response.json();
-        
-        // Ищем пользователя. 
-        // ВНИМАНИЕ: Проверяем разные варианты ключей, так как структура может отличаться
+        console.log('✅ Сотрудники загружены. Формат данных:', Array.isArray(staffData) ? 'Массив' : 'Объект');
+
         let user = null;
-        
-        // Вариант 1: Массив объектов (как в новой структуре)
+
+        // Логика поиска в зависимости от формата файла
         if (Array.isArray(staffData)) {
-            user = staffData.find(s => 
-                String(s['Telegram ID']) === telegramId || 
-                String(s['ChatID']) === telegramId ||
-                String(s['chat_id']) === telegramId
-            );
-        } 
-        // Вариант 2: Объект с ключами (старая структура)
-        else if (typeof staffData === 'object') {
-            // Пробуем найти по значению в объекте
-            Object.values(staffData).forEach(person => {
-                if (String(person['Telegram ID']) === telegramId || 
-                    String(person['ChatID']) === telegramId ||
-                    String(person['chat_id']) === telegramId) {
-                    user = person;
-                }
+            // Формат: [{...}, {...}]
+            user = staffData.find(emp => {
+                const empId = String(emp['Telegram ID'] || emp['telegram_id'] || emp['id'] || '');
+                const empTabNum = String(emp['Табельный номер'] || emp['tab_num'] || '');
+                return empId === telegramId || empTabNum === telegramId;
+            });
+        } else if (typeof staffData === 'object') {
+            // Формат: { "key": {...}, "key2": {...} } или { "data": [...] }
+            // Если есть ключ 'data', ищем внутри него
+            const searchArray = staffData.data || Object.values(staffData);
+            
+            user = searchArray.find(emp => {
+                if (!emp || typeof emp !== 'object') return false;
+                const empId = String(emp['Telegram ID'] || emp['telegram_id'] || emp['id'] || '');
+                const empTabNum = String(emp['Табельный номер'] || emp['tab_num'] || '');
+                return empId === telegramId || empTabNum === telegramId;
             });
         }
 
         if (!user) {
-            throw new Error('Пользователь не найден. Проверьте Telegram ID.');
+            throw new Error('Пользователь с таким ID не найден');
         }
 
-        console.log('✅ Пользователь найден:', user['ФИО'] || user['FIO']);
-
-        // Сохраняем пользователя в состояние
+        console.log('✅ Авторизация успешна:', user['ФИО']);
+        
+        // Сохраняем текущего пользователя
         state.currentUser = user;
-        state.chatId = telegramId;
+        state.chatId = user['Telegram ID'] || user['telegram_id'];
         
-        // Определяем права доступа
-        const role = user['Должность'] || user['Role'] || '';
-        state.isManager = role.includes('Начальник') || role.includes('Менеджер');
-        state.isAdmin = role.includes('Администратор') || role.includes('Admin');
+        // Проверка прав (если есть соответствующие поля)
+        state.isManager = user['Роль'] === 'Менеджер' || user['is_manager'] === true;
+        state.isAdmin = user['Роль'] === 'Администратор' || user['is_admin'] === true;
 
-        // Скрываем форму входа, показываем приложение
-        document.getElementById('authSection').classList.add('hidden');
-        document.getElementById('appContent').classList.remove('hidden');
+        // Переключаем интерфейс
+        const authSection = document.getElementById('auth-section');
+        const mainApp = document.getElementById('main-app');
         
+        if (authSection) authSection.style.display = 'none';
+        if (mainApp) mainApp.style.display = 'block';
+
         // Загружаем основные данные
         await loadMainData();
         
         // Рендерим интерфейс
-        renderDashboard();
-        renderPersonalReport();
+        renderHeader();
+        renderPersonalStats();
         renderCharts();
+        renderHistory();
 
     } catch (error) {
-        console.error('Ошибка авторизации:', error);
-        showNotification(`Ошибка авторизации: ${error.message}`, 'error');
-        toggleLoading(false);
+        console.error('❌ Ошибка авторизации:', error);
+        if (authError) {
+            authError.textContent = `Ошибка: ${error.message}`;
+            authError.style.display = 'block';
+        }
     } finally {
-        toggleLoading(false);
+        // Возвращаем кнопку в исходное состояние
+        if (authBtn) {
+            authBtn.disabled = false;
+            authBtn.textContent = 'Войти';
+        }
     }
 }
 
