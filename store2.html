@@ -5,22 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* Стили остаются без изменений */
+        /* Основные стили */
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; margin: 10px; background-color: #f5f5f5; font-size: 14px; }
         .container { max-width: 100%; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .filters { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e9ecef; }
         .filters-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
         @media (min-width: 768px) { .filters-grid { grid-template-columns: 1fr 1fr; } }
-        .filter-group { margin-bottom: 12px; }
+        .filter-group { margin-bottom: 12px; position: relative; }
         .filter-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; font-size: 13px; }
         .filter-group input, .filter-group select { width: 100%; padding: 8px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px; }
         
-        /* Новые стили для мультиселекта складов */
-        .multi-select-container {
+        /* Кнопки */
+        .search-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; transition: background-color 0.3s; flex: 1; min-width: 120px; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-secondary:hover { background-color: #545b62; }
+        .btn-success:hover { background-color: #218838; }
+
+        /* Таблица */
+        .table-container { overflow-x: auto; margin: 15px 0; -webkit-overflow-scrolling: touch; }
+        table { border-collapse: collapse; width: 100%; font-size: 12px; min-width: 800px; }
+        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; word-wrap: break-word; }
+        th { background-color: #4CAF50; color: white; position: sticky; top: 0; font-size: 12px; white-space: nowrap; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        /* Группировка */
+        .group-header-1 { background-color: #e8f5e8 !important; color: #2e7d32 !important; font-weight: bold; font-size: 13px; }
+        .group-header-2 { background-color: #e3f2fd !important; color: #1565c0 !important; font-weight: bold; font-size: 12px; }
+        .group-header-1 td { border-bottom: 2px solid #4caf50; font-size: 14px; }
+        .group-header-2 td { border-bottom: 1px solid #2196f3; }
+        .aggregated-row { background-color: #fff9c4 !important; font-weight: bold; border-left: 3px solid #ff9800; }
+        .total-row { background-color: #f5f5f5 !important; font-weight: bold; }
+        .total-row td { border-top: 2px solid #757575; }
+        
+        /* Инфо панели */
+        .results-info, .totals-info { padding: 10px 12px; border-radius: 5px; margin: 8px 0; font-size: 13px; }
+        .results-info { background: #e7f3ff; border-left: 4px solid #007bff; }
+        .totals-info { background: #fff3cd; border-left: 4px solid #ffc107; }
+        
+        /* Отладка */
+        .debug-panel { background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 5px; margin: 8px 0; overflow: hidden; }
+        .debug-header { padding: 8px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .debug-header:hover { background: #f1b0b7; }
+        .debug-content { padding: 0 12px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; background: #f8d7da; }
+        .debug-content.expanded { padding: 10px 12px; max-height: 300px; border-top: 1px solid #dc3545; overflow-y: auto; }
+        .debug-toggle { font-size: 16px; transition: transform 0.3s ease; }
+        .debug-toggle.expanded { transform: rotate(180deg); }
+        
+        /* Загрузка */
+        .loading-container { text-align: center; padding: 30px; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4CAF50; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
+        .instructions { background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #ffc107; margin-bottom: 15px; font-size: 13px; }
+        
+        /* --- СТИЛИ ДЛЯ МУЛЬТИ-ВЫБОРА СКЛАДА (ИСПРАВЛЕНО) --- */
+        .multi-select-wrapper {
             position: relative;
             width: 100%;
         }
+
         .multi-select-display {
             width: 100%;
             padding: 8px 10px;
@@ -32,12 +80,14 @@
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 5px;
             font-size: 13px;
         }
+
         .multi-select-display:hover {
-            border-color: #adb5bd;
+            border-color: #007bff;
         }
+
         .selected-tag {
             background: #007bff;
             color: white;
@@ -48,11 +98,13 @@
             align-items: center;
             gap: 4px;
         }
+
         .selected-tag span {
             cursor: pointer;
             font-weight: bold;
             margin-left: 2px;
         }
+
         .multi-select-dropdown {
             position: absolute;
             top: 100%;
@@ -61,141 +113,90 @@
             background: white;
             border: 1px solid #ced4da;
             border-radius: 4px;
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin-top: 4px;
+            padding: 5px 0;
         }
+
         .multi-select-dropdown.active {
             display: block;
         }
+
         .multi-select-option {
             padding: 6px 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
-            white-space: nowrap;
+            gap: 10px; /* Отступ между чекбоксом и текстом */
+            width: 100%;
         }
+
         .multi-select-option:hover {
             background-color: #f1f3f5;
         }
+
+        /* ИСПРАВЛЕНИЕ ЧЕКБОКСА */
         .multi-select-option input[type="checkbox"] {
             margin: 0;
-            flex-shrink: 0;
-        }
-        .multi-select-option label {
-            margin: 0;
-            cursor: pointer;
-            flex: 1;
-            white-space: normal; /* Разрешить перенос длинных названий */
-            word-break: break-word;
-        }
-        .exclude-wrapper {
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: #495057;
-            cursor: pointer;
-        }
-        .exclude-wrapper input {
-            margin: 0;
+            flex-shrink: 0; /* Не сжимать чекбокс */
+            width: 16px;
+            height: 16px;
             cursor: pointer;
         }
 
-        .search-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
-        button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; transition: background-color 0.3s; flex: 1; min-width: 120px; }
-        .btn-primary { background-color: #007bff; color: white; }
-        .btn-secondary { background-color: #6c757d; color: white; }
-        .btn-success { background-color: #28a745; color: white; }
-        .table-container { overflow-x: auto; margin: 15px 0; -webkit-overflow-scrolling: touch; }
-        table { border-collapse: collapse; width: 100%; font-size: 12px; min-width: 800px; }
-        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; word-wrap: break-word; }
-        th { background-color: #4CAF50; color: white; position: sticky; top: 0; font-size: 12px; white-space: nowrap; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        .multi-select-option label {
+            margin: 0;
+            cursor: pointer;
+            flex: 1; /* Занимать все оставшееся место */
+            word-wrap: break-word; /* Перенос длинных названий */
+            line-height: 1.4;
+            color: #333;
+            font-weight: normal;
+        }
+
+        .exclude-control {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #495057;
+        }
         
-        /* Стили для группировки */
-        .group-header-1 { 
-            background-color: #e8f5e8 !important; 
-            color: #2e7d32 !important;
-            font-weight: bold; 
+        .exclude-control input {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        /* Стили для года */
+        .year-filter-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .year-operator-select {
+            padding: 8px 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+            cursor: pointer;
+            min-width: 80px;
+        }
+        .year-select {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
             font-size: 13px;
         }
-        .group-header-2 { 
-            background-color: #e3f2fd !important; 
-            color: #1565c0 !important;
-            font-weight: bold;
-            font-size: 12px;
-        }
-        .group-header-1 td { 
-            border-bottom: 2px solid #4caf50; 
-            font-size: 14px; 
-        }
-        .group-header-2 td { 
-            border-bottom: 1px solid #2196f3; 
-        }
-        
-        .aggregated-row { 
-            background-color: #fff9c4 !important; 
-            font-weight: bold;
-            border-left: 3px solid #ff9800;
-        }
-        .total-row { background-color: #f5f5f5 !important; font-weight: bold; }
-        .total-row td { border-top: 2px solid #757575; }
-        
-        .results-info, .totals-info { padding: 10px 12px; border-radius: 5px; margin: 8px 0; font-size: 13px; }
-        .results-info { background: #e7f3ff; border-left: 4px solid #007bff; }
-        .totals-info { background: #fff3cd; border-left: 4px solid #ffc107; }
-        
-        /* Стили для панели отладки */
-        .debug-panel {
-            background: #f8d7da; 
-            border-left: 4px solid #dc3545;
-            border-radius: 5px;
-            margin: 8px 0;
-            overflow: hidden;
-        }
-        .debug-header {
-            padding: 8px 12px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-        }
-        .debug-header:hover {
-            background: #f1b0b7;
-        }
-        .debug-content {
-            padding: 0 12px;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease, padding 0.3s ease;
-            background: #f8d7da;
-        }
-        .debug-content.expanded {
-            padding: 10px 12px;
-            max-height: 200px;
-            border-top: 1px solid #dc3545;
-        }
-        .debug-toggle {
-            font-size: 16px;
-            transition: transform 0.3s ease;
-        }
-        .debug-toggle.expanded {
-            transform: rotate(180deg);
-        }
-        
-        .loading-container { text-align: center; padding: 30px; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4CAF50; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .hidden { display: none; }
-        .instructions { background: #fff3cd; padding: 12px; border-radius: 5px; border-left: 4px solid #ffc107; margin-bottom: 15px; font-size: 13px; }
-        
+
         @media (max-width: 767px) {
             body { margin: 5px; }
             .container { padding: 10px; }
@@ -210,10 +211,9 @@
         
         <div class="instructions">
             <h3>💡 Как использовать:</h3>
-            <p>Заполните один или несколько фильтров и нажмите "Применить фильтры" для загрузки данных.</p>
-            <p><strong>Группировка работает всегда:</strong> данные автоматически группируются по Коду и Году производства</p>
-            <p><strong>Агрегация:</strong> строки с одинаковым Кодом, Годом производства и Адресом объединяются с суммированием количеств</p>
-            <p><strong>Сортировка:</strong> по названию товара (Номенклатура) от А до Я</p>
+            <p>Заполните один или несколько фильтров и нажмите "Применить фильтры".</p>
+            <p><strong>Группировка:</strong> данные автоматически группируются по Коду и Году производства.</p>
+            <p><strong>Умный поиск:</strong> в поле "Номенклатура" можно вводить несколько слов через пробел (найдутся совпадения по всем словам).</p>
         </div>
         
         <!-- Панель фильтров -->
@@ -223,17 +223,17 @@
                 <div class="filters-column">
                     <div class="filter-group">
                         <label>🔍 Поиск по артикулу/коду:</label>
-                        <input type="text" id="search-code" placeholder="Введите код или артикул...">
+                        <input type="text" id="search-code" placeholder="Введите код...">
                     </div>
                     
                     <div class="filter-group">
-                        <label>📋 Поиск по номенклатуре:</label>
-                        <input type="text" id="search-nomenclature" placeholder="Введите название товара (можно несколько слов)...">
+                        <label>📋 Поиск по номенклатуре (умный):</label>
+                        <input type="text" id="search-nomenclature" placeholder="Например: Шина 205 16">
                     </div>
                     
                     <div class="filter-group">
                         <label>📍 Поиск по адресу хранения:</label>
-                        <input type="text" id="search-address" placeholder="Введите адрес (можно несколько слов)...">
+                        <input type="text" id="search-address" placeholder="Введите адрес...">
                     </div>
 
                     <div class="filter-group">
@@ -244,17 +244,17 @@
                 
                 <!-- Правая колонка -->
                 <div class="filters-column">
-                    <!-- Обновленный фильтр Склад -->
+                    <!-- Фильтр СКЛАД (Множественный выбор) -->
                     <div class="filter-group">
-                        <label>🏢 Склад:</label>
-                        <div class="multi-select-container">
-                            <div class="multi-select-display" id="warehouse-display">Выберите склады</div>
+                        <label>🏢 Склад (можно выбрать несколько):</label>
+                        <div class="multi-select-wrapper">
+                            <div class="multi-select-display" id="warehouse-display">Выберите склады...</div>
                             <div class="multi-select-dropdown" id="warehouse-dropdown"></div>
+                            <div class="exclude-control">
+                                <input type="checkbox" id="warehouse-exclude">
+                                <label for="warehouse-exclude" style="cursor:pointer;">Исключить выбранные склады</label>
+                            </div>
                         </div>
-                        <label class="exclude-wrapper">
-                            <input type="checkbox" id="warehouse-exclude">
-                            Исключить выбранные склады
-                        </label>
                     </div>
                     
                     <div class="filter-group">
@@ -267,17 +267,18 @@
                         </select>
                     </div>
 
-                    <!-- Обновленный фильтр Год -->
+                    <!-- Фильтр ГОД (Текстовые операторы + Список из данных) -->
                     <div class="filter-group">
                         <label>📆 Год производства:</label>
-                        <div style="display: flex; gap: 5px;">
-                            <select id="year-operator" style="width: 30%; padding: 8px 5px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px;">
+                        <div class="year-filter-row">
+                            <select id="year-operator" class="year-operator-select">
                                 <option value="=">Равно</option>
                                 <option value=">">Больше</option>
                                 <option value="<">Меньше</option>
                             </select>
-                            <select id="filter-production-year" style="width: 70%;">
+                            <select id="year-select" class="year-select">
                                 <option value="">Все годы</option>
+                                <!-- Опции заполняются JS -->
                             </select>
                         </div>
                     </div>
@@ -331,7 +332,8 @@
         let headers = [];
         let currentFilteredData = [];
         let isDataLoaded = false;
-        const excelUrl = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/data.xlsx';
+        // Используем локальный путь, если файл рядом, или GitHub raw URL
+        const excelUrl = 'data.xlsx'; 
         
         const loadingIndicator = document.getElementById('loading-indicator');
         const results = document.getElementById('results');
@@ -344,13 +346,12 @@
         const tableBody = document.getElementById('table-body');
         const exportBtn = document.getElementById('export-btn');
         
-        // Элементы новых фильтров
+        // Элементы фильтров
         const warehouseDisplay = document.getElementById('warehouse-display');
         const warehouseDropdown = document.getElementById('warehouse-dropdown');
         const warehouseExcludeCheckbox = document.getElementById('warehouse-exclude');
         const yearOperatorSelect = document.getElementById('year-operator');
-        const productionYearSelect = document.getElementById('filter-production-year');
-        const storageZoneInput = document.getElementById('filter-storage-zone');
+        const yearSelect = document.getElementById('year-select');
 
         const columnMappingByIndex = {
             0: 'code', 3: 'nomenclature', 6: 'address', 9: 'warehouse', 
@@ -400,24 +401,21 @@
         }
 
         async function loadExcelData() {
+            // Попытка загрузить локальный файл data.xlsx
             const response = await fetch(excelUrl);
-            if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
+            if (!response.ok) throw new Error(`Ошибка загрузки файла ${excelUrl}: ${response.status}`);
             
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, {type: 'array'});
             
-            if (workbook.SheetNames.length === 0) {
-                throw new Error('В файле нет листов с данными');
-            }
+            if (workbook.SheetNames.length === 0) throw new Error('В файле нет листов');
             
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            // Читаем данные начиная с 9-й строки (индекс 8)
+            // Читаем данные начиная с 9 строки (индекс 8)
             const jsonData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
             
-            if (jsonData.length === 0) {
-                throw new Error('Данные не найдены');
-            }
+            if (jsonData.length === 0) throw new Error('Данные не найдены');
             
             headers = headerTitles;
             processData(jsonData);
@@ -463,72 +461,63 @@
                 return nomA.localeCompare(nomB);
             });
             
-            console.log('Обработанные данные:', allData);
-            populateFilterSelects();
+            initWarehouseFilter();
+            initYearFilter();
         }
 
-        function populateFilterSelects() {
-            // Заполняем склады (Мультиселект)
-            const warehouses = [...new Set(allData.map(item => item.warehouse).filter(Boolean))].sort();
+        // Инициализация фильтра складов
+        function initWarehouseFilter() {
+            const warehouses = [...new Set(allData.map(item => item.warehouse).filter(w => w !== 'Не указано' && w !== ''))].sort();
             warehouseDropdown.innerHTML = '';
             
             warehouses.forEach(warehouse => {
                 const option = document.createElement('div');
                 option.className = 'multi-select-option';
-                const checkboxId = 'wh-' + warehouse.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
                 
-                option.innerHTML = `
-                    <input type="checkbox" value="${warehouse}" id="${checkboxId}">
-                    <label for="${checkboxId}">${warehouse}</label>
-                `;
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = warehouse;
+                checkbox.id = 'wh-' + warehouse.replace(/\s+/g, '-');
+                
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.textContent = warehouse;
+                
+                option.appendChild(checkbox);
+                option.appendChild(label);
+                
+                option.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    updateWarehouseDisplay();
+                    // Автосброс не нужен, ждем кнопки "Применить" или делаем по желанию
+                    // applyFilters(); 
+                });
+                
                 warehouseDropdown.appendChild(option);
             });
 
-            // Обработчики для мультиселекта
             warehouseDisplay.addEventListener('click', (e) => {
                 e.stopPropagation();
                 warehouseDropdown.classList.toggle('active');
             });
 
-            warehouseDropdown.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') {
-                    // Если клик по лейблу, находим соответствующий чекбокс
-                    if(e.target.tagName === 'LABEL') {
-                        const checkboxId = e.target.getAttribute('for');
-                        const checkbox = document.getElementById(checkboxId);
-                        if(checkbox) checkbox.checked = !checkbox.checked;
-                    }
-                    updateWarehouseDisplay();
-                    // Автоматически применяем фильтры при выборе? 
-                    // Пока нет, ждем кнопки "Применить", чтобы не тормозило при большом списке
-                }
-            });
-
             document.addEventListener('click', () => {
                 warehouseDropdown.classList.remove('active');
             });
-
+            
             warehouseExcludeCheckbox.addEventListener('change', () => {
                 // Можно применять сразу или ждать кнопки
             });
-
-            // Заполняем годы производства
-            const productionYears = [...new Set(allData.map(item => item.production_date).filter(Boolean))].sort((a, b) => b - a);
-            while (productionYearSelect.options.length > 1) productionYearSelect.remove(1);
-            productionYears.forEach(year => {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                productionYearSelect.appendChild(option);
-            });
         }
 
+        // Обновление отображения выбранных складов
         function updateWarehouseDisplay() {
             const checkboxes = warehouseDropdown.querySelectorAll('input[type="checkbox"]:checked');
             
             if (checkboxes.length === 0) {
-                warehouseDisplay.textContent = 'Выберите склады';
+                warehouseDisplay.textContent = 'Выберите склады...';
                 warehouseDisplay.innerHTML = '';
                 return;
             }
@@ -552,12 +541,27 @@
             });
         }
 
+        // Инициализация фильтра годов
+        function initYearFilter() {
+            const years = [...new Set(allData.map(item => item.production_date).filter(y => y && y !== 'Не указан'))]
+                .filter(y => !isNaN(parseInt(y))) // Только числа
+                .sort((a, b) => b - a); // От новых к старым
+            
+            yearSelect.innerHTML = '<option value="">Все годы</option>';
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            });
+        }
+
         function applyFilters() {
             const codeFilter = document.getElementById('search-code').value.toLowerCase();
             const nomenclatureFilter = document.getElementById('search-nomenclature').value.toLowerCase();
             const addressFilter = document.getElementById('search-address').value.toLowerCase();
             const seasonFilter = document.getElementById('filter-season').value;
-            const storageZoneFilter = storageZoneInput.value.trim().toLowerCase();
+            const storageZoneFilter = document.getElementById('filter-storage-zone').value.trim().toLowerCase();
             const maxQuantity = document.getElementById('max-quantity').value ? parseFloat(document.getElementById('max-quantity').value) : null;
             
             // Получаем выбранные склады
@@ -566,74 +570,58 @@
             ).map(cb => cb.value);
             const excludeWarehouses = warehouseExcludeCheckbox.checked;
 
-            // Год и оператор
-            const yearFilter = productionYearSelect.value;
-            const yearOperator = yearOperatorSelect.value;
-            
-            // Функция умного поиска
+            // Год
+            const yearValue = yearSelect.value;
+            const yearOp = yearOperatorSelect.value;
+
             function matchesMultipleConditions(itemValue, filterValue) {
                 if (!filterValue) return true;
                 if (!itemValue) return false;
-                
                 const itemStr = itemValue.toString().toLowerCase();
                 const conditions = filterValue.split(/\s+/).filter(cond => cond.length > 0);
-                
-                for (const condition of conditions) {
-                    if (!itemStr.includes(condition)) {
-                        return false;
-                    }
-                }
-                return true;
+                return conditions.every(condition => itemStr.includes(condition));
             }
             
             currentFilteredData = allData.filter(item => {
                 const matchesCode = !codeFilter || (item.code && item.code.toString().toLowerCase().includes(codeFilter));
                 const matchesNomenclature = !nomenclatureFilter || matchesMultipleConditions(item.nomenclature, nomenclatureFilter);
-                const matchesAddress = !addressFilter || matchesMultipleConditions(item.address, addressFilter);
+                const matchesAddress = !addressFilter || (item.address && item.address.toString().toLowerCase().includes(addressFilter));
                 
-                // Логика склада
+                // Логика складов
                 let matchesWarehouse = true;
                 if (selectedWarehouses.length > 0) {
                     const isInList = selectedWarehouses.includes(item.warehouse);
-                    if (excludeWarehouses) {
-                        if (isInList) matchesWarehouse = false; // Исключаем выбранные
-                    } else {
-                        if (!isInList) matchesWarehouse = false; // Показываем только выбранные
-                    }
+                    matchesWarehouse = excludeWarehouses ? !isInList : isInList;
                 }
 
                 const matchesSeason = !seasonFilter || (item.season && item.season.toString().toLowerCase() === seasonFilter);
                 
-                // Логика зоны (по первому символу)
+                // Зона по первому символу
                 let matchesStorageZone = true;
                 if (storageZoneFilter) {
-                    const itemZoneStart = item.storage_zone ? item.storage_zone.charAt(0).toLowerCase() : '';
-                    if (itemZoneStart !== storageZoneFilter) matchesStorageZone = false;
+                    const itemZone = item.storage_zone ? item.storage_zone.toString().toLowerCase() : '';
+                    matchesStorageZone = itemZone.startsWith(storageZoneFilter);
                 }
 
-                // Логика года
-                let matchesProductionYear = true;
-                if (yearFilter && item.production_date && item.production_date !== 'Не указан') {
+                // Год
+                let matchesYear = true;
+                if (yearValue) {
                     const itemYear = parseInt(item.production_date);
-                    const targetYear = parseInt(yearFilter);
-                    
-                    if (yearOperator === '=') {
-                        if (itemYear !== targetYear) matchesProductionYear = false;
-                    } else if (yearOperator === '>') {
-                        if (itemYear <= targetYear) matchesProductionYear = false;
-                    } else if (yearOperator === '<') {
-                        if (itemYear >= targetYear) matchesProductionYear = false;
+                    const targetYear = parseInt(yearValue);
+                    if (!isNaN(itemYear)) {
+                        if (yearOp === '=') matchesYear = (itemYear === targetYear);
+                        else if (yearOp === '>') matchesYear = (itemYear > targetYear);
+                        else if (yearOp === '<') matchesYear = (itemYear < targetYear);
+                    } else {
+                        matchesYear = false;
                     }
-                } else if (yearFilter) {
-                    // Если год выбран, а у товара нет года или "Не указан"
-                    matchesProductionYear = false;
                 }
 
                 const matchesQuantity = maxQuantity === null || (item.end_balance || 0) <= maxQuantity;
                 
                 return matchesCode && matchesNomenclature && matchesAddress && 
                        matchesWarehouse && matchesSeason && matchesStorageZone && 
-                       matchesProductionYear && matchesQuantity;
+                       matchesYear && matchesQuantity;
             });
             
             loadingIndicator.classList.add('hidden');
@@ -646,16 +634,20 @@
             document.getElementById('search-code').value = '';
             document.getElementById('search-nomenclature').value = '';
             document.getElementById('search-address').value = '';
-            storageZoneInput.value = '';
+            document.getElementById('filter-storage-zone').value = '';
+            document.getElementById('search-warehouse').value = ''; // На случай старого селекта
             document.getElementById('filter-season').value = '';
-            productionYearSelect.value = '';
-            yearOperatorSelect.value = '=';
+            document.getElementById('filter-production-year').value = ''; // На случай старого селекта
             document.getElementById('max-quantity').value = '';
             
-            // Сброс складов
+            // Сброс мультиселекта
             warehouseDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-            warehouseExcludeCheckbox.checked = false;
             updateWarehouseDisplay();
+            warehouseExcludeCheckbox.checked = false;
+            
+            // Сброс года
+            yearSelect.value = '';
+            yearOperatorSelect.value = '=';
             
             results.classList.add('hidden');
             exportBtn.disabled = true;
@@ -667,13 +659,11 @@
             
             const uniqueCodesInResults = [...new Set(data.map(item => item.code))];
             const uniqueYearsInResults = [...new Set(data.map(item => item.production_date))];
-            const totalGroupsByCode = uniqueCodesInResults.length;
             
             debugContent.innerHTML = `
-                <strong>Статистика группировки:</strong><br>
-                • Уникальные коды: <strong>${uniqueCodesInResults.join(', ') || 'нет'}</strong><br>
-                • Уникальные годы: <strong>${uniqueYearsInResults.join(', ') || 'нет'}</strong><br>
-                • Всего групп по кодам: <strong>${totalGroupsByCode}</strong><br>
+                <strong>Статистика:</strong><br>
+                • Уникальные коды: <strong>${uniqueCodesInResults.length}</strong><br>
+                • Уникальные годы: <strong>${uniqueYearsInResults.length}</strong><br>
                 • Всего записей: <strong>${filteredRecords}</strong>
             `;
             
@@ -681,23 +671,14 @@
             debugContent.classList.remove('expanded');
             debugToggle.classList.remove('expanded');
             
-            resultsInfo.innerHTML = `
-                📊 <strong>Всего записей:</strong> ${totalRecords} | 
-                🔍 <strong>Найдено:</strong> ${filteredRecords}
-            `;
+            resultsInfo.innerHTML = `📊 <strong>Всего записей:</strong> ${totalRecords} | 🔍 <strong>Найдено:</strong> ${filteredRecords}`;
             
             const sumEndBalance = data.reduce((sum, item) => sum + (item.end_balance || 0), 0);
             const sumIncome = data.reduce((sum, item) => sum + (item.income || 0), 0);
             const sumExpense = data.reduce((sum, item) => sum + (item.expense || 0), 0);
             const sumStartBalance = data.reduce((sum, item) => sum + (item.start_balance || 0), 0);
             
-            totalsInfo.innerHTML = `
-                🧮 <strong>Суммы:</strong> 
-                Начальный: <strong>${sumStartBalance.toLocaleString()}</strong> | 
-                Конечный: <strong>${sumEndBalance.toLocaleString()}</strong> | 
-                Приход: <strong>${sumIncome.toLocaleString()}</strong> | 
-                Расход: <strong>${sumExpense.toLocaleString()}</strong>
-            `;
+            totalsInfo.innerHTML = `🧮 <strong>Суммы:</strong> Нач: <strong>${sumStartBalance.toLocaleString()}</strong> | Кон: <strong>${sumEndBalance.toLocaleString()}</strong> | Приход: <strong>${sumIncome.toLocaleString()}</strong> | Расход: <strong>${sumExpense.toLocaleString()}</strong>`;
             
             tableHeader.innerHTML = '';
             tableBody.innerHTML = '';
@@ -721,7 +702,6 @@
 
         function groupAndAggregateData(data) {
             const grouped = {};
-            const aggregatedData = [];
             const aggregationMap = {};
             
             data.forEach(item => {
@@ -735,15 +715,9 @@
                         warehouse: item.warehouse,
                         production_date: item.production_date,
                         season: item.season,
-                        start_balance: 0,
-                        end_balance: 0,
-                        income: 0,
-                        expense: 0,
-                        for_picking: 0,
-                        for_placement: 0,
-                        volume: 0,
-                        count: 0,
-                        originalItems: []
+                        start_balance: 0, end_balance: 0, income: 0, expense: 0,
+                        for_picking: 0, for_placement: 0, volume: 0,
+                        count: 0
                     };
                 }
                 
@@ -756,24 +730,14 @@
                 agg.for_placement += item.for_placement || 0;
                 agg.volume += item.volume || 0;
                 agg.count++;
-                agg.originalItems.push(item);
             });
             
             Object.values(aggregationMap).forEach(aggItem => {
-                aggregatedData.push(aggItem);
-            });
-            
-            aggregatedData.forEach(item => {
-                const code = item.code;
-                const year = item.production_date;
-                
-                if (!grouped[code]) {
-                    grouped[code] = {};
-                }
-                if (!grouped[code][year]) {
-                    grouped[code][year] = [];
-                }
-                grouped[code][year].push(item);
+                const code = aggItem.code;
+                const year = aggItem.production_date;
+                if (!grouped[code]) grouped[code] = {};
+                if (!grouped[code][year]) grouped[code][year] = [];
+                grouped[code][year].push(aggItem);
             });
             
             return grouped;
@@ -783,9 +747,7 @@
             const sortedCodes = Object.keys(groupedData).sort((a, b) => {
                 const firstItemA = Object.values(groupedData[a])[0][0];
                 const firstItemB = Object.values(groupedData[b])[0][0];
-                const nomA = (firstItemA.nomenclature || '').toString().toLowerCase();
-                const nomB = (firstItemB.nomenclature || '').toString().toLowerCase();
-                return nomA.localeCompare(nomB);
+                return (firstItemA.nomenclature || '').toString().toLowerCase().localeCompare((firstItemB.nomenclature || '').toString().toLowerCase());
             });
             
             sortedCodes.forEach(code => {
@@ -794,10 +756,7 @@
                 
                 const codeHeader = document.createElement('tr');
                 codeHeader.className = 'group-header-1';
-                const codeTd = document.createElement('td');
-                codeTd.colSpan = headers.length;
-                codeTd.innerHTML = `📦 <strong>КОД: ${code}</strong> | 🧮 Всего единиц: <strong>${totalEndBalanceForCode.toLocaleString()}</strong>`;
-                codeHeader.appendChild(codeTd);
+                codeHeader.innerHTML = `<td colspan="${headers.length}">📦 <strong>КОД: ${code}</strong> | 🧮 Всего: <strong>${totalEndBalanceForCode.toLocaleString()}</strong></td>`;
                 tableBody.appendChild(codeHeader);
                 
                 const sortedYears = Object.keys(yearGroups).sort();
@@ -808,18 +767,12 @@
                     
                     const yearHeader = document.createElement('tr');
                     yearHeader.className = 'group-header-2';
-                    const yearTd = document.createElement('td');
-                    yearTd.colSpan = headers.length;
-                    yearTd.innerHTML = `📅 <strong>ГОД ПРОИЗВОДСТВА: ${year}</strong> | 📊 Записей: ${items.length} | 🧮 Единиц: <strong>${totalEndBalanceForYear.toLocaleString()}</strong>`;
-                    yearHeader.appendChild(yearTd);
+                    yearHeader.innerHTML = `<td colspan="${headers.length}">📅 <strong>ГОД: ${year}</strong> | Записей: ${items.length} | Единиц: <strong>${totalEndBalanceForYear.toLocaleString()}</strong></td>`;
                     tableBody.appendChild(yearHeader);
                     
                     items.forEach(item => {
                         const row = document.createElement('tr');
-                        
-                        if (item.count > 1) {
-                            row.className = 'aggregated-row';
-                        }
+                        if (item.count > 1) row.className = 'aggregated-row';
                         
                         row.appendChild(createCell(item.code));
                         row.appendChild(createCell(item.nomenclature));
@@ -835,49 +788,38 @@
                         row.appendChild(createCell(item.for_placement, true));
                         row.appendChild(createCell(item.volume, true));
                         
-                        if (item.count > 1) {
-                            row.title = `Объединено ${item.count} записей`;
-                        }
-                        
+                        if (item.count > 1) row.title = `Объединено ${item.count} записей`;
                         tableBody.appendChild(row);
                     });
                 });
             });
         }
 
-        function createCell(value, isNumber = false, align = 'left') {
+        function createCell(value, isNumber = false) {
             const td = document.createElement('td');
             if (isNumber && typeof value === 'number') {
                 td.textContent = value.toLocaleString();
                 td.style.textAlign = 'right';
             } else {
                 td.textContent = value !== undefined && value !== null ? value : '';
-                td.style.textAlign = align;
             }
             return td;
         }
 
         function exportToExcel() {
-            if (currentFilteredData.length === 0) {
-                alert('Нет данных для экспорта');
-                return;
-            }
-            
+            if (currentFilteredData.length === 0) { alert('Нет данных'); return; }
             const wb = XLSX.utils.book_new();
             const exportData = [headers];
-            
             currentFilteredData.forEach(item => {
-                const row = [
+                exportData.push([
                     item.code, item.nomenclature, item.address, item.warehouse,
                     item.production_date, item.season, item.start_balance,
                     item.end_balance, item.income, item.expense,
                     item.for_picking, item.for_placement, item.volume
-                ];
-                exportData.push(row);
+                ]);
             });
-            
             const ws = XLSX.utils.aoa_to_sheet(exportData);
-            XLSX.utils.book_append_sheet(wb, ws, "Складские данные");
+            XLSX.utils.book_append_sheet(wb, ws, "Данные");
             XLSX.writeFile(wb, `склад_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
