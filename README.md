@@ -11,11 +11,8 @@
 ```
 ├── index.html          # Главная страница приложения
 ├── manager.html        # Страница менеджера
-├── Store.html          # Страница магазина
 ├── sw.js               # Service Worker для PWA
 ├── manifest.json       # Манифест PWA
-├── fullData.json       # Полные данные системы
-├── favicon.png         # Иконка приложения
 │
 ├── scripts/            # Скрипты генерации JSON
 │   ├── generate-Archive.mjs
