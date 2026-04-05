@@ -307,15 +307,70 @@ export function renderCalendarGrid(year, monthNum, userDates) {
 }
 
 /**
- * Рендеринг основной панели (дашборда)
+ * Рендеринг основного дашборда
  */
-export function renderDashboard(userData) {
-    // Эта функция может быть заглушкой, если вся отрисовка уже делается 
-    // через renderHeader, renderPersonalReport и renderGroupedTasks
-    console.log('📊 Рендеринг дашборда для:', userData['ФИО']);
-    
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-        mainContent.style.display = 'block';
+export function renderDashboard() {
+    // Берем данные из глобального состояния, если они есть
+    const user = state.currentUser;
+    const tasks = state.currentUserData || state.currentMonthData;
+
+    if (!user) {
+        console.error('renderDashboard: Пользователь не авторизован');
+        return;
     }
+
+    const dashboardEl = document.getElementById('dashboard-view');
+    if (!dashboardEl) return;
+
+    // Если есть задачи, считаем статистику
+    let statsHtml = '<div class="stats-grid">';
+    
+    if (tasks && Array.isArray(tasks) && tasks.length > 0) {
+        const totalPay = calculateDayPay(tasks);
+        const totalXis = calculateXisBonus(tasks);
+        const totalTimeSec = tasks.reduce((sum, t) => sum + timeToSeconds(t['Рабочее время'] || '0'), 0);
+        
+        // Расчет среднего норматива
+        const validNorms = tasks
+            .map(t => parseFloat(t['Выполнение норматива']))
+            .filter(n => !isNaN(n));
+        const avgNorm = validNorms.length > 0 
+            ? (validNorms.reduce((a, b) => a + b, 0) / validNorms.length).toFixed(1) 
+            : '0.0';
+
+        statsHtml += `
+            <div class="stat-card">
+                <div class="stat-label">Отработано</div>
+                <div class="stat-value">${secondsToTime(totalTimeSec)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Начислено</div>
+                <div class="stat-value" style="color: var(--tg-link-color);">${formatCurrency(totalPay)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Премия XIS</div>
+                <div class="stat-value seasonal-bonus">${formatCurrency(totalXis)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Ср. норматив</div>
+                <div class="stat-value" style="color: ${getNormativeColor(avgNorm)}">${avgNorm}%</div>
+            </div>
+        `;
+    } else {
+        statsHtml += '<p style="grid-column: 1/-1; text-align: center;">Нет данных для отображения статистики</p>';
+    }
+    
+    statsHtml += '</div>';
+
+    dashboardEl.innerHTML = `
+        <div class="dashboard-header">
+            <h2>Добро пожаловать, ${user['ФИО'] || 'Сотрудник'}!</h2>
+            <p class="department-name">${user['Отдел'] || user['Департамент'] || ''}</p>
+        </div>
+        ${statsHtml}
+        <div id="calendar-container" style="margin-top: 20px;"></div>
+        <div id="tasks-detailed" style="margin-top: 20px;"></div>
+    `;
+    
+    dashboardEl.style.display = 'block';
 }
