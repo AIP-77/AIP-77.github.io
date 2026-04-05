@@ -273,138 +273,108 @@ export async function init() {
     });
 }
 
-
 /**
- * Обработка авторизации
+ * Обработка авторизации пользователя
  */
 async function handleAuth() {
-    console.log('🔘 Кнопка авторизации нажата');
-    
-    const authInput = document.getElementById('login-input') || 
-                      document.getElementById('telegram-id') || 
-                      document.querySelector('input[type="text"]');
-    
-    if (!authInput) {
-        console.error('❌ Поле ввода не найдено! Проверьте ID в HTML.');
-        return;
-    }
-
-    const inputValue = authInput.value.trim();
-    console.log(`📝 Введенное значение: "${inputValue}"`);
+    const input = document.getElementById('login-input') || document.getElementById('telegram-id') || document.querySelector('input[type="text"]');
+    const inputValue = input ? input.value.trim() : '';
 
     if (!inputValue) {
-        alert('Пожалуйста, введите Telegram ID, Пароль или Табельный номер');
+        showBanner('Введите Telegram ID или пароль', 'error');
         return;
     }
 
+    console.log('🔘 Кнопка авторизации нажата');
+    console.log(`📝 Введенное значение: "${inputValue}"`);
+
     try {
+        // 1. Загрузка списка сотрудников
         console.log('📥 Загрузка файла сотрудников...');
         const response = await fetch(DATA_SOURCES.staff);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
-        const json = await response.json();
-        
-        // 1. Извлекаем массив данных из поля 'data'
-        const staffArray = json.data || [];
-        
-        if (!Array.isArray(staffArray)) {
-            throw new Error('Формат файла сотрудников неверен: поле data не является массивом');
+        const rawData = await response.json();
+        console.log('✅ Сотрудники загружены.');
+
+        // Преобразование формата {columns, data} -> массив объектов
+        let staffList = [];
+        if (rawData.data && Array.isArray(rawData.data) && rawData.columns) {
+            staffList = rawData.data.map(row => {
+                const obj = {};
+                rawData.columns.forEach((col, idx) => {
+                    obj[col] = row[idx];
+                });
+                return obj;
+            });
+        } else if (Array.isArray(rawData)) {
+            staffList = rawData;
+        } else {
+            throw new Error('Неверный формат файла сотрудников');
         }
 
-        console.log(`✅ Сотрудники загружены. Найдено записей: ${staffArray.length}`);
+        console.log(`Найдено записей: ${staffList.length}`);
 
-        // Структура столбцов из файла: 
-        // ["Сотрудник","Telegram ID","Отдел","Департамент","Роль","Статус","Руководит отделом","Смена","Источник","Отметка времени"]
-        // Индексы: 0=ФИО, 1=Telegram ID, 2=Отдел, 3=Департамент, 4=Роль, 5=Статус
-        
-        let foundUser = null;
-        let userRecordObj = {};
-
-        // 2. Перебираем массив строк
-        for (const row of staffArray) {
-            if (!Array.isArray(row) || row.length < 2) continue;
-
-            // Преобразуем строку в объект для удобства (как в старой версии)
-            const record = {
-                'ФИО': row[0] || '',
-                'Telegram ID': String(row[1] || ''),
-                'Отдел': row[2] || '',
-                'Департамент': row[3] || '',
-                'Роль': row[4] || '',
-                'Статус': row[5] || '',
-                'Руководит отделом': row[6] || '',
-                'Смена': row[7] || '',
-                'Табельный номер': row[8] || '' // Предположим, что источник или смена могут быть табельным, либо добавим отдельно
-            };
+        // 2. Поиск пользователя
+        // Ищем по полю "Telegram ID", "Пароль", "Табельный номер" или "ФИО"
+        const user = staffList.find(p => {
+            const telId = String(p['Telegram ID'] || '');
+            const pass = String(p['Пароль'] || '');
+            const tabNum = String(p['Табельный номер'] || '');
+            const fio = String(p['ФИО'] || '');
             
-            // Если у вас есть отдельное поле "Табельный номер" в файле, уточните его индекс. 
-            // Сейчас я предполагаю, что поиск идет по Telegram ID (индекс 1) или ФИО (индекс 0).
-            // Если "Пароль" хранится где-то еще, нужно добавить проверку.
+            // Сравниваем введенное значение со всеми возможными полями
+            return telId === inputValue || pass === inputValue || tabNum === inputValue || fio === inputValue;
+        });
 
-            const fio = String(record['ФИО']).toLowerCase();
-            const telegramId = String(record['Telegram ID']);
-            // Попытка найти табельный номер, если он есть в данных (иногда он в других колонках)
-            const tabNum = String(row[8] || record['Табельный номер'] || ''); 
-
-            // Сравнение введенного значения с данными
-            // Приводим ввод к строке для сравнения с Telegram ID
-            if (telegramId === inputValue) {
-                foundUser = record;
-                userRecordObj = record;
-                break;
-            }
+        if (user) {
+            console.log(`✅ Пользователь найден: ${user['ФИО']}`);
             
-            // Если ввод совпадает с ФИО (частично или полностью)
-            if (fio.includes(inputValue.toLowerCase())) {
-                 foundUser = record;
-                 userRecordObj = record;
-                 break;
-            }
+            // Сохраняем текущего пользователя в состояние
+            state.currentUser = user;
+            state.currentUserData = null; // Сброс данных перед загрузкой
 
-            // Если ввод совпадает с табельным номером (если он есть в строке)
-            if (tabNum && tabNum === inputValue) {
-                foundUser = record;
-                userRecordObj = record;
-                break;
-            }
-        }
-
-        if (foundUser) {
-            console.log('✅ Пользователь найден:', foundUser['ФИО']);
-            
-            // Сохраняем пользователя в состояние
-            state.currentUser = foundUser;
-            state.currentUserData = foundUser; // Для совместимости
-            
-            // Скрываем форму входа, показываем приложение
-            const authForm = document.querySelector('.auth-container') || document.getElementById('auth-screen');
+            // 3. Скрываем форму входа, показываем приложение
+            const authForm = document.querySelector('.auth-container') || document.getElementById('auth-screen') || document.getElementById('auth-form');
             if (authForm) authForm.style.display = 'none';
             
-            const appContent = document.getElementById('app-content') || document.querySelector('.app-container');
-            if (appContent) appContent.style.display = 'block';
+            const appContent = document.getElementById('app-content') || document.getElementById('main-content') || document.querySelector('.app-container');
+            if (appContent) {
+                appContent.style.display = 'block';
+                // Показываем индикатор загрузки внутри контента
+                showLoading('main-content'); 
+            }
 
-            // Загружаем основные данные
+            // 4. Загружаем основные данные (задачи)
+            console.log(`🔍 Начало загрузки данных для: ${user['ФИО']}`);
             await loadMainData();
+
+            // 5. Рендерим интерфейс после успешной загрузки данных
+            clearInterface(); // Очищаем лоадер
             
-            // Рендерим интерфейс
-            renderHeader();
-            renderDashboard();
+            // Делаем функцию переключения групп доступной глобально (для onclick в HTML)
+            window.toggleTaskGroup = toggleTaskGroup;
+
+            renderHeader(user);
+            renderDashboard(); // Основной дашборд
+            renderGroupedTasks(state.currentUserData || []); // Детализация задач
             
+            showBanner('Авторизация успешна! Данные загружены.', 'success');
+
         } else {
             console.warn(`⚠️ Пользователь не найден по значению: ${inputValue}`);
-            alert('Пользователь не найден. Проверьте введенный Telegram ID или ФИО.');
+            showBanner('Пользователь не найден. Проверьте введенные данные.', 'error');
+            if (input) input.value = '';
+            input?.focus();
         }
 
     } catch (error) {
         console.error('❌ Ошибка авторизации:', error);
-        alert('Ошибка загрузки данных сотрудников: ' + error.message);
+        showError('Ошибка загрузки данных: ' + error.message);
+        showBanner('Произошла ошибка при входе', 'error');
     }
 }
 
-
-/**
- * Загрузка основных данных за текущий или предыдущий месяц
- */
 /**
  * Загрузка основных данных за текущий или предыдущий месяц
  */
