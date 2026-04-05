@@ -1,40 +1,155 @@
-import { state, DATA_SOURCES } from './config.js';
+// ============================================
+// ГЛАВНЫЙ МОДУЛЬ (ТОЧКА ВХОДА)
+// ============================================
 
+import { state, DATA_SOURCES } from './config.js';
 import { 
     timeToSeconds, 
     secondsToTime, 
     formatCurrency, 
     parseRussianNumber ,
-    showError,    // Проверьте наличие в экспорте
-    showBanner    // Проверьте наличие в экспорте
+    showError,
+    showBanner
 } from './utils.js';
 
-// Убедитесь, что showError и showBanner экспортируются из utils.js или ui.js
 import { 
     renderHeader, 
+    renderPersonalReport, 
     renderDashboard, 
+    renderCalendarGrid, 
     renderGroupedTasks, 
     toggleTaskGroup, 
     showLoading, 
     clearInterface,
+} from './ui.js';
 
-} from './ui.js'; 
-
-import { loadMainData } from './dataService.js'; // Или откуда у вас эта функция
-
-// Делаем функцию переключения групп доступной глобально
+// Делаем функцию переключения групп доступной глобально для onclick в HTML
 window.toggleTaskGroup = toggleTaskGroup;
 
 /**
- * Обработка авторизации (Восстановленная логика)
+ * Загрузка основных данных за текущий или предыдущий месяц
+ */
+async function loadMainData() {
+    if (!state.currentUser) {
+        throw new Error('Пользователь не авторизован (currentUser is null)');
+    }
+
+    const fio = state.currentUser['ФИО'] || state.currentUser['Сотрудник'];
+    if (!fio) {
+        console.error('❌ У пользователя не найдено поле ФИО или Сотрудник', state.currentUser);
+        throw new Error('Некорректные данные пользователя: отсутствует имя');
+    }
+
+    console.log(`🔍 Начало загрузки данных для: ${fio}`);
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    
+    // Формируем список месяцев для проверки (текущий и предыдущий)
+    const monthsToCheck = [];
+    monthsToCheck.push({ year: currentYear, month: currentMonth });
+    
+    let prevMonth = currentMonth - 1;
+    let prevYear = currentYear;
+    if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear--;
+    }
+    monthsToCheck.push({ year: prevYear, month: prevMonth });
+
+    let loadedData = null;
+    let lastError = null;
+
+    for (const { year, month } of monthsToCheck) {
+        const monthStr = month.toString().padStart(2, '0');
+        const fileName = `${year}-${monthStr} fullData.json`;
+        const url = `https://AIP-77.github.io/archive/${fileName}`;
+        
+        console.log(`📂 Проверка файла: ${fileName}`);
+
+        try {
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log(`⚠️ Файл не найден (404), переходим к следующему...`);
+                    continue; 
+                }
+                throw new Error(`HTTP ошибка: ${response.status}`);
+            }
+
+            const jsonData = await response.json();
+            
+            // Новая логика: структура { columns, data: [...] }
+            const recordsArray = jsonData.data || jsonData;
+            
+            if (!Array.isArray(recordsArray)) {
+                console.warn(`⚠️ В файле ${fileName} поле 'data' не является массивом.`);
+                continue;
+            }
+
+            // Поиск записи сотрудника в массиве
+            const userRecord = recordsArray.find(record => {
+                // Ищем по полю "Сотрудник" или "ФИО" внутри записи данных
+                const recFio = String(record['Сотрудник'] || record['ФИО'] || '');
+                return recFio === fio;
+            });
+
+            if (userRecord) {
+                console.log(`✅ Данные найдены за ${month}.${year}`);
+                loadedData = userRecord;
+                state.dataPeriod = { year, month };
+                break; 
+            } else {
+                console.log(`⚠️ В файле за ${month}.${year} сотрудник "${fio}" не найден.`);
+                lastError = new Error('Данные сотрудника отсутствуют в файле');
+            }
+
+        } catch (error) {
+            console.error(`❌ Ошибка загрузки ${fileName}:`, error);
+            lastError = error;
+        }
+    }
+
+    if (!loadedData) {
+        const errorMsg = lastError ? lastError.message : 'Нет данных за последние 2 месяца';
+        console.error('Load main data error:', errorMsg);
+        throw new Error(errorMsg);
+    }
+
+    // Сохраняем данные. 
+    // ВАЖНО: loadMainData возвращает ОДНУ запись (объект), но для рендеринга списка задач
+    // нам может понадобиться массив. В старой версии данные за месяц фильтровались.
+    // Здесь мы сохраняем найденную запись. Если нужно собрать все задачи за месяц,
+    // логику нужно расширить (собирать все совпадения, а не break после первого).
+    // Для текущего примера предполагаем, что нам нужны все задачи пользователя за этот файл.
+    
+    // ПЕРЕОПРЕДЕЛЕНИЕ: Ищем ВСЕ записи пользователя в файле, а не одну
+    const allUserRecords = recordsArray.filter(record => {
+        const recFio = String(record['Сотрудник'] || record['ФИО'] || '');
+        return recFio === fio;
+    });
+
+    state.currentUserData = allUserRecords; 
+    state.currentMonthData = allUserRecords;
+    state.lastUpdate = new Date();
+    
+    return allUserRecords;
+}
+
+/**
+ * Обработка авторизации пользователя
  */
 async function handleAuth() {
-    const input = document.getElementById('login-input') || document.getElementById('telegram-id') || document.querySelector('input[type="text"]');
+    const input = document.getElementById('login-input') || 
+                  document.getElementById('telegram-id') || 
+                  document.querySelector('input[type="text"]');
+    
     const inputValue = input ? input.value.trim() : '';
 
     if (!inputValue) {
-        if (typeof showBanner === 'function') showBanner('Введите Telegram ID, пароль или табельный номер', 'error');
-        else alert('Введите данные для входа');
+        showBanner('Введите Telegram ID или пароль', 'error');
         return;
     }
 
@@ -48,7 +163,7 @@ async function handleAuth() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const rawData = await response.json();
-        
+
         // Преобразование формата {columns, data} -> массив объектов
         let staffList = [];
         if (rawData.data && Array.isArray(rawData.data) && rawData.columns) {
@@ -65,85 +180,53 @@ async function handleAuth() {
             throw new Error('Неверный формат файла сотрудников');
         }
 
-        console.log(`✅ Сотрудники загружены. Найдено записей: ${staffList.length}`);
+        console.log(`Найдено записей: ${staffList.length}`);
 
-        // 2. Поиск пользователя (Логика как в старом index.html)
-        // Ищем точное совпадение строкового значения в ключевых полях
+        // 2. Поиск пользователя
         const user = staffList.find(p => {
-            // Получаем значения, приводим к строке, убираем пробелы
-            const telId = String(p['Telegram ID'] || '').trim();
-            const pass = String(p['Пароль'] || '').trim();
-            const tabNum = String(p['Табельный номер'] || '').trim();
-            // Проверяем оба возможных названия поля для имени
-            const fio = String(p['ФИО'] || p['Сотрудник'] || '').trim();
+            const telId = String(p['Telegram ID'] || '');
+            const pass = String(p['Пароль'] || '');
+            const tabNum = String(p['Табельный номер'] || '');
+            const fio = String(p['ФИО'] || '');
             
-            const inputStr = String(inputValue).trim();
-
-            // Сравниваем
-            if (telId === inputStr) return true;
-            if (pass === inputStr) return true;
-            if (tabNum === inputStr) return true;
-            if (fio === inputStr) return true;
-            
-            return false;
+            return telId === inputValue || pass === inputValue || tabNum === inputValue || fio === inputValue;
         });
 
         if (user) {
-            // ВАЖНО: Явно сохраняем имя сотрудника в универсальное поле 'ФИО'
-            // Это нужно, чтобы loadMainData нашел его в архиве по ключу 'Сотрудник' или 'ФИО'
-            const userName = user['ФИО'] || user['Сотрудник'] || 'Неизвестно';
+            console.log(`✅ Пользователь найден: ${user['ФИО'] || user['Сотрудник']}`);
             
-            // Обновляем объект пользователя, чтобы везде было поле 'ФИО'
-            state.currentUser = { ...user, 'ФИО': userName };
-            
-            console.log(`✅ Пользователь найден: ${userName}`);
-            console.log(`🆔 Telegram ID: ${user['Telegram ID']}, Табельный: ${user['Табельный номер']}`);
+            state.currentUser = user;
+            state.currentUserData = null;
 
-            // 3. Переключение интерфейса
-            const authForm = document.querySelector('.auth-container') || document.getElementById('auth-screen') || document.getElementById('auth-form');
+            // 3. Скрываем форму входа, показываем приложение
+            const authForm = document.querySelector('.auth-container') || 
+                             document.getElementById('auth-screen') || 
+                             document.getElementById('auth-form');
             if (authForm) authForm.style.display = 'none';
             
-            const appContent = document.getElementById('app-content') || document.getElementById('main-content') || document.querySelector('.app-container');
+            const appContent = document.getElementById('app-content') || 
+                               document.getElementById('main-content') || 
+                               document.querySelector('.app-container');
             if (appContent) {
                 appContent.style.display = 'block';
                 showLoading('main-content'); 
             }
 
-            // 4. Загрузка данных из архива
-            console.log(`🔍 Начало загрузки данных для: ${userName}`);
+            // 4. Загружаем основные данные
+            await loadMainData();
+
+            // 5. Рендерим интерфейс
+            clearInterface();
             
-            try {
-                await loadMainData(); // Эта функция теперь должна искать по state.currentUser['ФИО']
-                
-                // 5. Рендеринг после успешной загрузки
-                clearInterface();
-                renderHeader(state.currentUser);
-                renderDashboard();
-                
-                // Передаем данные в рендер задач (предполагаем, что они сохранены в state.currentUserData)
-                const tasks = state.currentUserData || state.currentMonthData || [];
-                renderGroupedTasks(tasks);
-                
-                if (typeof showBanner === 'function') {
-                    showBanner(`Добро пожаловать, ${userName}!`, 'success');
-                }
-            } catch (dataError) {
-                console.error('❌ Ошибка загрузки данных:', dataError);
-                if (typeof showError === 'function') {
-                    showError('Данные за текущий период не найдены: ' + dataError.message);
-                } else {
-                    alert('Ошибка данных: ' + dataError.message);
-                }
-                // Не скрываем лоадер полностью, показываем сообщение
-            }
+            renderHeader(user);
+            renderDashboard(); 
+            renderGroupedTasks(state.currentUserData || []);
+            
+            showBanner('Авторизация успешна! Данные загружены.', 'success');
 
         } else {
             console.warn(`⚠️ Пользователь не найден по значению: ${inputValue}`);
-            if (typeof showBanner === 'function') {
-                showBanner('Пользователь не найден. Проверьте введенные данные.', 'error');
-            } else {
-                alert('Пользователь не найден.');
-            }
+            showBanner('Пользователь не найден. Проверьте введенные данные.', 'error');
             if (input) {
                 input.value = '';
                 input.focus();
@@ -151,11 +234,30 @@ async function handleAuth() {
         }
 
     } catch (error) {
-        console.error('❌ Критическая ошибка авторизации:', error);
-        if (typeof showError === 'function') {
-            showError('Ошибка системы: ' + error.message);
-        } else {
-            alert('Ошибка: ' + error.message);
-        }
+        console.error('❌ Ошибка авторизации:', error);
+        showError('Ошибка загрузки данных: ' + error.message);
+        showBanner('Произошла ошибка при входе', 'error');
+        
+        // Возвращаем форму входа если произошла критическая ошибка
+        const authForm = document.querySelector('.auth-container') || document.getElementById('auth-form');
+        const appContent = document.getElementById('app-content') || document.getElementById('main-content');
+        if (authForm) authForm.style.display = 'block';
+        if (appContent) appContent.style.display = 'none';
     }
 }
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.querySelector('.auth-btn') || document.getElementById('login-btn');
+    if (btn) {
+        btn.addEventListener('click', handleAuth);
+    }
+    
+    // Поддержка Enter в поле ввода
+    const input = document.getElementById('login-input') || document.getElementById('telegram-id');
+    if (input) {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleAuth();
+        });
+    }
+});
