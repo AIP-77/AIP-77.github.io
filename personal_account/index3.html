@@ -1,52 +1,65 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Персональная панель SAIS</title>
-<script>
-    // Загружаем Telegram Web App скрипт асинхронно с обработкой ошибок
-    (function() {
-        var script = document.createElement('script');
-        script.src = 'https://telegram.org/js/telegram-web-app.js';
-        script.async = true;
-        script.onerror = function() {
-            console.warn('Telegram Web App script failed to load. Running in standalone mode.');
-            // Создаём фейковый объект Telegram.WebApp для совместимости
-            window.Telegram = window.Telegram || {};
-            window.Telegram.WebApp = {
-                ready: function() {},
-                expand: function() {},
-                close: function() {},
-                showConfirm: function(msg, callback) { if(callback) callback(false); },
-                showAlert: function(msg, callback) { if(callback) callback(); },
-                MainButton: {
-                    show: function() {},
-                    hide: function() {},
-                    setText: function() {},
-                    onClick: function() {},
-                    offClick: function() {}
-                },
-                BackButton: {
-                    show: function() {},
-                    hide: function() {},
-                    onClick: function() {},
-                    offClick: function() {}
-                },
-                onEvent: function(eventType, callback) {},
-                offEvent: function(eventType, callback) {},
-                initData: '',
-                initDataUnsafe: {},
-                version: 'standalone',
-                platform: 'web'
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    
+    <!-- 1. Создаем заглушку ДО подключения скрипта -->
+    <script>
+        window.Telegram = window.Telegram || {};
+        window.Telegram.WebApp = window.Telegram.WebApp || {
+            themeParams: {
+                bg_color: '#ffffff',
+                text_color: '#000000',
+                hint_color: '#999999',
+                link_color: '#2481cc',
+                button_color: '#2481cc',
+                button_text_color: '#ffffff',
+                secondary_bg_color: '#f0f0f0'
+            },
+            initDataUnsafe: {},
+            ready: function() {},
+            expand: function() {}
+        };
+    </script>
+
+    <!-- 2. Асинхронная загрузка скрипта с обработкой ошибок -->
+    <script>
+        (function() {
+            var script = document.createElement('script');
+            script.src = 'https://telegram.org/js/telegram-web-app.js';
+            script.async = true;
+            
+            script.onload = function() {
+                // Скрипт загрузился успешно, расширяем объект реальными данными
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.Telegram.WebApp.ready();
+                    window.Telegram.WebApp.expand();
+                }
             };
-        };
-        script.onload = function() {
-            console.log('Telegram Web App script loaded successfully');
-        };
-        document.head.appendChild(script);
-    })();
-</script>
+            
+            script.onerror = function() {
+                console.warn('Telegram Web App script failed to load. Running in standalone mode with mock data.');
+                // Заглушка уже создана выше, просто логируем ошибку
+            };
+            
+            document.head.appendChild(script);
+        })();
+    </script>
+
+    <!-- Подключение ваших модулей -->
+    <!-- Убедитесь, что пути правильные относительно index3.html -->
+    <script src="js/config.js" defer></script>
+    <script src="js/dom-elements.js" defer></script>
+    <script src="js/utils.js" defer></script>
+    <script src="js/tasks.js" defer></script>
+    <script src="js/calendar.js" defer></script>
+    <script src="js/department.js" defer></script>
+    <script src="js/user-data.js" defer></script>
+    <script src="js/main.js" defer></script>
+
+  
 <style>
 :root {
     --tg-bg-color: #f0f2f5;
@@ -636,13 +649,16 @@ select, input {
 
 <button id="clearCacheBtn" class="clear-cache-btn">🗑 Очистить кэш и перезапустить</button>
 
-<script src="js/config.js"></script>
-<script src="js/dom-elements.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/tasks.js"></script>
-<script src="js/calendar.js"></script>
-<script src="js/department.js"></script>
-<script src="js/user-data.js"></script>
-<script src="js/main.js" defer></script>
+    <script>
+        // Если у вас есть код, который обращается к themeParams сразу в body,
+        // теперь он будет безопасен, так как заглушка уже существует.
+        
+        // Пример безопасного получения цвета (на случай если main.js выполняется слишком рано):
+        document.addEventListener('DOMContentLoaded', function() {
+            const tg = window.Telegram.WebApp;
+            // Теперь это не вызовет ошибку, даже если скрипт не загрузился
+            console.log('BG Color:', tg.themeParams.bg_color); 
+        });
+    </script>
 </body>
 </html>
