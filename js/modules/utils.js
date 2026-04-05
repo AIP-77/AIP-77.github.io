@@ -135,25 +135,49 @@ export function calculateAverageNormative(tasks, excludeTypes = true) {
 }
 
 /**
- * Показ ошибки пользователю
+ * Показать информационный баннер
  */
-export function showError(msg) {
-    const errorEl = document.getElementById('error');
-    errorEl.textContent = msg;
-    errorEl.classList.remove('hidden');
+export function showBanner(message, type = 'info', duration = 3000) {
+    let banner = document.getElementById('info-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'info-banner';
+        banner.style.cssText = `
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 8px; color: white; font-weight: bold;
+            z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none; transition: opacity 0.3s;
+        `;
+        document.body.appendChild(banner);
+    }
+    
+    banner.textContent = message;
+    banner.style.backgroundColor = type === 'error' ? '#e53935' : (type === 'success' ? '#43a047' : '#1e88e5');
+    banner.style.display = 'block';
+    banner.style.opacity = '1';
+
+    if (duration > 0) {
+        setTimeout(() => {
+            banner.style.opacity = '0';
+            setTimeout(() => banner.style.display = 'none', 300);
+        }, duration);
+    }
 }
 
 /**
- * Показ информационного баннера
+ * Показать блок ошибки
  */
-export function showBanner(message, type = 'info', duration = 5000) {
-    const banner = document.getElementById('banner');
-    banner.className = `banner show ${type}`;
-    banner.textContent = message;
-    if (duration > 0) {
-        setTimeout(() => {
-            banner.classList.remove('show');
-        }, duration);
+export function showError(message) {
+    const errorEl = document.getElementById('error-message');
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+        errorEl.style.color = '#e53935';
+        errorEl.style.padding = '10px';
+        errorEl.style.textAlign = 'center';
+    } else {
+        console.error(message);
+        alert(message);
     }
 }
 
