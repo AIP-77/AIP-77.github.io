@@ -3,6 +3,7 @@
 // ============================================
 
 import { state, DATA_SOURCES } from './config.js';
+
 import { 
     timeToSeconds, 
     secondsToTime, 
@@ -26,9 +27,7 @@ import {
 // Делаем функцию переключения групп доступной глобально для onclick в HTML
 window.toggleTaskGroup = toggleTaskGroup;
 
-/**
- * Загрузка основных данных за текущий или предыдущий месяц
- */
+//Загрузка основных данных за текущий или предыдущий месяц
 async function loadMainData() {
     if (!state.currentUser) {
         throw new Error('Пользователь не авторизован (currentUser is null)');
