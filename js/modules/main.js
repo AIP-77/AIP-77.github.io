@@ -7,9 +7,11 @@ import {
     timeToSeconds, 
     secondsToTime, 
     formatCurrency, 
-    parseRussianNumber 
+    parseRussianNumber,
+    showError,      // <--- Добавить
+    showBanner      // <--- Добавить
 } from './utils.js';
-// Объединенный импорт из ui.js
+
 import { 
     renderHeader, 
     renderPersonalReport, 
@@ -303,7 +305,9 @@ async function handleAuth() {
             staffList = rawData.data.map(row => {
                 const obj = {};
                 rawData.columns.forEach((col, idx) => {
-                    obj[col] = row[idx];
+                    // Убираем лишние пробелы в названиях колонок на всякий случай
+                    const key = col.trim(); 
+                    obj[key] = row[idx];
                 });
                 return obj;
             });
@@ -314,25 +318,32 @@ async function handleAuth() {
         }
 
         console.log(`Найдено записей: ${staffList.length}`);
+        
+        // Отладка: посмотрим ключи первого сотрудника
+        if (staffList.length > 0) {
+            console.log('🧪 Ключи первой записи:', Object.keys(staffList[0]));
+        }
 
         // 2. Поиск пользователя
-        // Ищем по полю "Telegram ID", "Пароль", "Табельный номер" или "ФИО"
         const user = staffList.find(p => {
-            const telId = String(p['Telegram ID'] || '');
-            const pass = String(p['Пароль'] || '');
-            const tabNum = String(p['Табельный номер'] || '');
-            const fio = String(p['ФИО'] || '');
+            // Проверяем все возможные варианты написания ключей
+            const telId = String(p['Telegram ID'] || p['Telegram_id'] || p['telegram id'] || '');
+            const pass = String(p['Пароль'] || p['пароль'] || p['Password'] || '');
+            const tabNum = String(p['Табельный номер'] || p['Табельный'] || p['id'] || '');
+            const fio = String(p['ФИО'] || p['Фио'] || p['Сотрудник'] || '');
             
             // Сравниваем введенное значение со всеми возможными полями
             return telId === inputValue || pass === inputValue || tabNum === inputValue || fio === inputValue;
         });
 
         if (user) {
-            console.log(`✅ Пользователь найден: ${user['ФИО']}`);
+            // Получаем ФИО корректно
+            const userFio = user['ФИО'] || user['Фио'] || user['Сотрудник'] || 'Неизвестно';
+            console.log(`✅ Пользователь найден: ${userFio}`);
             
             // Сохраняем текущего пользователя в состояние
             state.currentUser = user;
-            state.currentUserData = null; // Сброс данных перед загрузкой
+            state.currentUserData = null; 
 
             // 3. Скрываем форму входа, показываем приложение
             const authForm = document.querySelector('.auth-container') || document.getElementById('auth-screen') || document.getElementById('auth-form');
@@ -341,23 +352,27 @@ async function handleAuth() {
             const appContent = document.getElementById('app-content') || document.getElementById('main-content') || document.querySelector('.app-container');
             if (appContent) {
                 appContent.style.display = 'block';
-                // Показываем индикатор загрузки внутри контента
                 showLoading('main-content'); 
             }
 
             // 4. Загружаем основные данные (задачи)
-            console.log(`🔍 Начало загрузки данных для: ${user['ФИО']}`);
+            console.log(`🔍 Начало загрузки данных для: ${userFio}`);
+            
+            // Временно сохраняем ФИО в объекте пользователя, если его там нет, для функции loadMainData
+            if (!state.currentUser['ФИО'] && userFio !== 'Неизвестно') {
+                state.currentUser['ФИО'] = userFio;
+            }
+
             await loadMainData();
 
             // 5. Рендерим интерфейс после успешной загрузки данных
-            clearInterface(); // Очищаем лоадер
+            clearInterface(); 
             
-            // Делаем функцию переключения групп доступной глобально (для onclick в HTML)
             window.toggleTaskGroup = toggleTaskGroup;
 
-            renderHeader(user);
-            renderDashboard(); // Основной дашборд
-            renderGroupedTasks(state.currentUserData || []); // Детализация задач
+            renderHeader(state.currentUser);
+            renderDashboard(); 
+            renderGroupedTasks(state.currentUserData || []); 
             
             showBanner('Авторизация успешна! Данные загружены.', 'success');
 
