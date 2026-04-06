@@ -71,6 +71,8 @@ async function loadStaffData() {
   }
 }
 
+// === ФУНКЦИИ ДЛЯ РАБОТЫ С ДАННЫМИ ===
+
 function getStandardForWork(workType, productGroup = null) {
   if (productGroup) {
     const specificStandard = standards.find(standard =>
@@ -191,36 +193,81 @@ function getArchiveUrl(archiveName) {
   return `${window.location.origin}/archive/${encodedName}`;
 }
 
+// === ПОЛУЧЕНИЕ ПОСЛЕДНЕЙ ДОСТУПНОЙ ДАТЫ ===
+async function getLastAvailableDate() {
+  // Пробуем получить данные из текущего архива
+  const currentArchive = getArchiveNameForDate(new Date());
+  const url = getArchiveUrl(currentArchive);
+  
+  try {
+    const response = await fetch(`${url}?t=${Date.now()}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    const normalizedData = normalizeRecords(data);
+    
+    // Получаем все уникальные даты и сортируем их
+    const uniqueDates = [...new Set(normalizedData.map(r => r['Рабочий день']))].filter(Boolean);
+    if (uniqueDates.length > 0) {
+      // Сортируем даты в формате DD.MM.YYYY
+      uniqueDates.sort((a, b) => {
+        const [dayA, monthA, yearA] = a.split('.').map(Number);
+        const [dayB, monthB, yearB] = b.split('.').map(Number);
+        const dateA = new Date(yearA, monthA - 1, dayA);
+        const dateB = new Date(yearB, monthB - 1, dayB);
+        return dateB - dateA; // По убыванию
+      });
+      return uniqueDates[0]; // Возвращаем последнюю (самую свежую) дату
+    }
+  } catch (err) {
+    console.log('Не удалось получить данные для определения последней даты:', err.message);
+  }
+  
+  // Если не удалось получить данные, возвращаем сегодня
+  return formatDate(new Date());
+}
+
+// === ЗАГРУЗКА ДАННЫХ ===
 async function loadData() {
   if (!currentArchive) {
     currentArchive = getArchiveNameForDate(new Date());
   }
   const url = getArchiveUrl(currentArchive);
+  
   try {
     loadingDiv.classList.remove('hidden');
     errorDiv.classList.add('hidden');
     controlsDiv.classList.add('hidden');
+    
     updateProgress(10);
     await Promise.all([loadStandards(), loadStaffData()]);
+    
     loadingDiv.innerHTML = `
       <div class="loading-spinner"></div>
       <span>Загрузка данных архива ${currentArchive}<span class="loading-dots"></span></span>
     `;
+    
     console.log('Пытаемся загрузить данные из:', url);
     const urlWithCacheBust = `${url}?t=${Date.now()}`;
     updateProgress(30);
+    
     const response = await fetch(urlWithCacheBust);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status} - ${response.statusText}`);
     }
+    
     updateProgress(60);
     const data = await response.json();
     records = normalizeRecords(data);
+    
     if (!Array.isArray(records)) {
       throw new Error('Неверный формат данных');
     }
+    
     updateProgress(80);
-    // === Распределение трудозатрат ===
+    
+    // Распределение трудозатрат
     const workTypeHours = {};
     records.forEach(record => {
       const workType = record['Вид работ'] || 'Не указано';
@@ -237,28 +284,33 @@ async function loadData() {
       }
       workTypeHours[workType] = (workTypeHours[workType] || 0) + hours;
     });
+    
     const topWorkTypes = Object.entries(workTypeHours)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6);
     const donutData = Object.fromEntries(topWorkTypes);
     window.donutChartData = donutData;
-    // === КОНЕЦ ФРАГМЕНТА ===
+    
     records.forEach(record => {
       const { direction, department } = getDirectionAndDepartment(record['Вид работ']);
       record['Направление'] = direction;
       record['Отдел'] = department;
     });
+    
     allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
     lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive} | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
+    
     updateProgress(100);
     setTimeout(() => {
       initUI();
       updateProgress(0);
     }, 500);
+    
   } catch (err) {
     console.error('Ошибка загрузки, используем тестовые данные:', err);
     records = createTestData();
     allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
+    
     const testDonutData = {
       'Комплектация': 42.5,
       'Упаковка': 23.2,
@@ -268,9 +320,11 @@ async function loadData() {
       'Транспортировка': 4.1
     };
     window.donutChartData = testDonutData;
+    
     lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
     errorDiv.textContent = `⚠️ Не удалось загрузить данные: ${err.message}. Используются тестовые данные.`;
     errorDiv.classList.remove('hidden');
+    
     updateProgress(100);
     setTimeout(() => {
       initUI();
