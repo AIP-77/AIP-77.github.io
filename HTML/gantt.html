@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Диаграмма занятости сотрудника</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    .controls { margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    label { font-weight: bold; }
+    select, button { padding: 6px; font-size: 14px; }
+    button { cursor: pointer; }
+    .error { color: red; background: #ffecec; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
+    .version { font-size: 0.85em; color: #555; margin-top: -10px; }
+    .data-source { font-size: 0.85em; color: #777; margin-top: -5px; margin-bottom: 15px; }
+    .debug { font-size: 0.9em; color: #333; background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 10px 0; display: none; }
+
+    /* Таблица */
+    .timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: relative;
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    .timeline-header {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) repeat(var(--cols), 1fr);
+      background: #f0f0f0;
+      border-bottom: 1px solid #ddd;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .timeline-header div {
+      padding: 8px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) repeat(var(--cols), 1fr);
+      border-bottom: 1px solid #eee;
+      position: relative;
+      height: 40px;
+    }
+
+    .timeline-row > div:first-child {
+      padding: 8px;
+      font-weight: bold;
+      background: #fafafa;
+      border-right: 1px solid #eee;
+      font-size: 12px;
+    }
+
+    .task-block {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      color: white;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-radius: 2px;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition: transform 0.2s;
+      border: 1px solid rgba(0,0,0,0.3); /* Обводка */
+      min-width: 2px; /* Минимальная ширина для видимости */
+    }
+
+    .task-block.night-shift {
+      background: linear-gradient(90deg, #4a6fa5, #6b8cba) !important;
+      border-color: #2c4a7a;
+    }
+
+    .task-block.day-shift {
+      background: linear-gradient(90deg, #5cb85c, #7dcc7d) !important;
+      border-color: #3d8b3d;
+    }
+
+    .task-block:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+
+    .task-block.conflict {
+      background: #ff6b6b !important; /* Красный при пересечении */
+      border-color: #cc0000;
+    }
+
+    /* Индикатор смены в заголовке */
+    .shift-indicator {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      margin-left: 8px;
+      font-weight: normal;
+    }
+    .shift-indicator.night {
+      background: #4a6fa5;
+      color: white;
+    }
+    .shift-indicator.day {
+      background: #5cb85c;
+      color: white;
+    }
+
+    .legend-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+
+    .legend-table th,
+    .legend-table td {
+      padding: 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .legend-table th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+
+    .empty { text-align: center; padding: 50px; color: #666; font-style: italic; }
+
+    /* Мобильная адаптация */
+    @media (max-width: 768px) {
+      .controls { flex-direction: column; align-items: stretch; }
+      .timeline-header, .timeline-row {
+        grid-template-columns: minmax(120px, 1fr) repeat(var(--cols), 1fr);
+      }
+      .timeline-header div, .timeline-row > div:first-child {
+        font-size: 10px;
+        padding: 4px;
+      }
+      .task-block {
+        font-size: 10px;
+        padding: 0 2px;
+      }
+      .legend-table th, .legend-table td {
+        font-size: 10px;
+        padding: 4px;
+      }
+    }
+
+    /* Подсказка */
+    .tooltip {
+      position: absolute;
+      background: #333;
+      color: white;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Диаграмма занятости сотрудника</h2>
+<p class="version">Версия: 2026.04.02 (с поддержкой смен)</p>
+<p id="dataSource" class="data-source">Данные: загрузка...</p>
+
+<div id="errorMessage" class="error"></div>
+<div id="debugInfo" class="debug"></div>
+
+<div class="controls">
+  <label for="monthSelect">Месяц:</label>
+  <select id="monthSelect"><option>—</option></select>
+
+  <label for="dateSelect">Дата:</label>
+  <select id="dateSelect"><option>—</option></select>
+
+  <label for="employeeSelect">Сотрудник:</label>
+  <select id="employeeSelect"><option>—</option></select>
+
+  <button onclick="renderTimeline()">Построить</button>
+</div>
+
+<div id="timelineContainer" class="timeline-table">
+  <!-- Заполняется скриптом -->
+</div>
+
+<div id="legendContainer" class="legend-table">
+  <!-- Легенда -->
+</div>
+
+<div style="margin-top: 10px;">
+  <button onclick="clearCacheAndReload()" style="background:#ff9900;color:white;">🔄 Сбросить кэш</button>
+</div>
+
+<!-- Подсказка -->
+<div id="tooltip" class="tooltip"></div>
+
+<script>
+  let allData = [];
+  let currentTasks = [];
+  let timePoints = [];
+  let currentDataSource = '';
+
+  // Цвета для видов работ (динамически)
+  const workTypeColors = {};
+
+  function getColorForWorkType(workType) {
+    if (!workTypeColors[workType]) {
+      // Генерируем случайный цвет
+      const hue = Object.keys(workTypeColors).length * 45 % 360;
+      workTypeColors[workType] = `hsl(${hue}, 70%, 50%)`;
+    }
+    return workTypeColors[workType];
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMessage');
+    el.textContent = "⚠️ " + msg;
+    el.style.display = 'block';
+    console.error(msg);
+  }
+
+  function showDebug(msg) {
+    const el = document.getElementById('debugInfo');
+    el.textContent = "🔍 " + msg;
+    el.style.display = 'block';
+    console.log(msg);
+  }
+
+  function formatDateTime(isoString) {
+    try {
+      const date = new Date(isoString);
+
+      // Проверяем, что дата валидна
+      if (isNaN(date.getTime())) {
+        return isoString; // Возвращаем оригинальную строку если невалидна
+      }
+
+      // Форматируем в русский региональный формат
+      const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      };
+
+      return date.toLocaleString('ru-RU', options);
+    } catch (error) {
+      console.error('Ошибка форматирования даты:', error);
+      return isoString; // Возвращаем оригинальную строку в случае ошибки
+    }
+  }
+
+  function updateDataSourceInfo(lastUpdated) {
+    const dataSourceEl = document.getElementById('dataSource');
+    if (lastUpdated) {
+      currentDataSource = lastUpdated;
+      const formattedDate = formatDateTime(lastUpdated);
+      dataSourceEl.textContent = `Данные: ${formattedDate}`;
+    } else {
+      dataSourceEl.textContent = 'Данные: информация недоступна';
+    }
+  }
+
+  function parseDate(dateStr) {
+    if (!dateStr) return null;
+    const [d, m, y] = dateStr.split('.').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function timeToMs(timeStr) {
+    if (!timeStr || timeStr === "") return null;
+    const parts = timeStr.split(':').map(Number);
+    let h = parts[0] || 0, m = parts[1] || 0, s = parts[2] || 0;
+    return h * 3600000 + m * 60000 + s * 1000;
+  }
+
+  function buildDateTime(datePart, timePart) {
+    const base = parseDate(datePart);
+    if (!base) return null;
+    const ms = timeToMs(timePart);
+    if (ms === null) return null;
+    const result = new Date(base);
+    result.setHours(0, 0, 0, 0);
+    result.setTime(result.getTime() + ms);
+    return result;
+  }
+
+  // Функция определения типа смены по времени начала
+  function getShiftType(timeStr) {
+    const timeMs = timeToMs(timeStr);
+    if (timeMs === null) return 'unknown';
+
+    // Ночная смена: с 21:00 (включительно) до 09:00 (не включая)
+    const shiftStartNight = 21 * 3600000; // 21:00
+    const shiftEndNight = 9 * 3600000;    // 09:00
+
+    // Если время >= 21:00 или < 09:00 — это ночная смена
+    if (timeMs >= shiftStartNight || timeMs < shiftEndNight) {
+      return 'night';
+    }
+    return 'day';
+  }
+
+  // Функция нормализации даты по правилу смены
+  // Дневная смена: 08:00-21:00 (возможно с 08:00)
+  // Ночная смена: 21:00-09:00 следующего дня
+  // Дата смены выставляется по времени начала
+  function normalizeDate(dateStr, timeStr) {
+    const date = parseDate(dateStr);
+    const timeMs = timeToMs(timeStr);
+    if (!date || timeMs === null) return date;
+
+    const shiftType = getShiftType(timeStr);
+
+    // Для ночной смены: если время < 09:00, то это продолжение предыдущего дня
+    if (shiftType === 'night' && timeMs < 9 * 3600000) {
+      date.setDate(date.getDate() - 1);
+    }
+
+    return date;
+  }
+
+  // Список доступных месяцев
+  const availableMonths = [
+    '2025-09',
+    '2025-10',
+    '2025-11',
+    '2025-12',
+    '2026-01',
+    '2026-02',
+    '2026-03',
+    '2026-04'
+  ];
+
+  // Функция загрузки данных по месяцу
+async function loadMonthData(month) {
+  const url = `https://aip-77.github.io/archive/${month} fullData.json`;
+  showDebug(`🌐 Запрос: ${url}`);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const text = await res.text();
+    const data = JSON.parse(text);
+
+    // 🔁 Нормализация: приводим любой формат к единому виду (массив объектов)
+    if (data.columns && Array.isArray(data.data)) {
+      // 🆕 Новый компактный формат: {columns: [...], data: [[...], [...]]}
+      allData = data.data.map((row, index) => {
+        const obj = { id: index };
+        data.columns.forEach((col, i) => {
+          // Пропускаем пустые названия колонок и добавляем только заполненные
+          if (col && col.trim()) {
+            obj[col] = row[i];
+          }
+        });
+        return obj;
+      });
+      showDebug(`✅ Загружено (компактный формат): ${allData.length} записей из ${url}`);
+
+    } else if (data.records && Array.isArray(data.records)) {
+      // 🔄 Старый формат: {records: [{...}, {...}]}
+      allData = data.records.map((task, index) => ({ ...task, id: index }));
+      showDebug(`✅ Загружено (старый формат): ${allData.length} записей из ${url}`);
+
+    } else {
+      throw new Error('Неизвестный формат JSON: нет ни records[], ни columns+data');
+    }
+
+    populateFilters();
+
+  } catch (err) {
+    showError(`Ошибка загрузки данных за ${month}: ${err.message}`);
+    showDebug(`🔗 Проверьте URL: ${url}`);
+    console.error(err);
+  }
+}
+
+  function populateFilters() {
+    // Получаем все даты с нормализацией по 5:00:00
+    const datesSet = new Set();
+    allData.forEach(task => {
+      const normDate = normalizeDate(task['Рабочий день'], task['Начало задачи']);
+      if (normDate) {
+        const formatted = `${String(normDate.getDate()).padStart(2,'0')}.${String(normDate.getMonth() + 1).padStart(2,'0')}.${normDate.getFullYear()}`;
+        datesSet.add(formatted);
+      }
+    });
+    const dates = [...datesSet].sort((a, b) => {
+      const [d1, m1, y1] = a.split('.').map(Number);
+      const [d2, m2, y2] = b.split('.').map(Number);
+      return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1); // По убыванию
+    });
+
+    const emps = [...new Set(allData.map(x => x['Сотрудник']))].filter(Boolean).sort();
+
+    const ds = document.getElementById('dateSelect');
+    ds.innerHTML = '<option value="">Выберите дату</option>';
+    dates.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      ds.appendChild(opt);
+    });
+
+    const es = document.getElementById('employeeSelect');
+    es.innerHTML = '<option value="">Выберите сотрудника</option>';
+    emps.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e; opt.textContent = e;
+      es.appendChild(opt);
+    });
+
+    showDebug(`Найдено дат: ${dates.length}, сотрудников: ${emps.length}`);
+  }
+
+  // Функция для обновления списка сотрудников по дате
+  function updateEmployeeList() {
+    const date = document.getElementById('dateSelect').value;
+    const empSelect = document.getElementById('employeeSelect');
+
+    // Получаем всех сотрудников, работавших в эту дату (с учётом нормализации)
+    const filteredEmps = [...new Set(
+      allData.filter(x => {
+        const normDate = normalizeDate(x['Рабочий день'], x['Начало задачи']);
+        if (!normDate) return false;
+        const formatted = `${String(normDate.getDate()).padStart(2,'0')}.${String(normDate.getMonth() + 1).padStart(2,'0')}.${normDate.getFullYear()}`;
+        return formatted === date;
+      }).map(x => x['Сотрудник'])
+    )].filter(Boolean).sort();
+
+    // Запоминаем текущего сотрудника
+    const currentEmp = empSelect.value;
+
+    // Очищаем список
+    empSelect.innerHTML = '<option value="">Выберите сотрудника</option>';
+
+    // Заполняем новыми значениями
+    filteredEmps.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e; opt.textContent = e;
+      empSelect.appendChild(opt);
+    });
+
+    // Восстанавливаем текущего сотрудника, если он есть в новом списке
+    if (currentEmp && filteredEmps.includes(currentEmp)) {
+      empSelect.value = currentEmp;
+    } else {
+      empSelect.value = ''; // Или первый элемент
+    }
+  }
+
+  function renderTimeline() {
+    const date = document.getElementById('dateSelect').value;
+    const emp = document.getElementById('employeeSelect').value;
+    if (!date || !emp) {
+      alert('Выберите дату и сотрудника');
+      return;
+    }
+
+    // Получаем все задачи для выбранной даты (с учётом нормализации)
+    let tasks = allData.filter(x => {
+      const normDate = normalizeDate(x['Рабочий день'], x['Начало задачи']);
+      if (!normDate) return false;
+      const formatted = `${String(normDate.getDate()).padStart(2,'0')}.${String(normDate.getMonth() + 1).padStart(2,'0')}.${normDate.getFullYear()}`;
+      return formatted === date && x['Сотрудник'] === emp;
+    });
+
+    currentTasks = tasks;
+
+    if (tasks.length === 0) {
+      alert('Нет данных для выбранной даты и сотрудника');
+      return;
+    }
+
+    showDebug(`Найдено задач: ${tasks.length}`);
+
+    // Базовое время для выбранной даты
+    const baseDate = parseDate(date);
+    const baseDateMs = baseDate.getTime();
+
+    // Определяем тип смены по первой задаче
+    let shiftType = 'day';
+    if (tasks.length > 0 && tasks[0]['Начало задачи']) {
+      shiftType = getShiftType(tasks[0]['Начало задачи']);
+    }
+
+    // Определяем временной диапазон для отображения в зависимости от типа смены
+    // Дневная смена: 08:00-21:00 (возможно с 08:00, до 18:00 или 21:00)
+    // Ночная смена: 21:00-09:00 следующего дня
+    let minTimeMs, maxTimeMs;
+
+    if (shiftType === 'night') {
+      // Для ночной смены: начинаем с 21:00 текущего дня, заканчиваем в 09:00 следующего
+      minTimeMs = baseDateMs + 20 * 3600000; // 20:00 для запаса
+      maxTimeMs = baseDateMs + 33 * 3600000; // 09:00 следующего дня (24+9=33)
+    } else {
+      // Для дневной смены: 08:00-21:00
+      minTimeMs = baseDateMs + 7 * 3600000;  // 07:00 для запаса
+      maxTimeMs = baseDateMs + 22 * 3600000; // 22:00 для запаса
+    }
+
+    // Проверяем фактические времена задач и расширяем диапазон при необходимости
+    tasks.forEach(task => {
+      const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
+      const end = buildDateTime(task['Рабочий день'], task['Конец задачи']);
+
+      if (!start || !end) return;
+
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+
+      const taskNormDate = normalizeDate(task['Рабочий день'], task['Начало задачи']);
+      const taskFormatted = `${String(taskNormDate.getDate()).padStart(2,'0')}.${String(taskNormDate.getMonth() + 1).padStart(2,'0')}.${taskNormDate.getFullYear()}`;
+
+      if (taskFormatted === date) {
+        minTimeMs = Math.min(minTimeMs, startMs);
+        maxTimeMs = Math.max(maxTimeMs, endMs);
+      }
+    });
+
+    // Округляем до часа для отображения шкалы
+    const minTimeRelative = minTimeMs - baseDateMs;
+    const maxTimeRelative = maxTimeMs - baseDateMs;
+
+    const roundedMin = Math.floor(minTimeRelative / 3600000) * 3600000;
+    const roundedMax = Math.ceil(maxTimeRelative / 3600000) * 3600000;
+
+    // Создаём временные точки с интервалом 1 час
+    timePoints = [];
+    for (let ms = roundedMin; ms <= roundedMax; ms += 3600000) {
+      const absoluteMs = baseDateMs + ms;
+      const dateObj = new Date(absoluteMs);
+      const h = dateObj.getHours();
+      const m = dateObj.getMinutes();
+
+      // Определяем, нужно ли показывать дату (если время переходит на следующий день)
+      let label = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+
+      // Для ночной смены показываем индикатор смены
+      if (shiftType === 'night' && h >= 0 && h < 9) {
+        const nextDay = `${dateObj.getDate().toString().padStart(2,'0')}.${(dateObj.getMonth() + 1).toString().padStart(2,'0')}`;
+        label += ` (${nextDay})`;
+      } else if (dateObj.getDate() !== baseDate.getDate()) {
+        const nextDay = `${dateObj.getDate().toString().padStart(2,'0')}.${(dateObj.getMonth() + 1).toString().padStart(2,'0')}`;
+        label += ` (${nextDay})`;
+      }
+
+      timePoints.push({
+        label: label,
+        ms: ms,
+        absoluteMs: absoluteMs
+      });
+    }
+
+    // Устанавливаем количество колонок в CSS
+    document.documentElement.style.setProperty('--cols', timePoints.length);
+
+    // Создаём заголовок с индикатором смены
+    const container = document.getElementById('timelineContainer');
+    container.innerHTML = '';
+
+    const shiftLabel = shiftType === 'night' ? '🌙 Ночная смена' : '☀️ Дневная смена';
+    const header = document.createElement('div');
+    header.className = 'timeline-header';
+    header.innerHTML = `<div>Вид работ <span class="shift-indicator ${shiftType}">${shiftLabel}</span></div>` + timePoints.map(tp => `<div>${tp.label}</div>`).join('');
+    container.appendChild(header);
+
+    // Группируем задачи по "Вид работ"
+    const grouped = {};
+    tasks.forEach(task => {
+      // Объединяем "Рабочий день" и "Дополнительное время для работ" в "Рабочее время"
+      let key = task['Вид работ'];
+      if (key === 'Рабочий день' || key === 'Дополнительное время для работ') {
+        key = 'Рабочее время';
+      }
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(task);
+    });
+
+    // Выводим "Рабочее время" первой строкой
+    if (grouped['Рабочее время']) {
+      renderRow(container, 'Рабочее время', grouped['Рабочее время'], true, date, tasks);
+      delete grouped['Рабочее время'];
+    }
+
+    // Выводим остальные строки
+    Object.keys(grouped).forEach(workType => {
+      renderRow(container, workType, grouped[workType], false, date, tasks);
+    });
+
+    // Создаём легенду
+    const legendContainer = document.getElementById('legendContainer');
+    legendContainer.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Начало задачи</th>
+            <th>Конец задачи</th>
+            <th>Вид работ</th>
+            <th>Рабочее время / Время по табелю</th>
+            <th>Поставка</th>
+            <th>Должность</th>
+            <th>тип товара</th>
+            <th>Количество единиц</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tasks.map(task => `
+            <tr>
+              <td>${task['Начало задачи']}</td>
+              <td>${task['Конец задачи'] || '—'}</td>
+              <td>${task['Вид работ']}</td>
+              <td>${task['Рабочее время'] || task['Время по табелю'] || ''}</td>
+              <td>${task['Поставка'] || ''}</td>
+              <td>${task['Должность'] || ''}</td>
+              <td>${task['тип товара'] || ''}</td>
+              <td>${task['Количество единиц'] || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    showDebug(`Диапазон: ${new Date(minTimeMs).toLocaleString()} - ${new Date(maxTimeMs).toLocaleString()}`);
+    showDebug(`Обработано задач: ${tasks.length}, отображено: ${tasks.length}`);
+  }
+
+  function renderRow(container, workType, tasks, isWorkTime, date, allTasks) {
+    const row = document.createElement('div');
+    row.className = 'timeline-row';
+
+    // Ячейка с названием вида работ
+    const workCell = document.createElement('div');
+    workCell.textContent = workType;
+    row.appendChild(workCell);
+
+    // Ячейки с временем
+    timePoints.forEach((tp, i) => {
+      const cell = document.createElement('div');
+      cell.style.position = 'relative';
+      cell.style.height = '100%';
+      row.appendChild(cell);
+    });
+
+    container.appendChild(row);
+
+    // Базовое время для расчетов (начало выбранной даты)
+    const baseDate = parseDate(date);
+    const baseDateMs = baseDate.getTime();
+
+    // Добавляем задачи в ячейки
+    tasks.forEach(task => {
+      const start = buildDateTime(task['Рабочий день'], task['Начало задачи']);
+      const end = buildDateTime(task['Рабочий день'], task['Конец задачи']);
+
+      if (!start || !end) {
+        console.warn('Пропущена задача (нет времени):', task);
+        return;
+      }
+
+      // Абсолютное время в миллисекундах
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+
+      console.log(`Обрабатываем задачу: ${task['Вид работ']}`, startMs, endMs);
+
+      // Определяем, в какие ячейки попадает задача
+      for (let i = 0; i < timePoints.length - 1; i++) {
+        const fromMs = timePoints[i].absoluteMs;
+        const toMs = timePoints[i + 1].absoluteMs;
+
+        if (startMs < toMs && endMs > fromMs) {
+          // Задача пересекается с этой ячейкой
+          const cell = row.children[i + 1];
+
+          const block = document.createElement('div');
+          block.className = 'task-block';
+
+          // Определяем тип смены для задачи
+          const taskShiftType = getShiftType(task['Начало задачи']);
+
+          // Добавляем класс смены
+          if (taskShiftType === 'night') {
+            block.classList.add('night-shift');
+          } else if (taskShiftType === 'day') {
+            block.classList.add('day-shift');
+          }
+
+          // Для задач "Рабочий день" показываем специальный текст
+          if (task['Вид работ'] === 'Рабочий день') {
+            block.textContent = 'Рабочий день';
+          } else if (task['Вид работ'] === 'Дополнительное время для работ') {
+            block.textContent = 'Доп. время';
+          } else {
+            block.textContent = task['Поставка'] || 'Без номера';
+          }
+
+          block.taskId = task.id;
+
+          // Цвет по типу работы (если не задан классом смены)
+          let bgColor = getColorForWorkType(workType);
+
+          // Если это "Рабочее время" — делаем оттенки, но сохраняем приоритет классов смены
+          if (workType === 'Рабочее время' && !block.classList.contains('night-shift') && !block.classList.contains('day-shift')) {
+            if (task['Вид работ'] === 'Рабочий день') {
+              bgColor = 'hsl(120, 70%, 60%)'; // светло-зелёный
+            } else if (task['Вид работ'] === 'Дополнительное время для работ') {
+              bgColor = 'hsl(120, 70%, 40%)'; // тёмно-зелёный
+            }
+          }
+
+          block.style.backgroundColor = bgColor;
+
+          // Позиционирование относительно текущей ячейки
+          const cellStart = Math.max(startMs, fromMs);
+          const cellEnd = Math.min(endMs, toMs);
+
+          const leftPct = ((cellStart - fromMs) / (toMs - fromMs)) * 100;
+          const widthPct = ((cellEnd - cellStart) / (toMs - fromMs)) * 100;
+
+          block.style.left = `${leftPct}%`;
+          block.style.width = `${widthPct}%`;
+
+          // Проверка пересечений — только если НЕ "Рабочее время"
+          if (!isWorkTime) {
+            checkConflicts(block, startMs, endMs, allTasks, task['Рабочий день']);
+          }
+
+          // Подсказка при наведении
+          block.addEventListener('mouseenter', (e) => {
+            const tooltip = document.getElementById('tooltip');
+            const startDate = new Date(startMs);
+            const endDate = new Date(endMs);
+
+            tooltip.innerHTML = `
+              <strong>${task['Вид работ']}</strong><br>
+              ${task['Поставка'] ? 'Поставка: ' + task['Поставка'] + '<br>' : ''}
+              Начало: ${startDate.toLocaleString()}<br>
+              Конец: ${endDate.toLocaleString()}<br>
+              ${task['Должность'] ? 'Должность: ' + task['Должность'] + '<br>' : ''}
+              ${task['Рабочее время'] ? 'Рабочее время: ' + task['Рабочее время'] : ''}
+            `;
+            tooltip.style.opacity = 1;
+            tooltip.style.left = `${e.pageX + 10}px`;
+            tooltip.style.top = `${e.pageY + 10}px`;
+          });
+
+          block.addEventListener('mouseleave', () => {
+            document.getElementById('tooltip').style.opacity = 0;
+          });
+
+          cell.appendChild(block);
+        }
+      }
+    });
+  }
+
+  function checkConflicts(block, startMs, endMs, allTasks, date) {
+    // Проверяем пересечения с другими задачами с точностью до миллисекунд
+    for (const other of allTasks) {
+      if (other.id === block.taskId) continue;
+
+      // Пропускаем "Рабочий день" и "Дополнительное время для работ"
+      const otherWorkType = other['Вид работ'];
+      if (otherWorkType === 'Рабочий день' || otherWorkType === 'Дополнительное время для работ') {
+        continue;
+      }
+
+      const otherStart = buildDateTime(other['Рабочий день'], other['Начало задачи']);
+      const otherEnd = buildDateTime(other['Рабочий день'], other['Конец задачи']);
+
+      if (!otherStart || !otherEnd) continue;
+
+      const otherStartMs = otherStart.getTime();
+      const otherEndMs = otherEnd.getTime();
+
+      // Проверяем пересечение с точностью до миллисекунд (0 секунд зазора)
+      if (startMs < otherEndMs && endMs > otherStartMs) {
+        // Есть пересечение — подкрашиваем красным
+        block.classList.add('conflict');
+
+        console.log(`❗ Пересечение: ${block.textContent} с ${other['Поставка'] || 'Без номера'}`);
+        console.log(`   Задача 1: ${new Date(startMs).toLocaleString()} → ${new Date(endMs).toLocaleString()}`);
+        console.log(`   Задача 2: ${new Date(otherStartMs).toLocaleString()} → ${new Date(otherEndMs).toLocaleString()}`);
+
+        break;
+      }
+    }
+  }
+
+  // Улучшения для отображения:
+  // 1. Добавлена поддержка дневных и ночных смен
+  // 2. Дневная смена: 08:00-21:00 (возможно с 08:00, до 18:00 или 21:00)
+  // 3. Ночная смена: 21:00-09:00 следующего дня
+  // 4. Дата смены выставляется по времени начала
+  // 5. Визуальное различие между сменами (цвета, индикаторы)
+  // 6. Автоматическое определение диапазона времени в зависимости от типа смены
+
+  function clearCacheAndReload() {
+    location.reload();
+  }
+
+  // Автообновление при выборе месяца, даты или сотрудника
+  document.getElementById('monthSelect').addEventListener('change', function() {
+    const month = this.value;
+    if (!month) return;
+    localStorage.setItem('selectedMonth', month);
+    loadMonthData(month);
+  });
+
+  document.getElementById('dateSelect').addEventListener('change', function() {
+    updateEmployeeList();
+    renderTimeline(); // Перестраиваем диаграмму
+  });
+
+  document.getElementById('employeeSelect').addEventListener('change', renderTimeline);
+  // 🚀 Инициализация при загрузке страницы
+window.addEventListener('DOMContentLoaded', async () => {
+  showDebug('📄 Страница загружена, инициализация...');
+
+  const ms = document.getElementById('monthSelect');
+  ms.innerHTML = '<option value="">Выберите месяц</option>';
+
+  availableMonths.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m;
+    ms.appendChild(opt);
+  });
+
+  // Выбираем месяц: из localStorage или последний доступный
+  const savedMonth = localStorage.getItem('selectedMonth');
+  const defaultMonth = availableMonths[availableMonths.length - 1];
+  const monthToLoad = savedMonth && availableMonths.includes(savedMonth)
+    ? savedMonth
+    : defaultMonth;
+
+  if (monthToLoad) {
+    ms.value = monthToLoad;
+    showDebug(`🔄 Загружаем данные за: ${monthToLoad}`);
+    await loadMonthData(monthToLoad);
+  } else {
+    showError('Нет доступных месяцев для загрузки');
+  }
+});
+</script>
+
+</body>
+</html>
