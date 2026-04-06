@@ -312,10 +312,19 @@
         const periodDisplay = document.getElementById('period-display');
 
         const columnMappingByIndex = {
-            0: 'code', 3: 'nomenclature', 6: 'address', 9: 'warehouse', 
-            12: 'production_date', 13: 'season', 14: 'start_balance', 
-            15: 'end_balance', 16: 'income', 17: 'expense', 
-            18: 'for_picking', 19: 'for_placement', 20: 'volume'
+            0: 'code',
+            3: 'nomenclature',
+            7: 'address',// бывает 6 или 7 ячейка
+            9: 'warehouse', 
+            12: 'production_date',
+            13: 'season',
+            14: 'start_balance', 
+            15: 'end_balance',
+            16: 'income',
+            17: 'expense', 
+            18: 'for_picking',
+            19: 'for_placement',
+            20: 'volume'
         };
 
         const headerTitles = [
