@@ -3,146 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта Склада - Визуализация</title>
+    <title>Карта склада - Визуализация</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
-            --zone-a-color: #e3f2fd; --zone-a-border: #2196f3;
-            --zone-b-color: #fff3e0; --zone-b-border: #ff9800;
-            --zone-c-color: #e8f5e9; --zone-c-border: #4caf50;
-            --zone-d-color: #f3e5f5; --zone-d-border: #9c27b0;
-            --zone-e-color: #ffebee; --zone-e-border: #f44336;
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --zone-a-color: #3498db; /* Фронтальные стеллажи */
+            --zone-b-color: #f1c40f; /* Короба */
+            --zone-cde-color: #2ecc71; /* Мезонин */
             --bg-color: #f5f6fa;
             --text-color: #333;
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-color); margin: 0; padding: 20px; color: var(--text-color); display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { margin: 0; font-size: 1.5rem; color: #2c3e50; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
         .status { font-size: 0.9rem; color: #7f8c8d; }
 
-        /* Основной контейнер */
-        .main-container { display: flex; gap: 20px; flex: 1; overflow: hidden; }
-
-        /* Левая панель - Карта */
-        .map-panel { flex: 2; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: auto; position: relative; }
-        
-        /* Правая панель - Детали и Список */
-        .details-panel { flex: 1; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
-
-        /* Стили карты (Вид сверху) */
-        .warehouse-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; padding: 20px; }
-        
-        .zone-block {
-            border: 2px dashed #ccc; border-radius: 8px; padding: 10px; cursor: pointer; transition: all 0.3s; position: relative;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 120px;
+        /* Навигация */
+        .nav-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
-        .zone-block:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        
-        .zone-a { background: var(--zone-a-color); border-color: var(--zone-a-border); }
-        .zone-b { background: var(--zone-b-color); border-color: var(--zone-b-border); }
-        .zone-c, .zone-d, .zone-e { background: var(--zone-c-color); border-color: var(--zone-c-border); }
-        .zone-d { background: var(--zone-d-color); border-color: var(--zone-d-border); }
-        .zone-e { background: var(--zone-e-color); border-color: var(--zone-e-border); }
+
+        button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #34495e; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        button.back-btn { background-color: #e74c3c; }
+        button.back-btn:hover { background-color: #c0392b; }
+
+        /* Легенда */
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .color-box { width: 20px; height: 20px; border-radius: 3px; border: 1px solid #ccc; }
+
+        /* Область визуализации */
+        #visualization-area {
+            min-height: 400px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: auto;
+        }
+
+        /* Сетка зон (Вид сверху) */
+        .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .zone-block {
+            background: white;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .zone-block:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .zone-block.zone-A { border-color: var(--zone-a-color); background: #ebf5fb; }
+        .zone-block.zone-B { border-color: var(--zone-b-color); background: #fef9e7; }
+        .zone-block.zone-C, .zone-block.zone-D, .zone-block.zone-E { 
+            border-color: var(--zone-cde-color); background: #e9f7ef; 
+        }
 
         .zone-title { font-weight: bold; font-size: 1.2rem; margin-bottom: 5px; }
-        .zone-info { font-size: 0.8rem; text-align: center; color: #555; }
+        .zone-desc { font-size: 0.85rem; color: #555; }
+        .zone-stats { margin-top: 10px; font-size: 0.9rem; font-weight: bold; color: var(--primary-color); }
 
-        /* Стили детального вида (Стеллажи) */
-        .rack-view { display: none; flex-direction: column; gap: 10px; height: 100%; overflow-y: auto; }
-        .rack-view.active { display: flex; }
-        
-        .rack-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
-        .back-btn { background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-        
-        .aisle-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-        .aisle-block { background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 4px; width: 100%; }
-        .aisle-title { font-weight: bold; margin-bottom: 10px; text-align: center; background: #eee; padding: 5px; border-radius: 3px; }
-
-        .shelves-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 5px; }
-        .shelf-cell {
-            border: 1px solid #ccc; background: white; height: 40px; display: flex; align-items: center; justify-content: center;
-            font-size: 0.8rem; cursor: pointer; position: relative; transition: background 0.2s;
+        /* Вид сбоку (Этажи) */
+        .levels-view {
+            display: flex;
+            flex-direction: column-reverse; /* 1 этаж снизу */
+            gap: 10px;
+            width: 100%;
+            max-width: 800px;
         }
-        .shelf-cell:hover { background: #dfe6e9; }
-        .shelf-cell.has-items { background: #81ecec; border-color: #00cec9; font-weight: bold; }
-        .shelf-cell.selected { background: #0984e3; color: white; }
 
-        /* Список товаров */
-        .items-list { margin-top: 20px; border-top: 2px solid #eee; padding-top: 10px; overflow-y: auto; flex: 1; }
-        .items-list h3 { margin-top: 0; font-size: 1.1rem; }
-        .item-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #f1f1f1; font-size: 0.9rem; }
-        .item-row:last-child { border-bottom: none; }
-        .item-name { flex: 2; font-weight: 500; }
-        .item-qty { flex: 1; text-align: right; font-weight: bold; color: #27ae60; }
-        .item-code { flex: 1; text-align: right; color: #7f8c8d; font-size: 0.8rem; }
+        .level-row {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            padding: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
 
-        .hidden { display: none !important; }
+        .level-row:hover { background: #dfe6e9; }
+        .level-row.active { background: #d6eaf8; border-color: var(--accent-color); }
+
+        .level-label {
+            width: 80px;
+            font-weight: bold;
+            text-align: center;
+            background: var(--primary-color);
+            color: white;
+            padding: 5px;
+            border-radius: 4px;
+            margin-right: 15px;
+        }
+
+        .level-content {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .cell-badge {
+            background: #ecf0f1;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            border: 1px solid #bdc3c7;
+        }
+        .cell-badge.has-items {
+            background: var(--accent-color);
+            color: white;
+            border-color: #2980b9;
+        }
+
+        /* Таблица товаров */
+        .items-table-container {
+            width: 100%;
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover { background-color: #f1f1f1; }
+
         .loading { text-align: center; padding: 50px; font-size: 1.2rem; color: #7f8c8d; }
-        
-        /* Легенда */
-        .legend { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; font-size: 0.85rem; }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-        .legend-color { width: 15px; height: 15px; border-radius: 3px; }
+        .error { color: #e74c3c; text-align: center; padding: 20px; }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .zones-grid { grid-template-columns: 1fr; }
+            .level-row { flex-direction: column; align-items: flex-start; }
+            .level-label { width: 100%; margin-bottom: 5px; }
+        }
     </style>
 </head>
 <body>
 
-<header>
-    <div>
-        <h1>🗺️ Карта Склада</h1>
-        <div class="status" id="period-display">Загрузка периода...</div>
-    </div>
-    <div class="status" id="data-status">Загрузка данных...</div>
-</header>
-
-<div class="legend">
-    <div class="legend-item"><div class="legend-color" style="background:var(--zone-a-color); border:1px solid var(--zone-a-border)"></div> Зона A (Фронтальные, 4 эт.)</div>
-    <div class="legend-item"><div class="legend-color" style="background:var(--zone-b-color); border:1px solid var(--zone-b-border)"></div> Зона B (Короба, 1 эт.)</div>
-    <div class="legend-item"><div class="legend-color" style="background:var(--zone-c-color); border:1px solid var(--zone-c-border)"></div> Зоны C, D, E (Мезонин, 3 эт.)</div>
-    <div class="legend-item"><div class="legend-color" style="background:#81ecec; border:1px solid #00cec9"></div> Есть товар</div>
-</div>
-
-<div class="main-container">
-    <!-- Панель карты -->
-    <div class="map-panel" id="map-view">
-        <div id="loading-msg" class="loading">Загрузка данных из Excel...</div>
-        <div id="zones-container" class="warehouse-layout hidden"></div>
-        <div id="racks-container" class="rack-view">
-            <div class="rack-header">
-                <button class="back-btn" onclick="showZones()">⬅ Назад к зонам</button>
-                <h2 id="current-zone-title">Зона</h2>
-            </div>
-            <div id="aisles-content"></div>
+<div class="container">
+    <header>
+        <div>
+            <h1>🗺️ Карта склада</h1>
+            <div class="status" id="period-display">Загрузка периода...</div>
         </div>
+        <button onclick="window.location.href='store2.html'">🔍 Перейти к поиску</button>
+    </header>
+
+    <div class="legend">
+        <div class="legend-item"><div class="color-box" style="background:var(--zone-a-color)"></div>Зона A: Фронтальные стеллажи (4 эт.)</div>
+        <div class="legend-item"><div class="color-box" style="background:var(--zone-b-color)"></div>Зона B: Короба (1 эт.)</div>
+        <div class="legend-item"><div class="color-box" style="background:var(--zone-cde-color)"></div>Зоны C,D,E: Мезонин (3 эт.)</div>
     </div>
 
-    <!-- Панель деталей -->
-    <div class="details-panel">
-        <h2 id="selected-address-title">Выберите ячейку</h2>
-        <div id="address-info" style="margin-bottom: 10px; font-size: 0.9rem; color: #666;"></div>
-        <div class="items-list" id="items-container">
-            <p style="color: #999; text-align: center;">Нажмите на ячейку на карте, чтобы увидеть товары.</p>
-        </div>
+    <div class="nav-controls">
+        <button id="back-btn" class="back-btn" onclick="goBack()" style="display:none;">⬅ Назад</button>
+        <span id="breadcrumb" style="font-weight:bold; color:var(--primary-color);"></span>
+    </div>
+
+    <div id="visualization-area">
+        <div class="loading">Загрузка данных склада...</div>
+    </div>
+
+    <div id="items-list" class="items-table-container" style="display:none;">
+        <!-- Таблица товаров -->
     </div>
 </div>
 
 <script>
-    // Глобальные переменные
+    // Конфигурация
+    const EXCEL_URL = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/store/data.xlsx';
+    
+    // Глобальные данные
     let allData = [];
-    let warehouseMap = {}; // Структура: { Zone: { Aisle: { Cell: [Items] } } }
-    let totalQuantitiesByNomenclature = {}; // Для общих итогов
-    
-    const excelUrl = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/store/data.xlsx';
-    
-    // Конфигурация зон
+    let warehouseStructure = {}; // { zone: { passage: { cell: { place: { level: [items] } } } } }
+    let currentView = 'zones'; // zones, levels, items
+    let currentZone = null;
+    let currentPassage = null;
+    let currentCell = null;
+    let currentPlace = null;
+    let currentLevel = null;
+
+    // Типы зон и этажность
     const ZONE_CONFIG = {
-        'A': { name: 'Фронтальные стеллажи', levels: 4, type: 'rack' },
-        'B': { name: 'Хранение в коробах', levels: 1, type: 'floor' },
-        'C': { name: 'Мезонин', levels: 3, type: 'mezzanine' },
-        'D': { name: 'Мезонин', levels: 3, type: 'mezzanine' },
-        'E': { name: 'Мезонин', levels: 3, type: 'mezzanine' }
+        'A': { type: 'Фронтальные стеллажи', levels: 4, color: 'zone-A' },
+        'B': { type: 'Хранение в коробах', levels: 1, color: 'zone-B' },
+        'C': { type: 'Мезонин', levels: 3, color: 'zone-C' },
+        'D': { type: 'Мезонин', levels: 3, color: 'zone-CDE' },
+        'E': { type: 'Мезонин', levels: 3, color: 'zone-CDE' }
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -151,299 +282,301 @@
 
     async function loadData() {
         try {
-            const response = await fetch(excelUrl);
+            const response = await fetch(EXCEL_URL);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, {type: 'array'});
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             
-            // Чтение периода из C4
-            const periodCell = worksheet['C4'];
-            const periodText = periodCell ? periodCell.v : 'Период не указан';
+            if (workbook.SheetNames.length === 0) throw new Error('Нет листов в файле');
+            
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            // Читаем сырые данные, начиная с 9 строки (индекс 8)
+            const rawData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
+            
+            // Чтение периода из C4 (ряд 3, индекс 2 в 0-based, но range сдвигает индексы если бы мы читали весь лист)
+            // Так как мы читаем с range:8, нам нужно получить значение из оригинального листа напрямую или рассчитать смещение.
+            // Проще прочитать ячейку C4 отдельно через sheet_to_json с диапазоном или get_cell.
+            const cellC4 = worksheet['C4'];
+            const periodText = cellC4 ? cellC4.v : 'Период не указан';
             document.getElementById('period-display').textContent = periodText;
 
-            // Чтение данных (с 9 строки, индекс 8)
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
-            
-            processData(jsonData);
-            
-            document.getElementById('loading-msg').classList.add('hidden');
-            document.getElementById('zones-container').classList.remove('hidden');
-            document.getElementById('data-status').textContent = 'Данные загружены ✅';
-            document.getElementById('data-status').style.color = '#2ecc71';
-            
+            processData(rawData);
         } catch (error) {
             console.error('Ошибка загрузки:', error);
-            document.getElementById('loading-msg').textContent = 'Ошибка загрузки данных: ' + error.message;
-            document.getElementById('data-status').textContent = 'Ошибка ❌';
-            document.getElementById('data-status').style.color = '#e74c3c';
+            document.getElementById('visualization-area').innerHTML = `<div class="error">Ошибка: ${error.message}</div>`;
         }
     }
 
-    function processData(rawData) {
-        // Маппинг колонок (как в store2.html)
-        // 0:code, 3:nomenclature, 6:address, 15:end_balance (примерно)
-        // Уточним индексы по предыдущему коду: 
-        // 0: code, 3: nomenclature, 6: address, 15: end_balance
-        
+    function processData(rows) {
         allData = [];
-        warehouseMap = {};
-        totalQuantitiesByNomenclature = {};
+        warehouseStructure = {};
 
-        rawData.forEach(row => {
-            if (!row || !row[0]) return; // Пропуск пустых строк
+        rows.forEach(row => {
+            // Индексы колонок согласно предыдущему опыту и заданию:
+            // H (индекс 7) - Адрес
+            // D (индекс 3) - Номенклатура
+            // F (индекс 5) - Конечный остаток (предположительно, уточнить по store2.html mapping)
+            // В store2.html было: 3:nomenclature, 5:end_balance (если считать от 0 в массиве после заголовков?)
+            // Проверим mapping из store2.html: 
+            // columnMappingByIndex = { 3: 'nomenclature', ..., 15: 'end_balance' } - это было для полного Excel с заголовками?
+            // В store2.html мы использовали range:8, значит row[0] это первая колонка 9-й строки.
+            // Столбец H это 8-я буква -> индекс 7.
+            // Столбец D это 4-я буква -> индекс 3.
+            // Столбец F (остаток) -> индекс 5? Или нужно посмотреть store2.html.
+            // В store2.html: 15: 'end_balance'. Если заголовков много, то индексы большие.
+            // Но в задании сказано: "название адресов находятся в столбце H".
+            // Давайте используем логику: Адрес (H=7), Номенклатура (D=3), Количество (возьмем F=5 или E=4, проверим визуально).
+            // Для надежности возьмем количество из колонки, где обычно остатки. В store2.html это был index 15 при полном чтении?
+            // Нет, в store2.html при range:8, row[colIndex]. 
+            // Пусть будет: Адрес=7, Имя=3, Кол-во=5 (по стандартной логике A=0, B=1... F=5).
             
-            const code = row[0] ? String(row[0]) : '';
-            if (code.toLowerCase().includes('итого')) return;
-
-            const nomenclature = row[3] ? String(row[3]) : 'Без названия';
-            const addressRaw = row[6] ? String(row[6]) : '';
-            const quantity = parseFloat(row[15]) || 0; // End balance
-
-            // Накопление общего количества по номенклатуре
-            if (!totalQuantitiesByNomenclature[nomenclature]) {
-                totalQuantitiesByNomenclature[nomenclature] = 0;
-            }
-            totalQuantitiesByNomenclature[nomenclature] += quantity;
+            const addressRaw = row[7]; 
+            const name = row[3] || 'Без названия';
+            const quantity = parseFloat(row[5]) || 0; // Предположим F
 
             if (!addressRaw) return;
 
+            const address = String(addressRaw).trim();
             // Парсинг адреса: C01-11A-1
-            // Формат: Зона(буква) + Проход(цифры) - Ячейка(цифры) + Место(буква) - Этаж(цифра)
-            // Пример: C01-11A-1 -> Zone:C, Aisle:01, Cell:11, Spot:A, Level:1
+            // Regex: ([A-E])(\d+)-(\d+)([A-Z])-(\d+)
+            const match = address.match(/^([A-E])(\d+)-(\d+)([A-Z])-(\d+)$/i);
             
-            const parsed = parseAddress(addressRaw);
-            if (!parsed) return;
+            if (match) {
+                const [, zone, passage, cell, place, level] = match;
+                const z = zone.toUpperCase();
+                const p = parseInt(passage);
+                const c = parseInt(cell);
+                const pl = place.toUpperCase();
+                const l = parseInt(level);
 
-            const { zone, aisle, cell, spot, level } = parsed;
+                if (!warehouseStructure[z]) warehouseStructure[z] = {};
+                if (!warehouseStructure[z][p]) warehouseStructure[z][p] = {};
+                if (!warehouseStructure[z][p][c]) warehouseStructure[z][p][c] = {};
+                if (!warehouseStructure[z][p][c][pl]) warehouseStructure[z][p][c][pl] = {};
+                if (!warehouseStructure[z][p][c][pl][l]) warehouseStructure[z][p][c][pl][l] = [];
 
-            // Инициализация структуры
-            if (!warehouseMap[zone]) warehouseMap[zone] = {};
-            if (!warehouseMap[zone][aisle]) warehouseMap[zone][aisle] = {};
-            if (!warehouseMap[zone][aisle][cell]) warehouseMap[zone][aisle][cell] = {};
-            if (!warehouseMap[zone][aisle][cell][spot]) warehouseMap[zone][aisle][cell][spot] = {};
-            if (!warehouseMap[zone][aisle][cell][spot][level]) warehouseMap[zone][aisle][cell][spot][level] = [];
-
-            // Добавление товара
-            warehouseMap[zone][aisle][cell][spot][level].push({
-                code, nomenclature, quantity, fullAddress: addressRaw
-            });
+                warehouseStructure[z][p][c][pl][l].push({ name, quantity, address });
+                allData.push({ name, quantity, address });
+            } else {
+                // Обработка адресов, не подходящих под шаблон (опционально)
+                // console.log('Не распознан адрес:', address);
+            }
         });
 
         renderZones();
     }
 
-    function parseAddress(addr) {
-        // Регулярное выражение для разбора адреса типа C01-11A-1
-        // Группа 1: Зона (буква)
-        // Группа 2: Проход (цифры после зоны)
-        // Группа 3: Ячейка (цифры после тире)
-        // Группа 4: Место (буква после ячейки)
-        // Группа 5: Этаж (цифра в конце)
-        
-        // Вариант 1: C01-11A-1
-        const regex = /^([A-E])(\d+)-(\d+)([A-Z])-(\d+)$/i;
-        const match = addr.match(regex);
-        
-        if (match) {
-            return {
-                zone: match[1].toUpperCase(),
-                aisle: match[2], // "01"
-                cell: match[3],  // "11"
-                spot: match[4].toUpperCase(), // "A"
-                level: parseInt(match[5]) // 1
-            };
-        }
-        
-        // Если формат не совпадает, пробуем упрощенный или возвращаем null
-        // Можно добавить другие форматы при необходимости
-        return null;
-    }
+    // --- Рендеринг ---
 
     function renderZones() {
-        const container = document.getElementById('zones-container');
-        container.innerHTML = '';
+        currentView = 'zones';
+        updateNav();
+        const container = document.getElementById('visualization-area');
+        container.innerHTML = '<div class="zones-grid" id="zones-grid"></div>';
+        document.getElementById('items-list').style.display = 'none';
 
-        Object.keys(ZONE_CONFIG).forEach(zoneKey => {
-            const config = ZONE_CONFIG[zoneKey];
-            const div = document.createElement('div');
-            div.className = `zone-block zone-${zoneKey.toLowerCase()}`;
-            div.onclick = () => showAisles(zoneKey);
-            
-            // Подсчет количества заполненных ячеек в зоне для статистики
-            let itemsCount = 0;
-            if (warehouseMap[zoneKey]) {
-                Object.values(warehouseMap[zoneKey]).forEach(aisle => {
-                    Object.values(aisle).forEach(cell => {
-                        itemsCount += Object.keys(cell).length;
+        const grid = document.getElementById('zones-grid');
+        const zones = ['A', 'B', 'C', 'D', 'E'];
+
+        zones.forEach(z => {
+            const zoneData = warehouseStructure[z];
+            const config = ZONE_CONFIG[z];
+            if (!config) return;
+
+            // Подсчет статистики
+            let totalItems = 0;
+            let totalQty = 0;
+            if (zoneData) {
+                Object.values(zoneData).forEach(pass => {
+                    Object.values(pass).forEach(cell => {
+                        Object.values(cell).forEach(place => {
+                            Object.values(place).forEach(level => {
+                                totalItems += level.length;
+                                totalQty += level.reduce((sum, item) => sum + item.quantity, 0);
+                            });
+                        });
                     });
                 });
             }
 
+            const div = document.createElement('div');
+            div.className = `zone-block zone-${config.color}`;
+            div.onclick = () => selectZone(z);
             div.innerHTML = `
-                <div class="zone-title">Зона ${zoneKey}</div>
-                <div class="zone-info">${config.name}</div>
-                <div class="zone-info">${config.levels} эт./ур.</div>
-                <div class="zone-info" style="margin-top:5px; font-weight:bold;">Заполнено ячеек: ${itemsCount}</div>
+                <div class="zone-title">Зона ${z}</div>
+                <div class="zone-desc">${config.type}</div>
+                <div class="zone-stats">
+                    Товаров: ${totalQty}<br>
+                    Ячеек занято: ${totalItems}
+                </div>
             `;
-            container.appendChild(div);
+            grid.appendChild(div);
         });
     }
 
-    function showAisles(zoneKey) {
-        document.getElementById('zones-container').classList.add('hidden');
-        const rackView = document.getElementById('racks-container');
-        rackView.classList.add('active');
+    function selectZone(zone) {
+        currentZone = zone;
+        currentView = 'levels';
+        updateNav();
         
-        document.getElementById('current-zone-title').textContent = `Зона ${zoneKey} (${ZONE_CONFIG[zoneKey].name})`;
+        const container = document.getElementById('visualization-area');
+        container.innerHTML = '';
+        document.getElementById('items-list').style.display = 'none';
+
+        const config = ZONE_CONFIG[zone];
+        const zoneData = warehouseStructure[zone] || {};
         
-        const aislesContent = document.getElementById('aisles-content');
-        aislesContent.innerHTML = '';
+        const title = document.createElement('h2');
+        title.textContent = `Зона ${zone}: ${config.type} (Этажи 1-${config.levels})`;
+        title.style.width = '100%';
+        container.appendChild(title);
 
-        const zoneData = warehouseMap[zoneKey] || {};
-        const sortedAisles = Object.keys(zoneData).sort((a, b) => parseInt(a) - parseInt(b));
+        const levelsView = document.createElement('div');
+        levelsView.className = 'levels-view';
 
-        if (sortedAisles.length === 0) {
-            aislesContent.innerHTML = '<p>Нет данных по проходам в этой зоне.</p>';
-            return;
-        }
-
-        sortedAisles.forEach(aisleNum => {
-            const aisleBlock = document.createElement('div');
-            aisleBlock.className = 'aisle-block';
-            
-            const cells = zoneData[aisleNum];
-            const sortedCells = Object.keys(cells).sort((a, b) => parseInt(a) - parseInt(b));
-            
-            let cellsHtml = '<div class="shelves-grid">';
-            
-            sortedCells.forEach(cellNum => {
-                const spots = cells[cellNum];
-                // Для каждой ячейки рисуем места (A, B...) и уровни
-                // Упрощенно: покажем просто ячейку как кнопку, если в ней есть товары
-                // Или сетку мест? Давайте сделаем клик по ячейке, а внутри модальное окно или список
-                
-                // Проверка наличия товаров в ячейке
-                let hasItems = false;
-                let totalQtyInCell = 0;
-                
-                Object.values(spots).forEach(spotData => {
-                    Object.values(spotData).forEach(levelData => {
-                        if (levelData.length > 0) {
-                            hasItems = true;
-                            totalQtyInCell += levelData.reduce((sum, i) => sum + i.quantity, 0);
-                        }
-                    });
-                });
-
-                const cellDiv = document.createElement('div');
-                cellDiv.className = `shelf-cell ${hasItems ? 'has-items' : ''}`;
-                cellDiv.textContent = `${cellNum}`;
-                if (hasItems) cellDiv.title = `Товаров: ${totalQtyInCell}`;
-                cellDiv.onclick = () => showCellDetails(zoneKey, aisleNum, cellNum);
-                
-                cellsHtml += cellDiv.outerHTML; // Упрощенно, лучше appendChild
-            });
-            
-            // Исправление: используем appendChild вместо outerHTML для обработки событий
-            // Перепишем генерацию сетки правильно
-            /* ... переделываем логику рендера ячейки ... */
-            
-            // Очищаем и перерисовываем правильно
-            const gridDiv = document.createElement('div');
-            gridDiv.className = 'shelves-grid';
-            
-            sortedCells.forEach(cellNum => {
-                 const spots = cells[cellNum];
-                 let hasItems = false;
-                 let totalQtyInCell = 0;
-                 
-                 Object.values(spots).forEach(spotData => {
-                    Object.values(spotData).forEach(levelData => {
-                        if (levelData.length > 0) {
-                            hasItems = true;
-                            totalQtyInCell += levelData.reduce((sum, i) => sum + i.quantity, 0);
-                        }
-                    });
-                 });
-                 
-                 const cDiv = document.createElement('div');
-                 cDiv.className = `shelf-cell ${hasItems ? 'has-items' : ''}`;
-                 cDiv.textContent = cellNum;
-                 if(hasItems) cDiv.title = `Ед: ${totalQtyInCell}`;
-                 cDiv.onclick = () => showCellDetails(zoneKey, aisleNum, cellNum);
-                 gridDiv.appendChild(cDiv);
-            });
-
-            aisleBlock.innerHTML = `<div class="aisle-title">Проход ${aisleNum}</div>`;
-            aisleBlock.appendChild(gridDiv);
-            aislesContent.appendChild(aisleBlock);
-        });
-    }
-
-    function showCellDetails(zone, aisle, cell) {
-        const title = document.getElementById('selected-address-title');
-        const info = document.getElementById('address-info');
-        const list = document.getElementById('items-container');
-        
-        title.textContent = `Адрес: ${zone}${aisle}-${cell}XX-X`; // Общий адрес ячейки
-        info.textContent = `Зона ${zone}, Проход ${aisle}, Ячейка ${cell}`;
-        list.innerHTML = '';
-
-        const cellData = warehouseMap[zone][aisle][cell];
-        let allItems = [];
-
-        // Собираем все товары из всех мест и уровней этой ячейки
-        Object.keys(cellData).forEach(spot => {
-            Object.keys(cellData[spot]).forEach(level => {
-                const items = cellData[spot][level];
-                items.forEach(item => {
-                    // Добавляем информацию о точном месте
-                    item.spot = spot;
-                    item.level = level;
-                    allItems.push(item);
-                });
-            });
-        });
-
-        if (allItems.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:#999;">Ячейка пуста</p>';
-            return;
-        }
-
-        // Сортировка по имени
-        allItems.sort((a, b) => a.nomenclature.localeCompare(b.nomenclature));
-
-        const header = document.createElement('div');
-        header.style.fontWeight = 'bold';
-        header.style.padding = '8px';
-        header.style.background = '#f8f9fa';
-        header.innerHTML = '<span class="item-name">Номенклатура</span><span class="item-qty">Кол-во</span><span class="item-code">Место</span>';
-        list.appendChild(header);
-
-        allItems.forEach(item => {
+        // Рендерим этажи от 1 до N
+        for (let l = 1; l <= config.levels; l++) {
             const row = document.createElement('div');
-            row.className = 'item-row';
+            row.className = 'level-row';
             
-            // Расчет общего количества по номенклатуре для отображения "X из Y"
-            const totalInWarehouse = totalQuantitiesByNomenclature[item.nomenclature] || 0;
+            // Сбор уникальных ячеек на этом этаже
+            let cellsOnLevel = new Set();
+            let qtyOnLevel = 0;
+
+            Object.values(zoneData).forEach((passage, pKey) => {
+                Object.values(passage).forEach((cell, cKey) => {
+                    Object.values(cell).forEach((place, plKey) => {
+                        if (place[l]) {
+                            cellsOnLevel.add(`${pKey}-${cKey}${plKey}`);
+                            place[l].forEach(item => qtyOnLevel += item.quantity);
+                        }
+                    });
+                });
+            });
+
+            const label = document.createElement('div');
+            label.className = 'level-label';
+            label.textContent = `${l} Этаж`;
+
+            const content = document.createElement('div');
+            content.className = 'level-content';
+
+            if (cellsOnLevel.size === 0) {
+                content.innerHTML = '<span style="color:#999; font-style:italic;">Пусто</span>';
+            } else {
+                // Группируем по проходам для удобства? Или просто список
+                // Для простоты выведем бейджи
+                Array.from(cellsOnLevel).sort().forEach(cellStr => {
+                    const badge = document.createElement('div');
+                    badge.className = 'cell-badge has-items';
+                    badge.textContent = cellStr;
+                    badge.title = `Ячейка ${cellStr}, Этаж ${l}`;
+                    badge.onclick = (e) => {
+                        e.stopPropagation();
+                        selectCell(zone, cellStr, l);
+                    };
+                    content.appendChild(badge);
+                });
+            }
+
+            row.appendChild(label);
+            row.appendChild(content);
             
-            row.innerHTML = `
-                <span class="item-name" title="${item.nomenclature}">${item.nomenclature.substring(0, 40)}${item.nomenclature.length>40?'...':''}</span>
-                <span class="item-qty">${item.quantity} <span style="font-size:0.8em; color:#999;">(из ${totalInWarehouse})</span></span>
-                <span class="item-code">${item.spot}-${item.level}</span>
-            `;
-            list.appendChild(row);
-        });
+            // Клик по ряду этажа показывает все товары на этом этаже (опционально, пока только по ячейкам)
+            // row.onclick = () => selectLevel(zone, l); 
+            
+            levelsView.appendChild(row);
+        }
+
+        container.appendChild(levelsView);
     }
 
-    function showZones() {
-        document.getElementById('racks-container').classList.remove('active');
-        document.getElementById('zones-container').classList.remove('hidden');
-        document.getElementById('selected-address-title').textContent = 'Выберите ячейку';
-        document.getElementById('address-info').textContent = '';
-        document.getElementById('items-container').innerHTML = '<p style="color: #999; text-align: center;">Нажмите на ячейку на карте, чтобы увидеть товары.</p>';
+    function selectCell(zone, cellStr, level) {
+        // cellStr format: "P-CPL" e.g. "01-11A"
+        const [passage, cellPlace] = cellStr.split('-');
+        const cellNum = cellPlace.replace(/[A-Z]/i, '');
+        const place = cellPlace.match(/[A-Z]/i)[0].toUpperCase();
+
+        currentView = 'items';
+        updateNav();
+        
+        // Получаем товары
+        const items = warehouseStructure[zone][passage][cellNum][place][level] || [];
+        
+        renderItemsTable(items, `Зона ${zone}, Проход ${passage}, Ячейка ${cellNum}, Место ${place}, Этаж ${level}`);
+    }
+
+    function renderItemsTable(items, title) {
+        const container = document.getElementById('visualization-area');
+        container.innerHTML = ''; // Очищаем карту
+        
+        const tableContainer = document.getElementById('items-list');
+        tableContainer.style.display = 'block';
+        
+        let html = `<h3>${title}</h3>`;
+        if (items.length === 0) {
+            html += `<p>Нет товаров в этой ячейке.</p>`;
+        } else {
+            html += `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Номенклатура</th>
+                            <th>Адрес</th>
+                            <th style="text-align:right;">Количество</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            items.forEach(item => {
+                html += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.address}</td>
+                        <td style="text-align:right;">${item.quantity.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+        }
+        
+        tableContainer.innerHTML = html;
+        
+        // Скролл к таблице
+        tableContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // --- Навигация ---
+
+    function goBack() {
+        if (currentView === 'items') {
+            // Возврат к этажам
+            currentView = 'levels';
+            document.getElementById('items-list').style.display = 'none';
+            selectZone(currentZone);
+        } else if (currentView === 'levels') {
+            // Возврат к зонам
+            currentView = 'zones';
+            currentZone = null;
+            renderZones();
+        }
+    }
+
+    function updateNav() {
+        const backBtn = document.getElementById('back-btn');
+        const breadcrumb = document.getElementById('breadcrumb');
+        
+        if (currentView === 'zones') {
+            backBtn.style.display = 'none';
+            breadcrumb.textContent = 'Все зоны';
+        } else if (currentView === 'levels') {
+            backBtn.style.display = 'inline-block';
+            breadcrumb.textContent = `Зона ${currentZone}`;
+        } else if (currentView === 'items') {
+            backBtn.style.display = 'inline-block';
+            breadcrumb.textContent = `Зона ${currentZone} > Детали`;
+        }
     }
 </script>
 
