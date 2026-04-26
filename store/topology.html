@@ -3,24 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Топология склада - Сетка Excel</title>
+    <title>Топология склада - Блочная схема</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
-            --cell-size: 22px; /* Размер клетки */
-            --header-bg: #f8f9fa;
-            --border-color: #ccc;
-            --wall-color: #000;
-            --storage-bg: #85c1e9;
-            --storage-border: #5dade2;
-            --passage-bg: #aed6f1;
-            --highlight-bg: #2ecc71; /* Есть товар */
-            --highlight-text: #fff;
+            --cell-w: 20px;  /* Ширина одной микро-ячейки сетки */
+            --cell-h: 20px;  /* Высота одной микро-ячейки сетки */
+            --grid-cols: 60; /* Всего столбцов (с запасом) */
+            --grid-rows: 55; /* Всего строк (с запасом) */
+            
+            --color-storage: #85c1e9;
+            --color-storage-hover: #5dade2;
+            --color-has-items: #2ecc71;
+            --color-wall: #2c3e50;
+            --color-passage: #f0f3f4;
+            --color-header: #ecf0f1;
         }
 
         body {
             font-family: 'Segoe UI', sans-serif;
-            background: #f0f2f5;
+            background: #f5f6fa;
             margin: 0;
             padding: 20px;
             overflow: auto;
@@ -37,110 +39,121 @@
             align-items: center;
         }
 
-        /* Контейнер для сетки с осями */
-        .grid-wrapper {
-            display: grid;
-            /* Первый столбец - номера строк, остальные - данные */
-            grid-template-columns: 40px repeat(50, var(--cell-size)); 
-            /* Первая строка - буквы, остальные - данные */
-            grid-template-rows: 30px repeat(50, var(--cell-size));
+        /* Контейнер для схемы с осями */
+        .scheme-wrapper {
+            display: inline-block;
             background: white;
-            border: 1px solid #999;
-            width: fit-content;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 40px 20px 20px 40px; /* Отступы под оси */
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: visible;
         }
 
-        /* Заголовки (Буквы и Цифры) */
-        .axis-corner {
-            background: var(--header-bg);
-            border-right: 1px solid #999;
-            border-bottom: 1px solid #999;
-            position: sticky;
-            top: 0;
-            left: 0;
-            z-index: 100;
+        /* Основная сетка */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(var(--grid-cols), var(--cell-w));
+            grid-template-rows: repeat(var(--grid-rows), var(--cell-h));
+            border-top: 1px solid #ccc;
+            border-left: 1px solid #ccc;
         }
 
-        .axis-col {
-            background: var(--header-bg);
-            border-bottom: 1px solid #999;
-            border-right: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            color: #555;
-            position: sticky;
-            top: 0;
-            z-index: 90;
-        }
-
-        .axis-row {
-            background: var(--header-bg);
-            border-right: 1px solid #999;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            color: #555;
-            position: sticky;
-            left: 0;
-            z-index: 90;
-        }
-
-        /* Ячейки сетки */
+        /* Ячейка сетки */
         .cell {
-            border: 1px solid #eee;
+            border-right: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            box-sizing: border-box;
             font-size: 9px;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            cursor: pointer;
-            overflow: hidden;
-            white-space: nowrap;
-            transition: all 0.1s;
+            cursor: default;
+            position: relative;
             background: white;
         }
 
-        .cell:hover {
-            outline: 2px solid #e74c3c;
-            z-index: 10;
-            transform: scale(1.1);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        /* Типы ячеек */
-        .cell.storage {
-            background: var(--storage-bg);
-            border: 1px solid var(--storage-border);
+        /* Сектор хранения (объединяет несколько ячеек визуально, но логически это блок) */
+        .sector {
+            background: var(--color-storage);
+            border: 1px solid #2980b9;
             color: #1a5276;
             font-weight: bold;
+            cursor: pointer;
+            z-index: 2;
+            transition: transform 0.1s, background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2px;
+            overflow: hidden;
+            word-break: break-word;
         }
 
-        .cell.has-items {
-            background: var(--highlight-bg) !important;
-            color: var(--highlight-text);
+        .sector:hover {
+            background: var(--color-storage-hover);
+            transform: scale(1.02);
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .sector.has-items {
+            background: var(--color-has-items);
+            color: white;
             border-color: #27ae60;
         }
 
-        .cell.wall {
-            background: var(--wall-color);
-            border: none;
+        /* Стена */
+        .wall {
+            background: var(--color-wall);
             z-index: 5;
+            border: none;
         }
 
-        .cell.passage {
-            background: var(--passage-bg);
-            opacity: 0.6;
+        /* Оси координат */
+        .axis-col {
+            position: absolute;
+            top: 0;
+            left: 40px; /* Отступ слева */
+            display: flex;
+            height: 30px;
+            align-items: center;
+            font-weight: bold;
+            color: #7f8c8d;
+            font-size: 10px;
+        }
+        
+        .axis-row {
+            position: absolute;
+            top: 40px; /* Отступ сверху */
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            width: 35px;
+            align-items: center;
+            font-weight: bold;
+            color: #7f8c8d;
+            font-size: 10px;
         }
 
-        .cell.special {
-            background: #f9e79f;
-            border-color: #f1c40f;
+        .axis-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eee;
+            background: var(--color-header);
+        }
+        
+        .axis-col .axis-label {
+            height: 100%;
+            border-right: 1px solid #ccc;
+        }
+        
+        .axis-row .axis-label {
+            width: 100%;
+            border-bottom: 1px solid #ccc;
         }
 
         /* Модальное окно */
@@ -149,22 +162,43 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5);
-            z-index: 2000;
+            z-index: 1000;
             justify-content: center;
             align-items: center;
         }
         .modal.active { display: flex; }
+
         .modal-content {
             background: white;
             padding: 20px;
             border-radius: 8px;
             width: 600px;
+            max-width: 90%;
             max-height: 80vh;
             overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
         th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-        th { background: #f8f9fa; }
+        th { background: #f8f9fa; position: sticky; top: 0; }
+        
+        .stats-box {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            border-left: 4px solid var(--color-has-items);
+        }
+
+        button.close-btn {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
     </style>
 </head>
 <body>
@@ -172,39 +206,43 @@
 <div class="header">
     <div>
         <h1>🗺️ Топология склада (Зоны C)</h1>
-        <div id="period-info" style="color: #7f8c8d;">Загрузка...</div>
+        <div id="period-info" style="color: #7f8c8d; font-size: 0.9rem;">Загрузка...</div>
     </div>
-    <button onclick="location.reload()" style="padding: 8px 15px; cursor:pointer;">🔄 Обновить</button>
+    <div>
+        <button onclick="location.reload()" style="padding: 8px 15px; cursor:pointer;">🔄 Обновить</button>
+        <button onclick="window.location.href='store2.html'" style="padding: 8px 15px; cursor:pointer;">📊 Поиск</button>
+    </div>
 </div>
 
-<div class="grid-wrapper" id="grid-container">
-    <!-- Генерируется JS -->
+<div class="scheme-wrapper">
+    <!-- Ось столбцов (буквы) -->
+    <div id="axis-x" class="axis-col"></div>
+    <!-- Ось строк (цифры) -->
+    <div id="axis-y" class="axis-row"></div>
+    
+    <!-- Сетка -->
+    <div id="grid" class="grid-container"></div>
 </div>
 
+<!-- Модальное окно -->
 <div id="modal" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-            <h2 id="modal-title" style="margin:0;">Сектор</h2>
-            <button onclick="closeModal()" style="background:none; border:none; font-size:20px; cursor:pointer;">&times;</button>
-        </div>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <h2 id="modal-title">Сектор</h2>
         <div id="modal-body"></div>
     </div>
 </div>
 
 <script>
     const EXCEL_URL = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/store/data.xlsx';
-    let gridData = {}; // Ключ "row-col" -> { address, items: [] }
-
-    // Маппинг букв Excel: 1->A, 2->B ... 27->AA
-    function getColLabel(n) {
-        let s = "";
-        while (n > 0) {
-            let m = (n - 1) % 26;
-            s = String.fromCharCode(65 + m) + s;
-            n = Math.floor((n - 1) / 26);
-        }
-        return s;
-    }
+    
+    // Конфигурация сетки
+    const COLS = 60; 
+    const ROWS = 55;
+    
+    let warehouseData = [];
+    // Карта данных: ключ "row-col" -> массив товаров
+    let cellDataMap = {}; 
 
     document.addEventListener('DOMContentLoaded', loadData);
 
@@ -215,216 +253,289 @@
             
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, {type: 'array'});
-            const ws = workbook.Sheets[workbook.SheetNames[0]];
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             
-            document.getElementById('period-info').textContent = ws['C4'] ? `Период: ${ws['C4'].v}` : '';
+            // Период
+            const cellC4 = worksheet['C4'];
+            document.getElementById('period-info').textContent = cellC4 ? `Период: ${cellC4.v}` : '';
 
-            const rawData = XLSX.utils.sheet_to_json(ws, {range: 8, header: 1});
+            // Данные
+            const rawData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
             processData(rawData);
-        } catch (e) {
-            alert("Ошибка: " + e.message);
+        } catch (error) {
+            alert('Ошибка: ' + error.message);
         }
     }
 
     function processData(rows) {
-        gridData = {};
-        
+        warehouseData = [];
+        cellDataMap = {};
+
         rows.forEach(row => {
             const addrRaw = row[7]; // H
             const name = row[3];    // D
             let qty = parseFloat(row[15]); // P
             if (isNaN(qty)) qty = 0;
+
             if (!addrRaw) return;
-
             const addr = String(addrRaw).trim().toUpperCase();
+            
             // Парсинг: C03-32A-1
-            const match = addr.match(/^([C])(\d+)-(\d+)([A-Z])-(\d+)$/);
-            if (!match) return;
+            const match = addr.match(/^([A-E])(\d+)-(\d+)([A-Z])-(\d+)$/);
+            if (match) {
+                const [, zone, passStr, cellNumStr, place, level] = match;
+                const pass = parseInt(passStr);
+                const cellNum = parseInt(cellNumStr);
+                
+                warehouseData.push({ addr, name, qty, zone, pass, cellNum, place, level });
 
-            const [, zone, passStr, cellNum, place, level] = match;
-            const pass = parseInt(passStr);
-            
-            // Получаем координаты в сетке
-            const coords = getCoords(pass, cellNum, place);
-            if (!coords) return;
-
-            // Заполняем все клетки, которые занимает этот сектор
-            // Стандартный сектор: 4 клетки шириной, 1 высотой
-            // Спец (00, 99): 2 клетки шириной
-            const isSpecial = (cellNum === 0 || cellNum === 99);
-            const width = isSpecial ? 2 : 4;
-            
-            // Адрес для отображения (без яруса)
-            const displayAddr = `${zone}${pass}-${cellNum}${place}`;
-
-            for (let c = 0; c < width; c++) {
-                const key = `${coords.row}-${coords.col + c}`;
-                if (!gridData[key]) {
-                    gridData[key] = {
-                        address: displayAddr,
-                        fullAddrBase: `${zone}${pass}-${cellNum}${place}`,
-                        items: [],
-                        isMain: (c === 0) // Флаг, что это главная клетка для клика
-                    };
-                }
-                // Добавляем товар только в основную клетку, чтобы не дублировать в модалке
-                if (c === 0) {
-                    gridData[key].items.push({ name, qty, full: addr });
+                // Получаем координаты верхней левой ячейки сектора
+                const coords = getSectorCoords(zone, pass, cellNum, place);
+                
+                if (coords) {
+                    // Ключ для хранения данных. 
+                    // Так как сектор занимает много клеток, сохраним данные в "корневой" клетке сектора
+                    // или в каждой клетке сектора для удобства поиска при клике.
+                    // Проще сохранить в каждой клетке, которую занимает сектор.
+                    
+                    // Сектор занимает: 
+                    // Ширина: 4 клетки (для A,B,C,D) или 2 (для спец)
+                    // Высота: 1 клетка
+                    const width = (cellNum === 0 || cellNum === 99) ? 2 : 4;
+                    
+                    for (let w = 0; w < width; w++) {
+                        const key = `${coords.row}-${coords.col + w}`;
+                        if (!cellDataMap[key]) cellDataMap[key] = [];
+                        cellDataMap[key].push({ 
+                            fullName: addr, 
+                            shortName: `${zone}${pass}-${cellNum}${place}`, 
+                            qty 
+                        });
+                    }
                 }
             }
         });
 
-        renderGrid();
+        drawGrid();
+        drawAxes();
     }
 
-    function getCoords(pass, cellNum, place) {
-        // Базовые смещения по столбцам (1-based index для грида, где 1-й это оси)
-        // Реальные данные начинаются со 2-го столбца грида (индекс 1 в массиве, но визуально col 1)
-        // Пусть Col 1 = A.
+    // Расчет координат
+    function getSectorCoords(zone, pass, cellNum, place) {
+        if (zone !== 'C') return null;
+
+        // Базовые смещения по столбцам (1-based index для логики, потом переведем в grid)
+        // C03: Start Col 1 (A)
+        // C02: Start Col 14 (N) -> 1-12 заняты C03+стена
+        // C01: Start Col 27 (AA) -> 14-25 заняты C02+стена
         
         let startCol = 0;
-        if (pass === 3) startCol = 1;       // A (1)
-        else if (pass === 2) startCol = 14; // N (14) (после K=11, L=12, M=13)
-        else if (pass === 1) startCol = 27; // AA (27) (после X=24, Y=25, Z=26)
+        if (pass === 3) startCol = 1;
+        else if (pass === 2) startCol = 14;
+        else if (pass === 1) startCol = 27;
         else return null;
 
-        // Логика рядов (1-16)
-        // Левая сторона (Четные: 32..2) -> Rows 1..16
-        // Правая сторона (Нечетные: 31..1) -> Rows 1..16 (или 2..16?)
-        // По ТЗ: 
-        // Left: 1-4 / 1 -> 32. Значит Row = 1 + (32 - cell)/2
-        // Right: 7-10 / 1 -> 31. Значит Row = 1 + (31 - cell)/2
-        
-        // Позиция внутри прохода (0..10)
-        // 0-3: Left Block (4 cols)
-        // 4-5: Center Passage (2 cols) - обычно пусто или спец
-        // 6-9: Right Block (4 cols)
+        // Логика рядов (Row 1-based)
+        // Четные (слева): 32->1, 30->2 ... 02->16. Формула: r = 1 + (32 - n)/2
+        // Нечетные (справа): 31->1, 29->2 ... 01->16. Формула: r = 1 + (31 - n)/2
+        // Спец 99: Row 1
+        // Спец 00: Row 19
         
         let row = 0;
-        let colOffset = 0;
+        let colOffset = 0; // Смещение внутри прохода (0-11)
 
-        // Левый блок (Четные)
+        // 1. Спец ячейки (ширина 2, центр прохода)
+        if (cellNum === 99) {
+            row = 1;
+            colOffset = 5; // Центр 12-клеточного прохода (индексы 0-11, центр 5-6)
+            return { row, col: startCol + colOffset };
+        }
+        if (cellNum === 0) {
+            row = 19;
+            colOffset = 5;
+            return { row, col: startCol + colOffset };
+        }
+
+        // 2. Четные (Слева, места A,B,C,D -> cols 0,1,2,3)
         if (cellNum % 2 === 0 && cellNum >= 2 && cellNum <= 32) {
             row = 1 + (32 - cellNum) / 2;
-            colOffset = 0; // Занимает 0,1,2,3 относительно старта
+            if (row > 16) return null;
+            colOffset = 0; // Начинается с первого столбца прохода
         }
-        // Правый блок (Нечетные)
-        else if (cellNum % 2 !== 0 && cellNum >= 1 && cellNum <= 31) {
+        // 3. Нечетные (Справа, места A,B,C,D -> cols 8,9,10,11)
+        // Проход шириной 12 клеток. Слева 4, Центр 4 (проезд), Справа 4.
+        // Но по ТЗ: "1-4/1 - C03-32A", "7-10/1 - C03-31A". 
+        // Значит: Слева 4 клетки, потом 2 клетки проход (5-6), потом Справа 4 клетки (7-10)?
+        // В ТЗ сказано: "5-6/1-16 - проход в зоне". Значит ширина прохода внутри = 2 клетки.
+        // Итого ширина прохода зоны = 4 (лев) + 2 (центр) + 4 (прав) = 10 клеток.
+        // Но у нас стена идет после 10-й? Да.
+        
+        if (cellNum % 2 !== 0 && cellNum >= 1 && cellNum <= 31) {
             row = 1 + (31 - cellNum) / 2;
-            colOffset = 6; // Занимает 6,7,8,9 относительно старта (пропуск 4,5)
-        }
-        // Спец ячейки
-        else if (cellNum === 99) {
-            row = 1;
-            colOffset = 4; // Центр, 2 клетки (4,5)
-        }
-        else if (cellNum === 0) {
-            row = 19;
-            colOffset = 4;
-        }
-        else {
-            return null; // Неизвестная ячейка
+            if (row > 16) return null;
+            colOffset = 6; // Сдвиг на правую часть (4 лев + 2 центр)
         }
 
-        return { row: row, col: startCol + colOffset };
+        if (row === 0) return null;
+
+        // Обработка места (A, B, C, D)
+        // Место влияет на столбец внутри блока из 4 клеток
+        const placeIdx = place.charCodeAt(0) - 'A'.charCodeAt(0); // A=0, B=1...
+        
+        // Проверка на выход за границы блока (если место больше D)
+        if (placeIdx > 3) return null; 
+
+        return {
+            row: row,
+            col: startCol + colOffset + placeIdx
+        };
     }
 
-    function renderGrid() {
-        const container = document.getElementById('grid-container');
-        container.innerHTML = '';
+    function drawAxes() {
+        const axisX = document.getElementById('axis-x');
+        const axisY = document.getElementById('axis-y');
+        axisX.innerHTML = '';
+        axisY.innerHTML = '';
 
-        // 1. Угол (0,0)
-        const corner = document.createElement('div');
-        corner.className = 'axis-corner';
-        container.appendChild(corner);
-
-        // 2. Заголовки столбцов (A..AY)
-        for (let c = 1; c <= 50; c++) {
-            const el = document.createElement('div');
-            el.className = 'axis-col';
-            el.textContent = getColLabel(c);
-            container.appendChild(el);
+        // Столбцы (буквы)
+        for (let i = 0; i < COLS; i++) {
+            const label = document.createElement('div');
+            label.className = 'axis-label';
+            label.style.width = 'var(--cell-w)';
+            label.textContent = getColLetter(i + 1);
+            axisX.appendChild(label);
         }
 
-        // 3. Строки
-        for (let r = 1; r <= 50; r++) {
-            // Заголовок строки (цифра)
-            const rowHeader = document.createElement('div');
-            rowHeader.className = 'axis-row';
-            rowHeader.textContent = r;
-            container.appendChild(rowHeader);
+        // Строки (цифры)
+        for (let i = 1; i <= ROWS; i++) {
+            const label = document.createElement('div');
+            label.className = 'axis-label';
+            label.style.height = 'var(--cell-h)';
+            label.textContent = i;
+            axisY.appendChild(label);
+        }
+    }
 
-            // Ячейки
-            for (let c = 1; c <= 50; c++) {
-                const key = `${r}-${c}`;
-                const data = gridData[key];
-                const el = document.createElement('div');
-                el.className = 'cell';
+    function getColLetter(n) {
+        let s = "";
+        while (n > 0) {
+            let m = (n - 1) % 26;
+            s = String.fromCharCode(65 + m) + s;
+            n = Math.floor((n - 1) / 26);
+        }
+        return s;
+    }
 
-                // Определение типа ячейки
-                let isWall = false;
-                // Стены после K(11), X(24), AK(37) между рядами 1-16
-                if ((c === 11 || c === 24 || c === 37) && r >= 1 && r <= 16) {
-                    isWall = true;
-                }
-                // Разделители пустых зон (M=13, Z=26) можно сделать чуть шире или просто оставить пустыми
+    function drawGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+
+        // Создаем плоскую сетку ячеек
+        for (let r = 1; r <= ROWS; r++) {
+            for (let c = 1; c <= COLS; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
                 
-                if (isWall) {
-                    el.classList.add('wall');
-                } else if (data) {
-                    el.classList.add('storage');
-                    if (data.items.length > 0) {
-                        el.classList.add('has-items');
-                    }
-                    // Текст только в главной ячейке (чтобы не дублировался)
-                    if (data.isMain) {
-                        el.textContent = data.address;
-                        el.onclick = () => showModal(data);
-                    } else {
-                        // Для остальных клеток блока просто стиль
-                        el.style.cursor = 'default';
-                    }
-                    
-                    // Если это спец ячейка (00, 99), объединяем визуально? 
-                    // В гриде просто красим соседние клетки одинаково
-                } else {
-                    // Проверка на центральный проход внутри стеллажа (cols 5-6 от старта)
-                    // Это сложно вычислить без обратного маппинга, оставим белым или passage
-                    // Для простоты: если нет данных и не стена - пусто
+                // 1. Рисуем стены
+                // Стены между проходами: после 12-го столбца (между C03 и C02) и после 24-го (между C02 и C01)
+                // В ТЗ: "между 10 и 11 ячейкой толстая черная линия". 
+                // У нас проход шириной 10 клеток + 2 пустых? Или 12 клеток всего?
+                // Давайте сделаем стену визуально между блоками.
+                // C03: 1-12. C02: 14-25. C01: 27-38.
+                // Стены на 13 и 26.
+                if ((c === 13 || c === 26) && r <= 20) {
+                    cell.classList.add('wall');
+                    // Растянем стену на всю высоту видимой зоны
+                    cell.style.gridRow = `${r} / ${r+1}`;
+                    cell.style.gridColumn = `${c} / ${c+1}`;
+                    grid.appendChild(cell);
+                    continue;
                 }
 
-                container.appendChild(el);
+                // 2. Проверяем данные
+                const key = `${r}-${c}`;
+                const data = cellDataMap[key];
+
+                if (data && data.length > 0) {
+                    // Это ячейка с товаром. 
+                    // Но нам нужно объединить 4 клетки в один блок визуально?
+                    // В блочной структуре мы можем просто покрасить каждую клетку, 
+                    // но текст писать только в первую.
+                    
+                    const firstPlaceChar = data[0].shortName.slice(-2)[0]; // Предпоследний символ перед ярусом
+                    const placeIdx = firstPlaceChar.charCodeAt(0) - 'A'.charCodeAt(0);
+                    
+                    // Если это первая клетка блока (место A)
+                    if (placeIdx === 0) {
+                        // Создаем визуальный блок поверх сетки? 
+                        // Нет, в CSS Grid проще задать стиль самой ячейке и соседям.
+                        // Но проще: раскрасить все 4 клетки одинаково, а текст показать только в первой.
+                        
+                        cell.classList.add('sector');
+                        cell.classList.add('has-items');
+                        cell.textContent = data[0].shortName;
+                        cell.onclick = () => showModal(data);
+                    } else {
+                        // Продолжение блока
+                        cell.classList.add('sector');
+                        cell.classList.add('has-items');
+                        cell.textContent = ''; // Текст только в первой
+                        cell.onclick = () => showModal(data); // Клик работает на любой части
+                    }
+                } else {
+                    // Пустая ячейка. 
+                    // Проверим, является ли она частью пустого блока (например, место B, C, D пусто, но A занято?)
+                    // В нашей логике map заполняется только если есть товар.
+                    // Если товара нет, клетка белая.
+                }
+
+                grid.appendChild(cell);
             }
         }
     }
 
-    function showModal(data) {
+    function showModal(items) {
         const modal = document.getElementById('modal');
         const title = document.getElementById('modal-title');
         const body = document.getElementById('modal-body');
 
-        title.textContent = `Сектор: ${data.address}`;
-        
-        if (data.items.length === 0) {
-            body.innerHTML = '<p>Нет товаров в этом секторе.</p>';
+        if (!items || items.length === 0) {
+            title.textContent = "Информация";
+            body.innerHTML = "<p>Нет данных о товарах в этом секторе.</p>";
         } else {
-            let total = 0;
-            let html = `<table><thead><tr><th>Полный адрес</th><th>Номенклатура</th><th>Кол-во</th></tr></thead><tbody>`;
-            data.items.forEach(i => {
-                total += i.qty;
-                html += `<tr><td>${i.full}</td><td>${i.name}</td><td><b>${i.qty.toLocaleString()}</b></td></tr>`;
+            title.textContent = `Сектор: ${items[0].shortName}`;
+            
+            let totalQty = 0;
+            let html = `<table>
+                <thead><tr><th>Полный адрес</th><th>Номенклатура</th><th>Кол-во</th></tr></thead>
+                <tbody>`;
+            
+            items.forEach(item => {
+                totalQty += item.qty;
+                html += `<tr>
+                    <td>${item.fullName}</td>
+                    <td>${item.name}</td>
+                    <td><strong>${item.qty.toLocaleString()}</strong></td>
+                </tr>`;
             });
-            html += `</tbody></table><div style="margin-top:10px; font-weight:bold;">Итого: ${total.toLocaleString()} шт.</div>`;
+            
+            html += `</tbody></table>
+                <div class="stats-box">
+                    <strong>Всего позиций:</strong> ${items.length}<br>
+                    <strong>Общее количество:</strong> ${totalQty.toLocaleString()}
+                </div>`;
             body.innerHTML = html;
         }
+        
         modal.classList.add('active');
     }
 
     function closeModal() {
         document.getElementById('modal').classList.remove('active');
     }
-    document.getElementById('modal').addEventListener('click', e => {
-        if(e.target.id === 'modal') closeModal();
+    
+    document.getElementById('modal').addEventListener('click', (e) => {
+        if (e.target.id === 'modal') closeModal();
     });
 </script>
 
