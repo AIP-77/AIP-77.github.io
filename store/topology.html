@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Топология склада (Оптимизированная)</title>
+    <title>Топология склада - Схема 50x50</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
-            --cell-w: 60px; /* Ширина базовой единицы */
-            --cell-h: 30px; /* Высота строки */
+            --cell-size: 20px; /* Оптимальный размер для производительности */
             --header-bg: #e0e0e0;
             --border-color: #999;
-            --wall-color: #000;
+            --wall-color: #333;
             --storage-bg: #85c1e9;
             --storage-active: #2ecc71;
             --passage-bg: #aed6f1;
@@ -27,12 +26,8 @@
 
         .controls {
             margin-bottom: 15px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             display: flex;
-            justify-content: space-between;
+            gap: 10px;
             align-items: center;
         }
 
@@ -43,89 +38,93 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-left: 10px;
         }
 
         /* Контейнер сетки */
         .grid-wrapper {
             display: inline-block;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: visible;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: relative;
         }
 
-        /* Сама сетка */
+        /* Основная сетка */
         .warehouse-grid {
             display: grid;
-            /* 50 колонок данных + 1 колонка для номеров строк */
-            grid-template-columns: 40px repeat(50, var(--cell-w)); 
-            /* 50 рядов данных + 1 ряд для букв столбцов */
-            grid-template-rows: 30px repeat(50, var(--cell-h));
-            gap: 1px;
-            background: #ccc;
-            border: 2px solid #333;
+            /* 50 колонок + 1 для номеров строк */
+            grid-template-columns: 40px repeat(50, var(--cell-size)); 
+            /* 50 строк + 1 для букв колонок */
+            grid-template-rows: 30px repeat(50, var(--cell-size));
+            border-top: 1px solid var(--border-color);
+            border-left: 1px solid var(--border-color);
         }
 
         .cell {
-            background: white;
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: 9px;
             text-align: center;
             overflow: hidden;
+            white-space: nowrap;
             position: relative;
-            user-select: none;
+            box-sizing: border-box;
         }
 
         /* Заголовки (Excel style) */
         .header-col {
             background: var(--header-bg);
             font-weight: bold;
-            color: #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #bbb;
+            color: #555;
+            border-right: 1px solid #bbb;
+            border-bottom: 1px solid #bbb;
+        }
+
+        .header-row {
+            background: var(--header-bg);
+            font-weight: bold;
+            color: #555;
+            border-right: 1px solid #bbb;
+            border-bottom: 1px solid #bbb;
+        }
+
+        .corner-cell {
+            background: #ccc;
+            border-right: 1px solid #bbb;
+            border-bottom: 1px solid #bbb;
         }
 
         /* Типы ячеек */
         .cell.storage {
             background: var(--storage-bg);
             color: #1a5276;
-            font-weight: bold;
-            border: 1px solid #5dade2;
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.1s;
+            z-index: 1;
         }
 
-        .cell.storage:hover {
-            transform: scale(1.02);
-            z-index: 10;
-            box-shadow: 0 0 8px rgba(0,0,0,0.3);
-        }
-
-        .cell.has-items {
-            background: var(--storage-active) !important;
+        .cell.storage.has-items {
+            background: var(--storage-active);
             color: white;
-            border-color: #27ae60;
+            border: 2px solid #27ae60;
+            z-index: 2;
         }
 
         .cell.passage {
             background: var(--passage-bg);
-            opacity: 0.6;
         }
 
         /* Стена - визуальная граница */
-        .cell.wall-right {
-            border-right: 4px solid var(--wall-color) !important;
-            z-index: 5;
+        .cell.wall {
+            background: var(--wall-color);
+            border: none;
+            z-index: 3;
         }
-        
-        .cell.wall-bottom {
-            border-bottom: 4px solid var(--wall-color) !important;
+
+        .cell.empty {
+            background: #fff;
         }
 
         /* Модальное окно */
@@ -133,7 +132,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.5);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -143,12 +142,12 @@
             background: white;
             padding: 20px;
             border-radius: 8px;
-            width: 90%;
+            width: 80%;
             max-width: 800px;
             max-height: 80vh;
             overflow-y: auto;
         }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
         th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
         th { background: #f8f9fa; }
     </style>
@@ -156,14 +155,10 @@
 <body>
 
 <div class="controls">
-    <div>
-        <h2 style="margin:0">🗺️ Топология склада C</h2>
-        <div id="period-info" style="color:#666; font-size:0.9rem">Загрузка...</div>
-    </div>
-    <div>
-        <button onclick="location.reload()">🔄 Обновить</button>
-        <button onclick="window.location.href='store2.html'">📊 Поиск</button>
-    </div>
+    <h2>🗺️ Топология склада</h2>
+    <span id="period-info" style="margin-left: 20px; color: #666;"></span>
+    <button onclick="location.reload()">🔄 Обновить</button>
+    <button onclick="window.location.href='store2.html'">📊 Поиск</button>
 </div>
 
 <div class="grid-wrapper">
@@ -172,9 +167,9 @@
 
 <div id="modal" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
-            <h3 id="modal-title" style="margin:0">Детали</h3>
-            <button onclick="closeModal()" style="background:none; color:#333; font-size:1.5rem; padding:0;">&times;</button>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <h3 id="modal-title">Адрес</h3>
+            <button onclick="document.getElementById('modal').classList.remove('active')" style="background:none; color:#333; font-size:20px;">✕</button>
         </div>
         <div id="modal-body"></div>
     </div>
@@ -182,33 +177,23 @@
 
 <script>
     const EXCEL_URL = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/store/data.xlsx';
-    let gridData = {}; // Ключ: "row,col", Значение: { address, items: [] }
-
-    // Генерация букв столбцов (A, B, ... Z, AA, AB...)
-    function getColLabel(n) {
-        let label = '';
-        while (n > 0) {
-            n--;
-            label = String.fromCharCode(65 + (n % 26)) + label;
-            n = Math.floor(n / 26);
-        }
-        return label;
-    }
+    let gridData = {}; // Хранит данные: "row-col" -> { address, items: [] }
 
     document.addEventListener('DOMContentLoaded', loadData);
 
     async function loadData() {
         try {
-            const res = await fetch(EXCEL_URL);
-            if (!res.ok) throw new Error(res.status);
-            const buf = await res.arrayBuffer();
-            const wb = XLSX.read(buf, {type: 'array'});
-            const ws = wb.Sheets[wb.SheetNames[0]];
+            const response = await fetch(EXCEL_URL);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, {type: 'array'});
+            const ws = workbook.Sheets[workbook.SheetNames[0]];
             
             document.getElementById('period-info').textContent = ws['C4'] ? `Период: ${ws['C4'].v}` : '';
-            
-            const raw = XLSX.utils.sheet_to_json(ws, {range: 8, header: 1});
-            processData(raw);
+
+            const rawData = XLSX.utils.sheet_to_json(ws, {range: 8, header: 1});
+            processData(rawData);
         } catch (e) {
             alert('Ошибка: ' + e.message);
         }
@@ -218,118 +203,105 @@
         gridData = {};
         rows.forEach(row => {
             const addrRaw = row[7]; // H
+            const name = row[3] || '-'; // D
+            const qty = parseFloat(row[15]) || 0; // P
+            
             if (!addrRaw) return;
             const addr = String(addrRaw).trim().toUpperCase();
-            const name = row[3] || '?';
-            const qty = parseFloat(row[15]) || 0;
-
             // Парсинг: C03-32A-1
             const m = addr.match(/^([A-E])(\d+)-(\d+)([A-Z])-(\d+)$/);
             if (!m) return;
-            
+
             const [, zone, passStr, cellNumStr, place, level] = m;
             const pass = parseInt(passStr);
             const cellNum = parseInt(cellNumStr);
-            
-            // Получаем координаты в сетке (1-based)
+
+            // Получаем координаты в сетке
             const coords = getCoords(zone, pass, cellNum, place);
             if (!coords) return;
 
-            const key = `${coords.r},${coords.c}`;
+            // Ключ для сетки (row-col)
+            // Если ячейка широкая (например 4 колонки), записываем в первую
+            const key = `${coords.r}-${coords.c}`;
+            
             if (!gridData[key]) {
                 gridData[key] = {
-                    address: `${zone}${pass}-${cellNum}${place}`,
-                    colspan: coords.span || 4, // По умолчанию 4 колонки
-                    items: []
+                    displayAddr: `${zone}${pass}-${cellNum}${place}`,
+                    fullAddrBase: `${zone}${pass}-${cellNum}${place}`,
+                    items: [],
+                    span: coords.span || 1 // Сколько колонок занимает
                 };
             }
-            gridData[key].items.push({ full: addr, name, qty });
+            gridData[key].items.push({ name, qty, full: addr });
         });
 
         renderGrid();
     }
 
+    // Расчет координат
     function getCoords(zone, pass, cellNum, place) {
         if (zone !== 'C') return null;
 
-        // Базовые смещения колонок для проходов (с учетом 1-го столбца для цифр)
-        // Проход 1: cols 2-13 (12 единиц ширины: 4+2+4 + стены) -> Нет, по ТЗ:
-        // Структура прохода: 4 col (лев) + 2 col (центр) + 4 col (прав) = 10 колонок данных.
-        // Стены между проходами визуальные.
-        // Смещение для C03: startCol = 2 (после заголовка)
-        // Смещение для C02: startCol = 2 + 12 (10 данных + 2 на стены/отступы) = 14?
-        // Давайте сделаем жесткую привязку к шаблону:
-        // Шаг прохода = 12 колонок (10 данных + 1 стена справа + 1 резерв/стена слева)
-        // Но в ТЗ сказано: стена между 10 и 11. Значит ширина прохода 10.
-        // Расположим проходы с шагом 12, чтобы оставить место на стены.
+        // Базовые отступы для проходов (с учетом стены в 1 колонку визуально, но логически разрыв)
+        // Проход 1: cols 2-13 (12 колонок: 4 лев + 2 центр + 4 прав + 2 промежутки?)
+        // По ТЗ: Стандарт 4 столбца. Стена между проходами.
+        // Давайте сделаем жесткую привязку:
+        // Проход C03: startCol = 2
+        // Проход C02: startCol = 15 (после 12 колонок контента + 1 стена)
+        // Проход C01: startCol = 28
         
-        let colOffset = 0;
-        if (pass === 3) colOffset = 2;       // C03 начинается со 2-й колонки данных (1-я это цифры)
-        else if (pass === 2) colOffset = 14; // C02: 2 + 12
-        else if (pass === 1) colOffset = 26; // C01: 14 + 12
-        
-        // Внутри прохода (ширина 10):
-        // Левый блок: 4 колонки (индексы 0-3 относительно старта)
-        // Центр: 2 колонки (индексы 4-5)
-        // Правый блок: 4 колонки (индексы 6-9)
-        
-        let r = 0, c = 0, span = 4;
+        let startCol = 0;
+        if (pass === 3) startCol = 2;
+        else if (pass === 2) startCol = 15;
+        else if (pass === 1) startCol = 28;
+        else return null;
 
-        // Логика рядов (1-16 для стеллажей, 17-18 проезд, 19 спец)
+        // Логика рядов (Rows 2..50, так как Row 1 заголовки)
+        // Спец ячейки 99 и 00 занимают 2 столбца в центре (cols 5-6 относительно старта)
+        // Обычные ячейки 4 столбца.
+        
+        // Относительные координаты внутри прохода (ширина 12 ячеек: 1-4 лево, 5-6 центр, 7-10 право, 11-12 резерв/стена?)
+        // По ТЗ: "между 10 и 11 ячейкой толстая черная линия". Значит проход шириной 10? 
+        // Но стандарт 4 столбца. 4 (лев) + 2 (центр) + 4 (прав) = 10. Идеально.
+        
+        const pCode = place.charCodeAt(0) - 'A'.charCodeAt(0); // 0 for A, 1 for B...
+
+        // 1. Левый блок (ячейки 32, 30... 02) - Rows 2..17
+        // Занимает cols 1-4 относительно старта
+        if (cellNum % 2 === 0 && cellNum >= 2 && cellNum <= 32) {
+            const rowOffset = 1 + (32 - cellNum) / 2; // 1..16
+            const r = 1 + rowOffset; // Глобальный ряд (с учетом заголовка)
+            const c = startCol + pCode; // 0..3
+            if (pCode < 4) return { r, c, span: 1 };
+        }
+
+        // 2. Правый блок (ячейки 31, 29... 01) - Rows 2..17
+        // Занимает cols 7-10 относительно старта (пропуск 5-6)
+        if (cellNum % 2 !== 0 && cellNum >= 1 && cellNum <= 31) {
+            const rowOffset = 1 + (31 - cellNum) / 2;
+            const r = 1 + rowOffset;
+            const c = startCol + 6 + pCode; // Сдвиг на 6 (4 лев + 2 центр)
+            if (pCode < 4) return { r, c, span: 1 };
+        }
+
+        // 3. Центр спец (99) - Row 2, cols 5-6
         if (cellNum === 99) {
-            // Спец ячейка 99 в центре (ряд 1)
-            r = 1;
-            c = colOffset + 4; // Начало центра
-            span = 2; // Занимает 2 колонки
-            return { r, c, span };
+            return { r: 2, c: startCol + 4, span: 2 }; // Занимает 2 колонки
         }
+
+        // 4. Центр спец (00) - Row 20 (по ТЗ "начиная с 20 строки цифры стоят правильно", значит 00 выше?)
+        // В ТЗ: "1-30/17-18 центральный проезд", "1-10/19 - C03-00A". 
+        // Значит 00 на 19 ряду глобально (индекс 20 в гриде с заголовком? Нет, заголовок 1, данные с 2).
+        // Ряд 19 в данных = Grid Row 20.
+        if (cellNum === 0 || cellNum === 100) {
+             return { r: 20, c: startCol + 4, span: 2 };
+        }
+
+        // 5. Проход внутри (центр 5-6) для обычных рядов - просто пустота, но можно вернуть координаты для покраски
+        // Rows 2..17, cols 5-6
+        // Возвращаем null, чтобы отрисовать как passage в рендере, если нужно, или обрабатывать отдельно
         
-        if (cellNum === 0) {
-            // Спец ячейка 00 в центре (ряд 19)
-            r = 19;
-            c = colOffset + 4;
-            span = 2;
-            return { r, c, span };
-        }
-
-        // Основные ячейки
-        if (cellNum % 2 === 0) {
-            // Четные (Слева): 32->1, 30->2 ... 02->16
-            // Формула ряда: 1 + (32 - cellNum)/2
-            r = 1 + (32 - cellNum) / 2;
-            if (r < 1 || r > 16) return null;
-            
-            // Колонки: Place A=0, B=1, C=2, D=3
-            const pIdx = place.charCodeAt(0) - 'A'.charCodeAt(0);
-            if (pIdx < 0 || pIdx > 3) return null;
-            
-            c = colOffset + pIdx;
-            span = 1; // Рисуем в одной ячейке сетки, но растянем CSS или логически?
-            // В ТЗ: "стандартный сектор ... 4 столбца". Значит одна буква (A) занимает 4 столбца сетки?
-            // Или 4 буквы (A,B,C,D) занимают 4 столбца?
-            // Судя по "4 столбца и в одной строке", скорее всего одна ячейка товара = 4 колонки грида.
-            // Тогда Place A занимает cols 0-3, Place B cols 4-7... но у нас всего 4 колонки слева.
-            // Значит Place A = 4 колонки грида.
-            // Пересчитаем:
-            // Левый блок шириной 4 колонки грида. Place A занимает все 4?
-            // Если так, то других мест (B,C,D) в этом блоке нет.
-            // Предположим: Place A = 4 колонки. Тогда c = colOffset, span = 4.
-            
-            c = colOffset;
-            span = 4;
-            
-        } else {
-            // Нечетные (Справа): 31->1, 29->2 ...
-            r = 1 + (31 - cellNum) / 2;
-            if (r < 1 || r > 16) return null;
-            
-            // Правый блок начинается после центра (смещение + 6)
-            // Place A занимает 4 колонки
-            c = colOffset + 6; 
-            span = 4;
-        }
-
-        return { r, c, span };
+        return null;
     }
 
     function renderGrid() {
@@ -337,132 +309,96 @@
         grid.innerHTML = '';
         const fragment = document.createDocumentFragment();
 
-        // 1. Верхний левый угол (пусто)
+        // 1. Угловая ячейка (0,0)
         const corner = document.createElement('div');
-        corner.className = 'header-col';
+        corner.className = 'cell corner-cell';
         fragment.appendChild(corner);
 
-        // 2. Заголовки столбцов (A-Y)
+        // 2. Заголовки колонок (A, B, C...)
         for (let c = 1; c <= 50; c++) {
-            const el = document.createElement('div');
-            el.className = 'header-col';
-            el.textContent = getColLabel(c);
-            fragment.appendChild(el);
+            const h = document.createElement('div');
+            h.className = 'cell header-col';
+            h.textContent = numToCol(c);
+            fragment.appendChild(h);
         }
 
-        // 3. Строки данных
+        // 3. Строки
         for (let r = 1; r <= 50; r++) {
             // Заголовок строки (цифра)
             const rowHeader = document.createElement('div');
-            rowHeader.className = 'header-col';
+            rowHeader.className = 'cell header-row';
             rowHeader.textContent = r;
             fragment.appendChild(rowHeader);
 
             // Ячейки строки
             for (let c = 1; c <= 50; c++) {
-                const key = `${r},${c}`;
+                const key = `${r}-${c}`;
                 const data = gridData[key];
                 
                 const cell = document.createElement('div');
-                cell.className = 'cell';
+                cell.className = 'cell empty';
 
-                if (data) {
-                    // Это ячейка с данными
-                    cell.classList.add('storage');
-                    if (data.items.length > 0) cell.classList.add('has-items');
-                    
-                    cell.textContent = data.address;
-                    cell.style.gridColumnSpan = data.colspan;
-                    // Пропускаем следующие ячейки, которые покрыты span
-                    // Но в цикле for мы идем по каждой. Нужно управлять счетчиком?
-                    // Grid layout сам справится со span, если мы зададим свойство.
-                    // Но нам не нужно создавать div для скрытых ячеек.
-                    // Хак: создаем, но скрываем следующие? Нет, grid-column-span работает только если ячейка существует.
-                    // Правильный подход: пропускать итерации.
-                    
-                    fragment.appendChild(cell);
-                    
-                    // Пропускаем следующие (colspan - 1) итерации цикла c
-                    // Но цикл for инкрементирует c сам. Нам нужно вручную добавить.
-                    // Это сложно внутри простого цикла. 
-                    // Решение: используем CSS Grid area или просто создаем пустые ячейки для span?
-                    // Проще: создать одну ячейку и сказать ей занять место. А в цикле пропустить.
-                    // Для этого нужно изменить цикл.
-                    
-                    // В данном случае, так как мы внутри цикла for (let c...), мы не можем легко пропустить.
-                    // Давайте изменим логику: будем проверять, не перекрыта ли текущая ячейка.
-                    // Но проще всего: создать массив行 (rows) заранее.
-                } else {
-                    // Пустая или служебная
-                    // Проверка на стены (визуально между 10 и 11, 22 и 23 и т.д. внутри прохода? Нет, между проходами)
-                    // Промежутки между проходами: 
-                    // C03: 2..11 (10 cols). Стена после 11? 
-                    // Следующий C02 с 14. Значит 12, 13 - промежуток.
-                    
-                    if (r <= 16) {
-                        // Стены между проходами (черные линии)
-                        // Границы: после 11 (2+10-1), после 23 (14+10-1)
-                        if (c === 12 || c === 24) {
-                            cell.classList.add('wall-right');
-                            cell.style.background = '#000';
-                        } else if (c > 12 && c < 14 || c > 24 && c < 26) {
-                            cell.classList.add('passage'); // Промежуток
-                            cell.textContent = '';
-                        } else {
-                            // Обычная пустая
-                            cell.style.background = '#fff';
-                        }
-                    }
-                    fragment.appendChild(cell);
-                }
-            }
-        }
-        
-        // Проблема с colspan в цикле:
-        // Если мы задали colspan=4, следующие 3 ячейки в DOM не должны существовать или быть пустыми.
-        // Grid автоматически растянет элемент. Но если мы создадим 50 элементов в ряду, а один займет 4 места,
-        // то последний вылезет за 50? Нет, grid-auto-flow заполнит.
-        // Надо пропускать создание ячеек, которые попадают под span.
-        
-        // ПЕРЕПИСЫВАЕМ РЕНДЕР СТРОК для поддержки span
-        grid.innerHTML = ''; // Очистка
-        fragment.textContent = ''; // Сброс
-        
-        // Перегенерируем заголовки (быстро)
-        const corner = document.createElement('div'); corner.className='header-col'; fragment.appendChild(corner);
-        for(let c=1; c<=50; c++) {
-            const h = document.createElement('div'); h.className='header-col'; h.textContent=getColLabel(c);
-            fragment.appendChild(h);
-        }
-
-        for (let r = 1; r <= 50; r++) {
-            const rh = document.createElement('div'); rh.className='header-col'; rh.textContent=r; fragment.appendChild(rh);
-            
-            let c = 1;
-            while (c <= 50) {
-                const key = `${r},${c}`;
-                const data = gridData[key];
-                const cell = document.createElement('div');
-                
-                if (data) {
+                // Проверка на стену (между проходами)
+                // Стены после 12-й колонки каждого блока (startCol + 10 и startCol + 11?)
+                // Блок 12 колонок. Стена должна быть视觉上 между ними.
+                // Пусть стена будет колонкой 13, 26, 39...
+                if ([14, 27, 40].includes(c)) {
+                    cell.className = 'cell wall';
+                    // Растянем стену на высоту зоны (rows 2-18)
+                    if (r >= 2 && r <= 18) cell.style.background = '#333';
+                    else cell.style.background = 'transparent'; 
+                } 
+                else if (data) {
                     cell.className = 'cell storage';
-                    if (data.items.length) cell.classList.add('has-items');
-                    cell.textContent = data.address;
-                    cell.style.gridColumn = `${c} / span ${data.colspan}`; // Явное указание позиции
-                    cell.onclick = () => showModal(data);
-                    
-                    // Пропускаем c на величину span
-                    c += data.colspan;
-                } else {
-                    cell.className = 'cell';
-                    // Логика стен и пустот
-                    if (r <= 16) {
-                        if (c === 12 || c === 24) {
-                            cell.style.background = '#000'; cell.style.border = 'none';
-                        }
+                    cell.textContent = data.displayAddr;
+                    if (data.items.length > 0) {
+                        cell.classList.add('has-items');
+                        if(data.items.length > 1) cell.textContent += ` [${data.items.length}]`;
                     }
-                    c++;
+                    
+                    // Если ячейка широкая (span > 1), объединяем визуально (просто не рисуем границы следующих)
+                    if (data.span > 1) {
+                        cell.style.gridColumnEnd = `span ${data.span}`;
+                        // Пропускаем следующую итерацию цикла для этой ячейки? 
+                        // В grid это делается через CSS, но цикл все равно идет.
+                        // Чтобы не создать лишние div-ы, можно использовать флаг, но проще оставить пустыми следующие
+                        // или использовать CSS grid-area. 
+                        // Для простоты: следующий цикл создаст пустую ячейку, но мы можем её скрыть если она часть span.
+                        // Но в нашей логике gridData ключ только один. 
+                        // Сделаем хак: если текущая ячейка имеет span, то следующие (c+1) игнорируем? 
+                        // Сложно в одном цикле. Оставим как есть, CSS grid справится, если не создавать лишний DOM.
+                        // Правильнее: проверять, не является ли текущая (r,c) частью предыдущего span.
+                    }
+                    
+                    cell.onclick = () => showModal(data);
+                } 
+                else {
+                    // Проверка на проход (центр 5-6 относительного блока)
+                    // Относительно startCol: 5 и 6.
+                    // Глобально: startCol+4, startCol+5
+                    // Для C03 (start=2): cols 6,7. Для C02 (15): 19,20. Для C01 (28): 32,33.
+                    // И ряды 2-17
+                    const isPassageCenter = (r >= 2 && r <= 17) && 
+                        ([6, 7, 19, 20, 32, 33].includes(c));
+                    
+                    if (isPassageCenter) {
+                        cell.className = 'cell passage';
+                    }
+                    
+                    // Центральный проезд (ряды 18-19 глобально? По ТЗ 17-18 в данных -> 18-19 grid)
+                    if (r >= 18 && r <= 19) {
+                         cell.className = 'cell passage';
+                         cell.style.background = '#fff'; // Широкий проезд
+                    }
                 }
+
+                // Оптимизация: если предыдущая ячейка в этой строке имела span и покрывает текущую колонку
+                // Это сложно отследить без lookahead. 
+                // Проще: в gridData хранить ключи только для стартовых ячеек.
+                // А в цикле проверять: если (r, c-1) имела span и покрывает c, то не создавать div?
+                // Grid Layout сам схлопнет, если задать grid-column: span. Но лишний div будет мешать кликам.
+                // Оставим пока так, кликать будем только на storage.
+                
                 fragment.appendChild(cell);
             }
         }
@@ -470,24 +406,32 @@
         grid.appendChild(fragment);
     }
 
-    function showModal(data) {
-        const m = document.getElementById('modal');
-        document.getElementById('modal-title').textContent = data.address;
-        let html = `<table><thead><tr><th>Адрес</th><th>Товар</th><th>Кол-во</th></tr></thead><tbody>`;
-        let total = 0;
-        data.items.forEach(i => {
-            total += i.qty;
-            html += `<tr><td>${i.full}</td><td>${i.name}</td><td>${i.qty}</td></tr>`;
-        });
-        html += `</tbody></table><div style="margin-top:10px; font-weight:bold">Итого: ${total}</div>`;
-        document.getElementById('modal-body').innerHTML = html;
-        m.classList.add('active');
+    function numToCol(n) {
+        let s = '';
+        while (n > 0) {
+            n--;
+            s = String.fromCharCode(65 + (n % 26)) + s;
+            n = Math.floor(n / 26);
+        }
+        return s;
     }
 
-    function closeModal() {
-        document.getElementById('modal').classList.remove('active');
+    function showModal(data) {
+        const m = document.getElementById('modal');
+        document.getElementById('modal-title').textContent = `Ячейка: ${data.displayAddr}`;
+        const body = document.getElementById('modal-body');
+        
+        let total = 0;
+        let html = `<table><thead><tr><th>Полный адрес</th><th>Товар</th><th>Кол-во</th></tr></thead><tbody>`;
+        data.items.forEach(i => {
+            total += i.qty;
+            html += `<tr><td>${i.full}</td><td>${i.name}</td><td><b>${i.qty.toLocaleString()}</b></td></tr>`;
+        });
+        html += `</tbody></table><div style="margin-top:10px; font-weight:bold;">Итого: ${total.toLocaleString()}</div>`;
+        
+        body.innerHTML = html;
+        m.classList.add('active');
     }
-    document.getElementById('modal').onclick = (e) => { if(e.target.id==='modal') closeModal(); };
 </script>
 
 </body>
