@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Топология склада - По рядам</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --status-empty: #ecf0f1;
+            --status-low: #f1c40f;
+            --status-medium: #f39c12;
+            --status-high: #e74c3c;
+            --status-full: #c0392b;
+            --bg-color: #f5f6fa;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+        }
+
+        .top-bar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .top-bar h1 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-buttons button {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .nav-buttons button:hover {
+            background: white;
+            color: #f5576c;
+        }
+
+        .toolbar {
+            background: white;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .filter-buttons button {
+            padding: 6px 12px;
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .filter-buttons button.active {
+            background: #f39c12;
+            color: white;
+            border-color: #f39c12;
+        }
+
+        .warehouse-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .rows-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .row-section {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .row-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .row-stats {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .cells-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 2px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+
+        .cell-item {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 3px;
+            font-size: 0.85rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+
+        .cell-item.status-empty {
+            background: var(--status-empty);
+            color: #95a5a6;
+            border-style: dashed;
+        }
+
+        .cell-item.status-low {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        .cell-item.status-medium {
+            background: #ffe0b2;
+            border-color: #ff9800;
+        }
+
+        .cell-item.status-high {
+            background: #ffcdd2;
+            border-color: #f44336;
+        }
+
+        .cell-item.status-full {
+            background: #ef9a9a;
+            border-color: #e53935;
+            color: #c62828;
+            font-weight: bold;
+        }
+
+        .cell-address {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .cell-qty {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .cell-items {
+            font-size: 0.7rem;
+            color: #999;
+            margin-top: 3px;
+        }
+
+        .legend {
+            background: white;
+            padding: 15px 20px;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #999;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .close-btn:hover {
+            color: #e74c3c;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .items-table th,
+        .items-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .items-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: var(--primary-color);
+            position: sticky;
+            top: 0;
+        }
+
+        .items-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2rem;
+            color: #7f8c8d;
+        }
+
+        .summary-bar {
+            background: white;
+            padding: 15px 20px;
+            margin: 0 20px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <h1>📊 Топология склада - Вид по рядам</h1>
+    <div class="nav-buttons">
+        <button onclick="window.location.href='index.html'">🗺️ Топология</button>
+        <button onclick="location.reload()">🔄 Обновить</button>
+    </div>
+</div>
+
+<div class="toolbar">
+    <div class="search-box">
+        <input type="text" id="search-input" placeholder="🔍 Поиск по адресу или номенклатуре..." oninput="filterData()">
+    </div>
+    <div class="filter-buttons">
+        <button class="active" onclick="filterByStatus('all', this)">Все</button>
+        <button onclick="filterByStatus('occupied', this)">Заполненные</button>
+        <button onclick="filterByStatus('empty', this)">Пустые</button>
+        <button onclick="filterByStatus('full', this)">Полные</button>
+    </div>
+</div>
+
+<div class="legend">
+    <span class="legend-title">Статус заполнения:</span>
+    <div class="legend-item">
+        <div class="legend-color" style="background: var(--status-empty)"></div>
+        <span>Пусто</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #fff3cd"></div>
+        <span>До 25%</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #ffe0b2"></div>
+        <span>25-50%</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #ffcdd2"></div>
+        <span>50-75%</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #ef9a9a"></div>
+        <span>>75%</span>
+    </div>
+</div>
+
+<div class="summary-bar">
+    <div class="summary-item">
+        <div>
+            <div class="summary-value" id="total-rows">0</div>
+            <div class="summary-label">Рядов</div>
+        </div>
+    </div>
+    <div class="summary-item">
+        <div>
+            <div class="summary-value" id="total-cells">0</div>
+            <div class="summary-label">Ячеек</div>
+        </div>
+    </div>
+    <div class="summary-item">
+        <div>
+            <div class="summary-value" id="occupied-cells">0</div>
+            <div class="summary-label">Заполнено</div>
+        </div>
+    </div>
+    <div class="summary-item">
+        <div>
+            <div class="summary-value" id="total-quantity">0</div>
+            <div class="summary-label">Единиц товара</div>
+        </div>
+    </div>
+</div>
+
+<div class="warehouse-container">
+    <div class="rows-container" id="rows-container">
+        <div class="loading">Загрузка данных...</div>
+    </div>
+</div>
+
+<div class="modal" id="items-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title">Ячейка</h2>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<script>
+    const EXCEL_URL = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/store/data.xlsx';
+    
+    let warehouseData = [];
+    let warehouseStructure = {};
+    let rowsData = {};
+    let currentFilter = 'all';
+
+    document.addEventListener('DOMContentLoaded', loadData);
+
+    async function loadData() {
+        try {
+            const response = await fetch(EXCEL_URL);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const arrayBuffer = await response.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, {type: 'array'});
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            
+            const rawData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
+            processData(rawData);
+        } catch (error) {
+            document.getElementById('rows-container').innerHTML = 
+                `<div class="loading" style="color: #e74c3c">Ошибка: ${error.message}</div>`;
+        }
+    }
+
+    function processData(rows) {
+        warehouseData = [];
+        warehouseStructure = {};
+        rowsData = {};
+
+        rows.forEach(row => {
+            const addressRaw = row[7];
+            const name = row[3] || 'Без названия';
+            let quantity = parseFloat(row[15]);
+            if (isNaN(quantity)) quantity = 0;
+
+            if (!addressRaw) return;
+            const address = String(addressRaw).trim().toUpperCase();
+            
+            const match = address.match(/^([A-E])(\d+)-(\d+)([A-Z])-(\d+)$/);
+            
+            if (match) {
+                const [, zone, passage, cell, place, level] = match;
+                const item = {
+                    address,
+                    zone,
+                    passage: parseInt(passage),
+                    cell: parseInt(cell),
+                    place,
+                    level: parseInt(level),
+                    name,
+                    quantity
+                };
+                
+                warehouseData.push(item);
+                
+                if (!warehouseStructure[address]) {
+                    warehouseStructure[address] = [];
+                }
+                warehouseStructure[address].push(item);
+
+                // Группируем по рядам (ряд = зона + проход)
+                const rowKey = `${zone}${passage}`;
+                if (!rowsData[rowKey]) {
+                    rowsData[rowKey] = {
+                        zone,
+                        passage,
+                        cells: {}
+                    };
+                }
+                
+                const cellKey = `${cell}${place}-${level}`;
+                if (!rowsData[rowKey].cells[cellKey]) {
+                    rowsData[rowKey].cells[cellKey] = {
+                        address: `${zone}${String(passage).padStart(2,'0')}-${cellKey}`,
+                        items: [],
+                        totalQty: 0
+                    };
+                }
+                rowsData[rowKey].cells[cellKey].items.push(item);
+                rowsData[rowKey].cells[cellKey].totalQty += quantity;
+            }
+        });
+
+        renderRows();
+        updateSummary();
+    }
+
+    function renderRows() {
+        const container = document.getElementById('rows-container');
+        container.innerHTML = '';
+
+        const sortedRows = Object.keys(rowsData).sort();
+
+        sortedRows.forEach(rowKey => {
+            const rowData = rowsData[rowKey];
+            const rowSection = document.createElement('div');
+            rowSection.className = 'row-section';
+            rowSection.dataset.row = rowKey;
+
+            const totalCells = Object.keys(rowData.cells).length;
+            const occupiedCells = Object.values(rowData.cells).filter(c => c.items.length > 0).length;
+            const totalQty = Object.values(rowData.cells).reduce((sum, c) => sum + c.totalQty, 0);
+
+            rowSection.innerHTML = `
+                <div class="row-header">
+                    <span>Ряд: ${rowKey}</span>
+                    <span class="row-stats">Ячеек: ${occupiedCells}/${totalCells} | Товаров: ${totalQty.toLocaleString()}</span>
+                </div>
+                <div class="cells-grid" id="row-${rowKey}"></div>
+            `;
+
+            const cellsGrid = rowSection.querySelector('.cells-grid');
+            const sortedCells = Object.keys(rowData.cells).sort();
+
+            sortedCells.forEach(cellKey => {
+                const cellData = rowData.cells[cellKey];
+                const cellEl = document.createElement('div');
+                cellEl.className = 'cell-item';
+                cellEl.dataset.address = cellData.address;
+                
+                const status = getCellStatus(cellData.items.length, cellData.totalQty);
+                cellEl.classList.add(`status-${status}`);
+
+                const itemsCount = cellData.items.length;
+                cellEl.innerHTML = `
+                    <div class="cell-address">${cellData.address}</div>
+                    <div class="cell-qty">${cellData.totalQty > 0 ? cellData.totalQty.toLocaleString() + ' шт.' : 'Пусто'}</div>
+                    <div class="cell-items">${itemsCount} поз.</div>
+                `;
+
+                if (cellData.items.length > 0) {
+                    cellEl.onclick = () => showItems(cellData.address);
+                }
+
+                cellsGrid.appendChild(cellEl);
+            });
+
+            container.appendChild(rowSection);
+        });
+    }
+
+    function getCellStatus(itemsCount, totalQty) {
+        if (itemsCount === 0) return 'empty';
+        if (totalQty >= 100) return 'full';
+        if (totalQty >= 50) return 'high';
+        if (totalQty >= 20) return 'medium';
+        return 'low';
+    }
+
+    function updateSummary() {
+        const totalRows = Object.keys(rowsData).length;
+        const totalCells = Object.values(rowsData).reduce((sum, row) => sum + Object.keys(row.cells).length, 0);
+        const occupiedCells = Object.values(rowsData).reduce((sum, row) => 
+            sum + Object.values(row.cells).filter(c => c.items.length > 0).length, 0
+        );
+        const totalQuantity = warehouseData.reduce((sum, item) => sum + item.quantity, 0);
+
+        document.getElementById('total-rows').textContent = totalRows;
+        document.getElementById('total-cells').textContent = totalCells;
+        document.getElementById('occupied-cells').textContent = occupiedCells;
+        document.getElementById('total-quantity').textContent = totalQuantity.toLocaleString();
+    }
+
+    function filterByStatus(status, btn) {
+        currentFilter = status;
+        
+        // Обновляем активную кнопку
+        document.querySelectorAll('.filter-buttons button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        filterData();
+    }
+
+    function filterData() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase();
+        
+        Object.keys(rowsData).forEach(rowKey => {
+            const rowSection = document.querySelector(`.row-section[data-row="${rowKey}"]`);
+            if (!rowSection) return;
+
+            const cells = rowSection.querySelectorAll('.cell-item');
+            let visibleCells = 0;
+
+            cells.forEach(cell => {
+                const address = cell.dataset.address.toLowerCase();
+                const cellData = rowsData[rowKey].cells[Object.keys(rowsData[rowKey].cells).find(k => 
+                    rowsData[rowKey].cells[k].address === cell.dataset.address
+                )];
+
+                if (!cellData) return;
+
+                let matchesSearch = true;
+                let matchesFilter = true;
+
+                // Поиск
+                if (searchTerm) {
+                    const matchesAddress = address.includes(searchTerm);
+                    const matchesItems = cellData.items.some(item => 
+                        item.name.toLowerCase().includes(searchTerm)
+                    );
+                    matchesSearch = matchesAddress || matchesItems;
+                }
+
+                // Фильтр по статусу
+                if (currentFilter !== 'all') {
+                    const itemsCount = cellData.items.length;
+                    if (currentFilter === 'empty') {
+                        matchesFilter = itemsCount === 0;
+                    } else if (currentFilter === 'occupied') {
+                        matchesFilter = itemsCount > 0;
+                    } else if (currentFilter === 'full') {
+                        matchesFilter = cellData.totalQty >= 100;
+                    }
+                }
+
+                if (matchesSearch && matchesFilter) {
+                    cell.style.display = 'block';
+                    visibleCells++;
+                } else {
+                    cell.style.display = 'none';
+                }
+            });
+
+            // Показываем/скрываем ряд
+            rowSection.style.display = visibleCells > 0 ? 'block' : 'none';
+        });
+    }
+
+    function showItems(address) {
+        const items = warehouseStructure[address];
+        if (!items || items.length === 0) return;
+
+        const modal = document.getElementById('items-modal');
+        const title = document.getElementById('modal-title');
+        const body = document.getElementById('modal-body');
+
+        title.textContent = `Ячейка: ${address}`;
+        
+        let html = '<table class="items-table"><thead><tr><th>Номенклатура</th><th>Количество</th><th>Ед. изм.</th></tr></thead><tbody>';
+        
+        items.forEach(item => {
+            html += `<tr>
+                <td>${item.name}</td>
+                <td><strong>${item.quantity.toLocaleString()}</strong></td>
+                <td>шт.</td>
+            </tr>`;
+        });
+        
+        const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
+        html += `</tbody></table>
+            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                <strong>Всего в ячейке:</strong> ${totalQty.toLocaleString()} шт. (${items.length} позиций)
+            </div>`;
+        
+        body.innerHTML = html;
+        modal.classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('items-modal').classList.remove('active');
+    }
+
+    document.getElementById('items-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+</script>
+
+</body>
+</html>
