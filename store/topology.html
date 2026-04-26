@@ -3,160 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Топология склада - Блочная схема</title>
+    <title>Топология склада - Схема зон C</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
-            --cell-w: 40px;  /* Ширина одной условной единицы сетки */
-            --cell-h: 30px;  /* Высота одной условной единицы сетки */
-            --header-h: 30px;
-            --sidebar-w: 40px;
-            
-            --color-storage: #85c1e9;
-            --color-storage-hover: #5dade2;
-            --color-passage: #aed6f1;
-            --color-wall: #2c3e50;
-            --color-special: #f9e79f;
-            --color-has-items: #2ecc71;
-            --color-text: #1a5276;
+            --cell-size: 24px; /* Размер одной клетки сетки */
+            --grid-color: #e0e0e0;
+            --axis-bg: #f8f9fa;
+            --axis-border: #adb5bd;
+            --wall-color: #000;
+            --storage-color: #85c1e9;
+            --storage-active: #2ecc71;
+            --passage-color: #aed6f1;
         }
 
         body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f6fa;
             margin: 0;
             padding: 20px;
+            color: #333;
             overflow: auto;
         }
 
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
             background: white;
             padding: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        /* Контейнер схемы с осями координат */
-        .map-wrapper {
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        
+        .controls button {
+            padding: 8px 15px;
+            margin-left: 10px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .controls button:hover { background: #34495e; }
+
+        /* Контейнер для схемы с осями */
+        .scheme-wrapper {
             position: relative;
-            display: inline-block;
             background: white;
-            padding: var(--header-h) 0 0 var(--sidebar-w);
+            padding: 40px 40px 20px 60px; /* Отступы под оси */
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            overflow: visible;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: auto;
+            display: inline-block;
+        }
+
+        /* Сетка фона (для визуальной привязки) */
+        .grid-background {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: var(--cell-size) var(--cell-size);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Область чертежа */
+        .drawing-area {
+            position: relative;
+            width: calc(50 * var(--cell-size)); /* 50 колонок */
+            height: calc(50 * var(--cell-size)); /* 50 строк */
+            z-index: 1;
         }
 
         /* Оси координат */
         .axis-top {
             position: absolute;
-            top: 0;
-            left: var(--sidebar-w);
-            height: var(--header-h);
-            display: flex;
-            border-bottom: 2px solid #ccc;
-            z-index: 10;
-        }
-        .axis-left {
-            position: absolute;
-            top: var(--header-h);
+            top: -30px;
             left: 0;
-            width: var(--sidebar-w);
+            width: 100%;
+            height: 30px;
             display: flex;
-            flex-direction: column;
-            border-right: 2px solid #ccc;
-            z-index: 10;
+            z-index: 2;
         }
-        .axis-corner {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: var(--sidebar-w);
-            height: var(--header-h);
-            background: #eee;
-            z-index: 20;
-            border-right: 2px solid #ccc;
-            border-bottom: 2px solid #ccc;
-        }
-
-        .axis-label {
+        .axis-label-col {
+            width: var(--cell-size);
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
             color: #555;
+            background: var(--axis-bg);
+            border: 1px solid var(--axis-border);
             box-sizing: border-box;
         }
-        .axis-label.col { width: var(--cell-w); border-right: 1px solid #eee; }
-        .axis-label.row { height: var(--cell-h); border-bottom: 1px solid #eee; }
 
-        /* Область карты */
-        .map-area {
-            position: relative;
-            /* Размеры будут заданы через JS в зависимости от макс. координат */
-            background-image: 
-                linear-gradient(#f9f9f9 1px, transparent 1px),
-                linear-gradient(90deg, #f9f9f9 1px, transparent 1px);
-            background-size: var(--cell-w) var(--cell-h);
-            background-position: -1px -1px;
-        }
-
-        /* Блоки зон */
-        .zone-block {
+        .axis-left {
             position: absolute;
+            top: 0;
+            left: -50px;
+            height: 100%;
+            width: 50px;
+            display: flex;
+            flex-direction: column;
+            z-index: 2;
+        }
+        .axis-label-row {
+            height: var(--cell-size);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #555;
+            background: var(--axis-bg);
+            border: 1px solid var(--axis-border);
             box-sizing: border-box;
+        }
+
+        /* Элементы схемы */
+        .sector {
+            position: absolute;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
+            font-size: 11px;
             font-weight: bold;
-            font-size: 12px;
-            color: var(--color-text);
-            background: var(--color-storage);
+            color: #1a5276;
+            background: var(--storage-color);
             border: 1px solid #5dade2;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.2s, z-index 0.2s;
             overflow: hidden;
-            z-index: 5;
-            padding: 2px;
-            word-break: break-word;
-        }
-
-        .zone-block:hover {
-            transform: scale(1.02);
+            box-sizing: border-box;
             z-index: 10;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            background: var(--color-storage-hover);
         }
 
-        .zone-block.has-items {
-            background: var(--color-has-items);
-            border-color: #27ae60;
+        .sector:hover {
+            transform: scale(1.05);
+            z-index: 20;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            outline: 2px solid #e74c3c;
+        }
+
+        .sector.has-items {
+            background: var(--storage-active);
             color: white;
+            border-color: #27ae60;
         }
 
-        .zone-block.passage {
-            background: var(--color-passage);
-            border: none;
-            color: #7fb3d5;
+        .wall {
+            position: absolute;
+            background: var(--wall-color);
+            z-index: 15;
+        }
+
+        .passage-label {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #7f8c8d;
             font-style: italic;
-            z-index: 1;
-        }
-
-        .zone-block.wall {
-            background: var(--color-wall);
-            border: none;
-            z-index: 6;
-        }
-        
-        .zone-block.special {
-            background: var(--color-special);
-            border-color: #f1c40f;
+            background: rgba(255,255,255,0.7);
+            z-index: 5;
+            pointer-events: none;
         }
 
         /* Модальное окно */
@@ -164,43 +190,44 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 1000;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
             justify-content: center;
             align-items: center;
         }
         .modal.active { display: flex; }
+
         .modal-content {
             background: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 8px;
-            width: 90%;
+            width: 80%;
             max-width: 800px;
             max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
+
         .modal-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #eee;
+            border-bottom: 1px solid #eee;
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8f9fa; position: sticky; top: 0; }
-        tr:hover { background: #f1f7ff; }
 
-        .stats-bar {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; position: sticky; top: 0; }
+        tr:hover { background: #f1f1f1; }
+        
+        .stats {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f6f3;
+            border: 1px solid #a2d9ce;
             border-radius: 5px;
-            display: flex;
-            gap: 20px;
-            font-weight: bold;
+            color: #16a085;
         }
     </style>
 </head>
@@ -208,28 +235,35 @@
 
 <div class="header">
     <div>
-        <h1>🗺️ Топология склада (Блочная схема)</h1>
+        <h1>🗺️ Топология склада (Зоны C)</h1>
         <div id="period-info" style="color: #7f8c8d; font-size: 0.9rem;">Загрузка...</div>
     </div>
-    <div>
-        <button onclick="location.reload()" style="padding: 8px 15px; cursor: pointer;">🔄 Обновить</button>
-        <button onclick="window.location.href='store2.html'" style="padding: 8px 15px; cursor: pointer;">📊 Поиск</button>
+    <div class="controls">
+        <button onclick="location.reload()">🔄 Обновить</button>
+        <button onclick="window.location.href='store2.html'">📊 Перейти к поиску</button>
     </div>
 </div>
 
-<div class="map-wrapper" id="map-wrapper">
-    <div class="axis-corner"></div>
+<div class="scheme-wrapper">
+    <!-- Ось X (буквы) -->
     <div class="axis-top" id="axis-top"></div>
+    <!-- Ось Y (цифры) -->
     <div class="axis-left" id="axis-left"></div>
-    <div class="map-area" id="map-area">
-        <!-- Блоки генерируются здесь -->
+    
+    <!-- Фон сетки -->
+    <div class="grid-background"></div>
+
+    <!-- Область рисования -->
+    <div class="drawing-area" id="drawing-area">
+        <!-- Сектора и стены будут добавлены через JS -->
     </div>
 </div>
 
+<!-- Модальное окно -->
 <div id="modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="modal-title">Информация</h2>
+            <h2 id="modal-title">Сектор</h2>
             <button onclick="closeModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
         </div>
         <div id="modal-body"></div>
@@ -238,13 +272,9 @@
 
 <script>
     const EXCEL_URL = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/store/data.xlsx';
-    
-    // Конфигурация сетки
-    const GRID_W = 60; // Максимальная ширина в юнитах (с запасом)
-    const GRID_H = 60; // Максимальная высота
-    
     let warehouseData = [];
-    let zoneBlocks = []; // Массив объектов для отрисовки {x, y, w, h, type, label, addressKey}
+    // Карта данных: ключ "Zone-Passage-Cell-Place" -> массив товаров
+    let inventoryMap = {}; 
 
     document.addEventListener('DOMContentLoaded', loadData);
 
@@ -257,236 +287,266 @@
             const workbook = XLSX.read(arrayBuffer, {type: 'array'});
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             
+            // Период из C4
             const cellC4 = worksheet['C4'];
             document.getElementById('period-info').textContent = cellC4 ? `Период: ${cellC4.v}` : '';
 
+            // Данные с 9 строки (индекс 8)
             const rawData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
             processData(rawData);
         } catch (error) {
-            alert('Ошибка: ' + error.message);
+            alert('Ошибка загрузки данных: ' + error.message);
+            console.error(error);
         }
     }
 
     function processData(rows) {
         warehouseData = [];
-        zoneBlocks = [];
-        const itemsMap = {}; // Ключ: адрес без яруса (C03-32A), Значение: массив товаров
+        inventoryMap = {};
 
-        // 1. Обработка данных и группировка
         rows.forEach(row => {
-            const addrRaw = row[7];
-            const name = row[3] || 'Без названия';
-            let qty = parseFloat(row[15]);
-            if (isNaN(qty)) qty = 0;
-            if (!addrRaw) return;
+            const addressRaw = row[7]; // Столбец H
+            const name = row[3] || 'Без названия'; // Столбец D
+            let quantity = parseFloat(row[15]); // Столбец P
+            if (isNaN(quantity)) quantity = 0;
 
-            const addr = String(addrRaw).trim().toUpperCase();
-            const match = addr.match(/^([A-E])(\d+)-(\d+)([A-Z])-(\d+)$/);
+            if (!addressRaw) return;
+            const address = String(addressRaw).trim().toUpperCase();
+            
+            // Парсинг: C03-32A-1
+            const match = address.match(/^([A-E])(\d+)-(\d+)([A-Z])-(\d+)$/);
             
             if (match) {
-                const [, zone, pass, cellNum, place, level] = match;
-                const shortAddr = `${zone}${pass}-${cellNum}${place}`; // Ключ для блока
+                const [, zone, passageStr, cellNumStr, place, level] = match;
+                const passage = parseInt(passageStr);
+                const cellNum = parseInt(cellNumStr);
                 
-                warehouseData.push({ fullAddr: addr, shortAddr, name, qty });
+                const item = { address, zone, passage, cellNum, place, level, name, quantity };
+                warehouseData.push(item);
 
-                if (!itemsMap[shortAddr]) itemsMap[shortAddr] = [];
-                itemsMap[shortAddr].push({ fullAddr: addr, name, qty });
+                // Ключ для группировки на карте (без уровня)
+                const mapKey = `${zone}-${passage}-${cellNum}-${place}`;
+                if (!inventoryMap[mapKey]) {
+                    inventoryMap[mapKey] = [];
+                }
+                inventoryMap[mapKey].push(item);
             }
         });
 
-        // 2. Построение геометрии (Топология)
-        buildTopology(itemsMap);
-
-        // 3. Отрисовка
-        renderMap();
+        initAxes();
+        drawLayout();
     }
 
-    function buildTopology(itemsMap) {
-        // Helper для создания блока
-        const addBlock = (x, y, w, h, type, label, addrKey = null) => {
-            const hasItems = addrKey && itemsMap[addrKey] && itemsMap[addrKey].length > 0;
-            zoneBlocks.push({ x, y, w, h, type, label, addrKey, hasItems });
-        };
-
-        // --- ЗОНА C (Пример детальной разметки по вашему ТЗ) ---
-        // Проход C03: Start Col 1, Rows 1-19
-        // Структура прохода (ширина 10 юнитов):
-        // Left: 4 cols (1-4), Passage: 2 cols (5-6), Right: 4 cols (7-10)
-        // Wall after col 10 (visualized as gap or thin block)
-        
-        const c03_x = 1;
-        const c02_x = 14; // 1 + 10 (block) + 2 (gap/wall) + 1 (offset)
-        const c01_x = 27; 
-        
-        // Функция для рисования одного прохода зоны C
-        const drawCPassage = (startX, passNum, prefix) => {
-            // Левая сторона (Четные: 32..02)
-            // 16 ячеек. Каждая высота 1 юнит? Нет, по ТЗ 1 строка = 1 ячейка по высоте.
-            // Но у нас масштаб. Пусть 1 номер ячейки = 1 юнит высоты.
-            // Row 1: Cell 32, Row 2: Cell 30...
-            for (let i = 0; i < 16; i++) {
-                const cellNum = 32 - (i * 2);
-                const yPos = 1 + i;
-                // Адрес типа C03-32A. Place A,B,C,D занимают 4 колонки
-                // Для упрощения рисуем один блок на 4 колонки, внутри пишем диапазон или первый адрес
-                // Если нужно разделение по местам (A,B,C,D), то делим ширину 4 на 4 части.
-                // В ТЗ: "сектор... занимает 4 столбца". Значит один блок = 4 ширины.
-                addBlock(startX, yPos, 4, 1, 'storage', `${prefix}-${cellNum}`, `${prefix}-${cellNum}A`);
-            }
-
-            // Правая сторона (Нечетные: 31..01)
-            // Row 1: Cell 31 ...
-            for (let i = 0; i < 16; i++) {
-                const cellNum = 31 - (i * 2);
-                const yPos = 1 + i;
-                // Сдвиг по X: startX + 4 (left) + 2 (passage) = startX + 6
-                addBlock(startX + 6, yPos, 4, 1, 'storage', `${prefix}-${cellNum}`, `${prefix}-${cellNum}A`);
-            }
-
-            // Центральный проход (Cols 5-6 относительно старта)
-            addBlock(startX + 4, 1, 2, 1, 'special', `${prefix}-99`, `${prefix}-99A`); // Верхняя спец
-            addBlock(startX + 4, 2, 2, 15, 'passage', 'Проезд'); // Основной проезд
-            addBlock(startX + 4, 17, 2, 2, 'passage', 'Центр. выезд'); // Ряды 17-18
-            addBlock(startX + 4, 19, 2, 1, 'special', `${prefix}-00`, `${prefix}-00A`); // Нижняя спец
-        };
-
-        // Рисуем проходы C
-        drawCPassage(c03_x, 3, 'C03');
-        drawCPassage(c02_x, 2, 'C02');
-        drawCPassage(c01_x, 1, 'C01');
-
-        // Стены между проходами (визуальные разделители)
-        // Между C03 (end 10) и C02 (start 14) -> gap 11,12,13. Рисуем стену в 11?
-        // По ТЗ: "между 10 и 11 ячейкой толстая линия". 
-        // Сделаем стену шириной 0.5 или просто отступ. В блочной модели лучше отступ.
-        // Добавим блоки-стены для наглядности
-        addBlock(c03_x + 10, 1, 0.5, 16, 'wall', ''); 
-        addBlock(c02_x + 10, 1, 0.5, 16, 'wall', '');
-
-        // --- ДРУГИЕ ЗОНЫ (Заглушки для примера, можно расширить) ---
-        // Зона D (горизонтальная сверху)
-        addBlock(40, 1, 15, 4, 'storage', 'Зона D01-D05', 'D01-01A');
-        
-        // Зона E
-        addBlock(40, 20, 15, 4, 'storage', 'Зона E01-E02', 'E01-01A');
-
-        // Зона A&B (большой блок снизу)
-        addBlock(1, 40, 30, 10, 'storage', 'Зона A & B', 'A01-01A');
-    }
-
-    function renderMap() {
-        const mapArea = document.getElementById('map-area');
+    // Инициализация осей координат
+    function initAxes() {
         const axisTop = document.getElementById('axis-top');
         const axisLeft = document.getElementById('axis-left');
         
-        mapArea.innerHTML = '';
-        axisTop.innerHTML = '';
-        axisLeft.innerHTML = '';
-
-        // Настройка размеров области
-        // Найдем макс координаты
-        let maxX = 50, maxY = 50;
-        zoneBlocks.forEach(b => {
-            if (b.x + b.w > maxX) maxX = Math.ceil(b.x + b.w);
-            if (b.y + b.h > maxY) maxY = Math.ceil(b.y + b.h);
-        });
-
-        const totalW = maxX * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-w'));
-        const totalH = maxY * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-h'));
-        
-        mapArea.style.width = `${totalW}px`;
-        mapArea.style.height = `${totalH}px`;
-
-        // Генерация осей
-        // Буквы (A, B, C...)
-        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-        for (let i = 1; i <= maxX; i++) {
-            const label = document.createElement('div');
-            label.className = 'axis-label col';
-            label.style.width = `var(--cell-w)`;
-            // Логика букв: 1=A, 2=B... 27=AA
-            let letterIdx = i - 1;
-            let txt = '';
-            if (letterIdx < 26) txt = letters[letterIdx];
-            else txt = 'A' + letters[letterIdx % 26]; // Упрощенно
-            
-            label.textContent = txt;
-            axisTop.appendChild(label);
+        // Буквы A-Z, AA-AZ... (до 50)
+        for (let i = 0; i < 50; i++) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'axis-label-col';
+            colDiv.textContent = getColLabel(i + 1);
+            axisTop.appendChild(colDiv);
         }
 
-        // Цифры (1, 2, 3...)
-        for (let i = 1; i <= maxY; i++) {
-            const label = document.createElement('div');
-            label.className = 'axis-label row';
-            label.style.height = `var(--cell-h)`;
-            label.textContent = i;
-            axisLeft.appendChild(label);
+        // Цифры 1-50
+        for (let i = 1; i <= 50; i++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'axis-label-row';
+            rowDiv.textContent = i;
+            axisLeft.appendChild(rowDiv);
         }
-
-        // Отрисовка блоков
-        zoneBlocks.forEach(block => {
-            const el = document.createElement('div');
-            el.className = `zone-block ${block.type} ${block.hasItems ? 'has-items' : ''}`;
-            
-            // Позиционирование
-            el.style.left = `${(block.x - 1) * 100 / GRID_W * (totalW/maxX)}px`; // Коррекция под % или px
-            // Проще через calc в CSS, но тут зададим явно в px基于 unit size
-            const unitW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-w'));
-            const unitH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell-h'));
-            
-            el.style.left = `${(block.x - 1) * unitW}px`;
-            el.style.top = `${(block.y - 1) * unitH}px`;
-            el.style.width = `${block.w * unitW}px`;
-            el.style.height = `${block.h * unitH}px`;
-
-            el.textContent = block.label;
-            
-            if (block.addrKey) {
-                el.onclick = () => showDetails(block.addrKey, block.label);
-            }
-
-            mapArea.appendChild(el);
-        });
     }
 
-    function showDetails(addrKey, label) {
-        const items = warehouseData.filter(d => d.shortAddr === addrKey);
-        if (items.length === 0) return;
+    function getColLabel(n) {
+        let s = "";
+        while (n > 0) {
+            const m = (n - 1) % 26;
+            s = String.fromCharCode(65 + m) + s;
+            n = Math.floor((n - 1) / 26);
+        }
+        return s;
+    }
 
+    // Основная функция отрисовки
+    function drawLayout() {
+        const area = document.getElementById('drawing-area');
+        area.innerHTML = '';
+
+        const CELL = 24; // px
+        
+        // Конфигурация проходов зоны C
+        // C03: Начало X=0 (столбец A=1 -> индекс 0)
+        // Ширина прохода: 10 клеток (4 левые + 2 центр + 4 правые)
+        // Стена: 1 клетка (визуально линия)
+        // C02: Начало после C03 + стена
+        // C01: Начало после C02 + стена
+
+        let currentX = 0; // в клетках
+
+        // Рисуем C03
+        drawCPassage(area, 3, currentX, CELL);
+        currentX += 10; // Ширина прохода
+        
+        // Стена между C03 и C02
+        drawWall(area, currentX, 0, 1, 17, CELL); 
+        currentX += 1; // Толщина стены
+
+        // Рисуем C02
+        drawCPassage(area, 2, currentX, CELL);
+        currentX += 10;
+
+        // Стена между C02 и C01
+        drawWall(area, currentX, 0, 1, 17, CELL);
+        currentX += 1;
+
+        // Рисуем C01
+        drawCPassage(area, 1, currentX, CELL);
+        
+        // Подпись центрального проезда (ряды 17-18)
+        const passageLabel = document.createElement('div');
+        passageLabel.className = 'passage-label';
+        passageLabel.style.left = '0px';
+        passageLabel.style.top = (16 * CELL) + 'px';
+        passageLabel.style.width = (currentX * CELL) + 'px';
+        passageLabel.style.height = (2 * CELL) + 'px';
+        passageLabel.textContent = '=== ЦЕНТРАЛЬНЫЙ ПРОЕЗД (Ряды 17-18) ===';
+        area.appendChild(passageLabel);
+    }
+
+    // Функция отрисовки одного прохода зоны C
+    function drawCPassage(container, passageNum, offsetX, cellSize) {
+        const prefix = `C0${passageNum}`;
+        
+        // 1. Левая сторона (Четные: 32, 30... 02)
+        // Занимает 4 колонки (0-3 внутри прохода)
+        // Ряды 1-16
+        for (let r = 1; r <= 16; r++) {
+            const cellNum = 32 - (r - 1) * 2; // 32, 30, ...
+            ['A', 'B', 'C', 'D'].forEach((place, idx) => {
+                const key = `${prefix}-${cellNum}-${place}`;
+                const items = inventoryMap[key] || [];
+                createSector(container, offsetX + idx, r - 1, 1, 1, `${prefix}-${cellNum}${place}`, items.length > 0, key);
+            });
+        }
+
+        // 2. Центральная часть
+        // Колонки 4-5 (индексы) внутри прохода
+        // Ряд 1: Ячейка 99 (ширина 2 клетки)
+        const key99 = `${prefix}-99-A`; // Предполагаем место А для 99, или просто 99
+        // В данных обычно 99A, 99B? Если нет, берем первый попавшийся или просто 99
+        // Проверим наличие данных для 99
+        const items99 = inventoryMap[`${prefix}-99-A`] || inventoryMap[`${prefix}-99-B`] || [];
+        // Объединим если есть разные места для 99 (редко)
+        // Для простоты рисуем один блок 99
+        createSector(container, offsetX + 4, 0, 2, 1, `${prefix}-99`, items99.length > 0, `${prefix}-99`);
+
+        // Ряды 2-16: Проход (пусто) - можно не рисовать или подписать
+        // Рисуем легкую подпись "Проход"
+        const passageLabel = document.createElement('div');
+        passageLabel.className = 'passage-label';
+        passageLabel.style.left = ((offsetX + 4) * cellSize) + 'px';
+        passageLabel.style.top = (1 * cellSize) + 'px';
+        passageLabel.style.width = (2 * cellSize) + 'px';
+        passageLabel.style.height = (15 * cellSize) + 'px';
+        passageLabel.style.writingMode = 'vertical-rl';
+        passageLabel.style.transform = 'rotate(180deg)';
+        passageLabel.textContent = `Прох. ${prefix}`;
+        container.appendChild(passageLabel);
+
+        // Ряд 19: Ячейка 00 (ширина 2 клетки)
+        const items00 = inventoryMap[`${prefix}-00-A`] || [];
+        createSector(container, offsetX + 4, 18, 2, 1, `${prefix}-00`, items00.length > 0, `${prefix}-00`);
+
+        // 3. Правая сторона (Нечетные: 31, 29... 01)
+        // Занимает 4 колонки (индексы 6-9 внутри прохода)
+        // Ряд 1: 31, Ряд 2: 29...
+        for (let r = 1; r <= 16; r++) {
+            const cellNum = 31 - (r - 1) * 2; // 31, 29, ...
+            ['A', 'B', 'C', 'D'].forEach((place, idx) => {
+                const key = `${prefix}-${cellNum}-${place}`;
+                const items = inventoryMap[key] || [];
+                // Смещение: 6 (левые 4 + центр 2) + idx
+                createSector(container, offsetX + 6 + idx, r - 1, 1, 1, `${prefix}-${cellNum}${place}`, items.length > 0, key);
+            });
+        }
+    }
+
+    function createSector(container, col, row, wCells, hCells, label, hasItems, dataKey) {
+        const CELL = 24;
+        const div = document.createElement('div');
+        div.className = `sector ${hasItems ? 'has-items' : ''}`;
+        
+        // Позиционирование
+        div.style.left = (col * CELL) + 'px';
+        div.style.top = (row * CELL) + 'px';
+        div.style.width = (wCells * CELL) + 'px';
+        div.style.height = (hCells * CELL) + 'px';
+        
+        div.textContent = label;
+        
+        if (hasItems) {
+            const count = inventoryMap[dataKey]?.length || 0;
+            if (count > 1) div.textContent += ` (${count})`;
+        }
+
+        div.onclick = () => showModal(label, dataKey);
+        container.appendChild(div);
+    }
+
+    function drawWall(container, col, row, wCells, hCells, cellSize) {
+        const div = document.createElement('div');
+        div.className = 'wall';
+        div.style.left = (col * cellSize) + 'px';
+        div.style.top = (row * cellSize) + 'px';
+        div.style.width = (wCells * cellSize) + 'px';
+        div.style.height = (hCells * cellSize) + 'px';
+        container.appendChild(div);
+    }
+
+    function showModal(label, dataKey) {
         const modal = document.getElementById('modal');
         const title = document.getElementById('modal-title');
         const body = document.getElementById('modal-body');
 
-        title.textContent = `Сектор: ${label} (${addrKey})`;
+        title.textContent = `Сектор: ${label}`;
         
-        let totalQty = 0;
-        let html = `<table>
-            <thead><tr><th>Полный адрес</th><th>Номенклатура</th><th>Количество</th></tr></thead>
-            <tbody>`;
+        const items = inventoryMap[dataKey] || [];
         
-        items.forEach(item => {
-            totalQty += item.qty;
-            html += `<tr>
-                <td>${item.fullAddr}</td>
-                <td>${item.name}</td>
-                <td><strong>${item.qty.toLocaleString()}</strong></td>
-            </tr>`;
-        });
-
-        html += `</tbody></table>
-            <div class="stats-bar">
-                <span>Позиций: ${items.length}</span>
-                <span>Всего шт: ${totalQty.toLocaleString()}</span>
-            </div>`;
-
-        body.innerHTML = html;
+        if (items.length === 0) {
+            body.innerHTML = '<p>Нет данных о товарах в этом секторе.</p>';
+        } else {
+            let totalQty = 0;
+            let html = `<table>
+                <thead><tr><th>Полный адрес</th><th>Номенклатура</th><th>Количество</th></tr></thead>
+                <tbody>`;
+            
+            items.forEach(item => {
+                totalQty += item.quantity;
+                html += `<tr>
+                    <td>${item.address}</td>
+                    <td>${item.name}</td>
+                    <td><strong>${item.quantity.toLocaleString()}</strong></td>
+                </tr>`;
+            });
+            
+            html += `</tbody></table>
+                <div class="stats">
+                    <strong>Всего позиций:</strong> ${items.length}<br>
+                    <strong>Общее количество:</strong> ${totalQty.toLocaleString()}
+                </div>`;
+            body.innerHTML = html;
+        }
+        
         modal.classList.add('active');
     }
 
     function closeModal() {
         document.getElementById('modal').classList.remove('active');
     }
-    document.getElementById('modal').addEventListener('click', e => {
+    
+    document.getElementById('modal').addEventListener('click', (e) => {
         if (e.target.id === 'modal') closeModal();
     });
 </script>
