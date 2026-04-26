@@ -3,17 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Топология склада - Схема 50x50</title>
+    <title>Топология склада - Исправленная сетка</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
-            --cell-size: 24px; /* Размер ячейки сетки */
+            --cell-size: 24px;
             --primary-color: #2c3e50;
             --zone-storage: #85c1e9;
             --zone-passage: #aed6f1;
-            --zone-wall: #000000;
-            --zone-charging: #f5b7b1;
-            --zone-picking: #f8c471;
+            --zone-wall-color: #000000;
             --bg-color: #ecf0f1;
         }
 
@@ -50,7 +48,6 @@
         }
         .controls button:hover { opacity: 0.9; }
 
-        /* Контейнер схемы */
         .scheme-container {
             background: white;
             padding: 20px;
@@ -76,19 +73,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 9px; /* Чуть меньше шрифт для вместимости */
             text-align: center;
             cursor: pointer;
             position: relative;
             overflow: hidden;
             user-select: none;
+            box-sizing: border-box;
         }
 
         .cell:hover {
             z-index: 10;
             outline: 2px solid red;
-            transform: scale(1.2);
+            transform: scale(1.1);
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            font-weight: bold;
         }
 
         /* Типы ячеек */
@@ -102,16 +101,17 @@
         .cell.passage {
             background: var(--zone-passage);
             color: #5dade2;
+            border: 1px solid #aed6f1;
         }
 
-        .cell.wall {
-            background: var(--zone-wall);
-            border: none;
-            z-index: 5;
+        /* Стена реализуется через толстую границу справа у ячейки */
+        .cell.wall-right {
+            border-right: 4px solid var(--zone-wall-color) !important;
+            z-index: 2;
         }
 
         .cell.has-items {
-            background: #2ecc71 !important; /* Зеленый если есть товар */
+            background: #2ecc71 !important;
             color: white;
             border: 1px solid #27ae60;
         }
@@ -167,7 +167,7 @@
 
 <div class="header">
     <div>
-        <h1>🗺️ Топология склада (Сетка 50x50)</h1>
+        <h1>🗺️ Топология склада (Стандарт 4 столбца)</h1>
         <div id="period-info" style="color: #7f8c8d; font-size: 0.9rem;">Загрузка...</div>
     </div>
     <div class="controls">
@@ -196,7 +196,7 @@
 <script>
     const EXCEL_URL = 'https://raw.githubusercontent.com/aip-77/aip-77.github.io/main/store/data.xlsx';
     let warehouseData = [];
-    let gridMap = {}; // Хранит данные для каждой ячейки сетки: "row-col" -> { address, items: [] }
+    let gridMap = {}; 
 
     document.addEventListener('DOMContentLoaded', loadData);
 
@@ -209,11 +209,9 @@
             const workbook = XLSX.read(arrayBuffer, {type: 'array'});
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             
-            // Период из C4
             const cellC4 = worksheet['C4'];
             document.getElementById('period-info').textContent = cellC4 ? `Период: ${cellC4.v}` : '';
 
-            // Данные с 9 строки
             const rawData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
             processData(rawData);
         } catch (error) {
@@ -226,33 +224,28 @@
         gridMap = {};
 
         rows.forEach(row => {
-            const addressRaw = row[7]; // Столбец H
-            const name = row[3] || 'Без названия'; // Столбец D
-            let quantity = parseFloat(row[15]); // Столбец P
+            const addressRaw = row[7]; 
+            const name = row[3] || 'Без названия'; 
+            let quantity = parseFloat(row[15]); 
             if (isNaN(quantity)) quantity = 0;
 
             if (!addressRaw) return;
             const address = String(addressRaw).trim().toUpperCase();
             
-            // Парсинг адреса: C03-32A-1 -> Zone: C, Passage: 03, Cell: 32, Place: A
             const match = address.match(/^([A-E])(\d+)-(\d+)([A-Z])-(\d+)$/);
             
             if (match) {
                 const [, zone, passage, cellNum, place, level] = match;
                 
-                // Сохраняем плоский список для статистики
                 warehouseData.push({ address, zone, passage, cellNum, place, level, name, quantity });
 
-                // Ключ для поиска в гриде (без уровня, так как на карте уровень не показываем, но группируем)
-                // Нам нужно найти координаты этой ячейки в сетке 50x50
                 const coords = getCoordinates(zone, parseInt(passage), parseInt(cellNum), place);
                 
                 if (coords) {
                     const key = `${coords.row}-${coords.col}`;
                     if (!gridMap[key]) {
                         gridMap[key] = {
-                            address: `${zone}${passage}-${cellNum}${place}`, // Адрес без яруса для отображения
-                            fullAddressPrefix: `${zone}${passage}-${cellNum}${place}`,
+                            address: `${zone}${passage}-${cellNum}${place}`,
                             items: []
                         };
                     }
@@ -264,107 +257,75 @@
         renderGrid();
     }
 
-    // Функция расчета координат на основе вашего ТЗ
+    // ИСПРАВЛЕННАЯ ФУНКЦИЯ КООРДИНАТ
     function getCoordinates(zone, passage, cellNum, place) {
-        // Логика только для зоны C пока, как в примере
         if (zone !== 'C') return null; 
 
-        // Базовые смещения для проходов (примерные, можно корректировать)
-        // Проход C03 начинается с 1 колонки
-        // Проход C02 начинается после C03 + стена
-        // Проход C01 начинается после C02 + стена
+        // Базовые смещения колонок для проходов (ширина блока 10 ячеек + 1 пустая для визуального разделения или просто сдвиг)
+        // Проход C03: старт с колонки 1
+        // Проход C02: старт с колонки 13 (10 ячеек + 1 зазор + 1 запас) -> пусть будет 12
+        // Проход C01: старт с колонки 25
         
-        let startCol = 0;
-        if (passage === 3) startCol = 1;
-        else if (passage === 2) startCol = 22; // 10 (C03) + 1 (стена) + 10 (проход) + 1 (стена) ≈ 22? Уточним по ТЗ.
-        else if (passage === 1) startCol = 43;
+        // Чтобы было красиво и с запасом:
+        // C03: cols 1-10
+        // C02: cols 13-22
+        // C01: cols 25-34
+        let colStart = 0;
+        if (passage === 3) colStart = 1;
+        else if (passage === 2) colStart = 13;
+        else if (passage === 1) colStart = 25;
+        else return null;
 
-        // Внутри прохода логика:
-        // 1-4 / 1 -> Cell 32 (Нечетные ряда слева? Нет, 32 четная. В ТЗ: 1-4/1 - C03-32A. Значит сверху вниз четные уменьшаются?)
-        // Давайте строго по ТЗ для C03:
+        // ЛОГИКА ВНУТРИ ПРОХОДА (10 колонок шириной)
+        // Колонки 1-4 (относительно старта): Четные ячейки (32, 30... 02)
+        // Колонки 5-6 (относительно старта): Спец ячейки (99, 00) и проход
+        // Колонки 7-10 (относительно старта): Нечетные ячейки (31, 29... 01)
         
-        // Левая сторона (Cols 1-4)
-        // Row 1: 32, Row 2: 30 ... Row 16: 02. Шаг 2. Формула: 32 - (row-1)*2
-        // Правая сторона (Cols 7-10)
-        // Row 2: 29, Row 3: 27 ... Row 16: 01? (В ТЗ обрыв на 9 строке, но логика ясна). Формула: 29 - (row-2)*2
-        
-        // Центральная часть (Cols 5-6)
-        // Row 1: 99 (Спец ячейка)
-        // Row 2-16: Проход
-        
-        // Row 17-18: Центральный проезд (сквозной)
-        // Row 19: 00 (Спец ячейка)
+        const pIndex = place.charCodeAt(0) - 'A'.charCodeAt(0); // 0 for A, 1 for B...
 
-        // Реализация маппинга для C03
-        if (passage === 3) {
-            // Левый блок (1-4)
-            if (cellNum % 2 === 0 && cellNum >= 2 && cellNum <= 32) {
-                // 32 -> row 1, 30 -> row 2 ... 02 -> row 16
-                const row = 1 + (32 - cellNum) / 2;
-                if (row >= 1 && row <= 16) {
-                    // Колонки 1,2,3,4. Place A=1, B=2...
-                    const colOffset = place.charCodeAt(0) - 'A'.charCodeAt(0);
-                    if (colOffset >= 0 && colOffset < 4) {
-                        return { row: row, col: startCol + colOffset };
-                    }
-                }
-            }
-            // Правый блок (7-10)
-            if (cellNum % 2 !== 0 && cellNum >= 1 && cellNum <= 31) {
-                // 31 -> row 1 (в ТЗ 31A на row 1? Нет, в ТЗ: 7-10/1 - C03-31A. Ок.)
-                // 29 -> row 2
-                const row = 1 + (31 - cellNum) / 2;
-                if (row >= 1 && row <= 16) {
-                    const colOffset = 6 + (place.charCodeAt(0) - 'A'.charCodeAt(0)); // Сдвиг на 6 (после 1-4 и 5-6)
-                    if (colOffset >= 7 && colOffset <= 10) {
-                        return { row: row, col: startCol + colOffset - 1 }; // Корректировка индекса
-                    }
-                }
-            }
-            // Центр (5-6)
-            if (cellNum === 99) return { row: 1, col: startCol + 4 }; // Col 5
-            if (cellNum === 0 || cellNum === 100) return { row: 19, col: startCol + 4 }; // Row 19 спец
-            
-            // Проход внутри (5-6, rows 2-16) - это просто пустые ячейки или служебные, но координаты нужны
-            // Если адрес не найден конкретно, но мы в зоне прохода
-        }
-
-        // Для примера заглушка для других зон, чтобы сетка не была пустой
-        // В реальном проекте нужно расписать формулы для C02, C01 аналогично со сдвигом startCol
-        if (passage === 2) {
-             // Аналогично C03, но startCol = 22 (примерно)
-             // Левый блок
-            if (cellNum % 2 === 0 && cellNum >= 2 && cellNum <= 32) {
-                const row = 1 + (32 - cellNum) / 2;
-                if (row >= 1 && row <= 16) {
-                    const colOffset = place.charCodeAt(0) - 'A'.charCodeAt(0);
-                    return { row: row, col: 22 + colOffset };
-                }
-            }
-            // Правый блок
-            if (cellNum % 2 !== 0 && cellNum >= 1 && cellNum <= 31) {
-                const row = 1 + (31 - cellNum) / 2;
-                if (row >= 1 && row <= 16) {
-                    const colOffset = 6 + (place.charCodeAt(0) - 'A'.charCodeAt(0));
-                    return { row: row, col: 22 + colOffset - 1 };
+        // 1. ЛЕВАЯ СТОРОНА (Четные: 32, 30, ..., 02)
+        // Занимает 4 столбца. Rows 1-16.
+        if (cellNum % 2 === 0 && cellNum >= 2 && cellNum <= 32) {
+            // 32 -> row 1, 30 -> row 2 ... 02 -> row 16
+            const row = 1 + (32 - cellNum) / 2;
+            if (row >= 1 && row <= 16) {
+                if (pIndex >= 0 && pIndex < 4) {
+                    return { 
+                        row: row, 
+                        col: colStart + pIndex,
+                        isWallRight: false // Стена будет добавлена отдельно для 4-го столбца
+                    };
                 }
             }
         }
 
-        if (passage === 1) {
-             // startCol = 43
-             if (cellNum % 2 === 0 && cellNum >= 2 && cellNum <= 32) {
-                const row = 1 + (32 - cellNum) / 2;
-                if (row >= 1 && row <= 16) {
-                    const colOffset = place.charCodeAt(0) - 'A'.charCodeAt(0);
-                    return { row: row, col: 43 + colOffset };
-                }
+        // 2. ЦЕНТР (Спец ячейки 99 и 00)
+        // Занимают 2 столбца (5 и 6 относительно старта)
+        if (cellNum === 99) {
+            // Row 1, Cols 5-6
+            if (pIndex === 0 || pIndex === 1) { // A, B
+                return { row: 1, col: colStart + 4 + pIndex };
             }
-            if (cellNum % 2 !== 0 && cellNum >= 1 && cellNum <= 31) {
-                const row = 1 + (31 - cellNum) / 2;
-                if (row >= 1 && row <= 16) {
-                    const colOffset = 6 + (place.charCodeAt(0) - 'A'.charCodeAt(0));
-                    return { row: row, col: 43 + colOffset - 1 };
+        }
+        if (cellNum === 0 || cellNum === 100) {
+            // Row 19, Cols 5-6
+            if (pIndex === 0 || pIndex === 1) {
+                return { row: 19, col: colStart + 4 + pIndex };
+            }
+        }
+
+        // 3. ПРАВАЯ СТОРОНА (Нечетные: 31, 29, ..., 01)
+        // Занимает 4 столбца (7,8,9,10 относительно старта). Rows 1-16.
+        // В ТЗ: 7-10 / 1 -> 31A. Значит Row 1 это 31.
+        if (cellNum % 2 !== 0 && cellNum >= 1 && cellNum <= 31) {
+            // 31 -> row 1, 29 -> row 2 ... 01 -> row 16
+            const row = 1 + (31 - cellNum) / 2;
+            if (row >= 1 && row <= 16) {
+                if (pIndex >= 0 && pIndex < 4) {
+                    return { 
+                        row: row, 
+                        col: colStart + 6 + pIndex // Сдвиг на 6 (4 левых + 2 центра)
+                    };
                 }
             }
         }
@@ -376,57 +337,87 @@
         const gridEl = document.getElementById('grid');
         gridEl.innerHTML = '';
 
-        // Создаем 50x50 ячеек
         for (let r = 1; r <= 50; r++) {
             for (let c = 1; c <= 50; c++) {
                 const cellDiv = document.createElement('div');
                 cellDiv.className = 'cell empty';
                 
-                // Проверка на стену между проходами (по ТЗ: между 10 и 11 ячейкой толстая линия)
-                // В рамках прохода (ширина 10 ячеек). 
-                // Проход C03: cols 1-10. Стена справа от 10? Или между проходами?
-                // ТЗ: "между 10 и 11 ячейкой толстая черная линия которая опускается на 16 строк вниз"
-                // Это значит внутри сетки прохода? Или между блоками проходов?
-                // Скорее всего, имеется в виду граница блока прохода.
-                // Если проход занимает 1-10, то стена на 11?
-                // Сделаем визуализацию стен между зонами проходов (например, col 11, col 21 и т.д.)
-                
-                let isWall = false;
-                // Стены между проходами C03, C02, C01
-                if ((c === 11 || c === 21 || c === 32 || c === 42) && r <= 16) {
-                     isWall = true;
-                }
-                // Центральный проезд (rows 17-18) - тоже можно выделить
-                if (r >= 17 && r <= 18) {
-                    // cellDiv.style.background = '#fff'; // Просто пусто
-                }
-
                 const key = `${r}-${c}`;
                 const data = gridMap[key];
 
-                if (isWall) {
-                    cellDiv.className = 'cell wall';
-                } else if (data) {
+                // Определение типа ячейки и стен
+                let isStorage = false;
+                let isPassage = false;
+                let addWallRight = false;
+
+                if (data) {
+                    isStorage = true;
                     cellDiv.className = 'cell storage';
-                    cellDiv.textContent = data.address; // Адрес без яруса
+                    cellDiv.textContent = data.address;
                     
                     if (data.items.length > 0) {
                         cellDiv.classList.add('has-items');
-                        // Можно добавить маркер количества
                         if (data.items.length > 1) {
                             cellDiv.textContent += ` (${data.items.length})`;
                         }
                     }
-                    
                     cellDiv.onclick = () => showModal(data);
                 } else {
-                    // Проверка на проход (пустые места внутри структуры)
-                    // Например, cols 5-6 в рядах 2-16 это проход внутри стеллажа
-                    // Для упрощения оставим пустыми, но можно покрасить в passage
-                    if (r <= 16 && ((c >= 5 && c <= 6) || (c >= 16 && c <= 17) || (c >= 27 && c <= 28))) {
-                         cellDiv.className = 'cell passage';
-                         cellDiv.textContent = '';
+                    // Рисуем структуру проходов даже если нет данных (пустые полки или проходы)
+                    // Проверка: находимся ли мы внутри диапазона проходов C?
+                    // C03: 1-10, C02: 13-22, C01: 25-34
+                    
+                    const ranges = [
+                        {start: 1, end: 10},
+                        {start: 13, end: 22},
+                        {start: 25, end: 34}
+                    ];
+
+                    let currentRange = null;
+                    for(let range of ranges) {
+                        if (c >= range.start && c <= range.end) {
+                            currentRange = range;
+                            break;
+                        }
                     }
+
+                    if (currentRange) {
+                        const relCol = c - currentRange.start + 1; // 1..10
+                        
+                        // Левая часть (1-4) - места под четные
+                        if (relCol >= 1 && relCol <= 4 && r >= 1 && r <= 16) {
+                            cellDiv.className = 'cell storage'; // Пустая полка
+                            cellDiv.style.opacity = '0.3';
+                            // Добавляем стену справа у 4-го столбца
+                            if (relCol === 4) addWallRight = true;
+                        }
+                        // Центр (5-6)
+                        else if (relCol >= 5 && relCol <= 6) {
+                            if (r === 1 || r === 19) {
+                                cellDiv.className = 'cell storage'; // Место под 99/00
+                                cellDiv.style.opacity = '0.3';
+                            } else if (r >= 2 && r <= 16) {
+                                cellDiv.className = 'cell passage'; // Внутренний проход
+                                cellDiv.textContent = '';
+                            }
+                        }
+                        // Правая часть (7-10) - места под нечетные
+                        else if (relCol >= 7 && relCol <= 10 && r >= 1 && r <= 16) {
+                            cellDiv.className = 'cell storage'; // Пустая полка
+                            cellDiv.style.opacity = '0.3';
+                        }
+                        
+                        // Центральный проезд между рядами (Rows 17-18) во всех колонках проходов
+                        if (r >= 17 && r <= 18) {
+                            cellDiv.className = 'cell passage';
+                            cellDiv.style.background = '#fff'; // Белый широкий проход
+                            cellDiv.style.border = '1px dashed #ccc';
+                        }
+                    }
+                }
+
+                if (addWallRight) {
+                    cellDiv.classList.add('wall-right');
                 }
 
                 gridEl.appendChild(cellDiv);
@@ -469,7 +460,6 @@
         document.getElementById('modal').classList.remove('active');
     }
     
-    // Закрытие по клику вне
     document.getElementById('modal').addEventListener('click', (e) => {
         if (e.target.id === 'modal') closeModal();
     });
