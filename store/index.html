@@ -9,14 +9,15 @@
         :root {
             --primary-color: #2c3e50;
             --accent-color: #3498db;
-            --zone-receiving: #95e1d3;
-            --zone-crossdock: #f9e79f;
             --zone-storage: #85c1e9;
-            --zone-consolidation: #f8b739;
-            --zone-packing: #d7bde2;
-            --zone-shipping: #f5b7b1;
-            --zone-mezzanine: #a9dfbf;
-            --bg-color: #f5f6fa;
+            --zone-passage: #aed6f1;
+            --zone-charging: #f5b7b1;
+            --zone-picking: #f8c471;
+            --zone-office: #f9e79f;
+            --zone-expertise: #d5a6bd;
+            --zone-repair: #e59866;
+            --zone-ab: #ffffff;
+            --zone-shipment: #d6eaf8;
             --text-color: #333;
         }
 
@@ -26,7 +27,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
+            background-color: #f5f6fa;
             margin: 0;
             padding: 0;
             color: var(--text-color);
@@ -107,69 +108,125 @@
             border-color: #3498db;
         }
 
-        .toolbar button.active {
-            background: #3498db;
-            color: white;
-        }
-
         .warehouse-container {
             padding: 20px;
             min-height: calc(100vh - 120px);
             overflow: auto;
         }
 
-        .warehouse-grid {
+        /* Схема склада */
+        .warehouse-scheme {
             display: grid;
-            grid-template-columns: repeat(24, 50px);
-            grid-template-rows: repeat(20, 40px);
+            grid-template-columns: repeat(20, 60px);
+            grid-template-rows: repeat(16, 50px);
             gap: 2px;
             background: #ecf0f1;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             min-width: 1400px;
+            font-size: 0.75rem;
         }
 
-        .warehouse-cell {
-            background: white;
-            border: 1px solid #bdc3c7;
+        .scheme-cell {
+            border: 1px solid #999;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
             overflow: hidden;
+            text-align: center;
+            padding: 2px;
         }
 
-        .warehouse-cell:hover {
-            transform: scale(1.1);
+        .scheme-cell:hover {
+            transform: scale(1.05);
             z-index: 10;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             border-color: #3498db;
         }
 
-        .warehouse-cell.zone-receiving { background: var(--zone-receiving); }
-        .warehouse-cell.zone-crossdock { background: var(--zone-crossdock); }
-        .warehouse-cell.zone-storage { background: var(--zone-storage); }
-        .warehouse-cell.zone-consolidation { background: var(--zone-consolidation); }
-        .warehouse-cell.zone-packing { background: var(--zone-packing); }
-        .warehouse-cell.zone-shipping { background: var(--zone-shipping); }
-        .warehouse-cell.zone-mezzanine { background: var(--zone-mezzanine); }
-        .warehouse-cell.empty { background: #ecf0f1; border-style: dashed; }
-        .warehouse-cell.occupied { font-weight: bold; border: 2px solid #e74c3c; }
-
-        .zone-label {
-            position: absolute;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
+        /* Зоны хранения C */
+        .zone-c-vertical {
+            background: var(--zone-storage);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
             font-weight: bold;
-            z-index: 100;
-            pointer-events: none;
+        }
+
+        /* Зоны хранения D, E */
+        .zone-horizontal {
+            background: var(--zone-storage);
+            font-weight: bold;
+        }
+
+        /* Проходы */
+        .passage {
+            background: var(--zone-passage);
+            font-weight: bold;
+            font-size: 0.7rem;
+        }
+
+        /* Зона зарядки */
+        .charging {
+            background: var(--zone-charging);
+            border: 2px solid #e74c3c;
+            font-weight: bold;
+            font-size: 0.65rem;
+        }
+
+        /* Зона комплектации */
+        .picking {
+            background: var(--zone-picking);
+            border: 2px solid #e67e22;
+            font-weight: bold;
+        }
+
+        /* Кабинет */
+        .office {
+            background: var(--zone-office);
+            border: 2px solid #f1c40f;
+            font-weight: bold;
+            font-size: 0.65rem;
+        }
+
+        /* Экспертиза */
+        .expertise {
+            background: var(--zone-expertise);
+            font-weight: bold;
+            font-size: 0.65rem;
+        }
+
+        /* Ремонтная зона */
+        .repair {
+            background: var(--zone-repair);
+            font-weight: bold;
+            font-size: 0.65rem;
+        }
+
+        /* Зона A & B */
+        .zone-ab {
+            background: var(--zone-ab);
+            border: 3px solid #e74c3c;
+            font-weight: bold;
+            color: #e74c3c;
+            font-size: 1.1rem;
+        }
+
+        /* Зона отгрузки */
+        .shipment {
+            background: var(--zone-shipment);
+            font-weight: bold;
+        }
+
+        /* Ячейки с данными */
+        .has-items {
+            border: 2px solid #27ae60;
+            background: #d5f5e3 !important;
+            font-weight: bold;
         }
 
         .legend {
@@ -310,12 +367,35 @@
             color: #7f8c8d;
         }
 
-        @media (max-width: 768px) {
-            .warehouse-grid {
-                grid-template-columns: repeat(12, 80px);
-                transform: scale(0.8);
-                transform-origin: top left;
-            }
+        .zone-info {
+            background: white;
+            padding: 15px 20px;
+            margin: 0 20px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .zone-info h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .zone-item {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .zone-item strong {
+            color: var(--primary-color);
         }
     </style>
 </head>
@@ -324,7 +404,7 @@
 <div class="top-bar">
     <h1>📦 Схема помещения: Топология</h1>
     <div class="nav-buttons">
-        <button onclick="window.location.href='store1.html'">📊 Вид по рядам</button>
+        <button onclick="window.location.href='store2.html'">📊 Вид по рядам</button>
         <button onclick="location.reload()">🔄 Обновить</button>
     </div>
 </div>
@@ -332,13 +412,11 @@
 <div class="toolbar">
     <div class="toolbar-group">
         <button class="active">Все зоны</button>
-        <button>Приемка</button>
-        <button>Хранение</button>
-        <button>Отгрузка</button>
-    </div>
-    <div class="toolbar-group">
-        <button>🔍 Поиск</button>
-        <button>📥 Экспорт</button>
+        <button onclick="filterZone('C')">Зона C</button>
+        <button onclick="filterZone('D')">Зона D</button>
+        <button onclick="filterZone('E')">Зона E</button>
+        <button onclick="filterZone('A')">Зона A</button>
+        <button onclick="filterZone('B')">Зона B</button>
     </div>
     <div class="toolbar-group">
         <span id="period-display" style="color: #7f8c8d; font-size: 0.9rem;">Загрузка...</span>
@@ -347,32 +425,52 @@
 
 <div class="legend">
     <div class="legend-item">
-        <div class="legend-color" style="background: var(--zone-receiving)"></div>
-        <span>Приемка</span>
-    </div>
-    <div class="legend-item">
-        <div class="legend-color" style="background: var(--zone-crossdock)"></div>
-        <span>Кросс-докинг</span>
-    </div>
-    <div class="legend-item">
         <div class="legend-color" style="background: var(--zone-storage)"></div>
-        <span>Хранение (стеллажи)</span>
+        <span>Зона хранения</span>
     </div>
     <div class="legend-item">
-        <div class="legend-color" style="background: var(--zone-mezzanine)"></div>
-        <span>Мезонин</span>
+        <div class="legend-color" style="background: var(--zone-passage)"></div>
+        <span>Проход</span>
     </div>
     <div class="legend-item">
-        <div class="legend-color" style="background: var(--zone-consolidation)"></div>
-        <span>Консолидация</span>
+        <div class="legend-color" style="background: var(--zone-charging); border: 2px solid #e74c3c"></div>
+        <span>Зарядная</span>
     </div>
     <div class="legend-item">
-        <div class="legend-color" style="background: var(--zone-packing)"></div>
-        <span>Упаковка</span>
+        <div class="legend-color" style="background: var(--zone-picking); border: 2px solid #e67e22"></div>
+        <span>Комплектация</span>
     </div>
     <div class="legend-item">
-        <div class="legend-color" style="background: var(--zone-shipping)"></div>
-        <span>Отгрузка</span>
+        <div class="legend-color" style="background: var(--zone-ab); border: 3px solid #e74c3c"></div>
+        <span>Зоны A & B</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #d5f5e3; border: 2px solid #27ae60"></div>
+        <span>Есть товары</span>
+    </div>
+</div>
+
+<div class="zone-info">
+    <h3>📋 Структура склада</h3>
+    <div class="zone-grid">
+        <div class="zone-item">
+            <strong>Зона C:</strong> 3 прохода (С01, С02, С03), 36 ячеек<br>
+            <small>Нечетные слева, четные справа</small>
+        </div>
+        <div class="zone-item">
+            <strong>Зона D:</strong> 5 проходов (D01-D05), 36 ячеек<br>
+            <small>Нечетные слева, четные справа</small>
+        </div>
+        <div class="zone-item">
+            <strong>Зона E:</strong> 2 прохода (E01, E02), 36 ячеек<br>
+            <small>Нечетные слева, четные справа</small>
+        </div>
+        <div class="zone-item">
+            <strong>Зона A:</strong> 14 проходов, 58 ячеек × 3 паллетоместа
+        </div>
+        <div class="zone-item">
+            <strong>Зона B:</strong> 12 проходов, 14 ячеек
+        </div>
     </div>
 </div>
 
@@ -396,8 +494,8 @@
 </div>
 
 <div class="warehouse-container">
-    <div class="warehouse-grid" id="warehouse-grid">
-        <div class="loading">Загрузка данных склада...</div>
+    <div class="warehouse-scheme" id="warehouse-scheme">
+        <div class="loading">Загрузка схемы склада...</div>
     </div>
 </div>
 
@@ -417,18 +515,6 @@
     let warehouseData = [];
     let warehouseStructure = {};
 
-    // Зоны склада с координатами
-    const ZONES = {
-        receiving: { name: 'Приемка', color: 'zone-receiving', rows: [18, 19], cols: [0, 5] },
-        crossdock: { name: 'Кросс-докинг', color: 'zone-crossdock', rows: [15, 17], cols: [3, 8] },
-        sorting: { name: 'Сортировка', color: 'zone-crossdock', rows: [15, 17], cols: [9, 13] },
-        storageA: { name: 'Зона A (стеллажи)', color: 'zone-storage', rows: [0, 14], cols: [0, 18] },
-        mezzanine: { name: 'Мезонин', color: 'zone-mezzanine', rows: [8, 14], cols: [19, 23] },
-        consolidation: { name: 'Консолидация', color: 'zone-consolidation', rows: [15, 17], cols: [14, 18] },
-        packing: { name: 'Упаковка', color: 'zone-packing', rows: [15, 19], cols: [19, 23] },
-        shipping: { name: 'Отгрузка', color: 'zone-shipping', rows: [18, 19], cols: [6, 13] }
-    };
-
     document.addEventListener('DOMContentLoaded', loadData);
 
     async function loadData() {
@@ -446,7 +532,7 @@
             const rawData = XLSX.utils.sheet_to_json(worksheet, {range: 8, header: 1});
             processData(rawData);
         } catch (error) {
-            document.getElementById('warehouse-grid').innerHTML = 
+            document.getElementById('warehouse-scheme').innerHTML = 
                 `<div class="loading" style="color: #e74c3c">Ошибка загрузки: ${error.message}</div>`;
         }
     }
@@ -488,89 +574,334 @@
             }
         });
 
-        renderWarehouse();
+        renderScheme();
         updateStats();
     }
 
-    function renderWarehouse() {
-        const grid = document.getElementById('warehouse-grid');
-        grid.innerHTML = '';
+    function renderScheme() {
+        const scheme = document.getElementById('warehouse-scheme');
+        scheme.innerHTML = '';
 
-        // Создаем сетку 24x20
-        for (let row = 0; row < 20; row++) {
-            for (let col = 0; col < 24; col++) {
-                const cell = document.createElement('div');
-                cell.className = 'warehouse-cell';
-                cell.dataset.row = row;
-                cell.dataset.col = col;
+        // Создаем схему на основе фото
+        // Row 0-5: Зоны C03, C02, C01 (вертикальные)
+        // Row 0-2: Зоны D02, D01 (горизонтальные)
+        // Row 3-5: Зоны D04, D03
+        // Row 6: Проходы C03, C02, C01 + Зона обработки МП
+        // Row 7: Зона Z (комплектация) + Зарядная + Кабинет
+        // Row 8-9: Зоны E02, E01
+        // Row 10-15: Зона A&B + Зона отгрузки
 
-                // Определяем зону
-                const zone = getZoneForRowCol(row, col);
-                if (zone) {
-                    cell.classList.add(zone.color);
+        const schemeLayout = [
+            // Row 0
+            [
+                { type: 'zone-c', text: 'C03-36', zone: 'C03' },
+                { type: 'zone-c-vertical', text: 'Зона хранения С03', rowspan: 6, colspan: 1 },
+                { type: 'zone-c', text: 'C03-35' },
+                { type: 'zone-c', text: 'C02-36' },
+                { type: 'zone-c-vertical', text: 'Зона хранения С02', rowspan: 6, colspan: 1 },
+                { type: 'zone-c', text: 'C02-35' },
+                { type: 'zone-c', text: 'C01-26' },
+                { type: 'zone-c-vertical', text: 'Зона хранения С01', rowspan: 6, colspan: 1 },
+                { type: 'zone-c', text: 'C01-27' },
+                { type: 'zone-d', text: 'D02-36' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D02-02' },
+                { type: 'zone-d', text: 'D01-01' },
+                { type: 'zone-d-header', text: 'Зона хранения D01', colspan: 5 },
+                { type: 'zone-d', text: 'D01-35' }
+            ],
+            // Row 1
+            [
+                { type: 'empty', text: '' },
+                { type: 'zone-d-header', text: 'Зона хранения D02', colspan: 10 },
+                { type: 'passage-v', text: 'Гл', rowspan: 10 },
+                { type: 'zone-d', text: 'D01-02' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D01-36' }
+            ],
+            // Row 2
+            [
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D02-35' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D02-01' },
+                { type: 'zone-d', text: 'D03-01' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D03-35' }
+            ],
+            // Row 3
+            [
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D04-36' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D04-02' },
+                { type: 'zone-d-header', text: 'Зона хранения D03', colspan: 5 },
+                { type: 'zone-d', text: 'D03-36' }
+            ],
+            // Row 4
+            [
+                { type: 'empty', text: '' },
+                { type: 'zone-d-header', text: 'Зона хранения D04', colspan: 10 },
+                { type: 'passage-v', text: 'пр', rowspan: 2 },
+                { type: 'zone-d', text: 'D03-02' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D03-36' }
+            ],
+            // Row 5
+            [
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D04-35' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D04-01' },
+                { type: 'zone-d', text: 'D05-01' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D05-09' }
+            ],
+            // Row 6 - Проходы
+            [
+                { type: 'zone-c', text: 'C03-02' },
+                { type: 'zone-c', text: 'C03-01' },
+                { type: 'zone-c', text: 'C02-02' },
+                { type: 'zone-c', text: 'C02-01' },
+                { type: 'zone-c', text: 'C01-02' },
+                { type: 'zone-c', text: 'C01-01' },
+                { type: 'charging', text: 'ЗАРЯДНАЯ' },
+                { type: 'passage', text: 'ПРОХОД С03', colspan: 3 },
+                { type: 'passage', text: 'ПРОХОД С02', colspan: 3 },
+                { type: 'passage', text: 'ПРОХОД С01', colspan: 3 },
+                { type: 'zone-processing', text: 'Зона хранения обработки МП', colspan: 6 },
+                { type: 'zone-d-header', text: 'Зона хранения D05*07*09', colspan: 5 }
+            ],
+            // Row 7 - Зона Z и кабинет
+            [
+                { type: 'picking', text: 'Зона хранения Z (комплектация)', colspan: 8 },
+                { type: 'charging', text: 'ЗАРЯДНАЯ' },
+                { type: 'charging', text: 'ЗАРЯДНАЯ' },
+                { type: 'office', text: 'КАБИНЕТ НАЧАЛЬНИКОВ', colspan: 2 },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-d', text: 'D09-01' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' }
+            ],
+            // Row 8
+            [
+                { type: 'expertise', text: 'ЭКСПЕРТИЗА А' },
+                { type: 'zone-e', text: 'E02-26' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-e', text: 'E02-02' },
+                { type: 'zone-e', text: 'E01-01' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-e', text: 'E01-25' },
+                { type: 'repair', text: 'РЕМ.ЗОНА' }
+            ],
+            // Row 9
+            [
+                { type: 'zone-e-header', text: 'Зона хранения E02', colspan: 10 },
+                { type: 'zone-e-header', text: 'Зона хранения E01', colspan: 6 }
+            ],
+            // Row 10
+            [
+                { type: 'zone-e', text: 'E02-29' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-e', text: 'E02-01' },
+                { type: 'zone-e', text: 'E01-02' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'empty', text: '' },
+                { type: 'zone-e', text: 'E01-30' }
+            ],
+            // Row 11-15 - Зона A&B и отгрузка
+            [
+                { type: 'zone-ab', text: 'Зона хранения A & B', rowspan: 5, colspan: 10 },
+                { type: 'empty', text: '', colspan: 10 }
+            ],
+            [{ type: 'empty', text: '', colspan: 10 }, { type: 'shipment', text: 'ЗОНА ОТГРУЗКИ (С.К.В.Т.)', rowspan: 4, colspan: 10 }],
+            [{ type: 'empty', text: '', colspan: 10 }],
+            [{ type: 'empty', text: '', colspan: 10 }],
+            [{ type: 'empty', text: '', colspan: 10 }]
+        ];
+
+        // Рендерим схему
+        let rowOffset = 0;
+        schemeLayout.forEach((row, rowIndex) => {
+            let colOffset = 0;
+            row.forEach(cell => {
+                if (cell.colspan && cell.colspan > 1) {
+                    colOffset += cell.colspan;
                 } else {
-                    cell.classList.add('empty');
+                    colOffset += 1;
+                }
+            });
+        });
+
+        // Упрощенная сетка
+        for (let row = 0; row < 16; row++) {
+            for (let col = 0; col < 20; col++) {
+                const cellEl = document.createElement('div');
+                cellEl.className = 'scheme-cell';
+                cellEl.dataset.row = row;
+                cellEl.dataset.col = col;
+
+                // Определяем тип ячейки на основе позиции
+                const cellInfo = getCellInfo(row, col);
+                
+                if (cellInfo) {
+                    cellEl.className += ` ${cellInfo.class}`;
+                    cellEl.textContent = cellInfo.text;
+                    
+                    if (cellInfo.zone) {
+                        cellEl.dataset.zone = cellInfo.zone;
+                        // Проверяем есть ли товары в этой зоне
+                        const hasItems = checkZoneHasItems(cellInfo.zone);
+                        if (hasItems) {
+                            cellEl.className += ' has-items';
+                        }
+                        cellEl.onclick = () => showZoneItems(cellInfo.zone);
+                    }
                 }
 
-                // Добавляем адрес если есть данные
-                const address = getAddressForRowCol(row, col);
-                if (address && warehouseStructure[address]) {
-                    cell.classList.add('occupied');
-                    cell.textContent = address;
-                    cell.onclick = () => showItems(address);
-                } else if (zone) {
-                    cell.textContent = `${row}-${col}`;
-                }
-
-                grid.appendChild(cell);
+                scheme.appendChild(cellEl);
             }
         }
-
-        // Добавляем подписи зон
-        addZoneLabels(grid);
     }
 
-    function getZoneForRowCol(row, col) {
-        for (const [key, zone] of Object.entries(ZONES)) {
-            if (row >= zone.rows[0] && row <= zone.rows[1] &&
-                col >= zone.cols[0] && col <= zone.cols[1]) {
-                return zone;
-            }
+    function getCellInfo(row, col) {
+        // Зоны C (вертикальные)
+        if (row < 6) {
+            if (col === 1) return { class: 'zone-c-vertical', text: 'Зона С03', zone: 'C03' };
+            if (col === 4) return { class: 'zone-c-vertical', text: 'Зона С02', zone: 'C02' };
+            if (col === 7) return { class: 'zone-c-vertical', text: 'Зона С01', zone: 'C01' };
         }
+
+        // Проходы C
+        if (row === 6) {
+            if (col >= 7 && col <= 9) return { class: 'passage', text: 'С03', zone: 'C03' };
+            if (col >= 10 && col <= 12) return { class: 'passage', text: 'С02', zone: 'C02' };
+            if (col >= 13 && col <= 15) return { class: 'passage', text: 'С01', zone: 'C01' };
+        }
+
+        // Зоны D (горизонтальные)
+        if (row === 0 && col >= 9 && col <= 13) return { class: 'zone-horizontal', text: 'D02', zone: 'D02' };
+        if (row === 1 && col >= 9 && col <= 13) return { class: 'zone-horizontal', text: 'Зона D02', zone: 'D02' };
+        if (row === 3 && col >= 9 && col <= 13) return { class: 'zone-horizontal', text: 'Зона D04', zone: 'D04' };
+        
+        if (row === 0 && col >= 14 && col <= 18) return { class: 'zone-horizontal', text: 'Зона D01', zone: 'D01' };
+        if (row === 3 && col >= 14 && col <= 18) return { class: 'zone-horizontal', text: 'Зона D03', zone: 'D03' };
+
+        // Зоны E
+        if (row === 9 && col >= 0 && col <= 9) return { class: 'zone-horizontal', text: 'Зона E02', zone: 'E02' };
+        if (row === 9 && col >= 10 && col <= 18) return { class: 'zone-horizontal', text: 'Зона E01', zone: 'E01' };
+
+        // Зона Z
+        if (row === 7 && col >= 0 && col <= 7) return { class: 'picking', text: 'Зона Z', zone: 'Z' };
+
+        // Зарядная
+        if (row === 6 && col === 6) return { class: 'charging', text: 'ЗАРЯДНАЯ', zone: 'CH' };
+        if (row === 7 && col === 8) return { class: 'charging', text: 'ЗАРЯДНАЯ', zone: 'CH' };
+
+        // Кабинет
+        if (row === 7 && col >= 10 && col <= 11) return { class: 'office', text: 'КАБИНЕТ', zone: 'OFF' };
+
+        // Зона A&B
+        if (row >= 11 && row <= 15 && col >= 0 && col <= 9) return { class: 'zone-ab', text: 'A & B', zone: 'AB' };
+
+        // Зона отгрузки
+        if (row >= 12 && row <= 15 && col >= 10 && col <= 19) return { class: 'shipment', text: 'ОТГРУЗКА', zone: 'SHIP' };
+
         return null;
     }
 
-    function getAddressForRowCol(row, col) {
-        // Генерируем адреса на основе позиции
-        const zones = ['A', 'B', 'C', 'D', 'E'];
-        const zone = zones[Math.floor(col / 5)] || 'A';
-        const passage = String(Math.floor(row / 3) + 1).padStart(2, '0');
-        const cell = String((col % 5) * 2 + 1).padStart(2, '0');
-        const place = String.fromCharCode(65 + (row % 3));
-        const level = (row % 4) + 1;
-        
-        return `${zone}${passage}-${cell}${place}-${level}`;
+    function checkZoneHasItems(zone) {
+        return warehouseData.some(item => {
+            if (zone === 'AB') return item.zone === 'A' || item.zone === 'B';
+            return item.zone === zone.charAt(0) && item.passage === parseInt(zone.substring(1));
+        });
     }
 
-    function addZoneLabels(grid) {
-        const labels = [
-            { text: 'Приемка', row: 18, col: 2 },
-            { text: 'Кросс-докинг', row: 16, col: 5 },
-            { text: 'Сортировка', row: 16, col: 11 },
-            { text: 'Консолидация', row: 16, col: 16 },
-            { text: 'Упаковка', row: 17, col: 21 },
-            { text: 'Отгрузка', row: 18, col: 9 },
-            { text: 'Мезонин', row: 11, col: 21 }
-        ];
-
-        labels.forEach(label => {
-            const labelEl = document.createElement('div');
-            labelEl.className = 'zone-label';
-            labelEl.textContent = label.text;
-            labelEl.style.left = `${label.col * 52 + 20}px`;
-            labelEl.style.top = `${label.row * 42 + 20}px`;
-            grid.appendChild(labelEl);
+    function filterZone(zone) {
+        const cells = document.querySelectorAll('.scheme-cell');
+        cells.forEach(cell => {
+            if (zone === 'all' || !cell.dataset.zone) {
+                cell.style.opacity = '1';
+            } else {
+                cell.style.opacity = cell.dataset.zone === zone ? '1' : '0.3';
+            }
         });
+    }
+
+    function showZoneItems(zone) {
+        const items = warehouseData.filter(item => {
+            if (zone === 'AB') return item.zone === 'A' || item.zone === 'B';
+            if (zone === 'CH' || zone === 'OFF' || zone === 'SHIP') return false;
+            return item.zone === zone.charAt(0) && item.passage === parseInt(zone.substring(1));
+        });
+
+        if (items.length === 0) {
+            alert(`В зоне ${zone} нет товаров`);
+            return;
+        }
+
+        const modal = document.getElementById('items-modal');
+        const title = document.getElementById('modal-title');
+        const body = document.getElementById('modal-body');
+
+        title.textContent = `Зона: ${zone}`;
+        
+        // Группируем по адресам
+        const byAddress = {};
+        items.forEach(item => {
+            if (!byAddress[item.address]) {
+                byAddress[item.address] = [];
+            }
+            byAddress[item.address].push(item);
+        });
+
+        let html = '<table class="items-table"><thead><tr><th>Адрес</th><th>Номенклатура</th><th>Количество</th></tr></thead><tbody>';
+        
+        Object.keys(byAddress).sort().forEach(address => {
+            byAddress[address].forEach((item, idx) => {
+                html += `<tr>
+                    <td>${item.address}</td>
+                    <td>${item.name}</td>
+                    <td><strong>${item.quantity.toLocaleString()}</strong></td>
+                </tr>`;
+            });
+        });
+        
+        const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
+        html += `</tbody></table>
+            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                <strong>Всего в зоне ${zone}:</strong> ${totalQty.toLocaleString()} шт. (${items.length} позиций)
+            </div>`;
+        
+        body.innerHTML = html;
+        modal.classList.add('active');
     }
 
     function updateStats() {
@@ -585,40 +916,10 @@
         document.getElementById('occupancy-rate').textContent = occupancyRate + '%';
     }
 
-    function showItems(address) {
-        const items = warehouseStructure[address];
-        if (!items || items.length === 0) return;
-
-        const modal = document.getElementById('items-modal');
-        const title = document.getElementById('modal-title');
-        const body = document.getElementById('modal-body');
-
-        title.textContent = `Ячейка: ${address}`;
-        
-        let html = '<table class="items-table"><thead><tr><th>Номенклатура</th><th>Количество</th></tr></thead><tbody>';
-        
-        items.forEach(item => {
-            html += `<tr>
-                <td>${item.name}</td>
-                <td><strong>${item.quantity.toLocaleString()}</strong> шт.</td>
-            </tr>`;
-        });
-        
-        const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
-        html += `</tbody></table>
-            <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                <strong>Всего:</strong> ${totalQty.toLocaleString()} шт.
-            </div>`;
-        
-        body.innerHTML = html;
-        modal.classList.add('active');
-    }
-
     function closeModal() {
         document.getElementById('items-modal').classList.remove('active');
     }
 
-    // Закрытие модалки по клику вне её
     document.getElementById('items-modal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
