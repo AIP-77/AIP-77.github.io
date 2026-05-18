@@ -1,4 +1,4 @@
---- HTML/JS/A_script.js (原始)
+//--- HTML/JS/A_script.js (原始)
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
 let records = [];
 let standards = [];
