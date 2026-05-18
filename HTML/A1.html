@@ -1,10 +1,11 @@
+--- HTML/A1.html (原始)
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Аналитика по видам работ 4</title>
-  <link rel="stylesheet" href="CSS/A_styles.css">	
+  <link rel="stylesheet" href="CSS/A_styles.css">
  </head>
 <body>
   <div id="loading-progress" class="loading-progress"></div>
@@ -45,12 +46,12 @@
           <div id="combined-content" class="hidden"></div>
         </div>
         <div id="charts-section" class="charts-section">
-      
- 
+
+
           <div class="charts-header" id="charts-toggle">
             <h3 class="charts-title">📈 Детальные графики и диаграммы</h3>
             <span class="toggle-icon">▶</span>
-           
+
           </div>
           <div id="charts-content" class="hidden"></div>
         </div>
@@ -98,6 +99,141 @@
 <script src="JS/analytics.js"></script> <!-- аналитика и отчеты -->
 <script src="JS/modals.js"></script> <!-- модальные окна -->
 <script src="JS/A_script.js"></script> <!-- основной файл - точка входа -->
-  
+
+</body>
+</html>
+
++++ HTML/A1.html (修改后)
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Аналитика по видам работ 4</title>
+  <link rel="stylesheet" href="CSS/A_styles.css">
+ </head>
+<body>
+  <div id="loading-progress" class="loading-progress"></div>
+  <div id="department-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('department-modal')">&times;</span>
+      <div id="department-modal-content"></div>
+    </div>
+  </div>
+  <div id="worktype-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('worktype-modal')">&times;</span>
+      <div id="worktype-modal-content"></div>
+    </div>
+  </div>
+  <div class="container">
+    <h2>Аналитика по видам работ</h2>
+    <div class="version">v2026/05/18 <span>🕒</span></div>
+    <div class="last-updated" id="last-updated">Обновлено: —</div>
+    <div id="controls" class="hidden">
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="calendar-nav-btn" id="prev-month">◀ Назад</button>
+          <div class="calendar-title" id="calendar-title">Октябрь 2025</div>
+          <button class="calendar-nav-btn" id="next-month">Вперёд ▶</button>
+        </div>
+        <div class="calendar-days" id="calendar-days"></div>
+      </div>
+      <div id="selected-date" class="selected-date hidden">
+        📅 Данные за: <span id="current-date"></span>
+      </div>
+      <div id="level-1" class="hidden">
+        <div id="combined-analytics" class="combined-analytics">
+          <div class="combined-header" id="combined-toggle">
+            <h3 class="combined-title">📊 Общая аналитика за день</h3>
+            <span class="toggle-icon">▶</span>
+          </div>
+          <div id="combined-content" class="hidden"></div>
+        </div>
+        <div id="charts-section" class="charts-section">
+
+
+          <div class="charts-header" id="charts-toggle">
+            <h3 class="charts-title">📈 Детальные графики и диаграммы</h3>
+            <span class="toggle-icon">▶</span>
+
+          </div>
+          <div id="charts-content" class="hidden"></div>
+        </div>
+        <div id="work-type-charts-section" class="work-type-charts-section">
+          <div class="work-type-charts-header" id="work-type-charts-toggle">
+            <h3 class="work-type-charts-title">📊 Графики по видам работ</h3>
+            <span class="toggle-icon">▶</span>
+          </div>
+          <div id="work-type-charts-content" class="hidden"></div>
+        </div>
+      </div>
+      <div id="level-2" class="hidden">
+        <div id="departments-analytics" class="grouping-section">
+          <div class="grouping-header" id="departments-toggle">
+            <h3 class="grouping-title">🏛️ Аналитика по отделам</h3>
+            <span class="toggle-icon">▶</span>
+          </div>
+          <div id="departments-content" class="hidden"></div>
+        </div>
+      </div>
+      <div id="level-3" class="hidden">
+        <div id="work-types-analytics" class="work-types-analytics">
+          <div class="work-types-header" id="work-types-toggle">
+            <h3 class="work-types-title">🔍 Аналитика по видам работ</h3>
+            <span class="toggle-icon">▶</span>
+          </div>
+          <div id="work-types-content" class="hidden"></div>
+        </div>
+        <!-- Блок сравнения видов работ за период -->
+        <div id="work-type-comparison-section" class="work-type-comparison-section" style="margin-top: 20px;">
+          <div class="comparison-header" id="comparison-toggle" style="cursor: pointer; background: #f5f5f5; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="comparison-title" style="margin: 0;">📊 Сравнение видов работ за период</h3>
+            <span class="toggle-icon">▶</span>
+          </div>
+          <div id="comparison-content" class="comparison-content hidden" style="padding: 15px;">
+            <div class="comparison-controls" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+              <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">📅 Дата начала:</label>
+                <input type="date" id="comparison-start-date" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">📅 Дата окончания:</label>
+                <input type="date" id="comparison-end-date" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              </div>
+              <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">🔧 Виды работ:</label>
+                <select id="work-type-selector" multiple style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 100px;">
+                </select>
+                <div style="font-size: 11px; color: #666; margin-top: 5px;">Зажмите Ctrl/Cmd для выбора нескольких</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+              <button id="apply-comparison-btn" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">📊 Показать сравнение</button>
+              <button id="clear-comparison-btn" style="padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✖ Очистить</button>
+            </div>
+            <div id="comparison-results"></div>
+          </div>
+        </div>
+      </div>
+      <button id="export-excel" style="margin-top: 20px;">📊 Экспорт данных</button>
+    </div>
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <span>Загрузка данных<span class="loading-dots"></span></span>
+    </div>
+    <div id="error" class="error hidden"></div>
+  </div>
+  <div id="customTooltip" class="custom-tooltip"></div>
+
+<!-- Подключаем модули по порядку -->
+<script src="JS/utils.js"></script> <!-- вспомогательные функции -->
+<script src="JS/data.js"></script> <!-- загрузка и обработка данных -->
+<script src="JS/calendar.js"></script> <!-- календарь и навигация -->
+<script src="JS/charts.js"></script> <!-- все функции графиков -->
+<script src="JS/analytics.js"></script> <!-- аналитика и отчеты -->
+<script src="JS/modals.js"></script> <!-- модальные окна -->
+<script src="JS/A_script.js"></script> <!-- основной файл - точка входа -->
+
 </body>
 </html>
