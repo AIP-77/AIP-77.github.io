@@ -24,8 +24,7 @@ export const workTypeColors = {
     'Стикеровка': '#5D4037',
     'Переупаковка': '#00897B',
     'По умолчанию': '#BBBBBB'
-  };
-}
+};
 
 export const chartLabels = {
   workTypes: {
