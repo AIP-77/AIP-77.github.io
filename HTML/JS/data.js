@@ -1,3 +1,4 @@
+import { normalizeRecords, isResponsible, formatDateTime } from './utils.js';
 
 async function loadStandards() {
   const standardsUrl = `${window.location.origin}/archive/standard.json`;
@@ -226,6 +227,7 @@ async function getLastAvailableDate() {
   
   // Если не удалось получить данные, возвращаем сегодня
   return formatDate(new Date());
+  export { getLastAvailableDate };
 }
 
 // === ЗАГРУЗКА ДАННЫХ ===
