@@ -1,30 +1,32 @@
 // === ЦВЕТА И КОНСТАНТЫ ===
-const workTypeColors = {
-  'Погрузка': '#FF6B6B',
-  'Разгрузка': '#4ECDC4',
-  'Сортировка': '#45B7D1',
-  'Упаковка': '#96CEB4',
-  'Комплектация': '#FFEAA7',
-  'Проверка': '#DDA0DD',
-  'Маркировка': '#98D8C8',
-  'Перемещение': '#F7DC6F',
-  'Транспортировка': '#FFA726',
-  'Сборка': '#AB47BC',
-  'Распаковка': '#26C6DA',
-  'Учет': '#66BB6A',
-  'Инвентаризация': '#FFCA28',
-  'Подготовка': '#78909C',
-  'Обработка': '#EC407A',
-  'Фасовка': '#8D6E63',
-  'Контроль': '#42A5F5',
-  'Отбор': '#7E57C2',
-  'Стеллажирование': '#9CCC65',
-  'Палетизация': '#FF7043',
-  'Распределение': '#26A69A',
-  'Стикеровка': '#5D4037',
-  'Переупаковка': '#00897B',
-  'По умолчанию': '#BBBBBB'
-};
+if (typeof workTypeColors === 'undefined') {
+  var workTypeColors = {
+    'Погрузка': '#FF6B6B',
+    'Разгрузка': '#4ECDC4',
+    'Сортировка': '#45B7D1',
+    'Упаковка': '#96CEB4',
+    'Комплектация': '#FFEAA7',
+    'Проверка': '#DDA0DD',
+    'Маркировка': '#98D8C8',
+    'Перемещение': '#F7DC6F',
+    'Транспортировка': '#FFA726',
+    'Сборка': '#AB47BC',
+    'Распаковка': '#26C6DA',
+    'Учет': '#66BB6A',
+    'Инвентаризация': '#FFCA28',
+    'Подготовка': '#78909C',
+    'Обработка': '#EC407A',
+    'Фасовка': '#8D6E63',
+    'Контроль': '#42A5F5',
+    'Отбор': '#7E57C2',
+    'Стеллажирование': '#9CCC65',
+    'Палетизация': '#FF7043',
+    'Распределение': '#26A69A',
+    'Стикеровка': '#5D4037',
+    'Переупаковка': '#00897B',
+    'По умолчанию': '#BBBBBB'
+  };
+}
 
 const chartLabels = {
   workTypes: {
@@ -188,7 +190,7 @@ function getWorkTypeColor(workType) {
   return color;
 }
 
-//  ФУНКЦИИ TOOLTIP 
+//  ФУНКЦИИ TOOLTIP
 let tooltipTimeout = null;
 
 function showTooltip(event, element) {
@@ -196,38 +198,38 @@ function showTooltip(event, element) {
     clearTimeout(tooltipTimeout);
     tooltipTimeout = null;
   }
-  
+
   const tooltip = document.getElementById('customTooltip');
   const text = element.getAttribute('data-tooltip');
   if (!text) return;
-  
+
   tooltip.textContent = text;
   tooltip.style.display = 'block';
-  
+
   // Позиционируем tooltip рядом с курсором
   const tooltipWidth = tooltip.offsetWidth || 150;
   const tooltipHeight = tooltip.offsetHeight || 40;
-  
+
   const offsetX = 15;
   const offsetY = 15;
-  
+
   let left = event.clientX + offsetX;
   let top = event.clientY + offsetY;
-  
+
   const windowWidth = window.innerWidth;
   const windowHeight = window.innerHeight;
-  
+
   if (left + tooltipWidth > windowWidth) {
     left = event.clientX - tooltipWidth - offsetX;
   }
-  
+
   if (top + tooltipHeight > windowHeight) {
     top = event.clientY - tooltipHeight - offsetY;
   }
-  
+
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  
+
   tooltip.style.left = (left + scrollLeft) + 'px';
   tooltip.style.top = (top + scrollTop) + 'px';
 }
