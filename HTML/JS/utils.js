@@ -1,13 +1,12 @@
 // === ЦВЕТА И КОНСТАНТЫ ===
-if (typeof workTypeColors === 'undefined') {
-  var workTypeColors = {
-    'Погрузка': '#FF6B6B',
-    'Разгрузка': '#4ECDC4',
-    'Сортировка': '#45B7D1',
-    'Упаковка': '#96CEB4',
-    'Комплектация': '#FFEAA7',
-    'Проверка': '#DDA0DD',
-    'Маркировка': '#98D8C8',
+export const workTypeColors = {
+  'Погрузка': '#FF6B6B',
+  'Разгрузка': '#4ECDC4',
+  'Сортировка': '#45B7D1',
+  'Упаковка': '#96CEB4',
+  'Комплектация': '#FFEAA7',
+  'Проверка': '#DDA0DD',
+  'Маркировка': '#98D8C8',
     'Перемещение': '#F7DC6F',
     'Транспортировка': '#FFA726',
     'Сборка': '#AB47BC',
@@ -28,7 +27,7 @@ if (typeof workTypeColors === 'undefined') {
   };
 }
 
-const chartLabels = {
+export const chartLabels = {
   workTypes: {
     'Погрузка': 'Отгрузка',
     'Разгрузка': 'Главная обработка',
@@ -59,7 +58,7 @@ const chartLabels = {
 };
 
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
-function parseTime(timeStr) {
+export function parseTime(timeStr) {
   if (!timeStr) return 0;
   const parts = timeStr.split(':').map(Number);
   if (parts.length !== 3) return 0;
@@ -67,19 +66,19 @@ function parseTime(timeStr) {
   return (h || 0) * 3600 + (m || 0) * 60 + (s || 0);
 }
 
-function formatTime(seconds) {
+export function formatTime(seconds) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function formatTimeHours(seconds) {
+export function formatTimeHours(seconds) {
   const hours = seconds / 3600;
   return hours.toFixed(1);
 }
 
-function parseCurrency(str) {
+export function parseCurrency(str) {
   if (!str || typeof str !== 'string') return 0;
   let clean = str.trim().replace(/^р\.\s*/i, '');
   clean = clean.replace(',', '.');
@@ -87,21 +86,21 @@ function parseCurrency(str) {
   return isNaN(num) ? 0 : num;
 }
 
-function formatCurrency(amount) {
+export function formatCurrency(amount) {
   return `р.${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}`;
 }
 
-function getHourFromTime(timeStr) {
+export function getHourFromTime(timeStr) {
   if (!timeStr) return null;
   const [h] = timeStr.split(':');
   return parseInt(h) || 0;
 }
 
-function isResponsible(position) {
+export function isResponsible(position) {
   return position === 'Ответственный' || position === 'Ответсвенный';
 }
 
-function formatDateTime(date) {
+export function formatDateTime(date) {
   return new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
     month: '2-digit',
@@ -112,22 +111,22 @@ function formatDateTime(date) {
   }).format(date);
 }
 
-function calculateNormative(units, seconds) {
+export function calculateNormative(units, seconds) {
   if (seconds <= 0) return 0;
   const hours = seconds / 3600;
   return units / hours;
 }
 
-function parseDate(dateStr) {
+export function parseDate(dateStr) {
   const [day, month, year] = dateStr.split('.').map(Number);
   return new Date(year, month - 1, day);
 }
 
-function formatDate(date) {
+export function formatDate(date) {
   return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
 }
 
-function getHourIntervalForWorkDay(timeStr, workDate) {
+export function getHourIntervalForWorkDay(timeStr, workDate) {
   if (!timeStr) return null;
   const hour = getHourFromTime(timeStr);
   if (hour === null) return null;
@@ -154,7 +153,7 @@ function getHourIntervalForWorkDay(timeStr, workDate) {
   }
 }
 
-function normalizeRecords(data) {
+export function normalizeRecords(data) {
   if (data && data.columns && data.data) {
     return data.data.map(row => {
       const obj = {};
@@ -170,7 +169,7 @@ function normalizeRecords(data) {
   return [];
 }
 
-function getWorkTypeColor(workType) {
+export function getWorkTypeColor(workType) {
   if (workTypeColors[workType]) {
     return workTypeColors[workType];
   }
@@ -191,9 +190,9 @@ function getWorkTypeColor(workType) {
 }
 
 //  ФУНКЦИИ TOOLTIP
-let tooltipTimeout = null;
+export let tooltipTimeout = null;
 
-function showTooltip(event, element) {
+export function showTooltip(event, element) {
   if (tooltipTimeout) {
     clearTimeout(tooltipTimeout);
     tooltipTimeout = null;
@@ -234,7 +233,7 @@ function showTooltip(event, element) {
   tooltip.style.top = (top + scrollTop) + 'px';
 }
 
-function hideTooltip() {
+export function hideTooltip() {
   tooltipTimeout = setTimeout(() => {
     const tooltip = document.getElementById('customTooltip');
     tooltip.style.display = 'none';
