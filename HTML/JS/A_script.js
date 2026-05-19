@@ -1,6 +1,6 @@
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
 import { getArchiveNameForDate, getArchiveUrl, loadData, getLastAvailableDate } from './data.js';
-import { renderCalendar, setupCalendarListeners } from './calendar.js';
+import {setupCalendarListeners } from './calendar.js';
 
 let records = [];
 let standards = [];
