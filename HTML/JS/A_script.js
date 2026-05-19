@@ -1,6 +1,6 @@
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
 import { getArchiveNameForDate, getArchiveUrl, loadData, getLastAvailableDate } from './data.js';
-import { renderCalendar, setupCalendarListeners } from './calendar.js';
+import { renderCalendar } from './calendar.js';
 
 let records = [];
 let standards = [];
@@ -28,10 +28,10 @@ const selectedDateDiv = document.getElementById('selected-date');
 const currentDateSpan = document.getElementById('current-date');
 const lastUpdatedDiv = document.getElementById('last-updated');
 const exportExcelBtn = document.getElementById('export-excel');
-const calendarTitle = document.getElementById('calendar-title');
+const Title = document.getElementById('-title');
 const prevMonthBtn = document.getElementById('prev-month');
 const nextMonthBtn = document.getElementById('next-month');
-const calendarDaysContainer = document.getElementById('calendar-days');
+const DaysContainer = document.getElementById('-days');
 const loadingProgress = document.getElementById('loading-progress');
 // Элементы для сравнения видов работ
 const comparisonToggle = document.getElementById('comparison-toggle');
@@ -56,7 +56,7 @@ function initUI() {
   errorDiv.classList.add('hidden');
   controlsDiv.classList.remove('hidden');
 
-  renderCalendar();
+  render();
 
   if (!uiInitialized) {
     setupEventListeners();
@@ -96,7 +96,7 @@ function setupEventListeners() {
       selectedDate = '';
       loadData();
     } else {
-      renderCalendar();
+      render();
     }
   });
 
@@ -108,7 +108,7 @@ function setupEventListeners() {
       selectedDate = '';
       loadData();
     } else {
-      renderCalendar();
+      render();
     }
   });
 
