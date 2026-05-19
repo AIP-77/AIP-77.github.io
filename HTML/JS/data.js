@@ -335,3 +335,4 @@ async function loadData() {
     }, 500);
   }
 }
+export { loadData };
