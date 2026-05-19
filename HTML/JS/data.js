@@ -1,4 +1,8 @@
-import { normalizeRecords, isResponsible, formatDateTime } from './utils.js';
+import {
+  normalizeRecords,
+  isResponsible,
+  formatDateTime
+} from './utils.js';
 
 async function loadStandards() {
   const standardsUrl = `${window.location.origin}/archive/standard.json`;
@@ -194,7 +198,12 @@ function getArchiveUrl(archiveName) {
   return `${window.location.origin}/archive/${encodedName}`;
 }
 
-export { getArchiveNameForDate, getArchiveUrl, getLastAvailableDate };
+export {
+  getArchiveNameForDate,
+  getArchiveUrl,
+  getLastAvailableDate,
+  loadData
+};
 
 // === ПОЛУЧЕНИЕ ПОСЛЕДНЕЙ ДОСТУПНОЙ ДАТЫ ===
 async function getLastAvailableDate() {
@@ -335,4 +344,4 @@ async function loadData() {
     }, 500);
   }
 }
-export { loadData };
+
