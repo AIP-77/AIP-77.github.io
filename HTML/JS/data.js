@@ -241,10 +241,12 @@ async function getLastAvailableDate() {
 }
 
 // === ЗАГРУЗКА ДАННЫХ ===
-async function loadData() {
-  if (!currentArchive) {
-    currentArchive = getArchiveNameForDate(new Date());
-  }
+async function loadData(dateStr) {
+  // Если дата не передана, используем текущую
+  const dateToUse = dateStr ? new Date(dateStr.split('.').reverse().join('-')) : new Date();
+
+  // Определяем имя архива локально
+  const currentArchive = getArchiveNameForDate(dateToUse);
   const url = getArchiveUrl(currentArchive);
 
   try {
