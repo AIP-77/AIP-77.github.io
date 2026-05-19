@@ -126,6 +126,17 @@ export function createTestData() {
       });
     }
   }
+
+  // Создаем тестовые нормативы
+  standards = [
+    { 'Вид работ': 'Погрузка', 'Норматив': 50 },
+    { 'Вид работ': 'Разгрузка', 'Норматив': 45 },
+    { 'Вид работ': 'Сортировка', 'Норматив': 60 },
+    { 'Вид работ': 'Упаковка', 'Норматив': 40 },
+    { 'Вид работ': 'Стикеровка', 'Норматив': 80 },
+    { 'Вид работ': 'Перемещение', 'Норматив': 70 }
+  ];
+
   return testRecords;
 }
 
@@ -309,7 +320,7 @@ export async function loadData(dateStr, uiCallbacks) {
     };
 
     if (lastUpdatedDiv) {
-      lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
+      lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length} | Записей: ${records.length}`;
     }
     if (errorDiv) {
       errorDiv.textContent = `⚠️ Не удалось загрузить данные: ${err.message}. Используются тестовые данные.`;
@@ -318,7 +329,7 @@ export async function loadData(dateStr, uiCallbacks) {
 
     updateProgress(100);
     setTimeout(() => {
-      if (initUI) initUI(records, standards, staffData, allWorkTypes);
+      if (initUI) initUI();
       updateProgress(0);
     }, 500);
 
