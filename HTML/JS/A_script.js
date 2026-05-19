@@ -1,5 +1,5 @@
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
-import { getArchiveNameForDate, getArchiveUrl, loadData} from './data.js';
+import { getArchiveNameForDate, getArchiveUrl, loadData } from './data.js';
 
 let records = [];
 let standards = [];
@@ -171,7 +171,25 @@ function setupToggleHandler(toggleId, contentId) {
 // === ТОЧКА ВХОДА ===
 document.addEventListener('DOMContentLoaded', function() {
   currentArchive = getArchiveNameForDate(new Date());
-  loadData();
+
+  // Получаем последнюю доступную дату для инициализации
+  getLastAvailableDate().then(lastDate => {
+    if (lastDate) {
+      selectedDate = lastDate;
+      const dateObj = new Date(lastDate.split('.').reverse().join('-'));
+      currentArchive = getArchiveNameForDate(dateObj);
+    }
+
+    // Вызываем loadData с правильными параметрами
+    loadData(currentArchive, {
+      loadingDiv: loadingDiv,
+      errorDiv: errorDiv,
+      controlsDiv: controlsDiv,
+      lastUpdatedDiv: lastUpdatedDiv,
+      updateProgress: updateProgress,
+      initUI: initUI
+    });
+  });
 });
 
 // === ФУНКЦИИ ДЛЯ СРАВНЕНИЯ ВИДОВ РАБОТ ===
