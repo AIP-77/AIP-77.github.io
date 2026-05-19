@@ -1,5 +1,5 @@
 // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
-import { getArchiveNameForDate, getArchiveUrl, loadData } from './data.js';
+import { getArchiveNameForDate, getArchiveUrl, loadData, getLastAvailableDate } from './data.js';
 
 let records = [];
 let standards = [];
