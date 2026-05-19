@@ -82,3 +82,4 @@ function setupCalendarListeners() {
     }
   });
 }
+export { renderCalendar, setupCalendarListeners };
