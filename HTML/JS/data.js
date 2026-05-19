@@ -1,29 +1,79 @@
-import { normalizeRecords, isResponsible, formatDateTime, formatDate, parseTime } from './utils.js';
 
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ МОДУЛЯ ===
-let standards = [];
-let staffData = [];
-
-// === ЭКСПОРТ ПЕРЕМЕННЫХ ===
-export function getStandards() {
-  return standards;
+async function loadStandards() {
+  const standardsUrl = `${window.location.origin}/archive/standard.json`;
+  try {
+    console.log('Загрузка нормативов из:', standardsUrl);
+    const response = await fetch(`${standardsUrl}?t=${Date.now()}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+    }
+    const data = await response.json();
+    const normalizedRecords = normalizeRecords(data);
+    if (Array.isArray(normalizedRecords)) {
+      standards = normalizedRecords.filter(record =>
+        isResponsible(record['Должность']) && record['Норматив 1']
+      );
+      console.log('Загружено нормативов:', standards.length);
+    }
+  } catch (err) {
+    console.error('Ошибка загрузки нормативов:', err);
+    standards = [
+      {
+        "Направление": "Входящие",
+        "Отдел": "Приемка",
+        "Вид работ": "Разгрузка",
+        "Группа товара": "Все",
+        "Норматив 1": "120"
+      },
+      {
+        "Направление": "Входящие",
+        "Отдел": "Приемка",
+        "Вид работ": "Сортировка",
+        "Группа товара": "Все",
+        "Норматив 1": "80"
+      },
+      {
+        "Направление": "Исходящие",
+        "Отдел": "Отгрузка",
+        "Вид работ": "Погрузка",
+        "Группа товара": "Все",
+        "Норматив 1": "100"
+      }
+    ];
+  }
 }
 
-export function setStandards(value) {
-  standards = value;
-}
-
-export function getStaffData() {
-  return staffData;
-}
-
-export function setStaffData(value) {
-  staffData = value;
+async function loadStaffData() {
+  const staffUrl = `${window.location.origin}/archive/staff.json`;
+  try {
+    console.log('Загрузка данных персонала из:', staffUrl);
+    const response = await fetch(`${staffUrl}?t=${Date.now()}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+    }
+    const data = await response.json();
+    staffData = normalizeRecords(data);
+    console.log('Загружено записей персонала:', staffData.length);
+  } catch (err) {
+    console.error('Ошибка загрузки данных персонала:', err);
+    staffData = [
+      {"Сотрудник": "Иванов И.И.", "Статус": "Постоянный", "Отдел": "Приемка"},
+      {"Сотрудник": "Петров П.П.", "Статус": "Постоянный", "Отдел": "Приемка"},
+      {"Сотрудник": "Сидоров С.С.", "Статус": "Наемный", "Отдел": "Приемка"},
+      {"Сотрудник": "Кузнецов К.К.", "Статус": "Постоянный", "Отдел": "Отгрузка"},
+      {"Сотрудник": "Николаев Н.Н.", "Статус": "Постоянный", "Отдел": "Отгрузка"},
+      {"Сотрудник": "Васильев В.В.", "Статус": "Наемный", "Отдел": "Сортировка"},
+      {"Сотрудник": "Алексеев А.А.", "Статус": "Постоянный", "Отдел": "Сортировка"},
+      {"Сотрудник": "Григорьев Г.Г.", "Статус": "Постоянный", "Отдел": "Упаковка"},
+      {"Сотрудник": "Дмитриев Д.Д.", "Статус": "Наемный", "Отдел": "Упаковка"},
+      {"Сотрудник": "Егоров Е.Е.", "Статус": "Постоянный", "Отдел": "Комплектация"}
+    ];
+  }
 }
 
 // === ФУНКЦИИ ДЛЯ РАБОТЫ С ДАННЫМИ ===
 
-export function getStandardForWork(workType, productGroup = null) {
+function getStandardForWork(workType, productGroup = null) {
   if (productGroup) {
     const specificStandard = standards.find(standard =>
       standard['Вид работ'] === workType &&
@@ -45,7 +95,7 @@ function getDirectionAndDepartment(workType) {
   };
 }
 
-export function analyzeStaffForRecords(records) {
+function analyzeStaffForRecords(records) {
   const uniqueEmployees = [...new Set(records.map(r => r['Сотрудник']))].filter(Boolean);
   let totalStaff = 0;
   let permanentStaff = 0;
@@ -85,7 +135,7 @@ export function analyzeStaffForRecords(records) {
   };
 }
 
-export function calculateTimesheetTime(records) {
+function calculateTimesheetTime(records) {
   const uniqueEmployees = [...new Set(records.map(r => r['Сотрудник']))].filter(Boolean);
   let totalTimesheetTime = 0;
   uniqueEmployees.forEach(employee => {
@@ -96,10 +146,12 @@ export function calculateTimesheetTime(records) {
   return totalTimesheetTime;
 }
 
-export function createTestData() {
+function createTestData() {
   console.log('Создаем тестовые данные...');
   const testRecords = [];
-  const workTypes = ['Погрузка', 'Разгрузка', 'Сортировка', 'Упаковка', 'Стикеровка', 'Перемещение'];
+  const workTypesFromStandards = [...new Set(standards.map(s => s['Вид работ']))];
+  const workTypes = workTypesFromStandards.length > 0 ? workTypesFromStandards :
+    ['Погрузка', 'Разгрузка', 'Сортировка', 'Упаковка', 'Стикеровка', 'Перемещение'];
   const employees = ['Иванов И.И.', 'Петров П.П.', 'Сидоров С.С.', 'Кузнецов К.К.', 'Николаев Н.Н.'];
   const productGroups = ['Диски', 'Шины', 'Аккумуляторы', 'Масла', 'Фильтры'];
   const today = new Date();
@@ -109,6 +161,7 @@ export function createTestData() {
     const dateStr = formatDate(date);
     for (let i = 0; i < 25; i++) {
       const workType = workTypes[i % workTypes.length];
+      const { direction, department } = getDirectionAndDepartment(workType);
       const productGroup = productGroups[i % productGroups.length];
       testRecords.push({
         'Рабочий день': dateStr,
@@ -121,41 +174,31 @@ export function createTestData() {
         'Количество единиц': (Math.random() * 100 + 50).toFixed(0),
         'Рабочее время': '01:00:00',
         'Расчетная сумма': `р.${(Math.random() * 1000 + 500).toFixed(2)}`,
-        'Направление': workType === 'Погрузка' ? 'Исходящие' : 'Входящие',
-        'Отдел': workType === 'Погрузка' ? 'Отгрузка' : 'Приемка'
+        'Направление': direction,
+        'Отдел': department
       });
     }
   }
-
-  // Создаем тестовые нормативы
-  standards = [
-    { 'Вид работ': 'Погрузка', 'Норматив': 50 },
-    { 'Вид работ': 'Разгрузка', 'Норматив': 45 },
-    { 'Вид работ': 'Сортировка', 'Норматив': 60 },
-    { 'Вид работ': 'Упаковка', 'Норматив': 40 },
-    { 'Вид работ': 'Стикеровка', 'Норматив': 80 },
-    { 'Вид работ': 'Перемещение', 'Норматив': 70 }
-  ];
-
   return testRecords;
 }
 
-export function getArchiveNameForDate(date) {
+function getArchiveNameForDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   return `${year}-${month}`;
 }
 
-export function getArchiveUrl(archiveName) {
+function getArchiveUrl(archiveName) {
   const encodedName = encodeURIComponent(`${archiveName} fullData.json`);
   return `${window.location.origin}/archive/${encodedName}`;
 }
 
 // === ПОЛУЧЕНИЕ ПОСЛЕДНЕЙ ДОСТУПНОЙ ДАТЫ ===
-export async function getLastAvailableDate() {
+async function getLastAvailableDate() {
+  // Пробуем получить данные из текущего архива
   const currentArchive = getArchiveNameForDate(new Date());
   const url = getArchiveUrl(currentArchive);
-
+  
   try {
     const response = await fetch(`${url}?t=${Date.now()}`);
     if (!response.ok) {
@@ -163,108 +206,67 @@ export async function getLastAvailableDate() {
     }
     const data = await response.json();
     const normalizedData = normalizeRecords(data);
-
+    
+    // Получаем все уникальные даты и сортируем их
     const uniqueDates = [...new Set(normalizedData.map(r => r['Рабочий день']))].filter(Boolean);
     if (uniqueDates.length > 0) {
+      // Сортируем даты в формате DD.MM.YYYY
       uniqueDates.sort((a, b) => {
         const [dayA, monthA, yearA] = a.split('.').map(Number);
         const [dayB, monthB, yearB] = b.split('.').map(Number);
         const dateA = new Date(yearA, monthA - 1, dayA);
         const dateB = new Date(yearB, monthB - 1, dayB);
-        return dateB - dateA;
+        return dateB - dateA; // По убыванию
       });
-      return uniqueDates[0];
+      return uniqueDates[0]; // Возвращаем последнюю (самую свежую) дату
     }
   } catch (err) {
     console.log('Не удалось получить данные для определения последней даты:', err.message);
   }
-
+  
+  // Если не удалось получить данные, возвращаем сегодня
   return formatDate(new Date());
 }
 
 // === ЗАГРУЗКА ДАННЫХ ===
-export async function loadData(dateStr, uiCallbacks) {
-  const {
-    loadingDiv,
-    errorDiv,
-    controlsDiv,
-    lastUpdatedDiv,
-    updateProgress,
-    initUI
-  } = uiCallbacks;
-
-  const dateToUse = dateStr ? new Date(dateStr.split('.').reverse().join('-')) : new Date();
-  const currentArchive = getArchiveNameForDate(dateToUse);
+async function loadData() {
+  if (!currentArchive) {
+    currentArchive = getArchiveNameForDate(new Date());
+  }
   const url = getArchiveUrl(currentArchive);
-
+  
   try {
     loadingDiv.classList.remove('hidden');
     errorDiv.classList.add('hidden');
     controlsDiv.classList.add('hidden');
-
+    
     updateProgress(10);
-
-    // Загрузка нормативов
-    const standardsUrl = `${window.location.origin}/archive/standard.json`;
-    try {
-      const standardsResponse = await fetch(`${standardsUrl}?t=${Date.now()}`);
-      if (standardsResponse.ok) {
-        const standardsData = await standardsResponse.json();
-        const normalizedStandards = normalizeRecords(standardsData);
-        if (Array.isArray(normalizedStandards)) {
-          standards = normalizedStandards.filter(record =>
-            isResponsible(record['Должность']) && record['Норматив 1']
-          );
-        }
-      }
-    } catch (err) {
-      console.error('Ошибка загрузки нормативов:', err);
-      standards = [
-        {"Направление": "Входящие", "Отдел": "Приемка", "Вид работ": "Разгрузка", "Группа товара": "Все", "Норматив 1": "120"},
-        {"Направление": "Входящие", "Отдел": "Приемка", "Вид работ": "Сортировка", "Группа товара": "Все", "Норматив 1": "80"},
-        {"Направление": "Исходящие", "Отдел": "Отгрузка", "Вид работ": "Погрузка", "Группа товара": "Все", "Норматив 1": "100"}
-      ];
-    }
-
-    // Загрузка данных персонала
-    const staffUrl = `${window.location.origin}/archive/staff.json`;
-    try {
-      const staffResponse = await fetch(`${staffUrl}?t=${Date.now()}`);
-      if (staffResponse.ok) {
-        const staffResponseData = await staffResponse.json();
-        staffData = normalizeRecords(staffResponseData);
-      }
-    } catch (err) {
-      console.error('Ошибка загрузки данных персонала:', err);
-      staffData = [
-        {"Сотрудник": "Иванов И.И.", "Статус": "Постоянный", "Отдел": "Приемка"},
-        {"Сотрудник": "Петров П.П.", "Статус": "Постоянный", "Отдел": "Приемка"},
-        {"Сотрудник": "Сидоров С.С.", "Статус": "Наемный", "Отдел": "Приемка"}
-      ];
-    }
-
+    await Promise.all([loadStandards(), loadStaffData()]);
+    
     loadingDiv.innerHTML = `
       <div class="loading-spinner"></div>
       <span>Загрузка данных архива ${currentArchive}<span class="loading-dots"></span></span>
     `;
-
+    
+    console.log('Пытаемся загрузить данные из:', url);
+    const urlWithCacheBust = `${url}?t=${Date.now()}`;
     updateProgress(30);
-
-    const response = await fetch(`${url}?t=${Date.now()}`);
+    
+    const response = await fetch(urlWithCacheBust);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status} - ${response.statusText}`);
     }
-
+    
     updateProgress(60);
     const data = await response.json();
-    let records = normalizeRecords(data);
-
+    records = normalizeRecords(data);
+    
     if (!Array.isArray(records)) {
       throw new Error('Неверный формат данных');
     }
-
+    
     updateProgress(80);
-
+    
     // Распределение трудозатрат
     const workTypeHours = {};
     records.forEach(record => {
@@ -274,43 +276,42 @@ export async function loadData(dateStr, uiCallbacks) {
       if (timeStr && typeof timeStr === 'string') {
         const parts = timeStr.split(':').map(Number);
         if (parts.length >= 2) {
-          hours = (parts[0] || 0) + ((parts[1] || 0) / 60) + ((parts[2] || 0) / 3600);
+          const h = parts[0] || 0;
+          const m = parts[1] || 0;
+          const s = parts[2] || 0;
+          hours = h + (m / 60) + (s / 3600);
         }
       }
       workTypeHours[workType] = (workTypeHours[workType] || 0) + hours;
     });
-
+    
     const topWorkTypes = Object.entries(workTypeHours)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6);
-    window.donutChartData = Object.fromEntries(topWorkTypes);
-
+    const donutData = Object.fromEntries(topWorkTypes);
+    window.donutChartData = donutData;
+    
     records.forEach(record => {
       const { direction, department } = getDirectionAndDepartment(record['Вид работ']);
       record['Направление'] = direction;
       record['Отдел'] = department;
     });
-
-    const allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
-
-    if (lastUpdatedDiv) {
-      lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive} | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
-    }
-
+    
+    allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
+    lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | Архив: ${currentArchive} | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
+    
     updateProgress(100);
     setTimeout(() => {
-      if (initUI) initUI(records, standards, staffData, allWorkTypes);
+      initUI();
       updateProgress(0);
     }, 500);
-
-    return { records, standards, staffData, allWorkTypes };
-
+    
   } catch (err) {
     console.error('Ошибка загрузки, используем тестовые данные:', err);
-    let records = createTestData();
-    const allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
-
-    window.donutChartData = {
+    records = createTestData();
+    allWorkTypes = [...new Set(records.map(r => r['Вид работ']).filter(Boolean))].sort();
+    
+    const testDonutData = {
       'Комплектация': 42.5,
       'Упаковка': 23.2,
       'Погрузка': 15.8,
@@ -318,21 +319,16 @@ export async function loadData(dateStr, uiCallbacks) {
       'Сборка': 6.1,
       'Транспортировка': 4.1
     };
-
-    if (lastUpdatedDiv) {
-      lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length} | Записей: ${records.length}`;
-    }
-    if (errorDiv) {
-      errorDiv.textContent = `⚠️ Не удалось загрузить данные: ${err.message}. Используются тестовые данные.`;
-      errorDiv.classList.remove('hidden');
-    }
-
+    window.donutChartData = testDonutData;
+    
+    lastUpdatedDiv.textContent = `Обновлено: ${formatDateTime(new Date())} | ТЕСТОВЫЕ ДАННЫЕ | Нормативов: ${standards.length} | Сотрудников: ${staffData.length}`;
+    errorDiv.textContent = `⚠️ Не удалось загрузить данные: ${err.message}. Используются тестовые данные.`;
+    errorDiv.classList.remove('hidden');
+    
     updateProgress(100);
     setTimeout(() => {
-      if (initUI) initUI();
+      initUI();
       updateProgress(0);
     }, 500);
-
-    return { records, standards, staffData, allWorkTypes };
   }
 }
