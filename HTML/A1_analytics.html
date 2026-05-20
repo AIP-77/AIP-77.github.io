@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналитика по видам работ за период</title>
+    <!-- Подключаем основные стили проекта -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Дополнительные стили специально для этой страницы */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .controls-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 25px;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 200px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .work-types-selector {
+            flex-grow: 1;
+            min-width: 300px;
+        }
+
+        .work-types-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background: white;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            height: 42px;
+            align-self: flex-end;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        /* Стили для результатов */
+        .results-area {
+            margin-top: 20px;
+        }
+
+        .comparison-table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 30px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        table.comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
+        }
+
+        table.comparison-table th,
+        table.comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        table.comparison-table th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        table.comparison-table tr:hover {
+            background-color: #f1f7ff;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            margin-top: 0;
+            color: #3498db;
+            font-size: 1.1em;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .highlight-leader {
+            background-color: #d4edda !important;
+            border-left: 4px solid #28a745;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <a href="A1.html" class="back-link">← Вернуться на главную страницу</a>
+        <h1>📊 Сравнительный анализ видов работ</h1>
+
+        <div class="controls-panel">
+            <div class="control-group">
+                <label for="startDate">Дата начала:</label>
+                <input type="date" id="startDate">
+            </div>
+
+            <div class="control-group">
+                <label for="endDate">Дата окончания:</label>
+                <input type="date" id="endDate">
+            </div>
+
+            <div class="control-group work-types-selector">
+                <label>Выберите виды работ (Ctrl+Клик для множественного выбора):</label>
+                <div class="work-types-list" id="workTypesList">
+                    <!-- Чекбоксы будут добавлены через JS -->
+                    <div style="padding: 10px; color: #999;">Загрузка списка...</div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="analyzeBtn">Показать сравнение</button>
+            <button class="btn btn-secondary" id="resetBtn">Очистить</button>
+        </div>
+
+        <div id="resultsArea" class="results-area">
+            <!-- Сюда будут выводиться результаты -->
+            <div style="text-align: center; color: #999; padding: 40px;">
+                Выберите период и виды работ для начала анализа
+            </div>
+        </div>
+    </div>
+
+    <!-- Подключаем модули -->
+    <!-- utils.js нужен для форматирования -->
+    <script type="module" src="JS/utils.js"></script>
+    <!-- data.js нужен для загрузки архивов -->
+    <script type="module" src="JS/data.js"></script>
+    <!-- Основной скрипт аналитики -->
+    <script type="module" src="JS/A1_analytics.js"></script>
+
+</body>
+</html>
