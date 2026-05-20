@@ -1,5 +1,5 @@
 // === ЦВЕТА И КОНСТАНТЫ ===
-export const workTypeColors = {
+const workTypeColors = {
   'Погрузка': '#FF6B6B',
   'Разгрузка': '#4ECDC4',
   'Сортировка': '#45B7D1',
@@ -57,7 +57,7 @@ const chartLabels = {
 };
 
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
-export function parseTime(timeStr) {
+function parseTime(timeStr) {
   if (!timeStr) return 0;
   const parts = timeStr.split(':').map(Number);
   if (parts.length !== 3) return 0;
@@ -85,7 +85,7 @@ function parseCurrency(str) {
   return isNaN(num) ? 0 : num;
 }
 
-export function formatCurrency(amount) {
+function formatCurrency(amount) {
   return `р.${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}`;
 }
 
