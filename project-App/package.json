@@ -3,8 +3,24 @@
   "version": "1.0.0",
   "description": "Анализ пиковых нагрузок склада",
   "scripts": {
-    "start": "npx http-server -p 8080"
+    "start": "npx http-server -p 8080",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
-  "keywords": ["warehouse", "analytics"],
-  "license": "MIT"
+  "keywords": [
+    "warehouse",
+    "analytics"
+  ],
+  "license": "MIT",
+  "main": "appTeam.js",
+  "author": "",
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.2",
+    "babel-jest": "^30.3.0",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "jsdom": "^29.0.1"
+  }
 }
