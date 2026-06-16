@@ -1399,6 +1399,7 @@ function updateMainData() {
 function renderUI() {
     if (isManager) tabManager.classList.remove('hidden');
     if (isAdmin) tabAdmin.classList.remove('hidden');
+    if (isAdmin) tabInfo.classList.remove('hidden');
     employeeView.classList.remove('hidden');
     updateLastUpdate();
     if (isManager) initializeManagerView();
@@ -1488,6 +1489,9 @@ tabManager.addEventListener('click', () => switchTab('manager'));
 tabAdmin.addEventListener('click', () => {
     if (isAdmin) window.location.href = 'HTML/admin.html';
 });
+tabInfo.addEventListener('click', () => {
+    if (isAdmin) window.location.href = 'HTML/A1.html';
+});    
 tabStatistics.addEventListener('click', () => {
     if (isManager || isAdmin) window.location.href = 'HTML/statistics.html';
 });
