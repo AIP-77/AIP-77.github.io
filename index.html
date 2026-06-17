@@ -482,9 +482,11 @@ select, input {
     <div id="banner" class="banner"></div>
     
     <div class="tabs">
-        <div id="tab-employee" class="tab active">Мой отчёт</div>
-        <div id="tab-info" class="tab hidden">ℹ Нормативы</div>
-        <div id="tab-manager" class="tab hidden">Отдел</div>
+        <div id="tab-employee" class="tab active">Мой отчёт</div> 
+         <!-- === class="tab" -видна всем === -->
+        <div id="tab-info" class="tab">ℹ Нормативы</div>
+         <!-- ===  class="tab hidden" -срыта от всех === -->
+        <div id="tab-manager" class="tab hidden">Отдел</div> 
         <div id="tab-statistics" class="tab hidden">📊 Статистика</div>
         <div id="tab-admin" class="tab hidden">👨‍💻 Админка</div>
     </div>
@@ -1397,9 +1399,11 @@ function updateMainData() {
 }
 
 function renderUI() {
+    // === Показывать вкладки по правам доступа ===
     if (isManager) tabManager.classList.remove('hidden');
     if (isAdmin) tabAdmin.classList.remove('hidden');
-    if (isAdmin) tabInfo.classList.remove('hidden');
+    // === Показывать вкладки всем пользователям ===
+    tabInfo.classList.remove('hidden');
     employeeView.classList.remove('hidden');
     updateLastUpdate();
     if (isManager) initializeManagerView();
@@ -1489,8 +1493,9 @@ tabManager.addEventListener('click', () => switchTab('manager'));
 tabAdmin.addEventListener('click', () => {
     if (isAdmin) window.location.href = 'HTML/admin.html';
 });
+// === ИЗМЕНЕНО: Доступ к нормативам для всех ===    
 tabInfo.addEventListener('click', () => {
-    if (isAdmin) window.location.href = 'HTML/A1.html';
+     window.location.href = 'HTML/A1.html';
 });    
 tabStatistics.addEventListener('click', () => {
     if (isManager || isAdmin) window.location.href = 'HTML/statistics.html';
