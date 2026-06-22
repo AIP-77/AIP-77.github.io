@@ -538,6 +538,7 @@ select, input {
             <div id="main-data-content" class="hidden fade">
                 <p><strong>Сотрудник:</strong> <span id="name">—</span></p>
                 <p><strong>Отдел:</strong> <span id="department">—</span></p>
+                <p><strong>📋 Номер смены:</strong> <span id="shift-number">—</span></p>
                 <p><strong>Дата:</strong> <span id="date">—</span></p>
                 <p><strong>Отработано:</strong> <span id="worked">—</span></p>
                 <p><strong>Рабочее время:</strong> <span id="planned">—</span></p>
@@ -1295,6 +1296,7 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         el.style.flexDirection = 'column';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
+        el.style.minHeight = '40px';
         
         const dayStr = String(day).padStart(2, '0');
         const monthStr = String(monthNum).padStart(2, '0');
@@ -1313,20 +1315,28 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         if (employeeShiftNumber) {
             const dayRecord = records.find(r => {
                 const recordDate = r['дата'] || '';
+                // Проверяем оба формата даты
                 return recordDate.toLowerCase().includes(formatDate.toLowerCase()) || 
                        recordDate.includes(dateStr);
             });
             
             if (dayRecord) {
-                // Проверяем колонки смен
-                const shiftColumns = ['День 12/7', 'День 24/7', 'Ночь 24/7', 'День 8/5'];
+                // Проверяем все колонки смен
+                const shiftColumns = [
+                    { name: 'День 12/7', type: 'day' },
+                    { name: 'День 24/7', type: 'day' },
+                    { name: 'Ночь 24/7', type: 'night' },
+                    { name: 'День 8/5', type: 'day' }
+                ];
+                
                 for (const col of shiftColumns) {
-                    const value = dayRecord[col];
-                    if (value && value === String(employeeShiftNumber)) {
+                    const value = String(dayRecord[col.name] || '').trim();
+                    // Сравниваем номер смены
+                    if (value && value === String(employeeShiftNumber).trim()) {
                         shiftInfo = {
-                            type: col.includes('Ночь') ? 'night' : 'day',
+                            type: col.type,
                             number: value,
-                            columnName: col
+                            columnName: col.name
                         };
                         break;
                     }
@@ -1337,22 +1347,34 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         // Отображаем день
         const dayNumber = document.createElement('span');
         dayNumber.textContent = day;
-        dayNumber.className = 'shift-number';
+        dayNumber.style.fontSize = '14px';
         el.appendChild(dayNumber);
         
         if (shiftInfo) {
+            // === ПОДСВЕТКА СМЕН ===
             if (shiftInfo.type === 'day') {
                 el.classList.add('shift-day');
+                el.style.background = '#e3f2fd';
+                el.style.border = '2px solid #90caf9';
+                el.style.color = '#1565c0';
+                el.style.fontWeight = 'bold';
             } else {
                 el.classList.add('shift-night');
+                el.style.background = '#37474f';
+                el.style.border = '2px solid #546e7a';
+                el.style.color = '#ffffff';
+                el.style.fontWeight = 'bold';
             }
             
-            const shiftType = document.createElement('span');
-            shiftType.textContent = shiftInfo.type === 'day' ? 'Д' : 'Н';
-            shiftType.className = 'shift-type';
-            el.appendChild(shiftType);
+            // Добавляем индикатор типа смены
+            const shiftIndicator = document.createElement('span');
+            shiftIndicator.textContent = shiftInfo.type === 'day' ? 'Д' : 'Н';
+            shiftIndicator.style.fontSize = '10px';
+            shiftIndicator.style.marginTop = '2px';
+            el.appendChild(shiftIndicator);
             
             el.title = `Смена ${shiftInfo.number} (${shiftInfo.columnName})`;
+            el.style.cursor = 'pointer';
         } else {
             el.style.color = 'var(--tg-hint-color)';
             el.title = 'Выходной';
@@ -1360,7 +1382,7 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         
         shiftCalendar.appendChild(el);
     }
-} 
+}
 
 // ============================================
 // 6. ОТДЕЛ
@@ -1518,6 +1540,7 @@ async function loadUserData() {
             name: userRecord['Сотрудник'],
             department: userRecord['Отдел'],
             role: userRecord['Роль'],
+            shiftNumber: userRecord['Смена'] || '—', // === ДОБАВЛЕНО: Номер смены ===
             managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
         };
         
@@ -1624,6 +1647,7 @@ function updateMainData() {
     if (!currentUserData || !currentRecord) return;
     document.getElementById('name').textContent = currentUserData.name;
     document.getElementById('department').textContent = currentUserData.department;
+    document.getElementById('shift-number').textContent = currentUserData.shiftNumber || '—';
     document.getElementById('date').textContent = currentRecord.date;
     document.getElementById('worked').textContent = currentRecord.worked;
     document.getElementById('planned').textContent = currentRecord.planned;
