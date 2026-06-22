@@ -1202,10 +1202,20 @@ async function loadShiftSchedule() {
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
         
-        // Создаем список месяцев
+        // === ИСПРАВЛЕНО: Создаем список месяцев (5 назад + 3 вперёд) ===
         availableShiftMonths = [];
-        for (let i = 5; i >= 0; i--) {
+        
+        // Прошлые месяцы (5 штук)
+        for (let i = 5; i >= 1; i--) {
             const date = new Date(currentYear, currentMonth - 1 - i, 1);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            availableShiftMonths.push(`${year}-${month.toString().padStart(2, '0')}`);
+        }
+        
+        // Текущий и будущие месяцы (4 штуки вперёд)
+        for (let i = 0; i <= 3; i++) {
+            const date = new Date(currentYear, currentMonth - 1 + i, 1);
             const year = date.getFullYear();
             const month = date.getMonth() + 1;
             availableShiftMonths.push(`${year}-${month.toString().padStart(2, '0')}`);
@@ -1216,7 +1226,8 @@ async function loadShiftSchedule() {
             return;
         }
         
-        currentShiftMonthIndex = availableShiftMonths.length - 1;
+        // Начинаем с текущего месяца (индекс 5 — это текущий месяц)
+        currentShiftMonthIndex = 5;
         await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
         
     } catch (err) {
@@ -1298,26 +1309,31 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         el.style.justifyContent = 'center';
         el.style.minHeight = '40px';
         
-        const dayStr = String(day).padStart(2, '0');
-        const monthStr = String(monthNum).padStart(2, '0');
-        const dateStr = `${dayStr}.${monthStr}.${year}`;
-        
-        // Формат даты для поиска в графике (как в файле: "пн,  2 февр. ")
+        // === ИСПРАВЛЕНО: Гибкий поиск даты ===
         const dateObj = new Date(year, monthNum - 1, day);
         const dayNamesFull = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-        const monthNamesShort = ['янв.', 'февр.', 'мар.', 'апр.', 'мая', 'июня', 'июля', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'];
+        const monthNamesShort = ['янв', 'февр', 'мар', 'апр', 'мая', 'июня', 'июля', 'авг', 'сент', 'окт', 'нояб', 'дек'];
         const dayName = dayNamesFull[dateObj.getDay()];
         const monthName = monthNamesShort[dateObj.getMonth()];
-        const formatDate = `${dayName},  ${day} ${monthName}`;
         
         // Ищем смену для этого дня
         let shiftInfo = null;
         if (employeeShiftNumber) {
             const dayRecord = records.find(r => {
-                const recordDate = r['дата'] || '';
-                // Проверяем оба формата даты
-                return recordDate.toLowerCase().includes(formatDate.toLowerCase()) || 
-                       recordDate.includes(dateStr);
+                const recordDate = (r['дата'] || '').toLowerCase().trim();
+                
+                // === ИСПРАВЛЕНО: Нормализуем пробелы для точного сравнения ===
+                // Убираем лишние пробелы и точки
+                const normalizedRecordDate = recordDate
+                    .replace(/\s+/g, ' ')  // Заменяем множественные пробелы на один
+                    .replace(/\./g, '')     // Убираем точки
+                    .trim();
+                
+                // Формируем искомую строку в том же формате
+                const searchPattern = `${dayName} ${day} ${monthName}`;
+                
+                // Проверяем совпадение
+                return normalizedRecordDate.includes(searchPattern);
             });
             
             if (dayRecord) {
