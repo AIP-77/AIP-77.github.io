@@ -1697,6 +1697,14 @@ prevMonthBtn.addEventListener('click', async () => {
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
     }
 });
+    
+// === НОВЫЕ: Обработчики для графика смен ===
+prevShiftMonthBtn.addEventListener('click', async () => {
+    if (currentShiftMonthIndex > 0) {
+        currentShiftMonthIndex--;
+        await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+    }
+});    
 
 nextMonthBtn.addEventListener('click', async () => {
     if (currentMonthIndex < availableMonths.length - 1) {
