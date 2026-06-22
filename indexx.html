@@ -1721,6 +1721,12 @@ prevMonthBtn.addEventListener('click', async () => {
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
     }
 });
+nextMonthBtn.addEventListener('click', async () => {
+    if (currentMonthIndex < availableMonths.length - 1) {
+        currentMonthIndex++;
+        await renderCalendarForMonth(availableMonths[currentMonthIndex]);
+    }
+});    
     
 // === НОВЫЕ: Обработчики для графика смен ===
 prevShiftMonthBtn.addEventListener('click', async () => {
@@ -1728,14 +1734,17 @@ prevShiftMonthBtn.addEventListener('click', async () => {
         currentShiftMonthIndex--;
         await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
     }
-});    
-
-nextMonthBtn.addEventListener('click', async () => {
-    if (currentMonthIndex < availableMonths.length - 1) {
-        currentMonthIndex++;
-        await renderCalendarForMonth(availableMonths[currentMonthIndex]);
-    }
 });
+
+// === ДОБАВЛЕНО: Обработчик для следующей кнопки ===
+nextShiftMonthBtn.addEventListener('click', async () => {
+    if (currentShiftMonthIndex < availableShiftMonths.length - 1) {
+        currentShiftMonthIndex++;
+        await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+    }
+});  
+
+
 
 refreshBtn.addEventListener('click', async () => {
     refreshBtn.disabled = true;
