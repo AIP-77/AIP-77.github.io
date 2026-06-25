@@ -1274,6 +1274,15 @@ async function renderShiftCalendarForMonth(monthKey) {
 function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
     shiftCalendar.innerHTML = '';
     
+    // === ОТЛАДКА ===
+    console.log('=== ОТЛАДКА ГРАФИКА СМЕН ===');
+    console.log('Номер смены сотрудника:', employeeShiftNumber);
+    console.log('Всего записей в графике:', records.length);
+    if (records.length > 0) {
+        console.log('Пример первой записи:', records[0]);
+        console.log('Пример второй записи:', records[1]);
+    }
+    
     // Заголовки дней недели
     const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
     dayNames.forEach(day => {
@@ -1309,12 +1318,17 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         el.style.justifyContent = 'center';
         el.style.minHeight = '40px';
         
-        // === ИСПРАВЛЕНО: Гибкий поиск даты ===
         const dateObj = new Date(year, monthNum - 1, day);
         const dayNamesFull = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
         const monthNamesShort = ['янв', 'февр', 'мар', 'апр', 'мая', 'июня', 'июля', 'авг', 'сент', 'окт', 'нояб', 'дек'];
         const dayName = dayNamesFull[dateObj.getDay()];
         const monthName = monthNamesShort[dateObj.getMonth()];
+        
+        // === ОТЛАДКА: выводим для первых 3 дней ===
+        if (day <= 3) {
+            console.log(`\n--- День ${day} ---`);
+            console.log(`Ищем паттерн: "${dayName} ${day} ${monthName}"`);
+        }
         
         // Ищем смену для этого дня
         let shiftInfo = null;
@@ -1322,19 +1336,28 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
             const dayRecord = records.find(r => {
                 const recordDate = (r['дата'] || '').toLowerCase().trim();
                 
-                // === ИСПРАВЛЕНО: Нормализуем пробелы для точного сравнения ===
-                // Убираем лишние пробелы и точки
+                // === ИСПРАВЛЕНО: Убираем пробелы, точки И ЗАПЯТЫЕ ===
                 const normalizedRecordDate = recordDate
-                    .replace(/\s+/g, ' ')  // Заменяем множественные пробелы на один
+                    .replace(/\s+/g, ' ')   // Множественные пробелы → один
                     .replace(/\./g, '')     // Убираем точки
+                    .replace(/,/g, '')      // === ДОБАВЛЕНО: Убираем запятые ===
                     .trim();
                 
-                // Формируем искомую строку в том же формате
                 const searchPattern = `${dayName} ${day} ${monthName}`;
                 
-                // Проверяем совпадение
+                // === ОТЛАДКА ===
+                if (day <= 3) {
+                    console.log(`Исходная дата: "${recordDate}"`);
+                    console.log(`Нормализованная: "${normalizedRecordDate}"`);
+                    console.log(`Совпадение: ${normalizedRecordDate.includes(searchPattern)}`);
+                }
+                
                 return normalizedRecordDate.includes(searchPattern);
             });
+            
+            if (dayRecord && day <= 3) {
+                console.log(`Найдена запись:`, dayRecord);
+            }
             
             if (dayRecord) {
                 // Проверяем все колонки смен
@@ -1347,13 +1370,18 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
                 
                 for (const col of shiftColumns) {
                     const value = String(dayRecord[col.name] || '').trim();
-                    // Сравниваем номер смены
+                    if (day <= 3) {
+                        console.log(`Колонка "${col.name}": значение="${value}", ищем="${employeeShiftNumber}"`);
+                    }
                     if (value && value === String(employeeShiftNumber).trim()) {
                         shiftInfo = {
                             type: col.type,
                             number: value,
                             columnName: col.name
                         };
+                        if (day <= 3) {
+                            console.log(`✅ НАЙДЕНА СМЕНА:`, shiftInfo);
+                        }
                         break;
                     }
                 }
@@ -1367,7 +1395,6 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         el.appendChild(dayNumber);
         
         if (shiftInfo) {
-            // === ПОДСВЕТКА СМЕН ===
             if (shiftInfo.type === 'day') {
                 el.classList.add('shift-day');
                 el.style.background = '#e3f2fd';
@@ -1382,7 +1409,6 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
                 el.style.fontWeight = 'bold';
             }
             
-            // Добавляем индикатор типа смены
             const shiftIndicator = document.createElement('span');
             shiftIndicator.textContent = shiftInfo.type === 'day' ? 'Д' : 'Н';
             shiftIndicator.style.fontSize = '10px';
