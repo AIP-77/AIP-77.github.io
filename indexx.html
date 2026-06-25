@@ -1116,7 +1116,7 @@ async function renderCalendarForMonth(monthKey) {
             }
         });
         renderCalendarGrid(year, month, userDates);
-        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'ь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         prevMonthBtn.disabled = currentMonthIndex === 0;
         nextMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
@@ -1255,7 +1255,7 @@ async function renderShiftCalendarForMonth(monthKey) {
         // Отображаем календарь
         renderShiftCalendarGrid(year, month, records, employeeShiftNumber);
         
-        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'ь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         currentShiftMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
         
         // Обновляем кнопки
@@ -1320,7 +1320,7 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         
         const dateObj = new Date(year, monthNum - 1, day);
         const dayNamesFull = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-        const monthNamesShort = ['янв', 'февр', 'мар', 'апр', 'мая', 'июн.', 'июл.', 'авг', 'сент', 'окт', 'нояб', 'дек'];
+        const monthNamesShort = ['янв', 'февр', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сент', 'окт', 'нояб', 'дек'];
         const dayName = dayNamesFull[dateObj.getDay()];
         const monthName = monthNamesShort[dateObj.getMonth()];
         
