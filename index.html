@@ -338,6 +338,31 @@ select, input {
     border-radius: 3px; 
     font-size: 11px;
 }
+/* Стили для графика смен */
+.shift-day {
+    background: #e3f2fd !important;
+    border: 2px solid #90caf9 !important;
+    color: #1565c0 !important;
+    font-weight: bold;
+}
+
+.shift-night {
+    background: #37474f !important;
+    border: 2px solid #546e7a !important;
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+.shift-number {
+    font-size: 10px;
+    display: block;
+    margin-top: 2px;
+}
+
+.shift-type {
+    font-size: 9px;
+    opacity: 0.9;
+}  
 
 /* === ФОРМА АВТОРИЗАЦИИ - ОДИН ЧИСТЫЙ БЛОК === */
 #auth-form {
@@ -471,14 +496,14 @@ select, input {
     <div id="auth-form">
     <div class="card">
         <h2>🔐 Авторизация</h2>
-        <p>Введите ваш Telegram ID или пароль сотрудника</p>
-        <input type="text" id="auth-input" placeholder="Telegram ID или пароль" autocomplete="off" />
+        <p>Введите ваш Telegram ID или парол сотрудника</p>
+        <input type="text" id="auth-input" placeholder="Telegram ID или парол" autocomplete="off" />
         <button id="auth-submit" class="refresh-btn">Войти</button>
     </div>
 </div>
 
-    <h1>📊 Персональная панель</h1>
-    <div id="version-info" class="version-info">(🛠 V.2026.06.16 🛠)</div>
+    <h1>📊 Персоналная панел</h1>
+    <div id="version-info" class="version-info">(🛠 V.2026.06.26 🛠)</div>
     <div id="banner" class="banner"></div>
     
     <div class="tabs">
@@ -513,6 +538,7 @@ select, input {
             <div id="main-data-content" class="hidden fade">
                 <p><strong>Сотрудник:</strong> <span id="name">—</span></p>
                 <p><strong>Отдел:</strong> <span id="department">—</span></p>
+                <p><strong>📋 Номер смены:</strong> <span id="shift-number">—</span></p>
                 <p><strong>Дата:</strong> <span id="date">—</span></p>
                 <p><strong>Отработано:</strong> <span id="worked">—</span></p>
                 <p><strong>Рабочее время:</strong> <span id="planned">—</span></p>
@@ -552,6 +578,56 @@ select, input {
                 <div class="calendar" id="calendar"></div>
             </div>
         </div>
+     <!-- График смен -->
+<!-- График смен -->
+<div class="card">
+    <h2>📅 График смен</h2>
+    
+    <!-- === ДОБАВЛЕНО: Информация о текущей смене === -->
+    <div id="shift-info-block" style="background: var(--hover-bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--tg-text-color);">
+                    📋 Ваша смена: <span id="current-shift-number" style="color: var(--tg-link-color);">—</span>
+                </div>
+                <div style="font-size: 13px; color: var(--tg-text-color); margin-top: 4px;">
+                    👨‍💼 Руководитель: <span id="shift-manager-name" style="font-weight: 500;">—</span>
+                </div>
+            </div>
+            <div id="shift-type-indicator" style="padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: none;">
+                <!-- Заполняется динамически -->
+            </div>
+        </div>
+    </div>
+    
+    <div id="shift-loading" class="loading">
+        <div class="spinner"></div>
+        <p>Загрузка графика...</p>
+    </div>
+    <div id="shift-content" class="hidden">
+        <div class="month-selector">
+            <button id="prevShiftMonth">◀</button>
+            <span id="currentShiftMonth">Загрузка...</span>
+            <button id="nextShiftMonth">▶</button>
+        </div>
+        <div class="calendar" id="shiftCalendar"></div>
+        <div style="margin-top: 10px; font-size: 12px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 20px; background: #e3f2fd; border-radius: 4px; border: 1px solid #90caf9;"></div>
+                <span>Дневная смена</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 20px; background: #37474f; border-radius: 4px; border: 1px solid #546e7a;"></div>
+                <span>Ночная смена</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 20px; background: var(--tg-bg-color); border-radius: 4px; border: 1px solid var(--tg-hint-color);"></div>
+                <span>Выходной</span>
+            </div>
+        </div>
+    </div>
+</div>
+      
     </div>
 
     <!-- Вкладка "Отдел" -->
@@ -662,6 +738,16 @@ const departmentReport = document.getElementById('department-report');
 const changeDepartmentBtn = document.getElementById('change-department-btn');
 const deptDataLoading = document.getElementById('dept-data-loading');
 const deptDataContent = document.getElementById('dept-data-content');
+
+const shiftLoading = document.getElementById('shift-loading');
+const shiftContent = document.getElementById('shift-content');
+const shiftCalendar = document.getElementById('shiftCalendar');
+const prevShiftMonthBtn = document.getElementById('prevShiftMonth');
+const nextShiftMonthBtn = document.getElementById('nextShiftMonth');
+const currentShiftMonthSpan = document.getElementById('currentShiftMonth');
+let availableShiftMonths = [];
+let currentShiftMonthIndex = 0;  
+  
 
 // ============================================
 // 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -1125,6 +1211,273 @@ async function loadRecordByDate(year, month, day) {
     }
 }
 
+ // === ГРАФИК СМЕН ===
+async function loadShiftSchedule() {
+    try {
+        shiftLoading.classList.remove('hidden');
+        shiftContent.classList.add('hidden');
+        
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        
+        // === ИСПРАВЛЕНО: Создаем список месяцев (5 назад + 3 вперёд) ===
+        availableShiftMonths = [];
+        
+        // Прошлые месяцы (5 штук)
+        for (let i = 5; i >= 1; i--) {
+            const date = new Date(currentYear, currentMonth - 1 - i, 1);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            availableShiftMonths.push(`${year}-${month.toString().padStart(2, '0')}`);
+        }
+        
+        // Текущий и будущие месяцы (4 штуки вперёд)
+        for (let i = 0; i <= 3; i++) {
+            const date = new Date(currentYear, currentMonth - 1 + i, 1);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            availableShiftMonths.push(`${year}-${month.toString().padStart(2, '0')}`);
+        }
+        
+        if (availableShiftMonths.length === 0) {
+            shiftLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+            return;
+        }
+        
+        // Начинаем с текущего месяца (индекс 5 — это текущий месяц)
+        currentShiftMonthIndex = 5;
+        await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+        
+    } catch (err) {
+        console.error('Ошибка загрузки графика смен:', err);
+        shiftLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка загрузки</p>';
+    }
+}
+
+async function renderShiftCalendarForMonth(monthKey) {
+    try {
+        const [yearStr, monthStr] = monthKey.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        
+        // Загружаем график смен и данные сотрудников
+        const shiftData = await fetchData('https://AIP-77.github.io/archive/shift%20schedule.json');
+        const records = normalizeRecords(shiftData);
+        
+        const staffData = await fetchData(DATA_SOURCES.staff);
+        const staffRecords = normalizeRecords(staffData);
+        
+        // Получаем номер смены текущего сотрудника
+        const employeeShiftNumber = staffRecords.find(r => 
+            r['Сотрудник'] === currentUserData.name
+        )?.['Смена'] || null;
+        
+        // === ДОБАВЛЕНО: Ищем руководителя смены ===
+        // Руководитель - это сотрудник, у которого в поле "Руководит отделом" указан номер смены пользователя
+        let managerName = null;
+        if (employeeShiftNumber) {
+            const managerRecord = staffRecords.find(r => 
+                String(r['Руководит отделом'] || '').trim() === String(employeeShiftNumber).trim()
+            );
+            if (managerRecord) {
+                managerName = managerRecord['Сотрудник'];
+            }
+        }
+        
+        console.log('=== ИНФОРМАЦИЯ О СМЕНЕ ===');
+        console.log('Номер смены пользователя:', employeeShiftNumber);
+        console.log('Руководитель смены:', managerName);
+        
+        // === ДОБАВЛЕНО: Обновляем информационный блок в шапке ===
+        const shiftInfoBlock = document.getElementById('shift-info-block');
+        const shiftNumberSpan = document.getElementById('current-shift-number');
+        const managerNameSpan = document.getElementById('shift-manager-name');
+        const shiftTypeIndicator = document.getElementById('shift-type-indicator');
+        
+        if (employeeShiftNumber) {
+            shiftInfoBlock.style.display = 'block';
+            shiftNumberSpan.textContent = `№ ${employeeShiftNumber}`;
+            managerNameSpan.textContent = managerName || 'Не указан';
+            
+            // Определяем тип смены по графику (для текущего месяца)
+            // Ищем первую запись с этой сменой
+            const shiftColumns = [
+                { name: 'День 12/7', type: 'day', label: 'День 12/7' },
+                { name: 'День 24/7', type: 'day', label: 'День 24/7' },
+                { name: 'Ночь 24/7', type: 'night', label: 'Ночь 24/7' },
+                { name: 'День 8/5', type: 'day', label: 'День 8/5' }
+            ];
+            
+            let shiftType = null;
+            let shiftLabel = null;
+            for (const col of shiftColumns) {
+                // Проверяем, есть ли этот номер смены в данной колонке
+                const hasShift = records.some(r => {
+                    const value = String(r[col.name] || '').trim();
+                    return value === String(employeeShiftNumber).trim();
+                });
+                if (hasShift) {
+                    shiftType = col.type;
+                    shiftLabel = col.label;
+                    break;
+                }
+            }
+            
+            if (shiftType) {
+                shiftTypeIndicator.style.display = 'inline-block';
+                if (shiftType === 'day') {
+                    shiftTypeIndicator.style.background = '#e3f2fd';
+                    shiftTypeIndicator.style.color = '#1565c0';
+                    shiftTypeIndicator.style.border = '1px solid #90caf9';
+                    shiftTypeIndicator.textContent = `☀️ ${shiftLabel}`;
+                } else {
+                    shiftTypeIndicator.style.background = '#37474f';
+                    shiftTypeIndicator.style.color = '#ffffff';
+                    shiftTypeIndicator.style.border = '1px solid #546e7a';
+                    shiftTypeIndicator.textContent = `🌙 ${shiftLabel}`;
+                }
+            }
+        } else {
+            shiftInfoBlock.style.display = 'none';
+        }
+        
+        // Отображаем календарь (без информации о смене в ячейках)
+        renderShiftCalendarGrid(year, month, records, employeeShiftNumber);
+        
+        const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        currentShiftMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+        
+        prevShiftMonthBtn.disabled = currentShiftMonthIndex === 0;
+        nextShiftMonthBtn.disabled = currentShiftMonthIndex === availableShiftMonths.length - 1;
+        
+        shiftLoading.classList.add('hidden');
+        shiftContent.classList.remove('hidden');
+        
+    } catch (err) {
+        console.error('Ошибка отображения графика смен:', err);
+        shiftLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
+    }
+}
+
+function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
+    shiftCalendar.innerHTML = '';
+    
+    // Заголовки дней недели
+    const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    dayNames.forEach(day => {
+        const el = document.createElement('div');
+        el.textContent = day;
+        el.style.fontWeight = 'bold';
+        el.style.backgroundColor = 'var(--tg-bg-color)';
+        el.style.padding = '6px 0';
+        el.style.borderRadius = '6px';
+        el.style.textAlign = 'center';
+        shiftCalendar.appendChild(el);
+    });
+    
+    const firstDay = new Date(year, monthNum - 1, 1);
+    const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+    const lastDayNum = new Date(year, monthNum, 0).getDate();
+    
+    for (let i = 0; i < startDay; i++) {
+        shiftCalendar.appendChild(document.createElement('div'));
+    }
+    
+    for (let day = 1; day <= lastDayNum; day++) {
+        const el = document.createElement('div');
+        el.className = 'day';
+        el.style.padding = '8px 0';
+        el.style.borderRadius = '6px';
+        el.style.fontSize = '14px';
+        el.style.display = 'flex';
+        el.style.flexDirection = 'column';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.minHeight = '40px';
+        
+        const dateObj = new Date(year, monthNum - 1, day);
+        const dayNamesFull = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+        const monthNamesShort = ['янв', 'февр', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сент', 'окт', 'нояб', 'дек'];
+        const dayName = dayNamesFull[dateObj.getDay()];
+        const monthName = monthNamesShort[dateObj.getMonth()];
+        
+        let shiftInfo = null;
+        if (employeeShiftNumber) {
+            const dayRecord = records.find(r => {
+                const recordDate = (r['дата'] || '').toLowerCase().trim();
+                const normalizedRecordDate = recordDate
+                    .replace(/\s+/g, ' ')
+                    .replace(/\./g, '')
+                    .replace(/,/g, '')
+                    .trim();
+                
+                const searchPattern = `${dayName} ${day} ${monthName}`;
+                return normalizedRecordDate.includes(searchPattern);
+            });
+            
+            if (dayRecord) {
+                const shiftColumns = [
+                    { name: 'День 12/7', type: 'day' },
+                    { name: 'День 24/7', type: 'day' },
+                    { name: 'Ночь 24/7', type: 'night' },
+                    { name: 'День 8/5', type: 'day' }
+                ];
+                
+                for (const col of shiftColumns) {
+                    const value = String(dayRecord[col.name] || '').trim();
+                    if (value && value === String(employeeShiftNumber).trim()) {
+                        shiftInfo = {
+                            type: col.type,
+                            number: value,
+                            columnName: col.name
+                        };
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Номер дня
+        const dayNumber = document.createElement('span');
+        dayNumber.textContent = day;
+        dayNumber.style.fontSize = '14px';
+        el.appendChild(dayNumber);
+        
+        if (shiftInfo) {
+            // Подсветка смены (без номера и имени руководителя)
+            if (shiftInfo.type === 'day') {
+                el.classList.add('shift-day');
+                el.style.background = '#e3f2fd';
+                el.style.border = '2px solid #90caf9';
+                el.style.color = '#1565c0';
+                el.style.fontWeight = 'bold';
+            } else {
+                el.classList.add('shift-night');
+                el.style.background = '#37474f';
+                el.style.border = '2px solid #546e7a';
+                el.style.color = '#ffffff';
+                el.style.fontWeight = 'bold';
+            }
+            
+            // Только индикатор типа смены (Д/Н)
+            const shiftIndicator = document.createElement('span');
+            shiftIndicator.textContent = shiftInfo.type === 'day' ? 'Д' : 'Н';
+            shiftIndicator.style.fontSize = '10px';
+            shiftIndicator.style.marginTop = '2px';
+            el.appendChild(shiftIndicator);
+            
+            el.title = `Смена ${shiftInfo.number} (${shiftInfo.columnName})`;
+            el.style.cursor = 'pointer';
+        } else {
+            el.style.color = 'var(--tg-hint-color)';
+            el.title = 'Выходной';
+        }
+        
+        shiftCalendar.appendChild(el);
+    }
+}
+
 // ============================================
 // 6. ОТДЕЛ
 // ============================================
@@ -1281,6 +1634,7 @@ async function loadUserData() {
             name: userRecord['Сотрудник'],
             department: userRecord['Отдел'],
             role: userRecord['Роль'],
+            shiftNumber: userRecord['Смена'] || '—', // === ДОБАВЛЕНО: Номер смены ===
             managedDepartments: userRecord['Руководит отделом'] ? [userRecord['Руководит отделом']] : []
         };
         
@@ -1324,6 +1678,7 @@ async function loadUserData() {
         updateVersionInfo();
         await generatePersonalReport();
         await loadCalendarData();
+        await loadShiftSchedule();
         renderUI();
         loading.classList.add('hidden');
     } catch (err) {
@@ -1386,6 +1741,7 @@ function updateMainData() {
     if (!currentUserData || !currentRecord) return;
     document.getElementById('name').textContent = currentUserData.name;
     document.getElementById('department').textContent = currentUserData.department;
+    document.getElementById('shift-number').textContent = currentUserData.shiftNumber || '—';
     document.getElementById('date').textContent = currentRecord.date;
     document.getElementById('worked').textContent = currentRecord.worked;
     document.getElementById('planned').textContent = currentRecord.planned;
@@ -1459,13 +1815,30 @@ prevMonthBtn.addEventListener('click', async () => {
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
     }
 });
-
 nextMonthBtn.addEventListener('click', async () => {
     if (currentMonthIndex < availableMonths.length - 1) {
         currentMonthIndex++;
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
     }
+});    
+    
+// === НОВЫЕ: Обработчики для графика смен ===
+prevShiftMonthBtn.addEventListener('click', async () => {
+    if (currentShiftMonthIndex > 0) {
+        currentShiftMonthIndex--;
+        await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+    }
 });
+
+// === ДОБАВЛЕНО: Обработчик для следующей кнопки ===
+nextShiftMonthBtn.addEventListener('click', async () => {
+    if (currentShiftMonthIndex < availableShiftMonths.length - 1) {
+        currentShiftMonthIndex++;
+        await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+    }
+});  
+
+
 
 refreshBtn.addEventListener('click', async () => {
     refreshBtn.disabled = true;
