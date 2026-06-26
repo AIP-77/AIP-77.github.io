@@ -579,8 +579,27 @@ select, input {
             </div>
         </div>
      <!-- График смен -->
+<!-- График смен -->
 <div class="card">
     <h2>📅 График смен</h2>
+    
+    <!-- === ДОБАВЛЕНО: Информация о текущей смене === -->
+    <div id="shift-info-block" style="background: var(--hover-bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--tg-text-color);">
+                    📋 Ваша смена: <span id="current-shift-number" style="color: var(--tg-link-color);">—</span>
+                </div>
+                <div style="font-size: 13px; color: var(--tg-text-color); margin-top: 4px;">
+                    👨‍💼 Руководитель: <span id="shift-manager-name" style="font-weight: 500;">—</span>
+                </div>
+            </div>
+            <div id="shift-type-indicator" style="padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: none;">
+                <!-- Заполняется динамически -->
+            </div>
+        </div>
+    </div>
+    
     <div id="shift-loading" class="loading">
         <div class="spinner"></div>
         <p>Загрузка графика...</p>
@@ -607,7 +626,7 @@ select, input {
             </div>
         </div>
     </div>
-</div> 
+</div>
       
     </div>
 
@@ -1254,20 +1273,77 @@ async function renderShiftCalendarForMonth(monthKey) {
             r['Сотрудник'] === currentUserData.name
         )?.['Смена'] || null;
         
-        // === ДОБАВЛЕНО: Создаем карту "номер смены → руководитель" ===
-        const shiftToManager = {};
-        staffRecords.forEach(record => {
-            const shiftNum = record['Смена'];
-            const manager = record['Руководит отделом'];
-            if (shiftNum && manager && !shiftToManager[shiftNum]) {
-                shiftToManager[shiftNum] = manager;
+        // === ДОБАВЛЕНО: Ищем руководителя смены ===
+        // Руководитель - это сотрудник, у которого в поле "Руководит отделом" указан номер смены пользователя
+        let managerName = null;
+        if (employeeShiftNumber) {
+            const managerRecord = staffRecords.find(r => 
+                String(r['Руководит отделом'] || '').trim() === String(employeeShiftNumber).trim()
+            );
+            if (managerRecord) {
+                managerName = managerRecord['Сотрудник'];
             }
-        });
+        }
         
-        console.log('Карта смен и руководителей:', shiftToManager);
+        console.log('=== ИНФОРМАЦИЯ О СМЕНЕ ===');
+        console.log('Номер смены пользователя:', employeeShiftNumber);
+        console.log('Руководитель смены:', managerName);
         
-        // Отображаем календарь с дополнительной информацией
-        renderShiftCalendarGrid(year, month, records, employeeShiftNumber, shiftToManager);
+        // === ДОБАВЛЕНО: Обновляем информационный блок в шапке ===
+        const shiftInfoBlock = document.getElementById('shift-info-block');
+        const shiftNumberSpan = document.getElementById('current-shift-number');
+        const managerNameSpan = document.getElementById('shift-manager-name');
+        const shiftTypeIndicator = document.getElementById('shift-type-indicator');
+        
+        if (employeeShiftNumber) {
+            shiftInfoBlock.style.display = 'block';
+            shiftNumberSpan.textContent = `№ ${employeeShiftNumber}`;
+            managerNameSpan.textContent = managerName || 'Не указан';
+            
+            // Определяем тип смены по графику (для текущего месяца)
+            // Ищем первую запись с этой сменой
+            const shiftColumns = [
+                { name: 'День 12/7', type: 'day', label: 'День 12/7' },
+                { name: 'День 24/7', type: 'day', label: 'День 24/7' },
+                { name: 'Ночь 24/7', type: 'night', label: 'Ночь 24/7' },
+                { name: 'День 8/5', type: 'day', label: 'День 8/5' }
+            ];
+            
+            let shiftType = null;
+            let shiftLabel = null;
+            for (const col of shiftColumns) {
+                // Проверяем, есть ли этот номер смены в данной колонке
+                const hasShift = records.some(r => {
+                    const value = String(r[col.name] || '').trim();
+                    return value === String(employeeShiftNumber).trim();
+                });
+                if (hasShift) {
+                    shiftType = col.type;
+                    shiftLabel = col.label;
+                    break;
+                }
+            }
+            
+            if (shiftType) {
+                shiftTypeIndicator.style.display = 'inline-block';
+                if (shiftType === 'day') {
+                    shiftTypeIndicator.style.background = '#e3f2fd';
+                    shiftTypeIndicator.style.color = '#1565c0';
+                    shiftTypeIndicator.style.border = '1px solid #90caf9';
+                    shiftTypeIndicator.textContent = `☀️ ${shiftLabel}`;
+                } else {
+                    shiftTypeIndicator.style.background = '#37474f';
+                    shiftTypeIndicator.style.color = '#ffffff';
+                    shiftTypeIndicator.style.border = '1px solid #546e7a';
+                    shiftTypeIndicator.textContent = `🌙 ${shiftLabel}`;
+                }
+            }
+        } else {
+            shiftInfoBlock.style.display = 'none';
+        }
+        
+        // Отображаем календарь (без информации о смене в ячейках)
+        renderShiftCalendarGrid(year, month, records, employeeShiftNumber);
         
         const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         currentShiftMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
@@ -1284,12 +1360,8 @@ async function renderShiftCalendarForMonth(monthKey) {
     }
 }
 
-function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber, shiftToManager) {
+function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
     shiftCalendar.innerHTML = '';
-    
-    console.log('=== ОТЛАДКА ГРАФИКА СМЕН ===');
-    console.log('Номер смены сотрудника:', employeeShiftNumber);
-    console.log('Карта руководителей:', shiftToManager);
     
     // Заголовки дней недели
     const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -1322,7 +1394,7 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber, s
         el.style.flexDirection = 'column';
         el.style.alignItems = 'center';
         el.style.justifyContent = 'center';
-        el.style.minHeight = '50px';
+        el.style.minHeight = '40px';
         
         const dateObj = new Date(year, monthNum - 1, day);
         const dayNamesFull = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
@@ -1358,8 +1430,7 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber, s
                         shiftInfo = {
                             type: col.type,
                             number: value,
-                            columnName: col.name,
-                            manager: shiftToManager[value] || 'Не указан' // === ДОБАВЛЕНО: Руководитель ===
+                            columnName: col.name
                         };
                         break;
                     }
@@ -1374,7 +1445,7 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber, s
         el.appendChild(dayNumber);
         
         if (shiftInfo) {
-            // Подсветка смены
+            // Подсветка смены (без номера и имени руководителя)
             if (shiftInfo.type === 'day') {
                 el.classList.add('shift-day');
                 el.style.background = '#e3f2fd';
@@ -1389,27 +1460,14 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber, s
                 el.style.fontWeight = 'bold';
             }
             
-            // === ДОБАВЛЕНО: Индикатор типа смены и номер ===
+            // Только индикатор типа смены (Д/Н)
             const shiftIndicator = document.createElement('span');
-            shiftIndicator.textContent = `${shiftInfo.type === 'day' ? 'Д' : 'Н'} №${shiftInfo.number}`;
-            shiftIndicator.style.fontSize = '9px';
+            shiftIndicator.textContent = shiftInfo.type === 'day' ? 'Д' : 'Н';
+            shiftIndicator.style.fontSize = '10px';
             shiftIndicator.style.marginTop = '2px';
             el.appendChild(shiftIndicator);
             
-            // === ДОБАВЛЕНО: Имя руководителя ===
-            const managerInfo = document.createElement('span');
-            managerInfo.textContent = shiftInfo.manager;
-            managerInfo.style.fontSize = '8px';
-            managerInfo.style.marginTop = '1px';
-            managerInfo.style.opacity = '0.8';
-            managerInfo.style.maxWidth = '60px';
-            managerInfo.style.overflow = 'hidden';
-            managerInfo.style.textOverflow = 'ellipsis';
-            managerInfo.style.whiteSpace = 'nowrap';
-            el.appendChild(managerInfo);
-            
-            // Tooltip с полной информацией
-            el.title = `Смена ${shiftInfo.number} (${shiftInfo.columnName})\nРуководитель: ${shiftInfo.manager}`;
+            el.title = `Смена ${shiftInfo.number} (${shiftInfo.columnName})`;
             el.style.cursor = 'pointer';
         } else {
             el.style.color = 'var(--tg-hint-color)';
