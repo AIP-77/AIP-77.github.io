@@ -1,9 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Нормативы — AIP-77</title>
+<title>Нормативы — SAIS</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.0/index.min.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -196,6 +197,67 @@
     transition: max-height 0.4s ease;
   }
   .direction-block.open .direction-body {
+    max-height: 10000px;
+  }
+  .dept-block {
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .dept-block:last-child {
+    border-bottom: none;
+  }
+  .dept-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: #fafbfc;
+    border-bottom: 1px solid #eef2f7;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .dept-header:hover {
+    background: #f1f5f9;
+  }
+  .dept-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    background: #dbeafe;
+    color: #1e40af;
+    flex-shrink: 0;
+  }
+  .dept-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+  }
+  .dept-count {
+    font-size: 11px;
+    color: #64748b;
+    background: #e2e8f0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .dept-chevron {
+    margin-left: auto;
+    width: 18px; height: 18px;
+    transition: transform 0.3s;
+    color: #94a3b8;
+  }
+  .dept-block.open .dept-chevron {
+    transform: rotate(180deg);
+  }
+  .dept-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+  }
+  .dept-block.open .dept-body {
     max-height: 5000px;
   }
   .table-scroll {
@@ -208,14 +270,14 @@
   }
   thead th {
     background: #f8fafc;
-    padding: 12px;
+    padding: 10px 12px;
     text-align: left;
     font-weight: 600;
     color: #475569;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
     white-space: nowrap;
   }
   tbody tr {
@@ -225,7 +287,7 @@
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: #f8fafc; }
   tbody td {
-    padding: 12px;
+    padding: 10px 12px;
     vertical-align: top;
   }
   .work-cell {
@@ -265,39 +327,13 @@
     background: #dcfce7;
     color: #166534;
   }
-  .tag.dept-tag {
-    background: #fce7f3;
-    color: #9f1239;
-  }
   .price-cell {
     font-weight: 600;
     color: #059669;
     white-space: nowrap;
   }
-  .norm-cell {
-    font-weight: 500;
-    color: #1e293b;
-    white-space: nowrap;
-  }
-  .personnel-cell {
-    font-weight: 600;
-    color: #1e293b;
-  }
   .empty-cell {
     color: #cbd5e1;
-  }
-  .separator-row {
-    background: #f1f5f9;
-  }
-  .separator-row td {
-    padding: 10px 16px;
-    font-weight: 600;
-    color: #64748b;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-top: 2px solid #e2e8f0;
-    border-bottom: 1px solid #e2e8f0;
   }
   .no-results {
     text-align: center;
@@ -377,6 +413,7 @@
     .direction-header { padding: 14px 16px; }
     .direction-name { font-size: 16px; }
     .direction-icon { width: 36px; height: 36px; font-size: 18px; }
+    .dept-header { padding: 10px 16px; }
   }
 </style>
 </head>
@@ -416,12 +453,6 @@
         <input type="text" id="searchInput" placeholder="Введите название работы...">
       </div>
       <div class="filter-group">
-        <label>Отдел</label>
-        <select id="departmentFilter">
-          <option value="">Все отделы</option>
-        </select>
-      </div>
-      <div class="filter-group">
         <label>Должность</label>
         <select id="positionFilter">
           <option value="">Все должности</option>
@@ -447,7 +478,6 @@
 const RAW_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/standard.json';
 
 let allData = [];
-let groupedData = [];
 let allExpanded = false;
 
 const DIRECTION_ICONS = {
@@ -458,8 +488,27 @@ const DIRECTION_ICONS = {
   'Производство': { icon: '🏭', color: '#f59e0b', bg: '#fef3c7' },
 };
 
+const DEPT_ICONS = {
+  'Общие': '⚙️',
+  'Хранение': '📦',
+  'Разгрузка': '🚚',
+  'Размещение': '🗂️',
+  'Размещение возвратов': '↩️',
+  'Приемка': '✅',
+  'Сборка': '📋',
+  'Сборка Диски': '💿',
+  'Сборка Шины': '🛞',
+  'Отгрузка': '🚛',
+  'МП': '🏪',
+  'Производство': '🏭',
+};
+
 function getDirectionStyle(name) {
   return DIRECTION_ICONS[name] || { icon: '📦', color: '#64748b', bg: '#f1f5f9' };
+}
+
+function getDeptIcon(name) {
+  return DEPT_ICONS[name] || '🏢';
 }
 
 function formatDate(isoStr) {
@@ -487,82 +536,80 @@ function uniqueValues(arr) {
   return result;
 }
 
-function groupDataByDirection(data) {
-  const groups = {};
-  const order = [];
+function isServiceRow(row) {
+  const dir = row[0] || '';
+  const work = row[1] || '';
+  return dir === '' && (String(work).includes('Установленая') || String(work).includes('Дополнительный список'));
+}
+
+function buildHierarchy(data) {
+  // Направление -> Отдел -> Вид работ
+  const dirOrder = [];
+  const dirs = {};
   
   data.forEach(row => {
+    if (isServiceRow(row)) return;
+    
     const direction = row[0] || '';
-    const work = row[1] || '';
+    const dept = (row[10] && String(row[10]).trim()) || '';
+    const workName = row[1] || '';
     
-    // Обработка строк-разделителей
-    if (direction === '' && work.includes('Установленая Расценка')) {
-      if (!groups['__rate__']) {
-        groups['__rate__'] = { name: '__rate__', rows: [row], isSeparator: true };
-        order.push('__rate__');
-      }
-      return;
-    }
-    if (direction === '' && work.includes('Дополнительный список')) {
-      if (!groups['__separator__']) {
-        groups['__separator__'] = { name: '__separator__', rows: [row], isSeparator: true };
-        order.push('__separator__');
-      }
-      return;
+    const dirKey = direction || '(Без направления)';
+    if (!dirs[dirKey]) {
+      dirs[dirKey] = { name: dirKey, depts: {}, deptOrder: [] };
+      dirOrder.push(dirKey);
     }
     
-    const key = direction || '(Без направления)';
-    if (!groups[key]) {
-      groups[key] = { name: key, rows: [], isSeparator: false };
-      order.push(key);
+    const deptKey = dept || '(Без отдела)';
+    if (!dirs[dirKey].depts[deptKey]) {
+      dirs[dirKey].depts[deptKey] = { name: deptKey, works: {}, workOrder: [] };
+      dirs[dirKey].deptOrder.push(deptKey);
     }
-    groups[key].rows.push(row);
+    
+    if (!dirs[dirKey].depts[deptKey].works[workName]) {
+      dirs[dirKey].depts[deptKey].works[workName] = [];
+      dirs[dirKey].depts[deptKey].workOrder.push(workName);
+    }
+    dirs[dirKey].depts[deptKey].works[workName].push(row);
   });
   
-  // Внутри каждого направления группируем по виду работ
-  return order.map(key => {
-    const g = groups[key];
-    if (g.isSeparator) return g;
-    
-    const worksMap = {};
-    const worksOrder = [];
-    g.rows.forEach(row => {
-      const workName = row[1] || '';
-      if (!worksMap[workName]) {
-        worksMap[workName] = [];
-        worksOrder.push(workName);
-      }
-      worksMap[workName].push(row);
-    });
-    
-    const works = worksOrder.map(workName => {
-      const rows = worksMap[workName];
-      return {
-        name: workName,
-        groups: uniqueValues(rows.map(r => r[2])),
-        positions: uniqueValues(rows.map(r => r[3])),
-        units: uniqueValues(rows.map(r => r[4])),
-        prices: uniqueValues(rows.map(r => r[5])),
-        norm1: uniqueValues(rows.map(r => parseNorm(r[6]))),
-        norm2: uniqueValues(rows.map(r => parseNorm(r[7]))),
-        norm3: uniqueValues(rows.map(r => parseNorm(r[8]))),
-        hourlyPay: uniqueValues(rows.map(r => r[9])),
-        departments: uniqueValues(rows.map(r => r[10])),
-        personnel: uniqueValues(rows.map(r => r[11])),
-      };
-    });
-    
-    return { name: key, works, isSeparator: false };
+  return dirOrder.map(dirKey => {
+    const dir = dirs[dirKey];
+    return {
+      name: dir.name,
+      depts: dir.deptOrder.map(deptKey => {
+        const dept = dir.depts[deptKey];
+        return {
+          name: dept.name,
+          works: dept.workOrder.map(workName => {
+            const rows = dept.works[workName];
+            return {
+              name: workName,
+              groups: uniqueValues(rows.map(r => r[2])),
+              positions: uniqueValues(rows.map(r => r[3])),
+              units: uniqueValues(rows.map(r => r[4])),
+              prices: uniqueValues(rows.map(r => r[5])),
+              norm1: uniqueValues(rows.map(r => parseNorm(r[6]))),
+              personnel: uniqueValues(rows.map(r => r[11])),
+            };
+          })
+        };
+      })
+    };
   });
 }
 
 function renderTags(values, type) {
   if (!values || values.length === 0) return '<span class="empty-cell">—</span>';
   return '<div class="tags-cell">' + values.map(v => {
-    const cls = type === 'position' ? (String(v).includes('Ответственн') ? 'position-resp' : 'position-emp') :
-                type === 'unit' ? 'unit-tag' :
-                type === 'group' ? 'group-tag' :
-                type === 'dept' ? 'dept-tag' : '';
+    let cls = '';
+    if (type === 'position') {
+      cls = String(v).includes('Ответственн') ? 'position-resp' : 'position-emp';
+    } else if (type === 'unit') {
+      cls = 'unit-tag';
+    } else if (type === 'group') {
+      cls = 'group-tag';
+    }
     return `<span class="tag ${cls}">${v}</span>`;
   }).join('') + '</div>';
 }
@@ -582,11 +629,11 @@ function renderPriceTags(values) {
   ).join('') + '</div>';
 }
 
-function renderBlocks(data) {
+function renderBlocks(hierarchy) {
   const container = document.getElementById('blocksContainer');
   container.innerHTML = '';
   
-  if (data.length === 0) {
+  if (hierarchy.length === 0) {
     container.innerHTML = `
       <div class="no-results">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -597,35 +644,65 @@ function renderBlocks(data) {
   }
   
   let totalWorks = 0;
-  data.forEach(g => {
-    if (!g.isSeparator && g.works) totalWorks += g.works.length;
+  let totalDepts = 0;
+  hierarchy.forEach(d => {
+    totalDepts += d.depts.length;
+    d.depts.forEach(dept => totalWorks += dept.works.length);
   });
   document.getElementById('resultsCount').innerHTML = 
-    `Найдено: <strong>${data.filter(g => !g.isSeparator).length}</strong> направлений, <strong>${totalWorks}</strong> видов работ`;
+    `Найдено: <strong>${hierarchy.length}</strong> направлений · <strong>${totalDepts}</strong> отделов · <strong>${totalWorks}</strong> видов работ`;
   
-  data.forEach((group, idx) => {
-    if (group.isSeparator) {
-      const sep = document.createElement('div');
-      sep.className = 'direction-block';
-      const row = group.rows[0];
-      sep.innerHTML = `
-        <div style="padding:14px 24px;background:#f1f5f9;border-radius:14px;margin-bottom:8px;">
-          <div style="font-weight:600;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">
-            📌 ${row[1]}
-          </div>
-        </div>`;
-      container.appendChild(sep);
-      return;
-    }
-    
-    const style = getDirectionStyle(group.name);
+  hierarchy.forEach((dir, idx) => {
+    const style = getDirectionStyle(dir.name);
     const block = document.createElement('div');
     block.className = 'direction-block' + (idx === 0 ? ' open' : '');
-    block.dataset.direction = group.name;
     
-    const worksCount = group.works.length;
-    const depts = new Set();
-    group.works.forEach(w => w.departments.forEach(d => d && depts.add(d)));
+    const totalWorksInDir = dir.depts.reduce((s, d) => s + d.works.length, 0);
+    
+    let deptsHtml = '';
+    dir.depts.forEach((dept, dIdx) => {
+      const deptIcon = getDeptIcon(dept.name);
+      deptsHtml += `
+        <div class="dept-block${dIdx === 0 ? ' open' : ''}">
+          <div class="dept-header">
+            <div class="dept-icon">${deptIcon}</div>
+            <div class="dept-name">${dept.name}</div>
+            <div class="dept-count">${dept.works.length} вид. работ</div>
+            <svg class="dept-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="dept-body">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Вид работ</th>
+                    <th>Группа товара</th>
+                    <th>Должность</th>
+                    <th>Ед. расчёта</th>
+                    <th>Расценка</th>
+                    <th>Норматив 1</th>
+                    <th>Персонал</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${dept.works.map(w => `
+                    <tr>
+                      <td class="work-cell">${w.name}</td>
+                      <td>${renderTags(w.groups, 'group')}</td>
+                      <td>${renderTags(w.positions, 'position')}</td>
+                      <td>${renderTags(w.units, 'unit')}</td>
+                      <td>${renderPriceTags(w.prices)}</td>
+                      <td>${renderNormTags(w.norm1)}</td>
+                      <td>${w.personnel.length > 0 ? renderTags(w.personnel) : '<span class="empty-cell">—</span>'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    });
     
     block.innerHTML = `
       <div class="direction-header">
@@ -634,51 +711,16 @@ function renderBlocks(data) {
             ${style.icon}
           </div>
           <div>
-            <div class="direction-name">${group.name}</div>
+            <div class="direction-name">${dir.name}</div>
             <div class="direction-meta">
-              ${worksCount} видов работ${depts.size > 0 ? ' · ' + Array.from(depts).join(', ') : ''}
+              ${dir.depts.length} отделов · ${totalWorksInDir} видов работ
             </div>
           </div>
         </div>
         <svg class="direction-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </div>
       <div class="direction-body">
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Вид работ</th>
-                <th>Группа товара</th>
-                <th>Должность</th>
-                <th>Ед. расчёта</th>
-                <th>Расценка</th>
-                <th>Норматив 1</th>
-                <th>Норматив 2</th>
-                <th>Норматив 3</th>
-                <th>ЗП за час</th>
-                <th>Отдел</th>
-                <th>Персонал</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${group.works.map(w => `
-                <tr>
-                  <td class="work-cell">${w.name}</td>
-                  <td>${renderTags(w.groups, 'group')}</td>
-                  <td>${renderTags(w.positions, 'position')}</td>
-                  <td>${renderTags(w.units, 'unit')}</td>
-                  <td>${renderPriceTags(w.prices)}</td>
-                  <td>${renderNormTags(w.norm1)}</td>
-                  <td>${renderNormTags(w.norm2)}</td>
-                  <td>${renderNormTags(w.norm3)}</td>
-                  <td>${renderPriceTags(w.hourlyPay)}</td>
-                  <td>${renderTags(w.departments, 'dept')}</td>
-                  <td>${w.personnel.length > 0 ? renderTags(w.personnel) : '<span class="empty-cell">—</span>'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
+        ${deptsHtml}
       </div>
     `;
     
@@ -686,54 +728,40 @@ function renderBlocks(data) {
       block.classList.toggle('open');
     });
     
+    block.querySelectorAll('.dept-header').forEach(header => {
+      header.addEventListener('click', (e) => {
+        e.stopPropagation();
+        header.parentElement.classList.toggle('open');
+      });
+    });
+    
     container.appendChild(block);
-  });
-}
-
-function populateFilters() {
-  const departments = new Set();
-  allData.forEach(r => {
-    const d = r[10];
-    if (d && String(d).trim()) departments.add(String(d).trim());
-  });
-  const deptSelect = document.getElementById('departmentFilter');
-  departments.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d; opt.textContent = d;
-    deptSelect.appendChild(opt);
   });
 }
 
 function applyFilters() {
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
-  const department = document.getElementById('departmentFilter').value;
   const position = document.getElementById('positionFilter').value;
   
-  // Сначала фильтруем исходные строки
   const filteredRaw = allData.filter(row => {
+    if (isServiceRow(row)) return false;
+    
     const dir = row[0] || '';
     const work = row[1] || '';
     const pos = row[3] || '';
-    const dept = row[10] || '';
     const group = row[2] || '';
-    
-    // Пропускаем строки-разделители при поиске
-    if (dir === '' && (String(work).includes('Установленая') || String(work).includes('Дополнительный список'))) {
-      return true;
-    }
     
     const matchSearch = !search || 
       String(work).toLowerCase().includes(search) || 
       String(dir).toLowerCase().includes(search) ||
       String(group).toLowerCase().includes(search);
-    const matchDept = !department || dept === department;
     const matchPos = !position || String(pos).includes(position);
     
-    return matchSearch && matchDept && matchPos;
+    return matchSearch && matchPos;
   });
   
-  const grouped = groupDataByDirection(filteredRaw);
-  renderBlocks(grouped);
+  const hierarchy = buildHierarchy(filteredRaw);
+  renderBlocks(hierarchy);
 }
 
 async function loadData() {
@@ -747,23 +775,23 @@ async function loadData() {
     document.getElementById('updateDate').textContent = formatDate(json.lastUpdated);
     document.getElementById('updateBadge').style.display = 'inline-flex';
     
-    populateFilters();
     applyFilters();
     
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = 'block';
     
     document.getElementById('searchInput').addEventListener('input', applyFilters);
-    document.getElementById('departmentFilter').addEventListener('change', applyFilters);
     document.getElementById('positionFilter').addEventListener('change', applyFilters);
     
     document.getElementById('collapseAllBtn').addEventListener('click', () => {
       allExpanded = !allExpanded;
       document.querySelectorAll('.direction-block').forEach(b => {
-        if (b.querySelector('.direction-header')) {
-          if (allExpanded) b.classList.add('open');
-          else b.classList.remove('open');
-        }
+        if (allExpanded) b.classList.add('open');
+        else b.classList.remove('open');
+      });
+      document.querySelectorAll('.dept-block').forEach(b => {
+        if (allExpanded) b.classList.add('open');
+        else b.classList.remove('open');
       });
       document.getElementById('collapseBtnText').textContent = allExpanded ? 'Свернуть все' : 'Развернуть все';
     });
@@ -784,4 +812,4 @@ loadData();
 
 </body>
 </html>
-
+```
