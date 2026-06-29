@@ -488,6 +488,8 @@ select, input {
         gap: 8px;
     }
 }
+
+    
 /* Стили для карточки с нарушением */
 .task-item.violation {
     background: #fff3e0 !important;
@@ -497,6 +499,20 @@ select, input {
 .task-item.violation .task-time-info {
     color: #e65100 !important;
 }
+
+ /* Стили для календаря с нарушениями */
+.day.violation {
+    background: #ffcc80 !important;
+    color: #e65100 !important;
+    font-weight: bold;
+    border: 2px solid #ff9800;
+}
+
+.day.available {
+    background: var(--tg-link-color);
+    color: var(--tg-button-text-color);
+    font-weight: bold;
+}   
     
 </style>
 </head>
@@ -558,6 +574,14 @@ select, input {
                 <p><strong>Заработано за день:</strong> <span id="pay-day">—</span></p>
                 <p><strong>Из них сезонная доплата:</strong> <span id="xisBonusDay">—</span></p>
                 <p><strong>Заработано за месяц:</strong> <span id="pay-month">—</span></p>
+                
+                <!-- === ДОБАВЛЕНО: Уведомления о нарушениях === -->
+               <div id="violations-container" style="margin-top: 12px; padding: 12px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px; display: none;">
+                  <div style="font-weight: bold; color: #e65100; margin-bottom: 8px; font-size: 14px;">
+                     ⚠️ Обнаружены нарушения времени работы
+                  </div>
+                  <div id="violations-list" style="font-size: 13px; color: #bf360c;"></div>
+               </div>
             </div>
         </div>
         <h5>🔄 Обновление данных происходит по расписанию, если заметили неточности сообщите Руководителю</h5>
@@ -573,21 +597,37 @@ select, input {
             </div>
         </div>
 
-        <div class="card">
-            <h2>📅 Календарь посещаемости</h2>
-            <div id="calendar-loading" class="loading">
-                <div class="spinner"></div>
-                <p>Загрузка календаря...</p>
+        <!-- Календарь посещаемости -->
+<div class="card">
+    <h2> Календарь посещаемости</h2>
+    <!-- === ДОБАВЛЕНО: Счетчик нарушений === -->
+    <div id="calendar-violations-count" style="display: none; background: #fff3e0; border-left: 4px solid #ff9800; padding: 10px 12px; margin-bottom: 12px; border-radius: 4px; font-size: 13px; color: #e65100;">
+        ⚠️ Обнаружено нарушений времени работы: <strong id="violations-count-number">0</strong>
+    </div>
+    <div id="calendar-loading" class="loading">
+        <div class="spinner"></div>
+        <p>Загрузка календаря...</p>
+    </div>
+    <div id="calendar-content" class="hidden">
+        <div class="month-selector">
+            <button id="prevMonth"></button>
+            <span id="currentMonth">Загрузка...</span>
+            <button id="nextMonth">▶</button>
+        </div>
+        <div class="calendar" id="calendar"></div>
+        <!-- === ДОБАВЛЕНО: Легенда === -->
+        <div style="margin-top: 10px; font-size: 11px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 16px; height: 16px; background: var(--tg-link-color); border-radius: 3px;"></div>
+                <span>Рабочий день</span>
             </div>
-            <div id="calendar-content" class="hidden">
-                <div class="month-selector">
-                    <button id="prevMonth">◀</button>
-                    <span id="currentMonth">Загрузка...</span>
-                    <button id="nextMonth">▶</button>
-                </div>
-                <div class="calendar" id="calendar"></div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 16px; height: 16px; background: #ffcc80; border: 2px solid #ff9800; border-radius: 3px;"></div>
+                <span>Нарушение (>12ч)</span>
             </div>
         </div>
+    </div>
+</div>
      <!-- График смен -->
 <!-- График смен -->
 <div class="card">
@@ -1022,26 +1062,47 @@ function renderGroupedTasks(tasks) {
         tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         return;
     }
-    const groups = groupTasksByType(tasks);
-    let html = '';
     
     // === ПРОВЕРКА НАРУШЕНИЙ ВРЕМЕНИ ===
-    let hasViolation = false;
     const violations = [];
+    const twelveHours = 12 * 3600; // 43200 секунд
     
+    tasks.forEach(task => {
+        const taskTimeSeconds = timeToSeconds(task['Рабочее время']);
+        if (taskTimeSeconds > twelveHours) {
+            const hours = Math.floor(taskTimeSeconds / 3600);
+            const minutes = Math.floor((taskTimeSeconds % 3600) / 60);
+            violations.push({
+                supply: task['Поставка'] || '—',
+                hours: hours,
+                minutes: minutes,
+                workType: task['Вид работ'] || 'Другие виды работ'
+            });
+        }
+    });
+    
+    // === ОТОБРАЖЕНИЕ УВЕДОМЛЕНИЙ ===
+    const violationsContainer = document.getElementById('violations-container');
+    const violationsList = document.getElementById('violations-list');
+    
+    if (violations.length > 0) {
+        violationsContainer.style.display = 'block';
+        violationsList.innerHTML = violations.map(v => 
+            `• Задача №${v.supply} закрыта через ${v.hours} часов ${v.minutes} минут <br>` +
+            `<span style="font-size: 11px; margin-left: 15px;">(просьба сообщить руководителю для корректировки времени)</span>`
+        ).join('');
+    } else {
+        violationsContainer.style.display = 'none';
+    }
+    
+    // === ОСТАЛЬНОЙ КОД ГРУППИРОВКИ ===
+    const groups = groupTasksByType(tasks);
+    let html = '';
     Object.keys(groups).sort().forEach(workType => {
         const group = groups[workType];
         const totalTimeFormatted = secondsToTime(group.totalTime);
         const totalPayFormatted = formatCurrency(group.totalPay);
         const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
-        
-        // === ДОБАВЛЕНО: Расчет среднего норматива для группы ===
-        let avgNormativeHtml = '';
-        if (group.normativeValues && group.normativeValues.length > 0) {
-            const avgNorm = Math.round((group.normativeValues.reduce((a, b) => a + b, 0) / group.normativeValues.length) * 100) / 100;
-            const normColor = getNormativeColor(avgNorm);
-            avgNormativeHtml = `<div class="task-group-summary-item"><span>📊</span><span style="color: ${normColor};">Ср: ${avgNorm}%</span></div>`;
-        }
         
         html += `
         <div class="task-group">
@@ -1054,7 +1115,7 @@ function renderGroupedTasks(tasks) {
         <span>${group.totalCount.toFixed(2)} ед.</span>
         </div>
         <div class="task-group-summary-item">
-        <span>️</span>
+        <span>⏱️</span>
         <span>${totalTimeFormatted}</span>
         </div>
         <div class="task-group-summary-item">
@@ -1063,11 +1124,10 @@ function renderGroupedTasks(tasks) {
         </div>
         ${group.totalXisBonus > 0 ? `
         <div class="task-group-summary-item">
-        <span></span>
+        <span>🎁</span>
         <span class="seasonal-bonus">${totalXisBonusFormatted}</span>
         </div>
         ` : ''}
-        ${avgNormativeHtml}
         </div>
         </div>
         <div class="expand-icon">▼</div>
@@ -1076,47 +1136,24 @@ function renderGroupedTasks(tasks) {
         `;
         
         group.tasks.forEach((task, index) => {
-            // === ПРОВЕРКА: Время работы > 12 часов ===
-            const taskTimeSeconds = timeToSeconds(task.time);
-            const twelveHours = 12 * 3600; // 43200 секунд
+            const taskTimeSeconds = timeToSeconds(task['Рабочее время']);
             const isViolation = taskTimeSeconds > twelveHours;
-            
-            if (isViolation) {
-                hasViolation = true;
-                violations.push({
-                    workType: workType,
-                    time: task.time,
-                    count: task.count,
-                    supply: task.supply
-                });
-            }
-            
-            const normativeColor = getNormativeColor(task.normative);
-            const normativeDisplay = (task.normative !== null && task.normative !== undefined && task.normative !== '') 
-                ? `${task.normative}%` 
-                : '—';
-            
-            // === ДОБАВЛЕНО: Стиль для карточки с нарушением ===
             const violationStyle = isViolation 
-                ? 'background: #fff3e0; border-left: 4px solid #ff9800;' 
+                ? 'background: #fff3e0; border-left: 3px solid #ff9800;' 
                 : '';
             
             html += `
             <div class="task-item" style="${violationStyle}">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div style="flex: 1;">
-            <div>
-            <strong>${task.count.toFixed(2)} ед.</strong>
-            ${task.normative !== null && task.normative !== undefined && task.normative !== '' ? 
-                `<span class="task-normative" style="color: ${normativeColor}; margin-left: 8px;">📊 ${task.normative}%</span>` : ''}
-            ${isViolation ? '<span style="color: #ff5722; font-weight: bold; margin-left: 8px; font-size: 12px;">⚠️ Превышение 12ч</span>' : ''}
-            </div>
+            <div><strong>${task.count.toFixed(2)} ед.</strong></div>
             <div class="task-time-info">
-            <span class="task-start-time">№ ${task.supply}</span>
-            <span> | </span>
             <span class="task-start-time">Начало: ${task.startTime}</span>
             <span> | </span>
-            <span style="${isViolation ? 'color: #ff5722; font-weight: bold;' : ''}">Время работы: ${task.time}</span>
+            <span style="${isViolation ? 'color: #e65100; font-weight: bold;' : ''}">
+                Время работы: ${task.time}
+            </span>
+            ${isViolation ? '<span style="color: #ff5722; font-size: 11px; margin-left: 8px;">⚠️</span>' : ''}
             </div>
             </div>
             <div style="text-align: right;">
@@ -1129,32 +1166,9 @@ function renderGroupedTasks(tasks) {
             </div>
             `;
         });
-        html += `
-        </div>
-        </div>
-        `;
+        html += `</div></div>`;
     });
-    
-    // === ДОБАВЛЕНО: Предупреждение в начале блока ===
-    let warningHtml = '';
-    if (hasViolation) {
-        warningHtml = `
-        <div style="background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; padding: 12px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px;">
-            <div style="font-size: 24px;">⚠️</div>
-            <div style="flex: 1;">
-                <div style="font-weight: bold; color: #e65100; margin-bottom: 4px;">Обнаружено нарушение времени работы</div>
-                <div style="font-size: 13px; color: #bf360c;">
-                    Найдено задач с временем работы более 12 часов: <strong>${violations.length}</strong>
-                </div>
-                <div style="font-size: 12px; color: #bf360c; margin-top: 6px;">
-                    ${violations.map(v => `• ${v.workType} (№${v.supply}): ${v.time}`).join('<br>')}
-                </div>
-            </div>
-        </div>
-        `;
-    }
-    
-    tasksGrouped.innerHTML = warningHtml + html;
+    tasksGrouped.innerHTML = html;
 }
 
 function toggleTaskGroup(header) {
@@ -1169,18 +1183,73 @@ async function loadCalendarData() {
     try {
         calendarLoading.classList.remove('hidden');
         calendarContent.classList.add('hidden');
+        
         const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        
         availableMonths = [];
         for (let i = 5; i >= 0; i--) {
-            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            availableMonths.push(`${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`);
+            const date = new Date(currentYear, currentMonth - 1 - i, 1);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            availableMonths.push(`${year}-${month.toString().padStart(2, '0')}`);
         }
-        if (availableMonths.length === 0) throw new Error('Нет месяцев');
+        
+        if (availableMonths.length === 0) {
+            calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+            return;
+        }
+        
         currentMonthIndex = availableMonths.length - 1;
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
+        
+        // === ДОБАВЛЕНО: Подсчет и отображение нарушений ===
+        updateCalendarViolationsCount();
+        
     } catch (err) {
+        console.error('Ошибка загрузки календаря:', err);
         calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
+}
+
+// === НОВАЯ ФУНКЦИЯ: Подсчет нарушений в календаре ===
+function updateCalendarViolationsCount() {
+    if (!currentMonthData || !currentUserData) return;
+    
+    const allRecords = normalizeRecords(currentMonthData);
+    let violationCount = 0;
+    const violationDates = new Set();
+    
+    allRecords.forEach(record => {
+        if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
+            const taskTimeSeconds = timeToSeconds(record['Рабочее время']);
+            if (taskTimeSeconds > (12 * 3600)) {
+                violationCount++;
+                violationDates.add(record['Рабочий день']);
+            }
+        }
+    });
+    
+    const violationsCountBlock = document.getElementById('calendar-violations-count');
+    const violationsCountNumber = document.getElementById('violations-count-number');
+    
+    if (violationCount > 0) {
+        violationsCountBlock.style.display = 'block';
+        violationsCountNumber.textContent = `${violationCount} (в ${violationDates.size} ${getDayWord(violationDates.size)})`;
+    } else {
+        violationsCountBlock.style.display = 'none';
+    }
+}
+
+// Вспомогательная функция для склонения слова "день"
+function getDayWord(count) {
+    const lastTwo = count % 100;
+    const lastOne = count % 10;
+    if (lastTwo >= 11 && lastTwo <= 19) return 'днях';
+    if (lastOne === 1) return 'дне';
+    if (lastOne >= 2 && lastOne <= 4) return 'днях';
+    return 'днях';
 }
 
 async function renderCalendarForMonth(monthKey) {
@@ -1188,50 +1257,111 @@ async function renderCalendarForMonth(monthKey) {
         const [yearStr, monthStr] = monthKey.split('-');
         const year = Number(yearStr);
         const month = Number(monthStr);
+        
         const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
         const userDates = new Set();
-        normalizeRecords(monthData).forEach(record => {
+        const records = normalizeRecords(monthData);
+        
+        records.forEach(record => {
             if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
                 userDates.add(record['Рабочий день']);
             }
         });
+        
         renderCalendarGrid(year, month, userDates);
+        
         const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+        
         prevMonthBtn.disabled = currentMonthIndex === 0;
         nextMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
+        
         calendarLoading.classList.add('hidden');
         calendarContent.classList.remove('hidden');
+        
+        // === ДОБАВЛЕНО: Пересчет нарушений при переключении месяца ===
+        updateCalendarViolationsCount();
+        
     } catch (err) {
+        console.error('Ошибка рендеринга календаря:', err);
         calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
 }
 
 function renderCalendarGrid(year, monthNum, userDates) {
     calendar.innerHTML = '';
-    ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(day => {
+    
+    // Заголовки дней недели
+    const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    dayNames.forEach(day => {
         const el = document.createElement('div');
         el.textContent = day;
         el.style.fontWeight = 'bold';
+        el.style.backgroundColor = 'var(--tg-bg-color)';
+        el.style.padding = '6px 0';
+        el.style.borderRadius = '6px';
         el.style.textAlign = 'center';
         calendar.appendChild(el);
     });
+    
     const firstDay = new Date(year, monthNum - 1, 1);
     const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
     const lastDayNum = new Date(year, monthNum, 0).getDate();
-    for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
+    
+    // Пустые ячейки
+    for (let i = 0; i < startDay; i++) {
+        calendar.appendChild(document.createElement('div'));
+    }
+    
+    // === ПОДГОТОВКА: Собираем даты с нарушениями ===
+    const violationDates = new Set();
+    if (currentMonthData) {
+        const allRecords = normalizeRecords(currentMonthData);
+        allRecords.forEach(record => {
+            if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
+                const taskTimeSeconds = timeToSeconds(record['Рабочее время']);
+                if (taskTimeSeconds > (12 * 3600)) {
+                    violationDates.add(record['Рабочий день']);
+                }
+            }
+        });
+    }
+    
+    // Дни месяца
     for (let day = 1; day <= lastDayNum; day++) {
         const el = document.createElement('div');
         el.className = 'day';
         el.textContent = day;
-        const dateStr = `${String(day).padStart(2, '0')}.${String(monthNum).padStart(2, '0')}.${year}`;
+        el.style.padding = '8px 0';
+        el.style.borderRadius = '6px';
+        el.style.fontSize = '14px';
+        
+        const dayStr = String(day).padStart(2, '0');
+        const monthStr = String(monthNum).padStart(2, '0');
+        const dateStr = `${dayStr}.${monthStr}.${year}`;
+        
         if (userDates.has(dateStr)) {
-            el.classList.add('available');
+            // === ПРОВЕРКА НАРУШЕНИЙ ===
+            if (violationDates.has(dateStr)) {
+                // Оранжевый цвет - есть нарушения
+                el.style.background = '#ffcc80';
+                el.style.color = '#e65100';
+                el.style.fontWeight = 'bold';
+                el.style.border = '2px solid #ff9800';
+                el.title = '⚠️ Есть нарушения времени работы (>12 часов)';
+            } else {
+                // Стандартный цвет - всё в норме
+                el.style.background = 'var(--tg-link-color)';
+                el.style.color = 'var(--tg-button-text-color)';
+                el.style.fontWeight = 'bold';
+                el.title = 'Есть данные за этот день';
+            }
             el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
         } else {
             el.style.color = 'var(--tg-hint-color)';
             el.style.cursor = 'default';
         }
+        
         calendar.appendChild(el);
     }
 }
