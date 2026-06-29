@@ -597,21 +597,37 @@ select, input {
             </div>
         </div>
 
-        <div class="card">
-            <h2>📅 Календарь посещаемости</h2>
-            <div id="calendar-loading" class="loading">
-                <div class="spinner"></div>
-                <p>Загрузка календаря...</p>
+        <!-- Календарь посещаемости -->
+<div class="card">
+    <h2> Календарь посещаемости</h2>
+    <!-- === ДОБАВЛЕНО: Счетчик нарушений === -->
+    <div id="calendar-violations-count" style="display: none; background: #fff3e0; border-left: 4px solid #ff9800; padding: 10px 12px; margin-bottom: 12px; border-radius: 4px; font-size: 13px; color: #e65100;">
+        ⚠️ Обнаружено нарушений времени работы: <strong id="violations-count-number">0</strong>
+    </div>
+    <div id="calendar-loading" class="loading">
+        <div class="spinner"></div>
+        <p>Загрузка календаря...</p>
+    </div>
+    <div id="calendar-content" class="hidden">
+        <div class="month-selector">
+            <button id="prevMonth"></button>
+            <span id="currentMonth">Загрузка...</span>
+            <button id="nextMonth">▶</button>
+        </div>
+        <div class="calendar" id="calendar"></div>
+        <!-- === ДОБАВЛЕНО: Легенда === -->
+        <div style="margin-top: 10px; font-size: 11px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 16px; height: 16px; background: var(--tg-link-color); border-radius: 3px;"></div>
+                <span>Рабочий день</span>
             </div>
-            <div id="calendar-content" class="hidden">
-                <div class="month-selector">
-                    <button id="prevMonth">◀</button>
-                    <span id="currentMonth">Загрузка...</span>
-                    <button id="nextMonth">▶</button>
-                </div>
-                <div class="calendar" id="calendar"></div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 16px; height: 16px; background: #ffcc80; border: 2px solid #ff9800; border-radius: 3px;"></div>
+                <span>Нарушение (>12ч)</span>
             </div>
         </div>
+    </div>
+</div>
      <!-- График смен -->
 <!-- График смен -->
 <div class="card">
@@ -1167,18 +1183,73 @@ async function loadCalendarData() {
     try {
         calendarLoading.classList.remove('hidden');
         calendarContent.classList.add('hidden');
+        
         const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        
         availableMonths = [];
         for (let i = 5; i >= 0; i--) {
-            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            availableMonths.push(`${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`);
+            const date = new Date(currentYear, currentMonth - 1 - i, 1);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            availableMonths.push(`${year}-${month.toString().padStart(2, '0')}`);
         }
-        if (availableMonths.length === 0) throw new Error('Нет месяцев');
+        
+        if (availableMonths.length === 0) {
+            calendarLoading.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
+            return;
+        }
+        
         currentMonthIndex = availableMonths.length - 1;
         await renderCalendarForMonth(availableMonths[currentMonthIndex]);
+        
+        // === ДОБАВЛЕНО: Подсчет и отображение нарушений ===
+        updateCalendarViolationsCount();
+        
     } catch (err) {
+        console.error('Ошибка загрузки календаря:', err);
         calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
+}
+
+// === НОВАЯ ФУНКЦИЯ: Подсчет нарушений в календаре ===
+function updateCalendarViolationsCount() {
+    if (!currentMonthData || !currentUserData) return;
+    
+    const allRecords = normalizeRecords(currentMonthData);
+    let violationCount = 0;
+    const violationDates = new Set();
+    
+    allRecords.forEach(record => {
+        if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
+            const taskTimeSeconds = timeToSeconds(record['Рабочее время']);
+            if (taskTimeSeconds > (12 * 3600)) {
+                violationCount++;
+                violationDates.add(record['Рабочий день']);
+            }
+        }
+    });
+    
+    const violationsCountBlock = document.getElementById('calendar-violations-count');
+    const violationsCountNumber = document.getElementById('violations-count-number');
+    
+    if (violationCount > 0) {
+        violationsCountBlock.style.display = 'block';
+        violationsCountNumber.textContent = `${violationCount} (в ${violationDates.size} ${getDayWord(violationDates.size)})`;
+    } else {
+        violationsCountBlock.style.display = 'none';
+    }
+}
+
+// Вспомогательная функция для склонения слова "день"
+function getDayWord(count) {
+    const lastTwo = count % 100;
+    const lastOne = count % 10;
+    if (lastTwo >= 11 && lastTwo <= 19) return 'днях';
+    if (lastOne === 1) return 'дне';
+    if (lastOne >= 2 && lastOne <= 4) return 'днях';
+    return 'днях';
 }
 
 async function renderCalendarForMonth(monthKey) {
@@ -1186,21 +1257,33 @@ async function renderCalendarForMonth(monthKey) {
         const [yearStr, monthStr] = monthKey.split('-');
         const year = Number(yearStr);
         const month = Number(monthStr);
+        
         const monthData = await fetchData(DATA_SOURCES.monthlyData(year, month));
         const userDates = new Set();
-        normalizeRecords(monthData).forEach(record => {
+        const records = normalizeRecords(monthData);
+        
+        records.forEach(record => {
             if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
                 userDates.add(record['Рабочий день']);
             }
         });
+        
         renderCalendarGrid(year, month, userDates);
+        
         const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         currentMonthSpan.textContent = `${monthNames[month - 1]} ${year}`;
+        
         prevMonthBtn.disabled = currentMonthIndex === 0;
         nextMonthBtn.disabled = currentMonthIndex === availableMonths.length - 1;
+        
         calendarLoading.classList.add('hidden');
         calendarContent.classList.remove('hidden');
+        
+        // === ДОБАВЛЕНО: Пересчет нарушений при переключении месяца ===
+        updateCalendarViolationsCount();
+        
     } catch (err) {
+        console.error('Ошибка рендеринга календаря:', err);
         calendarLoading.innerHTML = '<p style="text-align:center;color:#e53935;">Ошибка</p>';
     }
 }
@@ -1230,6 +1313,20 @@ function renderCalendarGrid(year, monthNum, userDates) {
         calendar.appendChild(document.createElement('div'));
     }
     
+    // === ПОДГОТОВКА: Собираем даты с нарушениями ===
+    const violationDates = new Set();
+    if (currentMonthData) {
+        const allRecords = normalizeRecords(currentMonthData);
+        allRecords.forEach(record => {
+            if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
+                const taskTimeSeconds = timeToSeconds(record['Рабочее время']);
+                if (taskTimeSeconds > (12 * 3600)) {
+                    violationDates.add(record['Рабочий день']);
+                }
+            }
+        });
+    }
+    
     // Дни месяца
     for (let day = 1; day <= lastDayNum; day++) {
         const el = document.createElement('div');
@@ -1244,36 +1341,22 @@ function renderCalendarGrid(year, monthNum, userDates) {
         const dateStr = `${dayStr}.${monthStr}.${year}`;
         
         if (userDates.has(dateStr)) {
-            el.classList.add('available');
-            el.title = 'Есть данные за этот день';
-            el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
-            
-            // === ЦВЕТОВАЯ ИНДИКАЦИЯ: проверяем наличие нарушений ===
-            const monthData = currentMonthData;
-            if (monthData && monthData.records) {
-                const dayTasks = monthData.records.filter(record =>
-                    record['Сотрудник'] === currentUserData.name && 
-                    record['Рабочий день'] === dateStr
-                );
-                
-                const hasViolation = dayTasks.some(task => {
-                    const taskTimeSeconds = timeToSeconds(task['Рабочее время']);
-                    return taskTimeSeconds > (12 * 3600);
-                });
-                
-                if (hasViolation) {
-                    // Оранжевый цвет - есть нарушения
-                    el.style.background = '#ffcc80';
-                    el.style.color = '#e65100';
-                    el.style.fontWeight = 'bold';
-                    el.title = 'Есть нарушения времени работы (>12 часов)';
-                } else {
-                    // Стандартный цвет - всё в норме
-                    el.style.background = 'var(--tg-link-color)';
-                    el.style.color = 'var(--tg-button-text-color)';
-                    el.style.fontWeight = 'bold';
-                }
+            // === ПРОВЕРКА НАРУШЕНИЙ ===
+            if (violationDates.has(dateStr)) {
+                // Оранжевый цвет - есть нарушения
+                el.style.background = '#ffcc80';
+                el.style.color = '#e65100';
+                el.style.fontWeight = 'bold';
+                el.style.border = '2px solid #ff9800';
+                el.title = '⚠️ Есть нарушения времени работы (>12 часов)';
+            } else {
+                // Стандартный цвет - всё в норме
+                el.style.background = 'var(--tg-link-color)';
+                el.style.color = 'var(--tg-button-text-color)';
+                el.style.fontWeight = 'bold';
+                el.title = 'Есть данные за этот день';
             }
+            el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
         } else {
             el.style.color = 'var(--tg-hint-color)';
             el.style.cursor = 'default';
