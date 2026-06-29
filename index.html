@@ -10,7 +10,7 @@
     --tg-bg-color: #f0f2f5;
     --tg-text-color: #1c1e21;
     --tg-hint-color: #999;
-    --tg-link-color: #d71923;
+    --tg-link-color: #4FC3F7;
     --tg-button-color: #1a8cd8;
     --tg-button-text-color: #ffffff;
     --card-bg: #ffffff;
@@ -616,16 +616,16 @@ select, input {
         </div>
         <div class="calendar" id="calendar"></div>
         <!-- === ДОБАВЛЕНО: Легенда === -->
-        <div style="margin-top: 10px; font-size: 11px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 16px; height: 16px; background: var(--tg-link-color); border-radius: 3px;"></div>
-                <span>Рабочий день</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 16px; height: 16px; background: #ffcc80; border: 2px solid #ff9800; border-radius: 3px;"></div>
-                <span>Нарушение (>12ч)</span>
-            </div>
-        </div>
+<div style="margin-top: 10px; font-size: 11px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 5px;">
+        <div style="width: 16px; height: 16px; background: #4FC3F7; border-radius: 3px;"></div>
+        <span>Рабочий день</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 5px;">
+        <div style="width: 16px; height: 16px; background: #ffcc80; border: 2px solid #ff9800; border-radius: 3px;"></div>
+        <span>Нарушение (>12ч)</span>
+    </div>
+</div>
     </div>
 </div>
      <!-- График смен -->
@@ -1343,18 +1343,18 @@ function renderCalendarGrid(year, monthNum, userDates) {
         if (userDates.has(dateStr)) {
             // === ПРОВЕРКА НАРУШЕНИЙ ===
             if (violationDates.has(dateStr)) {
-                // Оранжевый цвет - есть нарушения
+                // === Оранжевый цвет - есть нарушения ===
                 el.style.background = '#ffcc80';
                 el.style.color = '#e65100';
                 el.style.fontWeight = 'bold';
                 el.style.border = '2px solid #ff9800';
                 el.title = '⚠️ Есть нарушения времени работы (>12 часов)';
             } else {
-                // Стандартный цвет - всё в норме
-                el.style.background = 'var(--tg-link-color)';
-                el.style.color = 'var(--tg-button-text-color)';
+                // === ИЗМЕНЕНО: Голубой цвет - всё в норме ===
+                el.style.background = '#4FC3F7';
+                el.style.color = '#ffffff';
                 el.style.fontWeight = 'bold';
-                el.title = 'Есть данные за этот день';
+                el.title = 'Рабочий день (без нарушений)';
             }
             el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
         } else {
