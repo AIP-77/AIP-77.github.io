@@ -616,23 +616,24 @@ select, input {
         </div>
         <div class="calendar" id="calendar"></div>
         <!-- === ДОБАВЛЕНО: Легенда === -->
-        <div style="margin-top: 10px; font-size: 11px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 16px; height: 16px; background: var(--tg-link-color); border-radius: 3px;"></div>
-                <span>Рабочий день</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <div style="width: 16px; height: 16px; background: #ffcc80; border: 2px solid #ff9800; border-radius: 3px;"></div>
-                <span>Нарушение (>12ч)</span>
-            </div>
-        </div>
+<div style="margin-top: 10px; font-size: 11px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 5px;">
+        <div style="width: 16px; height: 16px; background: #4FC3F7; border-radius: 3px;"></div>
+        <span>Рабочий день</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 5px;">
+        <div style="width: 16px; height: 16px; background: #ffcc80; border: 2px solid #ff9800; border-radius: 3px;"></div>
+        <span>Нарушение (>12ч)</span>
+    </div>
+</div>
     </div>
 </div>
      <!-- График смен -->
 <!-- График смен -->
 <div class="card">
     <h2>📅 График смен</h2>
-       
+     
+    
     <!-- === ДОБАВЛЕНО: Информация о текущей смене === -->
     <div id="shift-info-block" style="background: var(--hover-bg); padding: 12px; border-radius: 8px; margin-bottom: 12px; display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -1004,6 +1005,13 @@ function updateVersionInfo() {
 // ============================================
 function groupTasksByType(tasks) {
     const groups = {};
+    
+    // Виды работ, для которых используется "Время по табелю"
+    const SCHEDULE_TIME_WORK_TYPES = [
+        'Дополнительное время для работ',
+        'Рабочий день'
+    ];
+    
     tasks.forEach(task => {
         const workType = task['Вид работ'] || 'Другие виды работ';
         if (!groups[workType]) {
@@ -1017,7 +1025,13 @@ function groupTasksByType(tasks) {
             };
         }
         const count = parseFloat(task['Количество единиц'] || '0');
-        const time = task['Рабочее время'] || '00:00';
+        
+        // === ИЗМЕНЕНО: Для определенных видов работ используем "Время по табелю" ===
+        const useScheduleTime = SCHEDULE_TIME_WORK_TYPES.includes(workType);
+        const time = useScheduleTime 
+            ? (task['Время по табелю'] || '00:00') 
+            : (task['Рабочее время'] || '00:00');
+        
         const pay = parseRussianNumber(task['Расчетная сумма'] || '0');
         const xisBonus = parseRussianNumber(task['Доплата XIS'] || '0');
         const startTime = task['Начало задачи'] || '--:--';
@@ -1033,10 +1047,11 @@ function groupTasksByType(tasks) {
             supply: supply,
             normative: normative,
             calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
-            calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
+            calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽',
+            isScheduleTime: useScheduleTime // === ДОБАВЛЕНО: Флаг для отображения ===
         });
         
-        // Собираем значения норматива для расчета среднего (исключая определенные виды работ)
+        // Собираем значения норматива для расчета среднего
         if (!isExcludedWorkType(workType) && normative !== null && normative !== undefined && normative !== '') {
             const num = parseFloat(normative);
             if (!isNaN(num)) {
@@ -1057,13 +1072,19 @@ function renderGroupedTasks(tasks) {
         tasksGrouped.innerHTML = '<p style="text-align:center;color:var(--tg-hint-color);">Нет данных</p>';
         return;
     }
+    const groups = groupTasksByType(tasks);
+    let html = '';
     
     // === ПРОВЕРКА НАРУШЕНИЙ ВРЕМЕНИ ===
     const violations = [];
-    const twelveHours = 12 * 3600; // 43200 секунд
+    const twelveHours = 12 * 3600;
     
     tasks.forEach(task => {
-        const taskTimeSeconds = timeToSeconds(task['Рабочее время']);
+        const workType = task['Вид работ'] || 'Другие виды работ';
+        const useScheduleTime = ['Дополнительное время для работ', 'Рабочий день'].includes(workType);
+        const timeValue = useScheduleTime ? (task['Время по табелю'] || '00:00') : (task['Рабочее время'] || '00:00');
+        const taskTimeSeconds = timeToSeconds(timeValue);
+        
         if (taskTimeSeconds > twelveHours) {
             const hours = Math.floor(taskTimeSeconds / 3600);
             const minutes = Math.floor((taskTimeSeconds % 3600) / 60);
@@ -1071,46 +1092,58 @@ function renderGroupedTasks(tasks) {
                 supply: task['Поставка'] || '—',
                 hours: hours,
                 minutes: minutes,
-                workType: task['Вид работ'] || 'Другие виды работ'
+                workType: workType
             });
         }
     });
     
-    // === ОТОБРАЖЕНИЕ УВЕДОМЛЕНИЙ ===
+    // === ОТОБРАЖЕНИЕ УВЕДОМЛЕНИЙ О НАРУШЕНИЯХ ===
     const violationsContainer = document.getElementById('violations-container');
     const violationsList = document.getElementById('violations-list');
     
-    if (violations.length > 0) {
-        violationsContainer.style.display = 'block';
-        violationsList.innerHTML = violations.map(v => 
-            `• Задача №${v.supply} закрыта через ${v.hours} часов ${v.minutes} минут <br>` +
-            `<span style="font-size: 11px; margin-left: 15px;">(просьба сообщить руководителю для корректировки времени)</span>`
-        ).join('');
-    } else {
-        violationsContainer.style.display = 'none';
+    if (violationsContainer && violationsList) {
+        if (violations.length > 0) {
+            violationsContainer.style.display = 'block';
+            violationsList.innerHTML = violations.map(v => 
+                `• Задача №${v.supply} закрыта через ${v.hours} часов ${v.minutes} минут <br>` +
+                `<span style="font-size: 11px; margin-left: 15px;">(просьба сообщить руководителю для корректировки времени)</span>`
+            ).join('');
+        } else {
+            violationsContainer.style.display = 'none';
+        }
     }
     
-    // === ОСТАЛЬНОЙ КОД ГРУППИРОВКИ ===
-    const groups = groupTasksByType(tasks);
-    let html = '';
     Object.keys(groups).sort().forEach(workType => {
         const group = groups[workType];
         const totalTimeFormatted = secondsToTime(group.totalTime);
         const totalPayFormatted = formatCurrency(group.totalPay);
         const totalXisBonusFormatted = formatCurrency(group.totalXisBonus);
         
+        // Расчет среднего норматива для группы
+        let avgNormativeHtml = '';
+        if (group.normativeValues && group.normativeValues.length > 0) {
+            const avgNorm = Math.round((group.normativeValues.reduce((a, b) => a + b, 0) / group.normativeValues.length) * 100) / 100;
+            const normColor = getNormativeColor(avgNorm);
+            avgNormativeHtml = `<div class="task-group-summary-item"><span>📊</span><span style="color: ${normColor};">Ср: ${avgNorm}%</span></div>`;
+        }
+        
+        // === ДОБАВЛЕНО: Индикатор типа времени для группы ===
+        const timeTypeIndicator = ['Дополнительное время для работ', 'Рабочий день'].includes(workType) 
+            ? '<span style="font-size: 11px; color: var(--tg-hint-color); margin-left: 8px;">(по табелю)</span>' 
+            : '';
+        
         html += `
         <div class="task-group">
         <div class="task-group-header" onclick="toggleTaskGroup(this)">
         <div style="flex: 1;">
-        <div>${workType}</div>
+        <div>${workType} ${timeTypeIndicator}</div>
         <div class="task-group-summary">
         <div class="task-group-summary-item">
         <span>📊</span>
         <span>${group.totalCount.toFixed(2)} ед.</span>
         </div>
         <div class="task-group-summary-item">
-        <span>⏱️</span>
+        <span>️</span>
         <span>${totalTimeFormatted}</span>
         </div>
         <div class="task-group-summary-item">
@@ -1123,6 +1156,7 @@ function renderGroupedTasks(tasks) {
         <span class="seasonal-bonus">${totalXisBonusFormatted}</span>
         </div>
         ` : ''}
+        ${avgNormativeHtml}
         </div>
         </div>
         <div class="expand-icon">▼</div>
@@ -1131,24 +1165,35 @@ function renderGroupedTasks(tasks) {
         `;
         
         group.tasks.forEach((task, index) => {
-            const taskTimeSeconds = timeToSeconds(task['Рабочее время']);
+            const taskTimeSeconds = timeToSeconds(task.time);
             const isViolation = taskTimeSeconds > twelveHours;
             const violationStyle = isViolation 
                 ? 'background: #fff3e0; border-left: 3px solid #ff9800;' 
+                : '';
+            
+            // === ИЗМЕНЕНО: Отображение метки источника времени ===
+            const timeSourceLabel = task.isScheduleTime 
+                ? '<span style="font-size: 10px; color: #666; margin-left: 4px;">(табель)</span>' 
                 : '';
             
             html += `
             <div class="task-item" style="${violationStyle}">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div style="flex: 1;">
-            <div><strong>${task.count.toFixed(2)} ед.</strong></div>
+            <div>
+            <strong>${task.count.toFixed(2)} ед.</strong>
+            ${task.normative !== null && task.normative !== undefined && task.normative !== '' ? 
+                `<span class="task-normative" style="color: ${getNormativeColor(task.normative)}; margin-left: 8px;">📊 ${task.normative}%</span>` : ''}
+            ${isViolation ? '<span style="color: #ff5722; font-weight: bold; margin-left: 8px; font-size: 12px;">⚠️ Превышение 12ч</span>' : ''}
+            </div>
             <div class="task-time-info">
+            <span class="task-start-time">№ ${task.supply}</span>
+            <span> | </span>
             <span class="task-start-time">Начало: ${task.startTime}</span>
             <span> | </span>
             <span style="${isViolation ? 'color: #e65100; font-weight: bold;' : ''}">
-                Время работы: ${task.time}
+                Время работы: ${task.time} ${timeSourceLabel}
             </span>
-            ${isViolation ? '<span style="color: #ff5722; font-size: 11px; margin-left: 8px;">⚠️</span>' : ''}
             </div>
             </div>
             <div style="text-align: right;">
@@ -1338,18 +1383,18 @@ function renderCalendarGrid(year, monthNum, userDates) {
         if (userDates.has(dateStr)) {
             // === ПРОВЕРКА НАРУШЕНИЙ ===
             if (violationDates.has(dateStr)) {
-                // Оранжевый цвет - есть нарушения
+                // === Оранжевый цвет - есть нарушения ===
                 el.style.background = '#ffcc80';
                 el.style.color = '#e65100';
                 el.style.fontWeight = 'bold';
                 el.style.border = '2px solid #ff9800';
                 el.title = '⚠️ Есть нарушения времени работы (>12 часов)';
             } else {
-                // Стандартный цвет - всё в норме
-                el.style.background = 'var(--tg-link-color)';
-                el.style.color = 'var(--tg-button-text-color)';
+                // === ИЗМЕНЕНО: Голубой цвет - всё в норме ===
+                el.style.background = '#4FC3F7';
+                el.style.color = '#ffffff';
                 el.style.fontWeight = 'bold';
-                el.title = 'Есть данные за этот день';
+                el.title = 'Рабочий день (без нарушений)';
             }
             el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
         } else {
