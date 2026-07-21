@@ -1448,9 +1448,19 @@ async function renderShiftCalendarForMonth(monthKey) {
         const year = Number(yearStr);
         const month = Number(monthStr);
         
+        console.log('=== ЗАГРУЗКА ГРАФИКА СМЕН ===');
+        console.log('Месяц:', monthKey);
+        console.log('Номер смены сотрудника:', currentUserData?.shiftNumber);
+        
         // Загружаем график смен и данные сотрудников
         const shiftData = await fetchData('https://AIP-77.github.io/archive/shift%20schedule.json');
         const records = normalizeRecords(shiftData);
+        
+        console.log('Записей в графике:', records.length);
+        if (records.length > 0) {
+            console.log('Первая запись:', records[0]);
+            console.log('Вторая запись:', records[1]);
+        }        
         
         const staffData = await fetchData(DATA_SOURCES.staff);
         const staffRecords = normalizeRecords(staffData);
