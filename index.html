@@ -1565,8 +1565,6 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
     console.log('Номер смены:', employeeShiftNumber);
     console.log('Всего записей:', records.length);
     
-    
-    
     // Заголовки дней недели
     const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
     dayNames.forEach(day => {
@@ -1588,6 +1586,9 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         shiftCalendar.appendChild(document.createElement('div'));
     }
     
+    // Счётчик найденных смен для отладки
+    let foundShifts = 0;
+    
     for (let day = 1; day <= lastDayNum; day++) {
         const el = document.createElement('div');
         el.className = 'day';
@@ -1606,10 +1607,17 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         const dayName = dayNamesFull[dateObj.getDay()];
         const monthName = monthNamesShort[dateObj.getMonth()];
         
+        // Отладка для первых 5 дней
+        if (day <= 5) {
+            console.log(`\n--- День ${day} (${dayName} ${monthName}) ---`);
+        }
+        
         let shiftInfo = null;
         if (employeeShiftNumber) {
             const dayRecord = records.find(r => {
                 const recordDate = (r['дата'] || '').toLowerCase().trim();
+                
+                // Нормализуем дату
                 const normalizedRecordDate = recordDate
                     .replace(/\s+/g, ' ')
                     .replace(/\./g, '')
@@ -1617,8 +1625,21 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
                     .trim();
                 
                 const searchPattern = `${dayName} ${day} ${monthName}`;
+                
+                // Отладка для первых 5 дней
+                if (day <= 5) {
+                    console.log(`Исходная дата: "${recordDate}"`);
+                    console.log(`Нормализованная: "${normalizedRecordDate}"`);
+                    console.log(`Ищем: "${searchPattern}"`);
+                    console.log(`Совпадение: ${normalizedRecordDate.includes(searchPattern)}`);
+                }
+                
                 return normalizedRecordDate.includes(searchPattern);
             });
+            
+            if (dayRecord && day <= 5) {
+                console.log('Найдена запись:', dayRecord);
+            }
             
             if (dayRecord) {
                 const shiftColumns = [
@@ -1630,12 +1651,19 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
                 
                 for (const col of shiftColumns) {
                     const value = String(dayRecord[col.name] || '').trim();
+                    if (day <= 5) {
+                        console.log(`Колонка "${col.name}": "${value}" === "${employeeShiftNumber}" ? ${value === String(employeeShiftNumber).trim()}`);
+                    }
                     if (value && value === String(employeeShiftNumber).trim()) {
                         shiftInfo = {
                             type: col.type,
                             number: value,
                             columnName: col.name
                         };
+                        foundShifts++;
+                        if (day <= 5) {
+                            console.log('✅ НАЙДЕНА СМЕНА:', shiftInfo);
+                        }
                         break;
                     }
                 }
@@ -1649,7 +1677,6 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         el.appendChild(dayNumber);
         
         if (shiftInfo) {
-            // Подсветка смены (без номера и имени руководителя)
             if (shiftInfo.type === 'day') {
                 el.classList.add('shift-day');
                 el.style.background = '#e3f2fd';
@@ -1664,7 +1691,6 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
                 el.style.fontWeight = 'bold';
             }
             
-            // Только индикатор типа смены (Д/Н)
             const shiftIndicator = document.createElement('span');
             shiftIndicator.textContent = shiftInfo.type === 'day' ? 'Д' : 'Н';
             shiftIndicator.style.fontSize = '10px';
@@ -1680,6 +1706,8 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         
         shiftCalendar.appendChild(el);
     }
+    
+    console.log(`\n=== ИТОГО НАЙДЕНО СМЕН: ${foundShifts} ===`);
 }
 
 // ============================================
