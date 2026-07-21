@@ -1560,12 +1560,6 @@ async function renderShiftCalendarForMonth(monthKey) {
 function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
     shiftCalendar.innerHTML = '';
     
-    console.log('=== РЕНДЕРИНГ КАЛЕНДАРЯ СМЕН ===');
-    console.log('Год:', year, 'Месяц:', monthNum);
-    console.log('Номер смены:', employeeShiftNumber);
-    console.log('Всего записей:', records.length);
-    
-    // Заголовки дней недели
     const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
     dayNames.forEach(day => {
         const el = document.createElement('div');
@@ -1586,8 +1580,9 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         shiftCalendar.appendChild(document.createElement('div'));
     }
     
-    // Счётчик найденных смен для отладки
-    let foundShifts = 0;
+    console.log('=== ОТЛАДКА ГРАФИКА СМЕН ===');
+    console.log('Номер смены сотрудника:', employeeShiftNumber);
+    console.log('Всего записей в графике:', records.length);
     
     for (let day = 1; day <= lastDayNum; day++) {
         const el = document.createElement('div');
@@ -1603,42 +1598,33 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         
         const dateObj = new Date(year, monthNum - 1, day);
         const dayNamesFull = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-        const monthNamesShort = ['янв', 'февр', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сент', 'окт', 'нояб', 'дек'];
+        const monthNamesShort = ['янв', 'февр', 'мар', 'апр', 'мая', 'июня', 'июля', 'авг', 'сент', 'окт', 'нояб', 'дек'];
         const dayName = dayNamesFull[dateObj.getDay()];
         const monthName = monthNamesShort[dateObj.getMonth()];
-        
-        // Отладка для первых 5 дней
-        if (day <= 5) {
-            console.log(`\n--- День ${day} (${dayName} ${monthName}) ---`);
-        }
         
         let shiftInfo = null;
         if (employeeShiftNumber) {
             const dayRecord = records.find(r => {
                 const recordDate = (r['дата'] || '').toLowerCase().trim();
                 
-                // Нормализуем дату
+                // === ИСПРАВЛЕНО: Убираем пробелы, точки И ЗАПЯТЫЕ ===
                 const normalizedRecordDate = recordDate
                     .replace(/\s+/g, ' ')
                     .replace(/\./g, '')
-                    .replace(/,/g, '')
+                    .replace(/,/g, '')  // === ДОБАВЛЕНО: Убираем запятые ===
                     .trim();
                 
                 const searchPattern = `${dayName} ${day} ${monthName}`;
                 
-                // Отладка для первых 5 дней
-                if (day <= 5) {
-                    console.log(`Исходная дата: "${recordDate}"`);
-                    console.log(`Нормализованная: "${normalizedRecordDate}"`);
-                    console.log(`Ищем: "${searchPattern}"`);
-                    console.log(`Совпадение: ${normalizedRecordDate.includes(searchPattern)}`);
+                if (day <= 3) {
+                    console.log(`День ${day}: ищем "${searchPattern}" в "${normalizedRecordDate}"`);
                 }
                 
                 return normalizedRecordDate.includes(searchPattern);
             });
             
-            if (dayRecord && day <= 5) {
-                console.log('Найдена запись:', dayRecord);
+            if (dayRecord && day <= 3) {
+                console.log(`День ${day}: найдена запись`, dayRecord);
             }
             
             if (dayRecord) {
@@ -1651,18 +1637,14 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
                 
                 for (const col of shiftColumns) {
                     const value = String(dayRecord[col.name] || '').trim();
-                    if (day <= 5) {
-                        console.log(`Колонка "${col.name}": "${value}" === "${employeeShiftNumber}" ? ${value === String(employeeShiftNumber).trim()}`);
-                    }
                     if (value && value === String(employeeShiftNumber).trim()) {
                         shiftInfo = {
                             type: col.type,
                             number: value,
                             columnName: col.name
                         };
-                        foundShifts++;
-                        if (day <= 5) {
-                            console.log('✅ НАЙДЕНА СМЕНА:', shiftInfo);
+                        if (day <= 3) {
+                            console.log(`День ${day}: найдена смена`, shiftInfo);
                         }
                         break;
                     }
@@ -1670,7 +1652,6 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
             }
         }
         
-        // Номер дня
         const dayNumber = document.createElement('span');
         dayNumber.textContent = day;
         dayNumber.style.fontSize = '14px';
@@ -1706,8 +1687,6 @@ function renderShiftCalendarGrid(year, monthNum, records, employeeShiftNumber) {
         
         shiftCalendar.appendChild(el);
     }
-    
-    console.log(`\n=== ИТОГО НАЙДЕНО СМЕН: ${foundShifts} ===`);
 }
 
 // ============================================
@@ -2056,19 +2035,31 @@ nextMonthBtn.addEventListener('click', async () => {
     
 // === НОВЫЕ: Обработчики для графика смен ===
 prevShiftMonthBtn.addEventListener('click', async () => {
-    if (currentShiftMonthIndex > 0) {
-        currentShiftMonthIndex--;
-        await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+    try {
+        if (currentShiftMonthIndex > 0) {
+            currentShiftMonthIndex--;
+            console.log('Переключение на прошлый месяц:', availableShiftMonths[currentShiftMonthIndex]);
+            await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+        }
+    } catch (err) {
+        console.error('Ошибка переключения:', err);
+        showBanner('Ошибка: ' + err.message, 'error', 3000);
     }
 });
 
 // === ДОБАВЛЕНО: Обработчик для следующей кнопки ===
 nextShiftMonthBtn.addEventListener('click', async () => {
-    if (currentShiftMonthIndex < availableShiftMonths.length - 1) {
-        currentShiftMonthIndex++;
-        await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+    try {
+        if (currentShiftMonthIndex < availableShiftMonths.length - 1) {
+            currentShiftMonthIndex++;
+            console.log('Переключение на следующий месяц:', availableShiftMonths[currentShiftMonthIndex]);
+            await renderShiftCalendarForMonth(availableShiftMonths[currentShiftMonthIndex]);
+        }
+    } catch (err) {
+        console.error('Ошибка переключения:', err);
+        showBanner('Ошибка: ' + err.message, 'error', 3000);
     }
-});  
+});
 
 
 
