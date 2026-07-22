@@ -1,0 +1,1881 @@
+
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body {
+                  background-color: white; /* Ensure the iframe has a white background */
+                }
+
+                
+              </style>
+                        </head>
+                        <body>
+                            <!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор отчёта по задачам</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #f4f7f6; color: #333; }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; display: inline-block; }
+        
+        .controls { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        input[type="file"] { padding: 10px; border: 2px dashed #6b8cae; border-radius: 5px; cursor: pointer; }
+        button { background-color: #6b8cae; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
+        button:hover { background-color: #4a6b8a; }
+        button.print-btn { background-color: #27ae60; }
+        button.print-btn:hover { background-color: #229954; }
+        button.excel-btn { background-color: #1d6f42; }
+        button.excel-btn:hover { background-color: #145a32; }
+
+        .status { padding: 15px; border-radius: 5px; margin: 10px 0; display: none; }
+        .status.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; display: block; }
+        .status.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; display: block; }
+        .status.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; display: block; }
+
+        .data-sources-panel { background: white; padding: 20px 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .data-sources-panel h3 { margin: 0 0 15px 0; color: #2c3e50; font-size: 1.15em; }
+        .source-tabs { display: flex; gap: 0; border-bottom: 2px solid #ecf0f1; margin-bottom: 20px; }
+        .source-tab { padding: 10px 20px; background: none; color: #7f8c8d; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-size: 15px; font-weight: 500; margin-bottom: -2px; transition: all 0.3s; border-radius: 0; }
+        .source-tab:hover { color: #2c3e50; background: #f8f9fa; }
+        .source-tab.active { color: #3498db; border-bottom-color: #3498db; font-weight: 600; }
+        .source-content { display: none; }
+        .source-content.active { display: block; }
+
+        .source-box { padding: 15px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .source-box.json-box { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; }
+        .source-box.excel-box { background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; }
+        .source-box strong { font-size: 1em; }
+        .source-box input[type="file"] { background: rgba(255,255,255,0.95); border: 2px dashed rgba(255,255,255,0.5); color: #2c3e50; }
+        .source-hint { font-size: 0.85em; opacity: 0.9; margin-top: 10px; line-height: 1.5; padding: 0 5px; }
+
+        .filters-panel { background: linear-gradient(135deg, #6b8cae 0%, #4a6b8a 100%); padding: 20px 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(74, 107, 138, 0.25); margin-bottom: 25px; color: white; }
+        .filters-panel h3 { margin: 0 0 15px 0; font-size: 1.15em; color: white; }
+        .filters-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-start; }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
+        .filter-group > span.filter-title { font-size: 0.85em; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .filter-group select { padding: 10px 12px; border-radius: 5px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.95); color: #2c3e50; font-size: 15px; cursor: pointer; font-weight: 500; outline: none; }
+        .filter-checkbox { display: flex; align-items: center; gap: 10px; padding: 10px 15px; background: rgba(255,255,255,0.15); border-radius: 5px; cursor: pointer; user-select: none; min-height: 42px; }
+        .filter-checkbox:hover { background: rgba(255,255,255,0.25); }
+        .filter-checkbox input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: white; }
+        .filter-checkbox span { font-weight: 500; font-size: 0.95em; }
+
+        .departments-filter { flex: 2; min-width: 280px; }
+        .departments-actions { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+        .departments-actions button { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 6px 14px; font-size: 13px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+        .departments-actions button:hover { background: rgba(255,255,255,0.35); }
+        .departments-actions button.custom-list-btn { background: rgba(241, 196, 15, 0.3); border-color: rgba(241, 196, 15, 0.6); }
+        .departments-actions button.custom-list-btn:hover { background: rgba(241, 196, 15, 0.5); }
+        .departments-actions button.custom-list-btn.has-overrides { background: rgba(241, 196, 15, 0.6); font-weight: 700; }
+        .departments-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 140px; overflow-y: auto; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); }
+        .dept-checkbox { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: rgba(255,255,255,0.15); border-radius: 15px; cursor: pointer; user-select: none; font-size: 13px; border: 1px solid transparent; }
+        .dept-checkbox:hover { background: rgba(255,255,255,0.3); }
+        .dept-checkbox.checked { background: rgba(255,255,255,0.95); color: #4a6b8a; font-weight: 600; border-color: white; }
+        .dept-checkbox input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; accent-color: #4a6b8a; margin: 0; }
+        .departments-counter { font-size: 0.85em; opacity: 0.9; margin-top: 6px; font-style: italic; }
+
+        .overrides-summary { margin-top: 10px; padding: 8px 12px; background: rgba(241, 196, 15, 0.2); border: 1px solid rgba(241, 196, 15, 0.5); border-radius: 5px; font-size: 0.85em; line-height: 1.5; display: none; }
+        .overrides-summary.show { display: block; }
+        .overrides-summary strong { color: #fff; }
+        .overrides-summary-item { padding: 3px 0; border-bottom: 1px dashed rgba(255,255,255,0.2); }
+        .overrides-summary-item:last-child { border-bottom: none; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { background: linear-gradient(135deg, #f1c40f 0%, #d4ac0d 100%); color: white; padding: 18px 22px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { margin: 0; font-size: 1.2em; }
+        .modal-close { background: rgba(255,255,255,0.2); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px; padding: 0; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { background: rgba(255,255,255,0.4); }
+        .modal-body { padding: 22px; }
+        .modal-field { margin-bottom: 15px; }
+        .modal-field label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 6px; font-size: 0.95em; }
+        .modal-field input, .modal-field select, .modal-field textarea { width: 100%; padding: 10px 12px; border: 2px solid #bdc3c7; border-radius: 5px; font-size: 14px; outline: none; font-family: inherit; box-sizing: border-box; }
+        .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus { border-color: #3498db; }
+        .modal-field textarea { min-height: 120px; resize: vertical; font-family: 'Courier New', monospace; }
+        .modal-field .hint { font-size: 0.8em; color: #7f8c8d; margin-top: 4px; }
+        .modal-footer { padding: 15px 22px; border-top: 1px solid #ecf0f1; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+        .modal-footer button { padding: 9px 18px; font-size: 14px; }
+        .modal-footer button.save { background: #27ae60; }
+        .modal-footer button.save:hover { background: #229954; }
+        .modal-footer button.save-exit { background: #2980b9; }
+        .modal-footer button.save-exit:hover { background: #2471a3; }
+        .modal-footer button.cancel { background: #95a5a6; }
+        .modal-footer button.cancel:hover { background: #7f8c8d; }
+        .modal-footer button.danger { background: #e74c3c; }
+        .modal-footer button.danger:hover { background: #c0392b; }
+
+        .overrides-list { margin-top: 15px; padding-top: 15px; border-top: 1px solid #ecf0f1; }
+        .overrides-list h4 { margin: 0 0 10px 0; font-size: 1em; color: #2c3e50; }
+        .override-item { background: #f8f9fa; border-left: 4px solid #f1c40f; padding: 10px 14px; margin-bottom: 8px; border-radius: 5px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .override-item-info { flex: 1; min-width: 0; }
+        .override-item-dept { font-weight: 700; color: #2c3e50; margin-bottom: 3px; }
+        .override-item-shift { display: inline-block; background: #3498db; color: white; padding: 1px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 600; margin-right: 6px; }
+        .override-item-shift.night { background: #34495e; }
+        .override-item-employees { font-size: 0.85em; color: #555; margin-top: 4px; line-height: 1.4; }
+        .override-item-delete { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap; }
+        .override-item-delete:hover { background: #c0392b; }
+        .overrides-empty { color: #95a5a6; font-style: italic; font-size: 0.9em; padding: 10px 0; }
+
+        .report-header { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; padding: 25px 30px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .report-header.day-header { background: linear-gradient(135deg, #6b8cae 0%, #4a6b8a 100%); }
+        .report-header .employee-info { display: flex; align-items: center; gap: 15px; }
+        .report-header .employee-icon { font-size: 2.5em; background: rgba(255,255,255,0.2); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .report-header .employee-name { font-size: 1.6em; font-weight: 600; margin: 0; line-height: 1.2; }
+        .report-header .employee-position { font-size: 0.95em; opacity: 0.9; margin-top: 5px; }
+        .report-header .date-info { text-align: right; background: rgba(255,255,255,0.15); padding: 15px 20px; border-radius: 8px; min-width: 200px; }
+        .report-header .date-label { font-size: 0.85em; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
+        .report-header .date-value { font-size: 1.3em; font-weight: 600; margin-top: 5px; }
+
+        .shifts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
+        @media (max-width: 1100px) { .shifts-grid { grid-template-columns: 1fr; } }
+        .shift-column { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; }
+        .shift-column-header { padding: 18px 22px; color: white; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .shift-column-header.day { background: linear-gradient(135deg, #7a9bb5 0%, #5d7c94 100%); }
+        .shift-column-header.night { background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%); }
+        .shift-column-title { font-size: 1.3em; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .shift-column-time { font-size: 0.95em; opacity: 0.9; }
+        .shift-column-body { padding: 20px; }
+        .shift-empty { padding: 40px 20px; text-align: center; color: #95a5a6; font-style: italic; }
+
+        .employee-select-wrapper { background: #f8f9fa; padding: 15px 18px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .employee-select-wrapper label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 0.95em; }
+        .employee-select-wrapper select { width: 100%; padding: 10px 12px; border: 2px solid #bdc3c7; border-radius: 5px; font-size: 15px; background: white; cursor: pointer; outline: none; }
+
+        table { border-collapse: collapse; width: 100%; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border-radius: 8px; overflow: hidden; }
+        th { background-color: #3498db; color: white; padding: 14px; text-align: left; font-weight: 600; }
+        th.summary-th { background-color: #8e44ad; }
+        td { padding: 12px 14px; border-bottom: 1px solid #ecf0f1; }
+        tr:hover { background-color: #f8f9fa; }
+        
+        .summary { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .summary h2 { color: #3498db; margin-top: 0; font-size: 1.15em; }
+        .summary.summary-blue h2 { color: #4a6b8a; }
+        .summary-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ecf0f1; font-size: 1em; }
+        .summary-item:last-child { border-bottom: none; }
+        .summary-label { font-weight: 600; color: #555; }
+        .summary-value { color: #2c3e50; font-family: 'Courier New', monospace; font-weight: bold; }
+        
+        .warning { color: #e74c3c; font-weight: bold; }
+        .hidden { display: none; }
+        .generated-time { text-align: right; color: #95a5a6; font-size: 0.9em; margin-top: 20px; }
+
+        .metric-primary { font-weight: 700; font-size: 1.05em; }
+        .metric-secondary { font-weight: 400; color: #7f8c8d; font-size: 0.95em; }
+        .metric-positive { color: #2980b9 !important; font-weight: 700 !important; }
+        .metric-negative { color: #c0392b !important; font-weight: 700 !important; }
+        .metric-neutral { color: #7f8c8d !important; font-weight: 600 !important; }
+        .metric-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-family: 'Courier New', monospace; font-weight: 700; font-size: 0.95em; margin-left: 6px; }
+        .metric-badge.positive { background: rgba(41, 128, 185, 0.12); color: #2980b9; border: 1px solid rgba(41, 128, 185, 0.3); }
+        .metric-badge.negative { background: rgba(192, 57, 43, 0.12); color: #c0392b; border: 1px solid rgba(192, 57, 43, 0.3); }
+        .metric-badge.neutral { background: rgba(127, 140, 141, 0.12); color: #7f8c8d; border: 1px solid rgba(127, 140, 141, 0.3); }
+        .summary-section-title { font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; color: #95a5a6; margin-top: 12px; margin-bottom: 4px; padding-top: 8px; border-top: 1px dashed #ecf0f1; font-weight: 600; }
+        .summary-section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+        .summary-item.primary { background: linear-gradient(90deg, rgba(52, 152, 219, 0.05) 0%, transparent 100%); padding: 10px 12px; border-radius: 5px; margin-bottom: 3px; border-left: 3px solid #3498db; }
+        .summary-item.primary .summary-label { color: #2c3e50; font-weight: 700; }
+        .summary-item.deviation { background: linear-gradient(90deg, rgba(241, 196, 15, 0.08) 0%, transparent 100%); padding: 10px 12px; border-radius: 5px; margin-bottom: 3px; border-left: 3px solid #f1c40f; }
+        .summary-item.deviation .summary-label { color: #2c3e50; font-weight: 700; }
+
+        .merged-task-row { background: linear-gradient(90deg, rgba(155, 89, 182, 0.08) 0%, transparent 100%); border-left: 3px solid #9b59b6; }
+        .merged-task-row td { padding: 10px 14px; }
+        .merged-badge { display: inline-block; background: rgba(155, 89, 182, 0.15); color: #8e44ad; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; font-weight: 700; margin-left: 6px; border: 1px solid rgba(155, 89, 182, 0.3); cursor: pointer; transition: all 0.2s; }
+        .merged-badge:hover { background: rgba(155, 89, 182, 0.25); transform: scale(1.05); }
+        .merged-info { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, margin 0.3s ease; font-size: 0.8em; color: #8e44ad; font-style: italic; margin-top: 0; }
+        .merged-info.expanded { max-height: 500px; margin-top: 8px; }
+
+        .product-info-block { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; padding: 10px 14px; background: rgba(255,255,255,0.1); border-radius: 6px; border: 1px dashed rgba(255,255,255,0.25); }
+        .product-info-item { display: flex; align-items: center; gap: 6px; font-size: 0.95em; }
+        .product-info-label { opacity: 0.85; font-size: 0.85em; }
+        .product-info-value { font-weight: 700; background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 10px; font-family: 'Courier New', monospace; }
+        .product-info-value.quantity { background: rgba(46, 204, 113, 0.25); color: #fff; border: 1px solid rgba(46, 204, 113, 0.4); }
+        .product-info-value.type { background: rgba(52, 152, 219, 0.25); color: #fff; border: 1px solid rgba(52, 152, 219, 0.4); }
+
+        .toggle-details { background-color: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 15px; margin-bottom: 15px; display: inline-block; }
+        .toggle-details:hover { background-color: #229954; }
+
+        .table-container { margin-bottom: 20px; }
+        .table-container.collapsed table { display: none; }
+
+        .task-card { margin: 12px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e0e0e0; }
+        .task-card-header { background: linear-gradient(135deg, #16a085 0%, #148f77 100%); color: white; padding: 15px 18px; border-left: 6px solid #0e6655; }
+        .task-card-header.no-supply { background: linear-gradient(135deg, #c0392b 0%, #a93226 100%); border-left: 6px solid #7b241c; }
+        .task-card-header.merged { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); border-left: 6px solid #6c3483; }
+        .task-card-title { font-size: 1.15em; font-weight: 700; margin-bottom: 4px; }
+        .task-card-supply-number { font-size: 0.95em; opacity: 0.95; margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .task-card-supply-number .task-number { background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 0.9em; }
+        .task-card-meta { display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.9em; opacity: 0.95; margin-top: 8px; }
+        .task-card-meta-item { display: flex; align-items: center; gap: 5px; }
+        .task-card-duration { background: rgba(255,255,255,0.25); padding: 3px 10px; border-radius: 6px; font-family: 'Courier New', monospace; font-weight: 700; }
+        .task-card-participants { background: rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 6px; margin-top: 8px; }
+        .task-card-participants-title { font-weight: 600; margin-bottom: 4px; font-size: 0.9em; }
+        .participant-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 0.9em; flex-wrap: wrap; gap: 6px; }
+        .participant-row + .participant-row { border-top: 1px solid rgba(255,255,255,0.15); }
+        .participant-name { font-weight: 500; }
+        .participant-position { opacity: 0.85; font-size: 0.85em; font-style: italic; }
+
+        .collapsible-section { margin-bottom: 20px; }
+        .collapsible-header { background: white; padding: 12px 18px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
+        .collapsible-header:hover { background: #f8f9fa; }
+        .collapsible-header h2 { margin: 0; font-size: 1.1em; }
+        .collapsible-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .collapsible-count-badge { background: #3498db; color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 700; }
+        .collapsible-count-badge.purple { background: #8e44ad; }
+        .collapsible-count-badge.teal { background: #16a085; }
+        .collapsible-count-badge.orange { background: #d35400; }
+        .collapsible-arrow { font-size: 1.1em; transition: transform 0.3s; }
+        .collapsible-section.expanded .collapsible-arrow { transform: rotate(180deg); }
+        .collapsible-body { max-height: 0; overflow: hidden; transition: max-height 0.5s ease; }
+        .collapsible-section.expanded .collapsible-body { max-height: 50000px; }
+        .collapsible-body-inner { padding: 15px 0 0 0; }
+
+        @media print {
+            @page { size: A4; margin: 15mm; }
+            body { margin: 0; padding: 0; background: white; font-size: 11pt; }
+            .controls, #statusBox, .data-sources-panel, #filtersPanel, .toggle-details, .employee-select-wrapper, .generated-time, .collapsible-arrow, .modal-overlay { display: none !important; }
+            .report-header, .shift-column-header, .task-card-header { box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .shift-column, .task-card { page-break-inside: avoid; break-inside: avoid; }
+            .shifts-grid { gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Генератор отчёта по задачам</h1>
+    
+    <div id="statusBox" class="status"></div>
+
+    <div class="data-sources-panel">
+        <h3>📥 Загрузка данных</h3>
+        <div class="source-tabs">
+            <button class="source-tab active" data-source="file">📁 Excel файл</button>
+            <button class="source-tab" data-source="json">📋 JSON файл</button>
+        </div>
+
+        <div class="source-content active" id="source-file">
+            <div class="source-box excel-box">
+                <strong>📁 Выберите Excel файл:</strong>
+                <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" />
+            </div>
+            <div class="source-hint">Поддерживаются форматы: <strong>.xlsx</strong>, <strong>.xls</strong>, <strong>.csv</strong></div>
+        </div>
+
+        <div class="source-content" id="source-json">
+            <div class="source-box json-box">
+                <strong>📋 Выберите JSON файл:</strong>
+                <input type="file" id="jsonFile" accept=".json" />
+            </div>
+            <div class="source-hint">💡 <strong>Формат JSON:</strong> объект с полями <code>columns</code>, <code>data</code>, <code>lastUpdated</code> (необязательно).<br><strong>Обязательные столбцы:</strong> Рабочий день, Начало задачи, Конец задачи, Сотрудник, Вид работ<br><strong>Дополнительные:</strong> Количество единиц, Тип товара, Работы по направлению (используется как отдел, если столбец «Отдел» отсутствует)</div>
+        </div>
+    </div>
+
+    <div class="controls" style="display: flex; justify-content: flex-end;">
+        <button id="saveBtn" class="hidden" onclick="saveCurrentView()">💾 Сохранить HTML</button>
+        <button id="excelExportBtn" class="hidden excel-btn" onclick="exportToExcel()">📊 Экспорт в Excel</button>
+        <button id="printBtn" class="hidden print-btn" onclick="printReport()">🖨️ Печать</button>
+    </div>
+
+    <div class="filters-panel hidden" id="filtersPanel">
+        <h3>🔍 Фильтры отчёта</h3>
+        <div class="filters-row">
+            <div class="filter-group departments-filter">
+                <span class="filter-title">🏢 Отделы (можно выбрать несколько)</span>
+                <div class="departments-actions">
+                    <button type="button" id="btnSelectAllDepts">✓ Выбрать все</button>
+                    <button type="button" id="btnResetDepts">✕ Сбросить</button>
+                    <button type="button" id="btnCustomList" class="custom-list-btn">➕ Свой список</button>
+                </div>
+                <div class="departments-list" id="departmentsList"></div>
+                <div class="departments-counter" id="departmentsCounter">Выбрано: 0</div>
+                <div class="overrides-summary" id="overridesSummary"></div>
+            </div>
+            <div class="filter-group">
+                <span class="filter-title">📅 Дата</span>
+                <select id="filterDate"></select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-title">🕐 Смена</span>
+                <select id="filterShift">
+                    <option value="all">Все смены</option>
+                    <option value="__day__">☀️ Дневная</option>
+                    <option value="__night__">🌙 Ночная</option>
+                </select>
+            </div>
+            <div class="filter-group" style="flex: 0 0 auto; min-width: auto;">
+                <span class="filter-title">&nbsp;</span>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="showDaySummary" />
+                    <span>📊 Сводный отчёт за день</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportContainer" class="hidden">
+        <div id="daySummaryContainer"></div>
+        <div class="shifts-grid" id="shiftsGrid"></div>
+        <div class="generated-time" id="genTime"></div>
+    </div>
+
+    <div class="modal-overlay" id="customListModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>➕ Свой список сотрудников по отделам</h3>
+                <button class="modal-close" onclick="closeCustomListModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label for="clDepartment">🏢 Название отдела</label>
+                    <input type="text" id="clDepartment" placeholder="Например: Цех сборки" list="deptSuggestions" />
+                    <datalist id="deptSuggestions"></datalist>
+                    <div class="hint">Введите точное название отдела (будет использоваться для фильтрации)</div>
+                </div>
+                <div class="modal-field">
+                    <label for="clShift">🕐 Смена</label>
+                    <select id="clShift">
+                        <option value="__day__">☀️ Дневная (08:45 — 20:45)</option>
+                        <option value="__night__">🌙 Ночная (20:45 — 08:45)</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label for="clEmployees">👷 Список сотрудников</label>
+                    <textarea id="clEmployees" placeholder="Иванов Иван Иванович&#10;Петров Пётр Петрович&#10;Сидоров Сидор Сидорович"></textarea>
+                    <div class="hint">Один сотрудник на строку. ФИО должны точно совпадать с данными в файле.</div>
+                </div>
+
+                <div class="overrides-list">
+                    <h4>📋 Сохранённые списки:</h4>
+                    <div id="overridesListContainer"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="danger" onclick="clearAllOverrides()">🗑️ Очистить все</button>
+                <button class="cancel" onclick="closeCustomListModal()">Отмена</button>
+                <button class="save" onclick="saveCustomOverride()">💾 Сохранить</button>
+                <button class="save-exit" onclick="saveAndCloseModal()">✅ Сохранить и выйти</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allDaysData = {};
+        let allDepartmentsList = [];
+        let selectedDepartments = new Set();
+        let currentEmployeeSelections = {};
+        let departmentOverrides = {};
+        let lastParsedRawData = null;
+
+        const DAY_SHIFT_KEY = '__day__';
+        const NIGHT_SHIFT_KEY = '__night__';
+        const SHIFT_BOUNDARY_HOUR = 8;
+        const SHIFT_BOUNDARY_MINUTE = 45;
+        const NIGHT_START_HOUR = 20;
+        const NIGHT_START_MINUTE = 45;
+        
+        const SHIFT_PLAN_HOURS = 10.5;
+        const SHIFT_PLAN_MS = SHIFT_PLAN_HOURS * 3600 * 1000;
+        
+        // ========== МАССИВ ВИДОВ РАБОТ ДЛЯ ОБЪЕДИНЕНИЯ ==========
+        // Все виды работ, которые подлежат объединению при малом промежутке между задачами
+        const MERGEABLE_WORK_TYPES = [
+            'Печать стикера грузового места',
+            'Повторная печать стикера грузового места'
+        ];
+        
+        const MERGE_THRESHOLD_MINUTES = 5;
+        const MERGE_THRESHOLD_MS = MERGE_THRESHOLD_MINUTES * 60 * 1000;
+
+        // ========== ПРОВЕРКА: ПОДЛЕЖИТ ЛИ ВИД РАБОТ ОБЪЕДИНЕНИЮ ==========
+        function isMergeableWorkType(workType) {
+            return MERGEABLE_WORK_TYPES.includes(workType);
+        }
+
+        window.addEventListener('load', function() {
+            if (typeof XLSX === 'undefined') {
+                showStatus('❌ Ошибка: библиотека для чтения Excel не загрузилась.', 'error');
+            } else {
+                showStatus('✅ Готов к работе. Выберите источник данных.', 'success');
+            }
+
+            document.getElementById('btnSelectAllDepts').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); selectAllDepartments(); });
+            document.getElementById('btnResetDepts').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); resetDepartments(); });
+            document.getElementById('btnCustomList').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); openCustomListModal(); });
+
+            document.querySelectorAll('.source-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.source-content').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById('source-' + this.dataset.source).classList.add('active');
+                });
+            });
+
+            loadOverridesFromStorage();
+        });
+
+        function showStatus(message, type) {
+            const box = document.getElementById('statusBox');
+            box.textContent = message;
+            box.className = 'status ' + type;
+        }
+
+        function findKeyByVariants(keys, variants) {
+            for (const variant of variants) {
+                const searchLower = String(variant).toLowerCase().replace(/\s+/g, '');
+                const exactMatch = keys.find(k => String(k).toLowerCase().replace(/\s+/g, '') === searchLower);
+                if (exactMatch) return exactMatch;
+            }
+            for (const variant of variants) {
+                const searchLower = String(variant).toLowerCase().replace(/\s+/g, '');
+                const partialMatch = keys.find(k => String(k).toLowerCase().replace(/\s+/g, '').includes(searchLower));
+                if (partialMatch) return partialMatch;
+            }
+            return null;
+        }
+
+        function formatQuantity(val) {
+            if (val === null || val === undefined || val === '') return '';
+            if (typeof val === 'string' && isNaN(Number(val))) return val.trim();
+            const num = Number(val);
+            if (!isNaN(num) && isFinite(num)) {
+                if (Number.isInteger(num)) return num.toLocaleString('ru-RU');
+                return num.toLocaleString('ru-RU', { maximumFractionDigits: 3 });
+            }
+            return String(val);
+        }
+
+        // ========== ОБЪЕДИНЕНИЕ ПОСЛЕДОВАТЕЛЬНЫХ ЗАДАЧ ОДНОГО ВИДА ==========
+        function mergeSequentialTasks(sortedTasks) {
+            if (sortedTasks.length === 0) return [];
+            const merged = [];
+            let current = { ...sortedTasks[0], mergedCount: 1, mergedOriginals: [sortedTasks[0]] };
+            for (let i = 1; i < sortedTasks.length; i++) {
+                const next = sortedTasks[i];
+                const gap = next.start - current.end;
+                if (gap <= MERGE_THRESHOLD_MS && gap >= 0) {
+                    if (next.end > current.end) current.end = next.end;
+                    current.mergedCount++;
+                    current.mergedOriginals.push(next);
+                    if (!current.supply && next.supply) current.supply = next.supply;
+                } else {
+                    merged.push(current);
+                    current = { ...next, mergedCount: 1, mergedOriginals: [next] };
+                }
+            }
+            merged.push(current);
+            return merged;
+        }
+
+        // ========== ОБЪЕДИНЕНИЕ ЗАДАЧ С УЧЁТОМ РАЗНЫХ ВИДОВ РАБОТ ==========
+        function mergeStickerTasks(tasks) {
+            if (!tasks || tasks.length === 0) return [];
+            
+            // Разделяем задачи на объединяемые и остальные
+            const mergeableTasks = [];
+            const otherTasks = [];
+            tasks.forEach(task => {
+                if (isMergeableWorkType(task.workType)) {
+                    mergeableTasks.push({ ...task });
+                } else {
+                    otherTasks.push({ ...task });
+                }
+            });
+            
+            if (mergeableTasks.length === 0) return tasks;
+            
+            // ========== ГРУППИРУЕМ ПО ВИДУ РАБОТ ==========
+            // Важно: "Печать" и "Повторная печать" объединяются ОТДЕЛЬНО, не смешиваются
+            const groupsByType = {};
+            mergeableTasks.forEach(task => {
+                if (!groupsByType[task.workType]) groupsByType[task.workType] = [];
+                groupsByType[task.workType].push(task);
+            });
+            
+            // Для каждой группы применяем объединение отдельно
+            const mergedAll = [];
+            Object.keys(groupsByType).forEach(workType => {
+                const group = groupsByType[workType].sort((a, b) => a.start - b.start);
+                const merged = mergeSequentialTasks(group);
+                mergedAll.push(...merged);
+            });
+            
+            // Собираем результат и сортируем по времени начала
+            const result = [...mergedAll, ...otherTasks];
+            result.sort((a, b) => a.start - b.start);
+            return result;
+        }
+
+        function applyMergeToEmployee(tasks) { return mergeStickerTasks(tasks); }
+
+        function openCustomListModal() {
+            document.getElementById('customListModal').classList.add('show');
+            document.getElementById('clDepartment').value = '';
+            document.getElementById('clEmployees').value = '';
+            document.getElementById('clShift').value = DAY_SHIFT_KEY;
+            updateOverridesListUI();
+            updateDeptSuggestions();
+        }
+
+        function closeCustomListModal() { document.getElementById('customListModal').classList.remove('show'); }
+
+        function updateDeptSuggestions() {
+            const datalist = document.getElementById('deptSuggestions');
+            datalist.innerHTML = '';
+            const allDepts = new Set([...Object.keys(departmentOverrides), ...allDepartmentsList]);
+            Array.from(allDepts).sort((a, b) => a.localeCompare(b, 'ru')).forEach(dept => {
+                const opt = document.createElement('option');
+                opt.value = dept;
+                datalist.appendChild(opt);
+            });
+        }
+
+        function saveCustomOverride() {
+            const dept = document.getElementById('clDepartment').value.trim();
+            const shift = document.getElementById('clShift').value;
+            const employeesText = document.getElementById('clEmployees').value.trim();
+            if (!dept) { alert('⚠️ Укажите название отдела'); return false; }
+            if (!employeesText) { alert('⚠️ Укажите список сотрудников'); return false; }
+            const employees = employeesText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+            if (employees.length === 0) { alert('⚠️ Список сотрудников пуст'); return false; }
+            if (!departmentOverrides[dept]) departmentOverrides[dept] = {};
+            departmentOverrides[dept][shift] = employees;
+            saveOverridesToStorage();
+            updateOverridesListUI();
+            updateDeptSuggestions();
+            updateOverridesSummary();
+            document.getElementById('clEmployees').value = '';
+            reparseDataWithOverrides();
+            showStatus(`✅ Сохранено: отдел "${dept}", смена: ${shift === DAY_SHIFT_KEY ? 'Дневная' : 'Ночная'}, сотрудников: ${employees.length}`, 'success');
+            return true;
+        }
+
+        function saveAndCloseModal() {
+            const dept = document.getElementById('clDepartment').value.trim();
+            const employeesText = document.getElementById('clEmployees').value.trim();
+            if (dept && employeesText) {
+                const saved = saveCustomOverride();
+                if (!saved) return;
+            }
+            closeCustomListModal();
+        }
+
+        function deleteOverride(dept, shift) {
+            if (!departmentOverrides[dept]) return;
+            delete departmentOverrides[dept][shift];
+            if (Object.keys(departmentOverrides[dept]).length === 0) delete departmentOverrides[dept];
+            saveOverridesToStorage();
+            updateOverridesListUI();
+            updateOverridesSummary();
+            reparseDataWithOverrides();
+        }
+
+        function clearAllOverrides() {
+            if (!confirm('Удалить все сохранённые списки сотрудников?')) return;
+            departmentOverrides = {};
+            saveOverridesToStorage();
+            updateOverridesListUI();
+            updateOverridesSummary();
+            reparseDataWithOverrides();
+        }
+
+        function reparseDataWithOverrides() {
+            if (!lastParsedRawData) { updateDepartmentsListWithOverrides(); return; }
+            const savedDate = document.getElementById('filterDate').value;
+            const savedShift = document.getElementById('filterShift').value;
+            const savedShowDaySummary = document.getElementById('showDaySummary').checked;
+            const savedSelectedDepts = new Set(selectedDepartments);
+            parseData(lastParsedRawData.dataDates, lastParsedRawData.dataText, true);
+            const dateSelect = document.getElementById('filterDate');
+            if (savedDate && dateSelect.querySelector(`option[value="${savedDate}"]`)) dateSelect.value = savedDate;
+            document.getElementById('filterShift').value = savedShift;
+            document.getElementById('showDaySummary').checked = savedShowDaySummary;
+            const allDeptsCombined = new Set([...allDepartmentsList, ...Object.keys(departmentOverrides)]);
+            const restoredSelection = new Set();
+            savedSelectedDepts.forEach(d => { if (allDeptsCombined.has(d)) restoredSelection.add(d); });
+            if (savedSelectedDepts.size === 0 || savedSelectedDepts.size >= allDepartmentsList.length) {
+                selectedDepartments = new Set(allDeptsCombined);
+            } else {
+                selectedDepartments = restoredSelection;
+            }
+            renderDepartmentCheckboxes();
+            updateDepartmentsCounter();
+            renderReport();
+        }
+
+        function updateOverridesListUI() {
+            const container = document.getElementById('overridesListContainer');
+            const keys = Object.keys(departmentOverrides);
+            if (keys.length === 0) { container.innerHTML = '<div class="overrides-empty">Сохранённых списков пока нет</div>'; return; }
+            let html = '';
+            keys.sort((a, b) => a.localeCompare(b, 'ru')).forEach(dept => {
+                const shifts = departmentOverrides[dept];
+                Object.keys(shifts).forEach(shift => {
+                    const emps = shifts[shift];
+                    const shiftLabel = shift === DAY_SHIFT_KEY ? '☀️ Дневная' : '🌙 Ночная';
+                    const shiftClass = shift === DAY_SHIFT_KEY ? '' : 'night';
+                    html += `<div class="override-item">
+                        <div class="override-item-info">
+                            <div class="override-item-dept">${dept}</div>
+                            <div><span class="override-item-shift ${shiftClass}">${shiftLabel}</span><span style="font-size: 0.85em; color: #7f8c8d;">сотрудников: ${emps.length}</span></div>
+                            <div class="override-item-employees">${emps.map(e => '• ' + escapeHtml(e)).join('<br>')}</div>
+                        </div>
+                        <button class="override-item-delete" onclick="deleteOverride('${dept.replace(/'/g, "\\'")}', '${shift}')">🗑️ Удалить</button>
+                    </div>`;
+                });
+            });
+            container.innerHTML = html;
+        }
+
+        function updateOverridesSummary() {
+            const summary = document.getElementById('overridesSummary');
+            const btn = document.getElementById('btnCustomList');
+            const keys = Object.keys(departmentOverrides);
+            if (keys.length === 0) { summary.classList.remove('show'); btn.classList.remove('has-overrides'); btn.textContent = '➕ Свой список'; return; }
+            btn.classList.add('has-overrides');
+            let totalEmployees = 0;
+            let items = [];
+            keys.sort((a, b) => a.localeCompare(b, 'ru')).forEach(dept => {
+                const shifts = departmentOverrides[dept];
+                Object.keys(shifts).forEach(shift => {
+                    const emps = shifts[shift];
+                    totalEmployees += emps.length;
+                    const shiftLabel = shift === DAY_SHIFT_KEY ? '☀️' : '🌙';
+                    items.push(`<div class="overrides-summary-item"><strong>${escapeHtml(dept)}</strong> ${shiftLabel} — ${emps.length} сотр.</div>`);
+                });
+            });
+            summary.innerHTML = `<strong>⚡ Активные переопределения (${keys.length} отд., ${totalEmployees} сотр.):</strong><br>` + items.join('');
+            summary.classList.add('show');
+            btn.textContent = `➕ Свой список (${totalEmployees})`;
+        }
+
+        function updateDepartmentsListWithOverrides() {
+            const combined = new Set([...allDepartmentsList, ...Object.keys(departmentOverrides)]);
+            const newList = Array.from(combined).sort((a, b) => a.localeCompare(b, 'ru'));
+            const currentList = Array.from(document.querySelectorAll('.dept-checkbox')).map(l => l.querySelector('input').dataset.dept);
+            const needsRedraw = newList.length !== currentList.length || newList.some(d => !currentList.includes(d));
+            if (needsRedraw) {
+                if (currentList.length === 0) selectedDepartments = new Set(newList);
+                else newList.forEach(d => { if (!currentList.includes(d)) selectedDepartments.add(d); });
+                renderDepartmentCheckboxes();
+            }
+            updateOverridesSummary();
+        }
+
+        function saveOverridesToStorage() { try { localStorage.setItem('taskReport_deptOverrides', JSON.stringify(departmentOverrides)); } catch (e) {} }
+        function loadOverridesFromStorage() { try { const saved = localStorage.getItem('taskReport_deptOverrides'); if (saved) departmentOverrides = JSON.parse(saved); } catch (e) { departmentOverrides = {}; } }
+        function escapeHtml(str) { return String(str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[s]); }
+
+        document.getElementById('jsonFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) { showStatus('❌ Файл не выбран', 'error'); return; }
+            showStatus('📖 Читаю JSON файл: ' + file.name, 'info');
+            const reader = new FileReader();
+            reader.onerror = function() { showStatus('❌ Ошибка чтения файла', 'error'); };
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!parsed || typeof parsed !== 'object') throw new Error('JSON должен быть объектом');
+                    if (!Array.isArray(parsed.columns)) throw new Error('Отсутствует массив "columns"');
+                    if (!Array.isArray(parsed.data)) throw new Error('Отсутствует массив "data"');
+                    if (parsed.data.length === 0) throw new Error('Массив "data" пуст');
+                    const jsonData = parsed.data.filter(row => Array.isArray(row) && row.length > 0).map(row => {
+                        const obj = {};
+                        parsed.columns.forEach((col, idx) => { obj[col] = row[idx] !== undefined ? row[idx] : ''; });
+                        return obj;
+                    });
+                    if (jsonData.length === 0) throw new Error('Не удалось извлечь строки');
+                    jsonData.forEach(row => {
+                        const workDay = String(row['Рабочий день'] || '').trim();
+                        const startTime = String(row['Начало задачи'] || '').trim();
+                        const endTime = String(row['Конец задачи'] || '').trim();
+                        if (workDay && startTime) row['Датаначала'] = `${workDay} ${startTime}`;
+                        if (workDay && endTime) row['Датаконца'] = `${workDay} ${endTime}`;
+                    });
+                    lastParsedRawData = { dataDates: jsonData, dataText: jsonData };
+                    parseData(jsonData, jsonData);
+                    const lastUpdated = parsed.lastUpdated ? new Date(parsed.lastUpdated).toLocaleString('ru-RU') : 'не указано';
+                    showStatus(`✅ JSON файл загружен! 📊 Строк: ${jsonData.length} · 🕒 Обновлено: ${lastUpdated}`, 'success');
+                } catch (error) {
+                    let errorMsg = error.message;
+                    if (error instanceof SyntaxError) errorMsg = 'Ошибка синтаксиса JSON: ' + error.message;
+                    showStatus('❌ Ошибка обработки JSON: ' + errorMsg, 'error');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        });
+
+        document.getElementById('excelFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) { showStatus('❌ Файл не выбран', 'error'); return; }
+            showStatus('📖 Читаю файл: ' + file.name, 'info');
+            const reader = new FileReader();
+            reader.onerror = function() { showStatus('❌ Ошибка чтения файла', 'error'); };
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonDataDates = XLSX.utils.sheet_to_json(firstSheet, { cellDates: true, defval: "" });
+                    const jsonDataText = XLSX.utils.sheet_to_json(firstSheet, { cellDates: false, raw: false, defval: "" });
+                    lastParsedRawData = { dataDates: jsonDataDates, dataText: jsonDataText };
+                    parseData(jsonDataDates, jsonDataText);
+                    showStatus(`✅ Файл загружен! Строк: ${jsonDataDates.length}`, 'success');
+                } catch (error) {
+                    showStatus('❌ Ошибка обработки файла: ' + error.message, 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function formatDuration(ms) {
+            if (ms < 0) ms = 0;
+            const totalSec = Math.floor(ms / 1000);
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function formatDeviation(ms) {
+            const absMs = Math.abs(ms);
+            const totalSec = Math.floor(absMs / 1000);
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            if (ms > 0) return `+${timeStr}`;
+            if (ms < 0) return `−${timeStr}`;
+            return timeStr;
+        }
+
+        function getDeviationClass(ms) { if (ms > 0) return 'metric-positive'; if (ms < 0) return 'metric-negative'; return 'metric-neutral'; }
+        function getDeviationBadgeClass(ms) { if (ms > 0) return 'positive'; if (ms < 0) return 'negative'; return 'neutral'; }
+
+        function parseDate(val) {
+            if (!val) return null;
+            if (val instanceof Date && !isNaN(val.getTime())) return val;
+            if (typeof val === 'number') { const d = new Date((val - 25569) * 86400 * 1000); if (!isNaN(d.getTime())) return d; }
+            const str = String(val).trim();
+            if (!str) return null;
+            const parts = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+            if (parts) {
+                const day = parseInt(parts[1], 10), month = parseInt(parts[2], 10), year = parseInt(parts[3], 10);
+                const hours = parts[4] !== undefined ? parseInt(parts[4], 10) : 0;
+                const minutes = parts[5] !== undefined ? parseInt(parts[5], 10) : 0;
+                const seconds = parts[6] !== undefined ? parseInt(parts[6], 10) : 0;
+                if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 1900) {
+                    const d = new Date(year, month - 1, day, hours, minutes, seconds);
+                    if (!isNaN(d.getTime())) return d;
+                }
+            }
+            const d = new Date(str);
+            if (!isNaN(d.getTime())) return d;
+            return null;
+        }
+
+        function formatDateTime(date) {
+            if (!(date instanceof Date) || isNaN(date.getTime())) return '—';
+            const dd = String(date.getDate()).padStart(2, '0');
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const yyyy = date.getFullYear();
+            const hh = String(date.getHours()).padStart(2, '0');
+            const mi = String(date.getMinutes()).padStart(2, '0');
+            const ss = String(date.getSeconds()).padStart(2, '0');
+            return `${dd}.${mm}.${yyyy}, ${hh}:${mi}:${ss}`;
+        }
+
+        function getShiftInfo(date) {
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            const timeMinutes = hours * 60 + minutes;
+            const DAY_START = SHIFT_BOUNDARY_HOUR * 60 + SHIFT_BOUNDARY_MINUTE;
+            const NIGHT_START = NIGHT_START_HOUR * 60 + NIGHT_START_MINUTE;
+            if (timeMinutes >= DAY_START && timeMinutes < NIGHT_START) {
+                return { shift: DAY_SHIFT_KEY, shiftName: 'Дневная', shiftIcon: '☀️', shiftTime: '08:45 — 20:45', date: new Date(date.getFullYear(), date.getMonth(), date.getDate()) };
+            } else if (timeMinutes >= NIGHT_START) {
+                return { shift: NIGHT_SHIFT_KEY, shiftName: 'Ночная', shiftIcon: '🌙', shiftTime: '20:45 — 08:45', date: new Date(date.getFullYear(), date.getMonth(), date.getDate()) };
+            } else {
+                const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                d.setDate(d.getDate() - 1);
+                return { shift: NIGHT_SHIFT_KEY, shiftName: 'Ночная', shiftIcon: '🌙', shiftTime: '20:45 — 08:45', date: d };
+            }
+        }
+
+        function getDayKey(date) { const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); return `${y}-${m}-${d}`; }
+        function formatDayDisplay(date) { const options = { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' }; return date.toLocaleDateString('ru-RU', options); }
+
+        function parseSupplyString(supply) {
+            if (!supply || supply.trim() === '') return { number: '', name: '', hasSupply: false };
+            const trimmed = supply.trim();
+            const dashIndex = trimmed.indexOf(' - ');
+            if (dashIndex !== -1) return { number: trimmed.substring(0, dashIndex).trim(), name: trimmed.substring(dashIndex + 3).trim(), hasSupply: true };
+            return { number: trimmed, name: '', hasSupply: true };
+        }
+
+        function parseData(dataDates, dataText, isReparse = false) {
+            if (!dataDates || dataDates.length === 0) { showStatus('❌ В данных нет строк', 'error'); return; }
+            const daysData = {};
+            const departments = new Set();
+            
+            // ========== СЧЁТЧИКИ ОБЪЕДИНЕНИЯ ПО ВИДАМ РАБОТ ==========
+            const mergedCountByType = {};
+            MERGEABLE_WORK_TYPES.forEach(type => { mergedCountByType[type] = 0; });
+
+            for (let i = 0; i < dataDates.length; i++) {
+                const rowDates = dataDates[i];
+                const rowText = dataText[i] || {};
+                try {
+                    const keys = Object.keys(rowDates);
+                    const workTypeKey = findKeyByVariants(keys, ['Видработ', 'Вид']);
+                    const startKey = findKeyByVariants(keys, ['Датаначала', 'Начало']);
+                    const endKey = findKeyByVariants(keys, ['Датаконца', 'Конец']);
+                    const supplyKey = findKeyByVariants(keys, ['Поставка', 'Задача']);
+                    const employeeKey = findKeyByVariants(keys, ['Сотрудник']);
+                    const positionKey = findKeyByVariants(keys, ['Должность']);
+                    const departmentKey = findKeyByVariants(keys, ['Отдел']);
+                    const workDirectionKey = findKeyByVariants(keys, ['Работы по направлению', 'Работыпонаправлению', 'Работы']);
+                    const quantityKey = findKeyByVariants(keys, ['Количество единиц', 'Количествоединиц', 'Количество']);
+                    const productTypeKey = findKeyByVariants(keys, ['Тип товара', 'Типтовара', 'Тип']);
+
+                    if (!workTypeKey || !startKey || !endKey) continue;
+                    const workType = String(rowDates[workTypeKey] || '').trim();
+                    if (workType.toLowerCase().includes('рабочий день') || workType.toLowerCase().includes('дополнительное время')) continue;
+
+                    let start = null, end = null;
+                    if (startKey && rowText[startKey]) start = parseDate(rowText[startKey]);
+                    if (!start && rowDates[startKey]) start = parseDate(rowDates[startKey]);
+                    if (endKey && rowText[endKey]) end = parseDate(rowText[endKey]);
+                    if (!end && rowDates[endKey]) end = parseDate(rowDates[endKey]);
+
+                    const supply = supplyKey ? String(rowDates[supplyKey] || '').trim() : '';
+                    if (!start || !end) continue;
+
+                    let employeeName = 'Неизвестный сотрудник';
+                    if (employeeKey && rowDates[employeeKey]) employeeName = String(rowDates[employeeKey]).trim();
+                    let position = '';
+                    if (positionKey && rowDates[positionKey]) position = String(rowDates[positionKey]).trim();
+
+                    let department = '';
+                    if (departmentKey && rowDates[departmentKey]) department = String(rowDates[departmentKey]).trim();
+                    if (!department && workDirectionKey && rowDates[workDirectionKey]) department = String(rowDates[workDirectionKey]).trim();
+
+                    let quantity = '';
+                    if (quantityKey) {
+                        const rawQuantity = rowDates[quantityKey];
+                        if (rawQuantity !== undefined && rawQuantity !== null && rawQuantity !== '') quantity = rawQuantity;
+                    }
+                    let productType = '';
+                    if (productTypeKey && rowDates[productTypeKey]) productType = String(rowDates[productTypeKey]).trim();
+
+                    const shiftInfo = getShiftInfo(start);
+                    const dayKey = getDayKey(shiftInfo.date);
+
+                    let effectiveDepartment = department;
+                    let isOverridden = false;
+                    for (const overrideDept of Object.keys(departmentOverrides)) {
+                        const shiftList = departmentOverrides[overrideDept][shiftInfo.shift];
+                        if (shiftList && shiftList.includes(employeeName)) {
+                            effectiveDepartment = overrideDept;
+                            isOverridden = true;
+                            break;
+                        }
+                    }
+
+                    if (effectiveDepartment) departments.add(effectiveDepartment);
+                    if (!daysData[dayKey]) daysData[dayKey] = { date: shiftInfo.date, shifts: {} };
+                    if (!daysData[dayKey].shifts[shiftInfo.shift]) {
+                        daysData[dayKey].shifts[shiftInfo.shift] = { name: shiftInfo.shiftName, icon: shiftInfo.shiftIcon, time: shiftInfo.shiftTime, employeesData: {} };
+                    }
+
+                    const shiftData = daysData[dayKey].shifts[shiftInfo.shift];
+                    if (!shiftData.employeesData[employeeName]) {
+                        shiftData.employeesData[employeeName] = { position, department: effectiveDepartment, originalDepartment: department, isOverridden, tasks: [] };
+                    }
+                    shiftData.employeesData[employeeName].tasks.push({ workType, start, end, supply, position, quantity, productType });
+                } catch (error) { continue; }
+            }
+
+            if (Object.keys(daysData).length === 0) { showStatus('❌ Не удалось найти ни одной задачи с корректными датами', 'error'); return; }
+
+            // ========== ПРИМЕНЕНИЕ ОБЪЕДИНЕНИЯ С ПОДСЧЁТОМ ПО ВИДАМ ==========
+            Object.keys(daysData).forEach(dk => {
+                Object.keys(daysData[dk].shifts).forEach(sk => {
+                    const shiftData = daysData[dk].shifts[sk];
+                    Object.keys(shiftData.employeesData).forEach(emp => {
+                        const empData = shiftData.employeesData[emp];
+                        
+                        // Считаем количество задач каждого объединяемого вида ДО объединения
+                        const countBeforeByType = {};
+                        MERGEABLE_WORK_TYPES.forEach(type => { countBeforeByType[type] = 0; });
+                        empData.tasks.forEach(task => {
+                            if (isMergeableWorkType(task.workType)) {
+                                countBeforeByType[task.workType]++;
+                            }
+                        });
+                        
+                        // Применяем объединение
+                        empData.tasks = applyMergeToEmployee(empData.tasks);
+                        
+                        // Считаем количество задач каждого вида ПОСЛЕ объединения
+                        const countAfterByType = {};
+                        MERGEABLE_WORK_TYPES.forEach(type => { countAfterByType[type] = 0; });
+                        empData.tasks.forEach(task => {
+                            if (isMergeableWorkType(task.workType)) {
+                                countAfterByType[task.workType]++;
+                            }
+                        });
+                        
+                        // Увеличиваем общий счётчик по каждому виду
+                        MERGEABLE_WORK_TYPES.forEach(type => {
+                            mergedCountByType[type] += (countBeforeByType[type] - countAfterByType[type]);
+                        });
+                    });
+                });
+            });
+
+            allDaysData = daysData;
+            allDepartmentsList = Array.from(departments).sort((a, b) => a.localeCompare(b, 'ru'));
+            const allDeptsCombined = new Set([...allDepartmentsList, ...Object.keys(departmentOverrides)]);
+            const combinedList = Array.from(allDeptsCombined).sort((a, b) => a.localeCompare(b, 'ru'));
+
+            if (!isReparse) {
+                selectedDepartments = new Set(combinedList);
+                currentEmployeeSelections = {};
+                populateFilters();
+                updateOverridesSummary();
+                document.getElementById('filtersPanel').classList.remove('hidden');
+                document.getElementById('reportContainer').classList.remove('hidden');
+                document.getElementById('saveBtn').classList.remove('hidden');
+                document.getElementById('excelExportBtn').classList.remove('hidden');
+                document.getElementById('printBtn').classList.remove('hidden');
+            }
+
+            document.getElementById('genTime').textContent = 'Отчёт сформирован: ' + new Date().toLocaleString('ru-RU');
+            renderReport();
+
+            if (!isReparse) {
+                const overridesCount = Object.keys(departmentOverrides).length;
+                let statusMsg = `✅ Отчёт сформирован! Дней: ${Object.keys(daysData).length}, отделов: ${combinedList.length}.`;
+                
+                // ========== СООБЩЕНИЕ ОБ ОБЪЕДИНЕНИИ С ДЕТАЛИЗАЦИЕЙ ПО ВИДАМ ==========
+                const mergedTypesInfo = [];
+                MERGEABLE_WORK_TYPES.forEach(type => {
+                    if (mergedCountByType[type] > 0) {
+                        mergedTypesInfo.push(`"${type}": ${mergedCountByType[type]}`);
+                    }
+                });
+                if (mergedTypesInfo.length > 0) {
+                    statusMsg += ` 🔗 Объединено задач: ${mergedTypesInfo.join(', ')}`;
+                }
+                
+                if (overridesCount > 0) {
+                    let totalOverridden = 0;
+                    Object.values(departmentOverrides).forEach(s => Object.values(s).forEach(arr => totalOverridden += arr.length));
+                    statusMsg += ` ⚡ Переопределений: ${overridesCount} отд. / ${totalOverridden} сотр.`;
+                }
+                showStatus(statusMsg, 'success');
+            }
+        }
+
+        function populateFilters() {
+            renderDepartmentCheckboxes();
+            const dateSelect = document.getElementById('filterDate');
+            dateSelect.innerHTML = '';
+            const dayKeys = Object.keys(allDaysData).sort().reverse();
+            dayKeys.forEach(dk => {
+                const opt = document.createElement('option');
+                opt.value = dk;
+                opt.textContent = '📅 ' + formatDayDisplay(allDaysData[dk].date);
+                dateSelect.appendChild(opt);
+            });
+        }
+
+        function renderDepartmentCheckboxes() {
+            const container = document.getElementById('departmentsList');
+            container.innerHTML = '';
+            const allDeptsCombined = new Set([...allDepartmentsList, ...Object.keys(departmentOverrides)]);
+            const combinedList = Array.from(allDeptsCombined).sort((a, b) => a.localeCompare(b, 'ru'));
+            if (combinedList.length === 0) {
+                container.innerHTML = '<div style="color: rgba(255,255,255,0.8); font-style: italic; padding: 5px;">Отделы не указаны</div>';
+                updateDepartmentsCounter();
+                return;
+            }
+            combinedList.forEach(dept => {
+                const isChecked = selectedDepartments.has(dept);
+                const isFromOverride = departmentOverrides[dept] !== undefined;
+                const label = document.createElement('label');
+                label.className = 'dept-checkbox' + (isChecked ? ' checked' : '');
+                if (isFromOverride) { label.style.background = 'rgba(241, 196, 15, 0.3)'; label.title = 'Отдел из "Своего списка"'; }
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = isChecked;
+                checkbox.dataset.dept = dept;
+                const span = document.createElement('span');
+                span.textContent = dept + (isFromOverride ? ' ⚡' : '');
+                label.appendChild(checkbox);
+                label.appendChild(span);
+                checkbox.addEventListener('change', function(e) { e.stopPropagation(); onDepartmentChange(dept, e.target.checked); });
+                container.appendChild(label);
+            });
+            updateDepartmentsCounter();
+        }
+
+        function onDepartmentChange(dept, isChecked) {
+            if (isChecked) selectedDepartments.add(dept);
+            else selectedDepartments.delete(dept);
+            document.querySelectorAll('.dept-checkbox').forEach(label => {
+                const cb = label.querySelector('input');
+                if (cb.dataset.dept === dept) {
+                    if (isChecked) label.classList.add('checked');
+                    else label.classList.remove('checked');
+                }
+            });
+            updateDepartmentsCounter();
+            renderReport();
+        }
+
+        function selectAllDepartments() {
+            const allDeptsCombined = new Set([...allDepartmentsList, ...Object.keys(departmentOverrides)]);
+            if (allDeptsCombined.size === 0) return;
+            selectedDepartments = new Set(allDeptsCombined);
+            document.querySelectorAll('.dept-checkbox').forEach(label => {
+                const cb = label.querySelector('input');
+                cb.checked = true;
+                label.classList.add('checked');
+            });
+            updateDepartmentsCounter();
+            renderReport();
+        }
+
+        function resetDepartments() {
+            selectedDepartments.clear();
+            document.querySelectorAll('.dept-checkbox').forEach(label => {
+                const cb = label.querySelector('input');
+                cb.checked = false;
+                label.classList.remove('checked');
+            });
+            updateDepartmentsCounter();
+            renderReport();
+        }
+
+        function updateDepartmentsCounter() {
+            const counter = document.getElementById('departmentsCounter');
+            if (!counter) return;
+            const allDeptsCombined = new Set([...allDepartmentsList, ...Object.keys(departmentOverrides)]);
+            const total = allDeptsCombined.size;
+            if (total === 0) counter.textContent = 'Отделы не указаны';
+            else if (selectedDepartments.size === total) counter.textContent = `Выбрано: все отделы (${total})`;
+            else if (selectedDepartments.size === 0) counter.textContent = `Выбрано: 0 из ${total} (отчёт пуст)`;
+            else counter.textContent = `Выбрано: ${selectedDepartments.size} из ${total}`;
+        }
+
+        document.getElementById('filterDate').addEventListener('change', renderReport);
+        document.getElementById('filterShift').addEventListener('change', renderReport);
+        document.getElementById('showDaySummary').addEventListener('change', renderReport);
+
+        function getFilteredData() {
+            const selectedDate = document.getElementById('filterDate').value;
+            const selectedShift = document.getElementById('filterShift').value;
+            if (!selectedDate || !allDaysData[selectedDate]) return null;
+            const dayData = allDaysData[selectedDate];
+            const result = { date: dayData.date, shifts: {} };
+            const allDeptsCombined = new Set([...allDepartmentsList, ...Object.keys(departmentOverrides)]);
+            if (allDeptsCombined.size > 0 && selectedDepartments.size === 0) return result;
+            const shiftsToProcess = selectedShift === 'all' ? Object.keys(dayData.shifts) : [selectedShift];
+            shiftsToProcess.forEach(sk => {
+                if (!dayData.shifts[sk]) return;
+                const srcShift = dayData.shifts[sk];
+                const filteredEmployees = {};
+                Object.keys(srcShift.employeesData).forEach(emp => {
+                    const empData = srcShift.employeesData[emp];
+                    if (allDeptsCombined.size > 0 && !selectedDepartments.has(empData.department)) return;
+                    filteredEmployees[emp] = {
+                        position: empData.position,
+                        department: empData.department,
+                        originalDepartment: empData.originalDepartment,
+                        isOverridden: empData.isOverridden,
+                        tasks: empData.tasks.map(t => ({ ...t }))
+                    };
+                });
+                if (Object.keys(filteredEmployees).length > 0) {
+                    result.shifts[sk] = { name: srcShift.name, icon: srcShift.icon, time: srcShift.time, employeesData: filteredEmployees };
+                }
+            });
+            return result;
+        }
+
+        function computeStats(employeesData) {
+            const employeeList = Object.keys(employeesData);
+            const employeesStats = {};
+            let grandTotalDuration = 0, grandTotalGap = 0, grandTotalOverlap = 0, grandTotalTasks = 0;
+            let allTasks = [];
+            employeeList.forEach(emp => {
+                const tasks = employeesData[emp].tasks;
+                tasks.sort((a, b) => a.start - b.start);
+                let prevEnd = null, totalDuration = 0, totalGap = 0, totalOverlap = 0;
+                for (const task of tasks) {
+                    const durationMs = task.end - task.start;
+                    totalDuration += durationMs;
+                    if (prevEnd !== null) {
+                        const gapMs = task.start - prevEnd;
+                        if (gapMs >= 0) totalGap += gapMs;
+                        else totalOverlap += Math.abs(gapMs);
+                    }
+                    prevEnd = task.end;
+                }
+                employeesStats[emp] = {
+                    position: employeesData[emp].position,
+                    department: employeesData[emp].department,
+                    taskCount: tasks.length,
+                    totalDuration, totalGap, totalOverlap,
+                    deviation: totalDuration - SHIFT_PLAN_MS
+                };
+                grandTotalDuration += totalDuration;
+                grandTotalGap += totalGap;
+                grandTotalOverlap += totalOverlap;
+                grandTotalTasks += tasks.length;
+                tasks.forEach(task => {
+                    allTasks.push({
+                        employee: emp,
+                        position: task.position || employeesData[emp].position,
+                        workType: task.workType,
+                        start: task.start,
+                        end: task.end,
+                        supply: task.supply,
+                        quantity: task.quantity !== undefined ? task.quantity : '',
+                        productType: task.productType || '',
+                        mergedCount: task.mergedCount || 1,
+                        mergedOriginals: task.mergedOriginals || null
+                    });
+                });
+            });
+            allTasks.sort((a, b) => a.start - b.start);
+            return { employeesStats, grandTotalDuration, grandTotalGap, grandTotalOverlap, grandTotalTasks, allTasks, employeeList };
+        }
+
+        function buildDepartmentSummary(employeesStats, employeeList) {
+            const deptGroups = {};
+            employeeList.forEach(emp => {
+                const st = employeesStats[emp];
+                const dept = st.department || '(не указан)';
+                if (!deptGroups[dept]) deptGroups[dept] = { employees: 0, taskCount: 0, totalDuration: 0, totalGap: 0, totalOverlap: 0, totalPlan: 0 };
+                deptGroups[dept].employees++;
+                deptGroups[dept].taskCount += st.taskCount;
+                deptGroups[dept].totalDuration += st.totalDuration;
+                deptGroups[dept].totalGap += st.totalGap;
+                deptGroups[dept].totalOverlap += st.totalOverlap;
+                deptGroups[dept].totalPlan += SHIFT_PLAN_MS;
+            });
+            const sortedDepts = Object.keys(deptGroups).sort((a, b) => a.localeCompare(b, 'ru'));
+            let rowsHtml = '';
+            let grandEmps = 0, grandTasks = 0, grandDur = 0, grandPlan = 0, grandGap = 0, grandOvl = 0;
+            sortedDepts.forEach(dept => {
+                const g = deptGroups[dept];
+                grandEmps += g.employees;
+                grandTasks += g.taskCount;
+                grandDur += g.totalDuration;
+                grandPlan += g.totalPlan;
+                grandGap += g.totalGap;
+                grandOvl += g.totalOverlap;
+                const devClass = getDeviationClass(g.totalDuration - g.totalPlan);
+                rowsHtml += `<tr>
+                    <td><strong>${escapeHtml(dept)}</strong></td>
+                    <td>${g.employees}</td>
+                    <td>${g.taskCount}</td>
+                    <td class="metric-primary">${formatDuration(g.totalDuration)}</td>
+                    <td class="metric-secondary">${formatDuration(g.totalPlan)}</td>
+                    <td class="${devClass}">${formatDeviation(g.totalDuration - g.totalPlan)}</td>
+                    <td class="metric-secondary">${formatDuration(g.totalGap)}</td>
+                    <td class="metric-secondary">${formatDuration(g.totalOverlap)}</td>
+                </tr>`;
+            });
+            const grandDevClass = getDeviationClass(grandDur - grandPlan);
+            rowsHtml += `<tr style="background-color: #fef5e7; font-weight: bold;">
+                <td>ИТОГО</td>
+                <td>${grandEmps}</td>
+                <td>${grandTasks}</td>
+                <td class="metric-primary">${formatDuration(grandDur)}</td>
+                <td>${formatDuration(grandPlan)}</td>
+                <td class="${grandDevClass}">${formatDeviation(grandDur - grandPlan)}</td>
+                <td>${formatDuration(grandGap)}</td>
+                <td>${formatDuration(grandOvl)}</td>
+            </tr>`;
+            return `<div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement, event)">
+                    <div class="collapsible-header-left">
+                        <h2 style="color: #d35400; margin: 0;">📊 Итоги по отделам</h2>
+                        <span class="collapsible-count-badge orange">${sortedDepts.length} отд.</span>
+                    </div>
+                    <span class="collapsible-arrow">▼</span>
+                </div>
+                <div class="collapsible-body"><div class="collapsible-body-inner">
+                    <table>
+                        <thead><tr>
+                            <th style="background-color: #d35400;">Отдел</th>
+                            <th style="background-color: #d35400;">Сотрудников</th>
+                            <th style="background-color: #d35400;">Задач</th>
+                            <th style="background-color: #d35400;">Факт</th>
+                            <th style="background-color: #d35400;">План</th>
+                            <th style="background-color: #d35400;">Отклонение</th>
+                            <th style="background-color: #d35400;">Простой</th>
+                            <th style="background-color: #d35400;">Пересечения</th>
+                        </tr></thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div></div>
+            </div>`;
+        }
+
+        function buildStatsTable(employeesStats, employeeList) {
+            const sortedList = [...employeeList].sort((a, b) => a.localeCompare(b, 'ru'));
+            let statsRows = '';
+            sortedList.forEach(emp => {
+                const st = employeesStats[emp];
+                const deptDisplay = st.department || '—';
+                const overrideMark = st.isOverridden ? ' ⚡' : '';
+                const devClass = getDeviationClass(st.deviation);
+                statsRows += `<tr>
+                    <td><strong>${emp}</strong></td>
+                    <td>${escapeHtml(deptDisplay)}${overrideMark}</td>
+                    <td class="metric-secondary">${st.taskCount}</td>
+                    <td class="metric-primary">${formatDuration(st.totalDuration)}</td>
+                    <td class="metric-secondary">${formatDuration(SHIFT_PLAN_MS)}</td>
+                    <td class="${devClass}"><strong>${formatDeviation(st.deviation)}</strong></td>
+                    <td class="metric-secondary">${formatDuration(st.totalGap)}</td>
+                    <td class="metric-secondary">${formatDuration(st.totalOverlap)}</td>
+                </tr>`;
+            });
+            return statsRows;
+        }
+
+        function buildTasksBlocks(allTasks, badgeClass) {
+            const supplyGroups = {};
+            const supplyOrder = [];
+            const NO_SUPPLY_KEY = '__no_supply__';
+            for (const task of allTasks) {
+                const key = (task.supply && task.supply.trim() !== '') ? task.supply.trim() : NO_SUPPLY_KEY;
+                if (!supplyGroups[key]) { supplyGroups[key] = []; supplyOrder.push(key); }
+                supplyGroups[key].push(task);
+            }
+            supplyOrder.sort((a, b) => {
+                if (a === NO_SUPPLY_KEY) return 1;
+                if (b === NO_SUPPLY_KEY) return -1;
+                const aStart = Math.min(...supplyGroups[a].map(t => t.start.getTime()));
+                const bStart = Math.min(...supplyGroups[b].map(t => t.start.getTime()));
+                return aStart - bStart;
+            });
+            let cardsHtml = '';
+            for (const supplyKey of supplyOrder) {
+                const groupTasks = supplyGroups[supplyKey].sort((a, b) => a.start - b.start);
+                const isNoSupply = supplyKey === NO_SUPPLY_KEY;
+                const workType = groupTasks[0].workType;
+                const participantsMap = new Map();
+                groupTasks.forEach(t => { if (!participantsMap.has(t.employee)) participantsMap.set(t.employee, { position: t.position || '' }); });
+                const participantsList = Array.from(participantsMap.entries()).sort((a, b) => a[0].localeCompare(b[0], 'ru'));
+                const supplyInfo = isNoSupply ? { number: '', name: '', hasSupply: false } : parseSupplyString(supplyKey);
+                let titleHtml = isNoSupply ? `📋 Задача ${workType}` : `📦 Задача ${workType}`;
+                let supplyNumberHtml = '';
+                if (!isNoSupply) {
+                    if (supplyInfo.name) supplyNumberHtml = `<div class="task-card-supply-number"><span class="task-number">${supplyInfo.number}</span> — ${supplyInfo.name}</div>`;
+                    else supplyNumberHtml = `<div class="task-card-supply-number"><span class="task-number">${supplyInfo.number}</span></div>`;
+                } else {
+                    supplyNumberHtml = `<div class="task-card-supply-number" style="opacity:0.85; font-style:italic;">без номера задачи</div>`;
+                }
+                const firstTaskStart = groupTasks[0].start;
+                const lastTaskEnd = groupTasks[groupTasks.length - 1].end;
+                const totalDuration = lastTaskEnd - firstTaskStart;
+                const timeRange = `с ${formatDateTime(firstTaskStart)} до ${formatDateTime(lastTaskEnd)}`;
+                let participantsHtml = '';
+                participantsList.forEach(([emp, info]) => {
+                    const positionStr = info.position ? ` <span class="participant-position">(${info.position})</span>` : '';
+                    participantsHtml += `<div class="participant-row"><span><span class="participant-name">• ${emp}</span>${positionStr}</span></div>`;
+                });
+                const hasMerged = groupTasks.some(t => (t.mergedCount || 1) > 1);
+                const headerClass = hasMerged ? 'merged' : (isNoSupply ? 'no-supply' : '');
+                let productType = '', quantity = '';
+                for (const t of groupTasks) {
+                    if (t.productType && !productType) productType = t.productType;
+                    if (t.quantity !== '' && t.quantity !== undefined && t.quantity !== null && quantity === '') quantity = t.quantity;
+                    if (productType && quantity !== '') break;
+                }
+                const quantityFormatted = formatQuantity(quantity);
+                let productInfoHtml = '';
+                if (productType || quantityFormatted) {
+                    let itemsHtml = '';
+                    if (productType) itemsHtml += `<div class="product-info-item"><span class="product-info-label">🏷️ Тип товара:</span><span class="product-info-value type">${escapeHtml(productType)}</span></div>`;
+                    if (quantityFormatted) itemsHtml += `<div class="product-info-item"><span class="product-info-label">🔢 Кол-во единиц:</span><span class="product-info-value quantity">${escapeHtml(quantityFormatted)}</span></div>`;
+                    productInfoHtml = `<div class="product-info-block">${itemsHtml}</div>`;
+                }
+                cardsHtml += `<div class="task-card ${isNoSupply ? 'no-supply' : ''}">
+                    <div class="task-card-header ${headerClass}">
+                        <div class="task-card-title">${titleHtml}</div>
+                        ${supplyNumberHtml}
+                        <div class="task-card-meta">
+                            <div class="task-card-meta-item">📅 ${timeRange}</div>
+                            <div class="task-card-meta-item">⏱️ <span class="task-card-duration">${formatDuration(totalDuration)}</span></div>
+                            ${hasMerged ? `<div class="task-card-meta-item">🔗 <span class="task-card-duration">есть объединённые</span></div>` : ''}
+                        </div>
+                        ${productInfoHtml}
+                        <div class="task-card-participants">
+                            <div class="task-card-participants-title">👷 Участники (${participantsList.length}):</div>
+                            ${participantsHtml}
+                        </div>
+                    </div>
+                </div>`;
+            }
+            const totalTasksCount = allTasks.length;
+            const tasksWord = totalTasksCount === 1 ? 'задача' : (totalTasksCount < 5 ? 'задачи' : 'задач');
+            const groupsWord = supplyOrder.length === 1 ? 'задача' : (supplyOrder.length < 5 ? 'задачи' : 'задач');
+            return `<div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement, event)">
+                    <div class="collapsible-header-left">
+                        <h2 style="color: #16a085; margin: 0;">📦 Блок задач</h2>
+                        <span class="collapsible-count-badge ${badgeClass || 'teal'}">${supplyOrder.length} ${groupsWord} · ${totalTasksCount} ${tasksWord}</span>
+                    </div>
+                    <span class="collapsible-arrow">▼</span>
+                </div>
+                <div class="collapsible-body"><div class="collapsible-body-inner">${cardsHtml}</div></div>
+            </div>`;
+        }
+
+        function buildShiftSummary(shiftName, employeesCount, grandTotalTasks, grandTotalDuration, grandTotalGap, grandTotalOverlap) {
+            const planTime = employeesCount * SHIFT_PLAN_MS;
+            const deviation = grandTotalDuration - planTime;
+            const devClass = getDeviationClass(deviation);
+            const devBadgeClass = getDeviationBadgeClass(deviation);
+            const devSign = deviation > 0 ? '+' : (deviation < 0 ? '−' : '');
+            return `<div class="summary">
+                <h2>📈 Сводка за ${shiftName.toLowerCase()} смену</h2>
+                <div class="summary-section-title">🎯 Основные показатели</div>
+                <div class="summary-item primary">
+                    <span class="summary-label">Плановое время (${employeesCount} сотр. × ${formatDuration(SHIFT_PLAN_MS)}):</span>
+                    <span class="summary-value metric-primary">${formatDuration(planTime)}</span>
+                </div>
+                <div class="summary-item primary">
+                    <span class="summary-label">Фактически отработано:</span>
+                    <span class="summary-value metric-primary">${formatDuration(grandTotalDuration)}</span>
+                </div>
+                <div class="summary-item deviation">
+                    <span class="summary-label">Отклонение от плана:</span>
+                    <span class="summary-value ${devClass}">${formatDeviation(deviation)}<span class="metric-badge ${devBadgeClass}">${devSign}${formatDuration(Math.abs(deviation))}</span></span>
+                </div>
+                <div class="summary-section-title">📋 Дополнительные показатели</div>
+                <div class="summary-item"><span class="summary-label">Сотрудников:</span><span class="summary-value metric-secondary">${employeesCount}</span></div>
+                <div class="summary-item"><span class="summary-label">Количество задач:</span><span class="summary-value metric-secondary">${grandTotalTasks}</span></div>
+                <div class="summary-item"><span class="summary-label">Время простоя:</span><span class="summary-value metric-secondary">${formatDuration(grandTotalGap)}</span></div>
+                <div class="summary-item"><span class="summary-label">Время пересечений:</span><span class="summary-value metric-secondary">${formatDuration(grandTotalOverlap)}</span></div>
+            </div>`;
+        }
+
+        function buildEmployeeReport(dayKey, shiftKey, employee, empData, stats) {
+            const tasks = empData.tasks;
+            const position = empData.position;
+            const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
+            const planTime = SHIFT_PLAN_MS;
+            const deviation = stats.totalDuration - planTime;
+            const devClass = getDeviationClass(deviation);
+            const devBadgeClass = getDeviationBadgeClass(deviation);
+            const devSign = deviation > 0 ? '+' : (deviation < 0 ? '−' : '');
+            let prevEnd = null;
+            let htmlRows = '';
+            for (const task of tasks) {
+                const durationMs = task.end - task.start;
+                const isMerged = (task.mergedCount || 1) > 1;
+                let gapStr = '—';
+                if (prevEnd !== null) {
+                    const gapMs = task.start - prevEnd;
+                    if (gapMs >= 0) gapStr = formatDuration(gapMs);
+                    else { const overlapMin = Math.abs(gapMs) / 60000; gapStr = `⚠️ Пересечение: ${Math.round(overlapMin)} мин`; }
+                }
+                const gapClass = gapStr.includes('⚠️') ? 'warning' : '';
+                const workTypeDisplay = isMerged ? `${task.workType} <span class="merged-badge" onclick="toggleMergedInfo(this)">🔗 ${task.mergedCount}</span>` : task.workType;
+                const rowClass = isMerged ? 'merged-task-row' : '';
+                let mergedInfoHtml = '';
+                if (isMerged && task.mergedOriginals && task.mergedOriginals.length > 1) {
+                    const originalsInfo = task.mergedOriginals.map((orig, idx) => 
+                        `${idx + 1}. ${formatDateTime(orig.start)} — ${formatDateTime(orig.end)} (${formatDuration(orig.end - orig.start)})`
+                    ).join('<br>');
+                    mergedInfoHtml = `<div class="merged-info">Исходные задачи:<br>${originalsInfo}</div>`;
+                }
+                htmlRows += `<tr class="${rowClass}">
+                    <td>${workTypeDisplay}${mergedInfoHtml}</td>
+                    <td>${formatDateTime(task.start)}</td>
+                    <td>${formatDateTime(task.end)}</td>
+                    <td class="metric-primary">${formatDuration(durationMs)}</td>
+                    <td class="${gapClass}">${gapStr}</td>
+                    <td>${task.supply || '—'}</td>
+                </tr>`;
+                prevEnd = task.end;
+            }
+            const reportDate = tasks[0].start;
+            const idSuffix = `${dayKey}_${shiftKey}_${employee}`.replace(/[^a-zA-Z0-9а-яА-Я_\-]/g, '_');
+            const deptLabel = empData.isOverridden 
+                ? `${empData.department} ⚡ <span style="opacity:0.7; font-size:0.85em;">(из файла: ${empData.originalDepartment || '—'})</span>`
+                : (empData.department || '');
+            return `<div class="report-content active" id="report_${idSuffix}">
+                <div class="report-header">
+                    <div class="employee-info">
+                        <div class="employee-icon">👷</div>
+                        <div>
+                            <div class="employee-name">${employee}</div>
+                            <div class="employee-position">${position ? 'Должность: ' + position : ''}${deptLabel ? ' · ' + deptLabel : ''}</div>
+                        </div>
+                    </div>
+                    <div class="date-info">
+                        <div class="date-label">📅 Дата отчёта</div>
+                        <div class="date-value">${reportDate.toLocaleDateString('ru-RU', dateOptions)}</div>
+                    </div>
+                </div>
+                <div class="summary">
+                    <h2>📈 Сводка за смену</h2>
+                    <div class="summary-section-title">🎯 Основные показатели</div>
+                    <div class="summary-item primary"><span class="summary-label">Плановое время:</span><span class="summary-value metric-primary">${formatDuration(planTime)}</span></div>
+                    <div class="summary-item primary"><span class="summary-label">Фактически отработано:</span><span class="summary-value metric-primary">${formatDuration(stats.totalDuration)}</span></div>
+                    <div class="summary-item deviation"><span class="summary-label">Отклонение от плана:</span><span class="summary-value ${devClass}">${formatDeviation(deviation)}<span class="metric-badge ${devBadgeClass}">${devSign}${formatDuration(Math.abs(deviation))}</span></span></div>
+                    <div class="summary-section-title">📋 Дополнительные показатели</div>
+                    <div class="summary-item"><span class="summary-label">Количество задач:</span><span class="summary-value metric-secondary">${stats.taskCount}</span></div>
+                    <div class="summary-item"><span class="summary-label">Суммарное время простоя:</span><span class="summary-value metric-secondary">${formatDuration(stats.totalGap)}</span></div>
+                    <div class="summary-item"><span class="summary-label">Суммарное время пересечений:</span><span class="summary-value metric-secondary">${formatDuration(stats.totalOverlap)}</span></div>
+                </div>
+                <button class="toggle-details" id="toggleBtn_${idSuffix}" onclick="toggleDetails('${idSuffix}', '📋 Показать детализацию', '📋 Скрыть детализацию')">📋 Показать детализацию</button>
+                <div class="table-container collapsed" id="tableContainer_${idSuffix}">
+                    <table>
+                        <thead><tr><th>Вид работ</th><th>Начало</th><th>Конец</th><th>Затрачено времени</th><th>Простой до начала</th><th>Задача</th></tr></thead>
+                        <tbody>${htmlRows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        }
+
+        function toggleMergedInfo(badge) { const infoDiv = badge.parentElement.querySelector('.merged-info'); if (infoDiv) infoDiv.classList.toggle('expanded'); }
+
+        function buildShiftColumn(dayKey, shiftKey, shiftData, dayDate) {
+            const employeesData = shiftData.employeesData;
+            const employeeList = Object.keys(employeesData);
+            const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
+            const shiftDateStr = dayDate.toLocaleDateString('ru-RU', dateOptions);
+            const { employeesStats, grandTotalDuration, grandTotalGap, grandTotalOverlap, grandTotalTasks, allTasks } = computeStats(employeesData);
+            const statsRows = buildStatsTable(employeesStats, employeeList);
+            const tasksBlocks = buildTasksBlocks(allTasks, 'teal');
+            const deptSummary = buildDepartmentSummary(employeesStats, employeeList);
+            const shiftSummary = buildShiftSummary(shiftData.name, employeeList.length, grandTotalTasks, grandTotalDuration, grandTotalGap, grandTotalOverlap);
+            const sortedEmployees = [...employeeList].sort((a, b) => a.localeCompare(b, 'ru'));
+            const selKey = `${dayKey}_${shiftKey}`;
+            const currentSelection = currentEmployeeSelections[selKey] || '';
+            const isValidSelection = currentSelection !== '' && sortedEmployees.includes(currentSelection);
+            const selectedEmployee = isValidSelection ? currentSelection : '';
+            let optionsHtml = '<option value="">— Выберите сотрудника —</option>';
+            sortedEmployees.forEach(emp => {
+                const st = employeesStats[emp];
+                const dur = formatDuration(st.totalDuration);
+                const selected = emp === selectedEmployee ? 'selected' : '';
+                const overrideMark = employeesData[emp].isOverridden ? ' ⚡' : '';
+                optionsHtml += `<option value="${emp.replace(/"/g, '&quot;')}" ${selected}>${emp}${overrideMark} — ${st.taskCount} задач · ${dur}</option>`;
+            });
+            let employeeContent = '';
+            if (selectedEmployee && employeesData[selectedEmployee]) {
+                employeeContent = buildEmployeeReport(dayKey, shiftKey, selectedEmployee, employeesData[selectedEmployee], employeesStats[selectedEmployee]);
+            } else {
+                employeeContent = '<div class="shift-empty">Выберите сотрудника из списка для просмотра детализации</div>';
+            }
+            const headerClass = shiftKey === DAY_SHIFT_KEY ? 'day' : 'night';
+            const selectId = `empSelect_${dayKey}_${shiftKey}`.replace(/[^a-zA-Z0-9а-яА-Я_\-]/g, '_');
+            const employeeContentId = `empContent_${dayKey}_${shiftKey}`.replace(/[^a-zA-Z0-9а-яА-Я_\-]/g, '_');
+            return `<div class="shift-column">
+                <div class="shift-column-header ${headerClass}">
+                    <div>
+                        <div class="shift-column-title">${shiftData.icon} ${shiftData.name} смена</div>
+                        <div class="shift-column-time">🕐 ${shiftData.time} · 📅 ${shiftDateStr}</div>
+                    </div>
+                    <div style="text-align: right; font-size: 0.95em;">
+                        <div>👥 ${employeeList.length} сотр.</div>
+                        <div>📝 ${grandTotalTasks} задач</div>
+                    </div>
+                </div>
+                <div class="shift-column-body">
+                    ${shiftSummary}
+                    ${deptSummary}
+                    <div class="collapsible-section">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement, event)">
+                            <div class="collapsible-header-left">
+                                <h2 style="color: #8e44ad; margin: 0;">👥 Статистика по сотрудникам</h2>
+                                <span class="collapsible-count-badge purple">${employeeList.length} сотр.</span>
+                            </div>
+                            <span class="collapsible-arrow">▼</span>
+                        </div>
+                        <div class="collapsible-body"><div class="collapsible-body-inner">
+                            <table>
+                                <thead><tr>
+                                    <th class="summary-th">Сотрудник</th>
+                                    <th class="summary-th">Отдел</th>
+                                    <th class="summary-th">Задач</th>
+                                    <th class="summary-th">Факт</th>
+                                    <th class="summary-th">План</th>
+                                    <th class="summary-th">Отклонение</th>
+                                    <th class="summary-th">Простой</th>
+                                    <th class="summary-th">Пересечения</th>
+                                </tr></thead>
+                                <tbody>${statsRows}</tbody>
+                            </table>
+                        </div></div>
+                    </div>
+                    ${tasksBlocks}
+                    <div class="employee-select-wrapper">
+                        <label for="${selectId}">👷 Детализация по сотруднику (А – Я):</label>
+                        <select id="${selectId}" onchange="onEmployeeSelect('${dayKey}', '${shiftKey}', this.value, '${employeeContentId}')">
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                    <div id="${employeeContentId}">${employeeContent}</div>
+                </div>
+            </div>`;
+        }
+
+        function onEmployeeSelect(dayKey, shiftKey, employeeName, contentId) {
+            currentEmployeeSelections[`${dayKey}_${shiftKey}`] = employeeName;
+            const contentEl = document.getElementById(contentId);
+            if (!contentEl) return;
+            if (!employeeName) { contentEl.innerHTML = '<div class="shift-empty">Выберите сотрудника из списка для просмотра детализации</div>'; return; }
+            const filtered = getFilteredData();
+            if (!filtered || !filtered.shifts[shiftKey] || !filtered.shifts[shiftKey].employeesData[employeeName]) {
+                contentEl.innerHTML = '<div class="shift-empty">Нет данных по сотруднику</div>';
+                return;
+            }
+            const empData = filtered.shifts[shiftKey].employeesData[employeeName];
+            const { employeesStats } = computeStats(filtered.shifts[shiftKey].employeesData);
+            const stats = employeesStats[employeeName];
+            contentEl.innerHTML = buildEmployeeReport(dayKey, shiftKey, employeeName, empData, stats);
+        }
+
+        function buildDaySummary(filtered) {
+            const dayDate = filtered.date;
+            const dateOptions = { day: '2-digit', month: 'long', year: 'numeric' };
+            const dayDateStr = dayDate.toLocaleDateString('ru-RU', dateOptions);
+            let allEmployeesData = {};
+            const shiftKeys = Object.keys(filtered.shifts);
+            shiftKeys.forEach(sk => {
+                const emps = filtered.shifts[sk].employeesData;
+                Object.keys(emps).forEach(emp => {
+                    if (!allEmployeesData[emp]) allEmployeesData[emp] = { position: emps[emp].position, department: emps[emp].department, tasks: [] };
+                    emps[emp].tasks.forEach(t => allEmployeesData[emp].tasks.push(t));
+                });
+            });
+            Object.keys(allEmployeesData).forEach(emp => { allEmployeesData[emp].tasks = applyMergeToEmployee(allEmployeesData[emp].tasks); });
+            const { employeesStats, grandTotalDuration, grandTotalGap, grandTotalOverlap, grandTotalTasks, employeeList } = computeStats(allEmployeesData);
+            let totalPlanMs = 0;
+            shiftKeys.forEach(sk => { totalPlanMs += Object.keys(filtered.shifts[sk].employeesData).length * SHIFT_PLAN_MS; });
+            const deviation = grandTotalDuration - totalPlanMs;
+            const devClass = getDeviationClass(deviation);
+            const devBadgeClass = getDeviationBadgeClass(deviation);
+            const devSign = deviation > 0 ? '+' : (deviation < 0 ? '−' : '');
+            return `<div class="report-header day-header" style="margin-bottom: 20px;">
+                <div class="employee-info">
+                    <div class="employee-icon">📊</div>
+                    <div>
+                        <div class="employee-name">Сводный отчёт за день</div>
+                        <div class="employee-position">Сотрудников: ${employeeList.length} | Смен: ${shiftKeys.length}</div>
+                    </div>
+                </div>
+                <div class="date-info">
+                    <div class="date-label">📅 Дата рабочего дня</div>
+                    <div class="date-value">${dayDateStr}</div>
+                </div>
+            </div>
+            <div class="summary summary-blue" style="margin-bottom: 25px;">
+                <h2>📈 Общая сводка за день</h2>
+                <div class="summary-section-title">🎯 Основные показатели</div>
+                <div class="summary-item primary"><span class="summary-label">Плановое время:</span><span class="summary-value metric-primary">${formatDuration(totalPlanMs)}</span></div>
+                <div class="summary-item primary"><span class="summary-label">Фактически отработано:</span><span class="summary-value metric-primary">${formatDuration(grandTotalDuration)}</span></div>
+                <div class="summary-item deviation"><span class="summary-label">Отклонение от плана:</span><span class="summary-value ${devClass}">${formatDeviation(deviation)}<span class="metric-badge ${devBadgeClass}">${devSign}${formatDuration(Math.abs(deviation))}</span></span></div>
+                <div class="summary-section-title">📋 Дополнительные показатели</div>
+                <div class="summary-item"><span class="summary-label">Количество сотрудников:</span><span class="summary-value metric-secondary">${employeeList.length}</span></div>
+                <div class="summary-item"><span class="summary-label">Количество смен:</span><span class="summary-value metric-secondary">${shiftKeys.length}</span></div>
+                <div class="summary-item"><span class="summary-label">Общее количество задач:</span><span class="summary-value metric-secondary">${grandTotalTasks}</span></div>
+                <div class="summary-item"><span class="summary-label">Суммарное время простоя:</span><span class="summary-value metric-secondary">${formatDuration(grandTotalGap)}</span></div>
+                <div class="summary-item"><span class="summary-label">Суммарное время пересечений:</span><span class="summary-value metric-secondary">${formatDuration(grandTotalOverlap)}</span></div>
+            </div>`;
+        }
+
+        function renderReport() {
+            const filtered = getFilteredData();
+            const daySummaryContainer = document.getElementById('daySummaryContainer');
+            const shiftsGrid = document.getElementById('shiftsGrid');
+            if (!filtered) { daySummaryContainer.innerHTML = ''; shiftsGrid.innerHTML = '<div class="shift-empty" style="grid-column: 1/-1;">Нет данных для отображения</div>'; return; }
+            const showDaySummary = document.getElementById('showDaySummary').checked;
+            daySummaryContainer.innerHTML = showDaySummary ? buildDaySummary(filtered) : '';
+            const selectedShift = document.getElementById('filterShift').value;
+            let columnsHtml = '';
+            const showDay = selectedShift === 'all' || selectedShift === DAY_SHIFT_KEY;
+            const showNight = selectedShift === 'all' || selectedShift === NIGHT_SHIFT_KEY;
+            if (showDay) {
+                if (filtered.shifts[DAY_SHIFT_KEY]) columnsHtml += buildShiftColumn(getDayKey(filtered.date), DAY_SHIFT_KEY, filtered.shifts[DAY_SHIFT_KEY], filtered.date);
+                else columnsHtml += `<div class="shift-column"><div class="shift-column-header day"><div><div class="shift-column-title">☀️ Дневная смена</div><div class="shift-column-time">🕐 08:45 — 20:45</div></div></div><div class="shift-column-body"><div class="shift-empty">☀️ Нет задач в дневной смене</div></div></div>`;
+            }
+            if (showNight) {
+                if (filtered.shifts[NIGHT_SHIFT_KEY]) columnsHtml += buildShiftColumn(getDayKey(filtered.date), NIGHT_SHIFT_KEY, filtered.shifts[NIGHT_SHIFT_KEY], filtered.date);
+                else columnsHtml += `<div class="shift-column"><div class="shift-column-header night"><div><div class="shift-column-title">🌙 Ночная смена</div><div class="shift-column-time">🕐 20:45 — 08:45</div></div></div><div class="shift-column-body"><div class="shift-empty">🌙 Нет задач в ночной смене</div></div></div>`;
+            }
+            shiftsGrid.innerHTML = columnsHtml;
+        }
+
+        function toggleCollapsible(sectionEl, event) {
+            if (event.target.tagName === 'A' || event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') return;
+            sectionEl.classList.toggle('expanded');
+        }
+
+        function toggleDetails(idSuffix, showText, hideText) {
+            const container = document.getElementById('tableContainer_' + idSuffix);
+            const btn = document.getElementById('toggleBtn_' + idSuffix);
+            if (!container || !btn) return;
+            if (container.classList.contains('collapsed')) { container.classList.remove('collapsed'); btn.textContent = hideText; }
+            else { container.classList.add('collapsed'); btn.textContent = showText; }
+        }
+
+        // ========== ЭКСПОРТ В EXCEL ==========
+        function exportToExcel() {
+            const filtered = getFilteredData();
+            if (!filtered) {
+                showStatus('❌ Нет данных для экспорта', 'error');
+                return;
+            }
+
+            try {
+                const wb = XLSX.utils.book_new();
+                const dateStr = filtered.date.toLocaleDateString('ru-RU');
+                const selectedShift = document.getElementById('filterShift').value;
+                const shiftLabel = selectedShift === 'all' ? 'Все смены' : (selectedShift === DAY_SHIFT_KEY ? 'Дневная' : 'Ночная');
+
+                let allEmployeesData = {};
+                const shiftKeys = Object.keys(filtered.shifts);
+                shiftKeys.forEach(sk => {
+                    const emps = filtered.shifts[sk].employeesData;
+                    Object.keys(emps).forEach(emp => {
+                        if (!allEmployeesData[emp]) allEmployeesData[emp] = { position: emps[emp].position, department: emps[emp].department, tasks: [] };
+                        emps[emp].tasks.forEach(t => allEmployeesData[emp].tasks.push(t));
+                    });
+                });
+                Object.keys(allEmployeesData).forEach(emp => { allEmployeesData[emp].tasks = applyMergeToEmployee(allEmployeesData[emp].tasks); });
+                const { employeesStats, grandTotalDuration, grandTotalGap, grandTotalOverlap, grandTotalTasks, employeeList } = computeStats(allEmployeesData);
+
+                let totalPlanMs = 0;
+                shiftKeys.forEach(sk => { totalPlanMs += Object.keys(filtered.shifts[sk].employeesData).length * SHIFT_PLAN_MS; });
+                const deviation = grandTotalDuration - totalPlanMs;
+
+                const summaryData = [
+                    ['ОТЧЁТ ПО ЗАДАЧАМ'],
+                    [],
+                    ['Дата отчёта:', dateStr],
+                    ['Смена:', shiftLabel],
+                    ['Дата формирования:', new Date().toLocaleString('ru-RU')],
+                    [],
+                    ['ОБЩИЕ ПОКАЗАТЕЛИ'],
+                    ['Количество сотрудников:', employeeList.length],
+                    ['Количество смен:', shiftKeys.length],
+                    ['Количество задач:', grandTotalTasks],
+                    [],
+                    ['ВРЕМЕННЫЕ ПОКАЗАТЕЛИ'],
+                    ['Плановое время:', formatDuration(totalPlanMs)],
+                    ['Фактически отработано:', formatDuration(grandTotalDuration)],
+                    ['Отклонение от плана:', formatDeviation(deviation)],
+                    ['Время простоя:', formatDuration(grandTotalGap)],
+                    ['Время пересечений:', formatDuration(grandTotalOverlap)]
+                ];
+                const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+                wsSummary['!cols'] = [{ wch: 30 }, { wch: 25 }];
+                wsSummary['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+                XLSX.utils.book_append_sheet(wb, wsSummary, 'Общая сводка');
+
+                const deptGroups = {};
+                employeeList.forEach(emp => {
+                    const st = employeesStats[emp];
+                    const dept = st.department || '(не указан)';
+                    if (!deptGroups[dept]) deptGroups[dept] = { employees: 0, taskCount: 0, totalDuration: 0, totalGap: 0, totalOverlap: 0, totalPlan: 0 };
+                    deptGroups[dept].employees++;
+                    deptGroups[dept].taskCount += st.taskCount;
+                    deptGroups[dept].totalDuration += st.totalDuration;
+                    deptGroups[dept].totalGap += st.totalGap;
+                    deptGroups[dept].totalOverlap += st.totalOverlap;
+                    deptGroups[dept].totalPlan += SHIFT_PLAN_MS;
+                });
+
+                const deptData = [
+                    ['ИТОГИ ПО ОТДЕЛАМ'],
+                    [],
+                    ['Отдел', 'Сотрудников', 'Задач', 'Факт', 'План', 'Отклонение', 'Простой', 'Пересечения']
+                ];
+                const sortedDepts = Object.keys(deptGroups).sort((a, b) => a.localeCompare(b, 'ru'));
+                let grandEmps = 0, grandTasks = 0, grandDur = 0, grandPlan = 0, grandGap = 0, grandOvl = 0;
+                sortedDepts.forEach(dept => {
+                    const g = deptGroups[dept];
+                    grandEmps += g.employees;
+                    grandTasks += g.taskCount;
+                    grandDur += g.totalDuration;
+                    grandPlan += g.totalPlan;
+                    grandGap += g.totalGap;
+                    grandOvl += g.totalOverlap;
+                    deptData.push([
+                        dept, g.employees, g.taskCount,
+                        formatDuration(g.totalDuration), formatDuration(g.totalPlan),
+                        formatDeviation(g.totalDuration - g.totalPlan),
+                        formatDuration(g.totalGap), formatDuration(g.totalOverlap)
+                    ]);
+                });
+                deptData.push([
+                    'ИТОГО', grandEmps, grandTasks,
+                    formatDuration(grandDur), formatDuration(grandPlan),
+                    formatDeviation(grandDur - grandPlan),
+                    formatDuration(grandGap), formatDuration(grandOvl)
+                ]);
+                const wsDept = XLSX.utils.aoa_to_sheet(deptData);
+                wsDept['!cols'] = [{ wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+                wsDept['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+                XLSX.utils.book_append_sheet(wb, wsDept, 'По отделам');
+
+                const empData = [
+                    ['СТАТИСТИКА ПО СОТРУДНИКАМ'],
+                    [],
+                    ['Сотрудник', 'Отдел', 'Должность', 'Задач', 'Факт', 'План', 'Отклонение', 'Простой', 'Пересечения']
+                ];
+                const sortedEmps = [...employeeList].sort((a, b) => a.localeCompare(b, 'ru'));
+                sortedEmps.forEach(emp => {
+                    const st = employeesStats[emp];
+                    empData.push([
+                        emp, st.department || '—', st.position || '—', st.taskCount,
+                        formatDuration(st.totalDuration), formatDuration(SHIFT_PLAN_MS),
+                        formatDeviation(st.deviation),
+                        formatDuration(st.totalGap), formatDuration(st.totalOverlap)
+                    ]);
+                });
+                empData.push([
+                    'ИТОГО', '', `${employeeList.length} сотр.`, grandTotalTasks,
+                    formatDuration(grandTotalDuration), formatDuration(employeeList.length * SHIFT_PLAN_MS),
+                    formatDeviation(grandTotalDuration - employeeList.length * SHIFT_PLAN_MS),
+                    formatDuration(grandTotalGap), formatDuration(grandTotalOverlap)
+                ]);
+                const wsEmp = XLSX.utils.aoa_to_sheet(empData);
+                wsEmp['!cols'] = [{ wch: 35 }, { wch: 25 }, { wch: 20 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+                wsEmp['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
+                XLSX.utils.book_append_sheet(wb, wsEmp, 'По сотрудникам');
+
+                const tasksData = [
+                    ['ДЕТАЛИЗАЦИЯ ЗАДАЧ'],
+                    [],
+                    ['Сотрудник', 'Отдел', 'Должность', 'Вид работ', 'Начало', 'Конец', 'Затрачено времени', 'Задача (номер)', 'Тип товара', 'Кол-во единиц']
+                ];
+                
+                shiftKeys.forEach(sk => {
+                    const shiftData = filtered.shifts[sk];
+                    Object.keys(shiftData.employeesData).forEach(emp => {
+                        const empData = shiftData.employeesData[emp];
+                        empData.tasks.forEach(task => {
+                            const supplyInfo = parseSupplyString(task.supply || '');
+                            const supplyNumber = supplyInfo.hasSupply ? supplyInfo.number : '';
+                            const supplyName = supplyInfo.hasSupply ? supplyInfo.name : '';
+                            const supplyFull = supplyInfo.hasSupply ? (supplyName ? `${supplyNumber} - ${supplyName}` : supplyNumber) : '';
+                            
+                            tasksData.push([
+                                emp, empData.department || '—', empData.position || '—', task.workType,
+                                formatDateTime(task.start), formatDateTime(task.end),
+                                formatDuration(task.end - task.start),
+                                supplyFull, task.productType || '', formatQuantity(task.quantity)
+                            ]);
+                        });
+                    });
+                });
+
+                const wsTasks = XLSX.utils.aoa_to_sheet(tasksData);
+                wsTasks['!cols'] = [
+                    { wch: 35 }, { wch: 25 }, { wch: 20 }, { wch: 30 },
+                    { wch: 22 }, { wch: 22 }, { wch: 16 }, { wch: 35 }, { wch: 20 }, { wch: 16 }
+                ];
+                wsTasks['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
+                XLSX.utils.book_append_sheet(wb, wsTasks, 'Детализация задач');
+
+                const selectedDepts = Array.from(selectedDepartments);
+                let deptPart = 'Все_отделы';
+                if (selectedDepts.length === 1) {
+                    deptPart = selectedDepts[0].replace(/[^a-zA-Zа-яА-Я0-9]/g, '_');
+                } else if (selectedDepts.length > 1 && selectedDepts.length < allDepartmentsList.length + Object.keys(departmentOverrides).length) {
+                    deptPart = `${selectedDepts.length}_отделов`;
+                }
+                const datePart = filtered.date.toISOString().slice(0, 10);
+                const fileName = `Отчёт_${deptPart}_${datePart}_${shiftLabel.replace(/\s/g, '_')}.xlsx`;
+
+                XLSX.writeFile(wb, fileName);
+                showStatus(`✅ Excel-файл экспортирован: ${fileName} (4 листа)`, 'success');
+
+            } catch (error) {
+                console.error('Excel export error:', error);
+                showStatus('❌ Ошибка экспорта в Excel: ' + error.message, 'error');
+            }
+        }
+
+        function saveCurrentView() {
+            const clone = document.documentElement.cloneNode(true);
+            const controls = clone.querySelector('.controls'); if (controls) controls.style.display = 'none';
+            const status = clone.querySelector('#statusBox'); if (status) status.style.display = 'none';
+            const dsPanel = clone.querySelector('.data-sources-panel'); if (dsPanel) dsPanel.style.display = 'none';
+            const filters = clone.querySelector('#filtersPanel'); if (filters) filters.style.display = 'none';
+            const modal = clone.querySelector('.modal-overlay'); if (modal) modal.style.display = 'none';
+            const htmlContent = "<!DOCTYPE html>\n" + clone.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            let deptName = 'Все_отдела';
+            if (selectedDepartments.size === 1) deptName = Array.from(selectedDepartments)[0];
+            else if (selectedDepartments.size > 1) deptName = `${selectedDepartments.size}_отделов`;
+            const date = document.getElementById('filterDate').value || 'дата';
+            const safeDept = deptName.replace(/[^a-zA-Zа-яА-Я0-9_]/g, '_');
+            a.download = `Отчёт_${safeDept}_${date}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function printReport() { window.print(); }
+
+        document.getElementById('customListModal').addEventListener('click', function(e) { if (e.target === this) closeCustomListModal(); });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('customListModal').classList.contains('show')) closeCustomListModal();
+        });
+    </script>
+</body>
+</html>
+
+
+              <script>
+                              const MERGEABLE_WORK_TYPES = [
+    'Печать стикера грузового места',
+    'Повторная печать стикера грузового места'
+];
+
+function isMergeableWorkType(workType) {
+    return MERGEABLE_WORK_TYPES.includes(workType);
+}
+
+// Группируем по workType
+const groupsByType = {};
+mergeableTasks.forEach(task => {
+    if (!groupsByType[task.workType]) groupsByType[task.workType] = [];
+    groupsByType[task.workType].push(task);
+});
+
+// Для каждой группы применяем объединение отдельно
+Object.keys(groupsByType).forEach(workType => {
+    const group = groupsByType[workType].sort((a, b) => a.start - b.start);
+    const merged = mergeSequentialTasks(group);
+    mergedAll.push(...merged);
+});
+
+
+              </script>
+                        </body>
+                        </html>
+                    
