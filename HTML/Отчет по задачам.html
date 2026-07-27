@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Контроль Задач склада</title>
+  <script src="xlsx.full.min.js"></script>
+  <script>if(typeof XLSX==='undefined'){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');}</script>
+  <style>
+    :root{--navy:#102a43;--blue:#1769aa;--green:#087f5b;--red:#c92a2a;--orange:#d97706;--bg:#f3f6fa;--card:#fff;--line:#dce3ec;--muted:#627288}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#172b3a;font:14px Arial,sans-serif}
+    header{padding:23px max(18px,calc((100vw - 1480px)/2));background:var(--navy);color:#fff}
+    h1{margin:0;font-size:25px}
+    .sub{color:#c9d7e5;margin-top:7px}
+    .wrap{max-width:1480px;margin:22px auto;padding:0 18px}
+    .upload{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:11px;padding:16px;margin-bottom:14px}
+    .upload label{font-weight:bold}
+    .upload input{max-width:100%}
+    button{background:var(--blue);color:#fff;border:0;border-radius:7px;padding:11px 16px;font-weight:bold;cursor:pointer}
+    button:hover{background:#0f568f}
+    button.ghost{background:#eef2f7;color:#374151}
+    button.ghost:hover{background:#e5e7eb}
+    button.green{background:var(--green)}
+    button.green:hover{background:#065f46}
+    button.orange{background:var(--orange)}
+    button.orange:hover{background:#b45309}
+    .hint,.meta{color:var(--muted)}
+    .error{background:#fff0f0;border-left:4px solid var(--red);padding:11px 14px;margin:10px 0}
+    .cards{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:12px;margin:18px 0}
+    .card,.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px;box-shadow:0 1px 2px #102a4308}
+    .label{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .value{font-size:24px;font-weight:bold}
+    .small{font-size:12px;color:var(--muted);margin-top:6px}
+    .panels{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:18px}
+    .panel h2{margin:0 0 13px;font-size:17px}
+    .scroll{overflow:auto;max-height:570px}
+    table{border-collapse:collapse;width:100%}
+    th,td{white-space:nowrap;border-bottom:1px solid var(--line);padding:9px 8px;text-align:right}
+    th{background:#f7f9fc;color:var(--muted);font-size:12px}
+    th:first-child,td:first-child{text-align:left}
+    .txt{text-align:left}
+    .good{color:var(--green);font-weight:bold}
+    .bad{color:var(--red);font-weight:bold}
+    .filters{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:11px}
+    select{padding:8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+    .empty{background:#fff;border:1px dashed var(--line);padding:28px;border-radius:10px}
+    .hidden{display:none}
+    .filters-bar{background:#fff;border:1px solid var(--line);border-radius:11px;padding:16px;margin-bottom:14px}
+    .filter-row{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+    .filter-row:last-child{margin-bottom:0}
+    .filter-title{font-weight:bold;padding-top:8px;white-space:nowrap}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{display:inline-flex;align-items:center;padding:7px 13px;border:1px solid var(--line);border-radius:16px;background:#f7f9fc;color:#172b3a;cursor:pointer;font-size:13px;user-select:none;transition:border-color .15s,background .15s}
+    .chip:hover{border-color:var(--blue)}
+    .chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
+    .chip .cnt{opacity:.6;margin-left:6px;font-size:11px}
+    .shift-hint{color:var(--muted);font-size:12px}
+    .toggles{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+    .export-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:14px 16px;align-items:center}
+    .export-bar .title{font-weight:bold;margin-right:auto}
+    .group-header{background:#eef2f7;font-weight:bold;padding:10px 8px;border-top:2px solid var(--blue);color:var(--navy);text-align:left;font-size:13px}
+    .group-header td{padding:10px 8px;border-bottom:1px solid var(--line)}
+    /* Модальное окно */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(16,42,67,.55);display:flex;align-items:center;justify-content:center;z-index:1000}
+    .modal{background:#fff;border-radius:12px;padding:22px;max-width:480px;width:92%;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+    .modal h3{margin:0 0 14px;color:var(--navy);font-size:18px}
+    .modal .block-list{display:flex;flex-direction:column;gap:8px;margin:14px 0 18px}
+    .modal label.item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:#f7f9fc;user-select:none;transition:background .15s,border-color .15s}
+    .modal label.item:hover{background:#eef2f7;border-color:var(--blue)}
+    .modal label.item input{width:18px;height:18px;cursor:pointer;accent-color:var(--blue)}
+    .modal .item-title{font-weight:600;color:#172b3a}
+    .modal .item-desc{font-size:12px;color:var(--muted);margin-top:2px}
+    .modal .actions{display:flex;gap:10px;justify-content:flex-end}
+    .modal .actions button{padding:9px 16px}
+    @media(max-width:1000px){.cards{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:570px){.cards{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Контроль Задач склада</h1>
+    <div class="sub">Локальный отчёт: файлы остаются только на вашем компьютере</div>
+  </header>
+  <main class="wrap">
+    <section class="upload">
+      <label for="files">Excel-выгрузки 1С:</label>
+      <input id="files" type="file" accept=".xlsx,.xls" multiple>
+      <button id="build">Построить сводку</button>
+      <span class="hint">Можно выбрать несколько файлов — дата отчёта и смена определяются по времени начала выполнения.</span>
+    </section>
+
+    <div id="messages"></div>
+
+    <section id="filtersBar" class="filters-bar hidden">
+      <div class="filter-row">
+        <span class="filter-title">Даты отчёта:</span>
+        <div class="chips" id="dateChips"></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-title">Тип задачи:</span>
+        <select id="typeFilter"></select>
+        <button id="resetFilters" class="ghost">Сбросить фильтры</button>
+      </div>
+      <div class="filter-row hidden" id="nameRow">
+        <span class="filter-title">Наименование:</span>
+        <div class="chips" id="nameChips"></div>
+      </div>
+      <div class="shift-hint">Смена дат для отчёта — в 8:45. Дневная смена: с 8:45 до 20:45, ночная смена: с 20:45 до 8:45 (задачи до 8:45 относятся к предыдущему дню). Если даты не выбраны — показываются все. В отчёт попадают только задачи со значением «Да» в столбце «Выполнена». Для типа «Нетиповые задачи склада» доступен фильтр по наименованию (можно выбрать несколько).</div>
+    </section>
+
+    <div id="result" class="empty">Выберите один или несколько Excel-файлов и нажмите «Построить сводку».</div>
+  </main>
+
+<script>
+let allTasks=[];
+const selectedDates=new Set();
+const selectedNames=new Set();
+const detailSel={fs:'',fe:'',fc:'',fp:''};
+const view={details:false};
+
+const $=id=>document.getElementById(id);
+const p2=n=>String(n).padStart(2,'0');
+const fmt=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1}).format(v);
+const pct=v=>fmt(v)+'%';
+const esc=v=>String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[x]));
+const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const DAY_START=8*60+45;
+const NIGHT_START=20*60+45;
+const NONSTD_TYPE='Нетиповые задачи склада';
+const normKey=s=>String(s).toLowerCase().replace(/\s+/g,'');
+const isNonStd=t=>normKey(t.taskType)===normKey(NONSTD_TYPE);
+
+function parseDate(value){
+  if(value instanceof Date&&!isNaN(value))return value;
+  if(typeof value==='number'){const x=XLSX.SSF.parse_date_code(value);return x?new Date(x.y,x.m-1,x.d,x.H,x.M,x.S):null}
+  if(!value)return null;
+  const s=String(value).trim();
+  const m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  const d=new Date(s);
+  return isNaN(d)?null:d;
+}
+function shiftInfo(d){
+  const m=d.getHours()*60+d.getMinutes()+d.getSeconds()/60;
+  const shift=(m>=DAY_START&&m<NIGHT_START)?'Дневная':'Ночная';
+  const rep=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  if(m<DAY_START)rep.setDate(rep.getDate()-1);
+  return {shift,rep};
+}
+const fmtDate=d=>p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear();
+const fmtDateTime=d=>fmtDate(d)+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+const dnum=s=>{const p=s.split('.');return +p[2]*10000+ +p[1]*100+ +p[0]};
+function category(value){value=String(value??'').trim().toLowerCase();return value==='исключения'?'Исключения':value==='марк'?'Маркируемый':'Обычная'}
+function num(v){v=Number(v);return Number.isFinite(v)?v:0}
+function numOr(v,fallback){
+  if(v==null||String(v).trim()==='')return fallback;
+  const n=Number(v);
+  return Number.isFinite(n)?n:fallback;
+}
+function key(v){return String(v??'').replace(/\s+/g,' ').trim()}
+
+async function readFile(file){
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+  const sheet=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(sheet,{defval:null,raw:true});
+  const out=[];
+  for(const r0 of rows){
+    const r={};
+    for(const k in r0)r[String(k).trim()]=r0[k];
+    const get=name=>{
+      if(name in r)return r[name];
+      const nk=normKey(name);
+      for(const k in r)if(normKey(k)===nk)return r[k];
+      return undefined;
+    };
+    if(key(get('Выполнена')).toLowerCase()!=='да')continue;
+    const start=parseDate(get('Дата начала выполнения'));
+    const planEnd=parseDate(get('Планируемый срок выполнения'));
+    const actualEnd=parseDate(get('Фактический срок выполнения'));
+    if(!start||!planEnd||!actualEnd)continue;
+    const actualMin=(actualEnd-start)/60000;
+    const plannedMin=(planEnd-start)/60000;
+    if(actualMin<=0||plannedMin<0)continue;
+    const si=shiftInfo(start);
+    const plannedQty=num(get('Количество'));
+    const foundQty=numOr(get('Найденное количество'),plannedQty);
+    const rawName=key(get('Наименование'))||'(не указано)';
+    const unitsHour=actualMin?foundQty/actualMin*60:0;
+    out.push({
+      number:get('Номер'),
+      taskType:key(get('Тип задачи'))||'(не указан)',
+      name:rawName,
+      employee:key(get('Сотрудник исполнитель')),
+      productGroup:key(get('Группа товаров')),
+      plannedQty,
+      foundQty,
+      start,planEnd,actualEnd,
+      category:category(rawName),
+      shift:si.shift,
+      repDate:fmtDate(si.rep),
+      dateTime:fmtDateTime(start),
+      actualMin,plannedMin,
+      unitsHour,
+      overdue:actualEnd>planEnd,
+      source:file.name
+    });
+  }
+  return out;
+}
+
+function applyFilters(){
+  const type=$('typeFilter').value;
+  const isNonStdSel=normKey(type)===normKey(NONSTD_TYPE);
+  return allTasks.filter(t=>{
+    if(!(selectedDates.size===0||selectedDates.has(t.repDate)))return false;
+    if(type!=='__all__'&&t.taskType!==type)return false;
+    if(isNonStdSel&&selectedNames.size>0&&!selectedNames.has(t.name))return false;
+    return true;
+  });
+}
+
+function aggregate(rows,field,nameFn){
+  const maps=new Map();
+  for(const r of rows){
+    const k=typeof field==='function'?field(r):(field?(r[field]||'(не указан)'):'Итого');
+    if(!maps.has(k))maps.set(k,{name:nameFn?nameFn(r):k,tasks:0,plannedQty:0,foundQty:0,actualMin:0,plannedMin:0,overdue:0,repDate:r.repDate,shift:r.shift,category:r.category,productGroup:r.productGroup||'(не указана)',name:r.name||'(не указано)',taskType:r.taskType||'(не указан)'});
+    const x=maps.get(k);
+    x.tasks++;x.plannedQty+=r.plannedQty;x.foundQty+=r.foundQty;x.actualMin+=r.actualMin;x.plannedMin+=r.plannedMin;x.overdue+=r.overdue?1:0;
+  }
+  return [...maps.values()].map(x=>({...x,shortage:x.plannedQty-x.foundQty,normPct:x.actualMin?x.plannedMin/x.actualMin*100:0,fillPct:x.plannedQty?x.foundQty/x.plannedQty*100:0,unitsHour:x.actualMin?x.foundQty/x.actualMin*60:0,time:time(x.actualMin)}));
+}
+function time(min){min=Math.max(0,Math.round(min));return Math.floor(min/60)+' ч '+String(min%60).padStart(2,'0')+' мин'}
+function metric(label,value,small){return `<div class="card"><div class="label">${label}</div><div class="value">${value}</div><div class="small">${small}</div></div>`}
+function table(rows,cols){
+  if(!rows.length)return '<div class="empty">Нет данных</div>';
+  return `<div class="scroll"><table><thead><tr>${cols.map(c=>`<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td class="${c[2]?c[2](r):''}">${c[3]?c[3](r):esc(r[c[0]])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+/* Группированная таблица для Детализации задач: группировка по Типу работ, внутри — по дате */
+function detailsTable(rows,cols){
+  if(!rows.length)return '<div class="empty">Нет данных</div>';
+  // Сортировка: сначала по типу, затем по дате (возрастание)
+  const sorted=[...rows].sort((a,b)=>{
+    const ct=(a.taskType||'').localeCompare(b.taskType||'','ru');
+    if(ct!==0)return ct;
+    // по дате — возрастание (сначала старые)
+    const da=a.start&&b.start?(a.start-b.start):0;
+    if(da!==0)return da;
+    return (a.dateTime||'').localeCompare(b.dateTime||'');
+  });
+  // Группируем по типу
+  const groups=[];
+  let currentType=null,currentArr=[];
+  for(const r of sorted){
+    if(r.taskType!==currentType){
+      if(currentArr.length)groups.push({type:currentType,rows:currentArr});
+      currentType=r.taskType;currentArr=[r];
+    }else currentArr.push(r);
+  }
+  if(currentArr.length)groups.push({type:currentType,rows:currentArr});
+
+  const headRow=`<thead><tr>${cols.map(c=>`<th>${c[1]}</th>`).join('')}</tr></thead>`;
+  const body=groups.map(g=>{
+    const groupHeader=`<tr class="group-header"><td colspan="${cols.length}">Тип работы: ${esc(g.type)} <span style="opacity:.6;font-weight:normal;margin-left:8px">(${g.rows.length} задач)</span></td></tr>`;
+    const rowsHtml=g.rows.map(r=>`<tr>${cols.map(c=>`<td class="${c[2]?c[2](r):''}">${c[3]?c[3](r):esc(r[c[0]])}</td>`).join('')}</tr>`).join('');
+    return groupHeader+rowsHtml;
+  }).join('');
+  return `<div class="scroll"><table>${headRow}<tbody>${body}</tbody></table></div>`;
+}
+
+function renderDateChips(){
+  const box=$('dateChips');
+  box.innerHTML='';
+  const counts={};
+  allTasks.forEach(t=>counts[t.repDate]=(counts[t.repDate]||0)+1);
+  const dates=Object.keys(counts).sort((a,b)=>dnum(b)-dnum(a));
+  const all=document.createElement('span');
+  all.className='chip'+(selectedDates.size===0?' active':'');
+  all.textContent='Все даты';
+  all.onclick=()=>{selectedDates.clear();renderDateChips();show();};
+  box.appendChild(all);
+  dates.forEach(ds=>{
+    const p=ds.split('.');
+    const d=new Date(+p[2],+p[1]-1,+p[0]);
+    const el=document.createElement('span');
+    el.className='chip'+(selectedDates.has(ds)?' active':'');
+    el.innerHTML=WD[d.getDay()]+' '+esc(ds)+'<span class="cnt">'+counts[ds]+'</span>';
+    el.onclick=()=>{selectedDates.has(ds)?selectedDates.delete(ds):selectedDates.add(ds);renderDateChips();show();};
+    box.appendChild(el);
+  });
+}
+
+function renderNameChips(){
+  const box=$('nameChips');
+  box.innerHTML='';
+  const type=$('typeFilter').value;
+  const isNonStdSel=normKey(type)===normKey(NONSTD_TYPE);
+  $('nameRow').classList.toggle('hidden',!isNonStdSel);
+  if(!isNonStdSel){selectedNames.clear();return;}
+  const pool=allTasks.filter(t=>isNonStd(t)&&(selectedDates.size===0||selectedDates.has(t.repDate)));
+  const counts={};
+  pool.forEach(t=>counts[t.name]=(counts[t.name]||0)+1);
+  const names=Object.keys(counts).sort((a,b)=>a.localeCompare(b,'ru'));
+  const all=document.createElement('span');
+  all.className='chip'+(selectedNames.size===0?' active':'');
+  all.textContent='Все наименования';
+  all.onclick=()=>{selectedNames.clear();renderNameChips();show();};
+  box.appendChild(all);
+  names.forEach(nm=>{
+    const el=document.createElement('span');
+    el.className='chip'+(selectedNames.has(nm)?' active':'');
+    el.innerHTML=esc(nm)+'<span class="cnt">'+counts[nm]+'</span>';
+    el.onclick=()=>{selectedNames.has(nm)?selectedNames.delete(nm):selectedNames.add(nm);renderNameChips();show();};
+    box.appendChild(el);
+  });
+}
+
+function fillTypes(){
+  const sel=$('typeFilter');
+  sel.innerHTML='';
+  sel.add(new Option('Все типы','__all__'));
+  const types=[...new Set(allTasks.map(t=>t.taskType))].sort((a,b)=>a.localeCompare(b,'ru'));
+  types.forEach(t=>sel.add(new Option(t,t)));
+  const def=types.find(t=>normKey(t)===normKey('Сборка товара'));
+  sel.value=def||'__all__';
+}
+
+function buildShifts(rows){
+  const ng=r=>r.productGroup||'(не указана)';
+  const shifts=aggregate(rows,r=>r.repDate+'|'+r.shift+'|'+r.taskType+'|'+ng(r),r=>r.taskType);
+  shifts.sort((a,b)=>{
+    if(a.repDate!==b.repDate)return dnum(b.repDate)-dnum(a.repDate);
+    if(a.shift!==b.shift)return a.shift==='Дневная'?-1:1;
+    const cmp=(a.taskType||'').localeCompare(b.taskType||'','ru');
+    if(cmp!==0)return cmp;
+    return b.foundQty-a.foundQty;
+  });
+  return shifts;
+}
+function buildCats(rows){
+  const ng=r=>r.productGroup||'(не указана)';
+  const type=$('typeFilter').value;
+  const isNonStdSel=normKey(type)===normKey(NONSTD_TYPE);
+  
+  if(isNonStdSel){
+    const cats=aggregate(rows,r=>r.repDate+'|'+r.shift+'|'+r.name+'|'+ng(r),r=>r.name);
+    cats.sort((a,b)=>{
+      if(a.repDate!==b.repDate)return dnum(b.repDate)-dnum(a.repDate);
+      if(a.shift!==b.shift)return a.shift==='Дневная'?-1:1;
+      const cmp=(a.name||'').localeCompare(b.name||'','ru');
+      if(cmp!==0)return cmp;
+      return b.foundQty-a.foundQty;
+    });
+    return cats;
+  }
+  
+  const cats=aggregate(rows,r=>r.repDate+'|'+r.shift+'|'+r.category+'|'+ng(r),r=>r.category);
+  cats.sort((a,b)=>{
+    if(a.repDate!==b.repDate)return dnum(b.repDate)-dnum(a.repDate);
+    if(a.shift!==b.shift)return a.shift==='Дневная'?-1:1;
+    if(a.category!==b.category)return a.category<b.category?-1:1;
+    return b.foundQty-a.foundQty;
+  });
+  return cats;
+}
+
+/* ---- Модальное окно выбора блоков для экспорта в HTML ---- */
+const EXPORT_BLOCKS=[
+  {id:'summary',title:'Сводка',desc:'Общие показатели (карточки)',default:true},
+  {id:'shifts',title:'По сменам',desc:'Группировка по дате, смене и типу задачи',default:true},
+  {id:'cats',title:'Особые условия',desc:'Группировка по дате, смене и условию/наименованию',default:true},
+  {id:'details',title:'Детализация задач',desc:'Все задачи с группировкой по типу работ',default:true}
+];
+
+function showExportModal(onConfirm){
+  // Удаляем предыдущее окно, если есть
+  const old=document.getElementById('exportModal');
+  if(old)old.remove();
+
+  const backdrop=document.createElement('div');
+  backdrop.className='modal-backdrop';
+  backdrop.id='exportModal';
+  backdrop.innerHTML=`
+    <div class="modal">
+      <h3>Выберите блоки для экспорта в HTML</h3>
+      <div class="block-list">
+        ${EXPORT_BLOCKS.map(b=>`
+          <label class="item">
+            <input type="checkbox" data-block="${b.id}" ${b.default?'checked':''}>
+            <div>
+              <div class="item-title">${esc(b.title)}</div>
+              <div class="item-desc">${esc(b.desc)}</div>
+            </div>
+          </label>
+        `).join('')}
+      </div>
+      <div class="actions">
+        <button id="expCancel" class="ghost">Отмена</button>
+        <button id="expConfirm" class="green">Экспортировать</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+
+  // Закрытие по клику на фон
+  backdrop.addEventListener('click',e=>{if(e.target===backdrop)backdrop.remove();});
+  backdrop.querySelector('#expCancel').onclick=()=>backdrop.remove();
+  backdrop.querySelector('#expConfirm').onclick=()=>{
+    const chosen=[...backdrop.querySelectorAll('input[type=checkbox]')]
+      .filter(cb=>cb.checked).map(cb=>cb.dataset.block);
+    backdrop.remove();
+    if(!chosen.length){alert('Выберите хотя бы один блок для экспорта.');return;}
+    onConfirm(chosen);
+  };
+}
+
+/* ---- Экспорт HTML ---- */
+function exportHTML(blocks){
+  const rows=applyFilters();
+  if(!rows.length){alert('Нет данных для экспорта.');return;}
+  const o=aggregate(rows)[0];
+  const shifts=buildShifts(rows);
+  const cats=buildCats(rows);
+  const details=[...rows].sort((a,b)=>{
+    const ct=(a.taskType||'').localeCompare(b.taskType||'','ru');
+    if(ct!==0)return ct;
+    const da=a.start&&b.start?(a.start-b.start):0;
+    if(da!==0)return da;
+    return (a.dateTime||'').localeCompare(b.dateTime||'');
+  });
+
+  const filtersInfo=[];
+  filtersInfo.push('Даты: '+(selectedDates.size===0?'все':[...selectedDates].sort((a,b)=>dnum(a)-dnum(b)).join(', ')));
+  filtersInfo.push('Тип задачи: '+($('typeFilter').value==='__all__'?'все':$('typeFilter').value));
+  if(normKey($('typeFilter').value)===normKey(NONSTD_TYPE)){
+    filtersInfo.push('Наименование: '+(selectedNames.size===0?'все':[...selectedNames].join(', ')));
+  }
+
+  const tbl=(rs,cols)=>`<table><thead><tr>${cols.map(c=>`<th>${esc(c[1])}</th>`).join('')}</tr></thead><tbody>${rs.map(r=>`<tr>${cols.map(c=>{const v=c[3]?c[3](r):esc(r[c[0]]);const cls=c[2]?c[2](r):'';return `<td class="${cls}">${v}</td>`}).join('')}</tr>`).join('')}</tbody></table>`;
+
+  const metricCols=[['tasks','Заданий'],['foundQty','Собрано',null,r=>fmt(r.foundQty)],['shortage','Недобор',null,r=>fmt(r.shortage)],['time','Время'],['unitsHour','Норматив',null,r=>fmt(r.unitsHour)+' ед/ч'],['fillPct','Полнота',r=>r.fillPct>=95?'good':'bad',r=>pct(r.fillPct)],['overdue','Проср.']];
+  const shiftCols=[['repDate','Дата',r=>'txt'],['shift','Смена',r=>'txt'],['taskType','Тип задачи',r=>'txt'],['productGroup','Группа товаров',r=>'txt'],...metricCols];
+  
+  const type=$('typeFilter').value;
+  const isNonStdSel=normKey(type)===normKey(NONSTD_TYPE);
+  const catCols=isNonStdSel?
+    [['repDate','Дата',r=>'txt'],['shift','Смена',r=>'txt'],['name','Наименование',r=>'txt'],['productGroup','Группа товаров',r=>'txt'],...metricCols]:
+    [['repDate','Дата',r=>'txt'],['shift','Смена',r=>'txt'],['name','Особое условие',r=>'txt'],['productGroup','Группа товаров',r=>'txt'],...metricCols];
+  
+  const detCols=[['dateTime','Дата'],['shift','Смена'],['number','Номер'],['taskType','Тип работы'],['name','Наименование'],['productGroup','Товар'],['plannedQty','По заданию',null,r=>fmt(r.plannedQty)],['foundQty','Собрано',null,r=>fmt(r.foundQty)],['actualMin','Факт, мин',null,r=>fmt(r.actualMin)],['plannedMin','План, мин',null,r=>fmt(r.plannedMin)],['unitsHour','Норматив',null,r=>fmt(r.unitsHour)+' ед/ч'],['source','Источник']];
+
+  // Группированная таблица деталей для HTML
+  const detGroupedHtml=(()=>{
+    const groups=[];
+    let ct=null,ca=[];
+    for(const r of details){
+      if(r.taskType!==ct){if(ca.length)groups.push({type:ct,rows:ca});ct=r.taskType;ca=[r];}
+      else ca.push(r);
+    }
+    if(ca.length)groups.push({type:ct,rows:ca});
+    const headRow=`<thead><tr>${detCols.map(c=>`<th>${esc(c[1])}</th>`).join('')}</tr></thead>`;
+    const body=groups.map(g=>{
+      const gh=`<tr class="group-header"><td colspan="${detCols.length}">Тип работы: ${esc(g.type)} (${g.rows.length} задач)</td></tr>`;
+      const rh=g.rows.map(r=>`<tr>${detCols.map(c=>{const v=c[3]?c[3](r):esc(r[c[0]]);const cls=c[2]?c[2](r):'';return `<td class="${cls}">${v}</td>`}).join('')}</tr>`).join('');
+      return gh+rh;
+    }).join('');
+    return `<table>${headRow}<tbody>${body}</tbody></table>`;
+  })();
+
+  const hasSummary=blocks.includes('summary');
+  const hasShifts=blocks.includes('shifts');
+  const hasCats=blocks.includes('cats');
+  const hasDetails=blocks.includes('details');
+
+  const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Отчёт — Контроль Задач склада</title>
+<style>
+body{font:13px Arial,sans-serif;color:#172b3a;margin:20px;max-width:1400px;margin-left:auto;margin-right:auto}
+h1{color:#102a43;border-bottom:2px solid #102a43;padding-bottom:8px}
+h2{color:#1769aa;margin-top:30px}
+.meta{color:#627288;margin:6px 0 18px}
+table{border-collapse:collapse;width:100%;margin-bottom:10px;font-size:12px}
+th,td{border:1px solid #dce3ec;padding:6px 8px;text-align:right;white-space:nowrap}
+th{background:#f7f9fc;color:#627288}
+th:first-child,td:first-child{text-align:left}
+.txt{text-align:left}
+.good{color:#087f5b;font-weight:bold}
+.bad{color:#c92a2a;font-weight:bold}
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:14px 0}
+.card{border:1px solid #dce3ec;border-radius:8px;padding:10px;background:#fff}
+.card .l{font-size:11px;color:#627288}
+.card .v{font-size:20px;font-weight:bold}
+.card .s{font-size:11px;color:#627288;margin-top:4px}
+.filters{background:#f7f9fc;padding:10px;border-radius:8px;margin:10px 0;font-size:12px}
+.group-header{background:#eef2f7;font-weight:bold;padding:10px 8px;border-top:2px solid #1769aa;color:#102a43;text-align:left;font-size:13px}
+.group-header td{padding:10px 8px;border-bottom:1px solid #dce3ec}
+@media print{body{margin:0}}
+</style></head><body>
+<h1>Контроль Задач склада</h1>
+<div class="meta">Дата формирования: ${esc(fmtDateTime(new Date()))}</div>
+<div class="filters"><b>Параметры отчёта:</b><br>${filtersInfo.map(esc).join('<br>')}</div>
+${hasSummary?`<div class="cards">
+${metric('Выполнено заданий',fmt(o.tasks),'по фильтрам')}
+${metric('Собрано товара',fmt(o.foundQty),'из '+fmt(o.plannedQty))}
+${metric('Недобор',fmt(o.shortage),pct(o.fillPct)+' полнота')}
+${metric('Фактическое время',o.time,'сумма времени задач')}
+${metric('Норматив',fmt(o.unitsHour)+' ед/ч',o.normPct>=100?'норматив выполнен':'ниже норматива')}
+${metric('Просрочено',fmt(o.overdue),pct(o.overdue/o.tasks*100)+' от задач')}
+</div>`:''}
+${hasShifts?`<h2>По сменам</h2>${tbl(shifts,shiftCols)}`:''}
+${hasCats?`<h2>Особые условия</h2>${tbl(cats,catCols)}`:''}
+${hasDetails?`<h2>Детализация задач</h2>${detGroupedHtml}`:''}
+</body></html>`;
+  downloadBlob(new Blob(['\uFEFF'+html],{type:'text/html;charset=utf-8'}),`Контроль_Задач_склада_${fmtDate(new Date()).replace(/\./g,'-')}.html`);
+}
+
+function exportExcel(){
+  const rows=applyFilters();
+  if(!rows.length){alert('Нет данных для экспорта.');return;}
+  const o=aggregate(rows)[0];
+  const shifts=buildShifts(rows);
+  const cats=buildCats(rows);
+  const details=[...rows].sort((a,b)=>{
+    const ct=(a.taskType||'').localeCompare(b.taskType||'','ru');
+    if(ct!==0)return ct;
+    const da=a.start&&b.start?(a.start-b.start):0;
+    if(da!==0)return da;
+    return (a.dateTime||'').localeCompare(b.dateTime||'');
+  });
+
+  const wb=XLSX.utils.book_new();
+
+  const summary=[
+    ['Отчёт «Контроль Задач склада»'],
+    ['Дата формирования',fmtDateTime(new Date())],
+    [],
+    ['Параметры отчёта'],
+    ['Даты',selectedDates.size===0?'все':[...selectedDates].sort((a,b)=>dnum(a)-dnum(b)).join(', ')],
+    ['Тип задачи',$('typeFilter').value==='__all__'?'все':$('typeFilter').value],
+  ];
+  if(normKey($('typeFilter').value)===normKey(NONSTD_TYPE)){
+    summary.push(['Наименование',selectedNames.size===0?'все':[...selectedNames].join(', ')]);
+  }
+  summary.push([],['Показатель','Значение','Комментарий']);
+  summary.push(['Выполнено заданий',o.tasks,'по фильтрам']);
+  summary.push(['Собрано товара',o.foundQty,'из '+o.plannedQty+' по заданиям']);
+  summary.push(['Недобор',o.shortage,pct(o.fillPct)+' полнота']);
+  summary.push(['Фактическое время (мин)',Math.round(o.actualMin),'сумма времени задач']);
+  summary.push(['Норматив (ед/ч)',+o.unitsHour.toFixed(2),o.normPct>=100?'норматив выполнен':'ниже норматива']);
+  summary.push(['Просрочено',o.overdue,pct(o.overdue/o.tasks*100)+' от задач']);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),'Сводка');
+
+  const aggToSheet=(rs,head)=>{
+    const data=[head];
+    rs.forEach(r=>data.push(head.map(h=>{
+      const k=h[0];
+      if(k==='fillPct')return +(r.fillPct/100).toFixed(4);
+      if(k==='unitsHour')return +r.unitsHour.toFixed(2);
+      if(k==='time')return r.time;
+      if(k==='overdue')return r.overdue;
+      if(k==='tasks'||k==='plannedQty'||k==='foundQty'||k==='shortage')return r[k];
+      return r[k];
+    })));
+    return XLSX.utils.aoa_to_sheet(data);
+  };
+  const shiftHead=[['repDate','Дата'],['shift','Смена'],['taskType','Тип задачи'],['productGroup','Группа товаров'],['tasks','Заданий'],['plannedQty','По заданию'],['foundQty','Собрано'],['shortage','Недобор'],['time','Время'],['unitsHour','Норматив (ед/ч)'],['fillPct','Полнота'],['overdue','Просрочено']];
+  XLSX.utils.book_append_sheet(wb,aggToSheet(shifts,shiftHead),'По сменам');
+
+  const type=$('typeFilter').value;
+  const isNonStdSel=normKey(type)===normKey(NONSTD_TYPE);
+  const catHead=isNonStdSel?
+    [['repDate','Дата'],['shift','Смена'],['name','Наименование'],['productGroup','Группа товаров'],['tasks','Заданий'],['plannedQty','По заданию'],['foundQty','Собрано'],['shortage','Недобор'],['time','Время'],['unitsHour','Норматив (ед/ч)'],['fillPct','Полнота'],['overdue','Просрочено']]:
+    [['repDate','Дата'],['shift','Смена'],['name','Особое условие'],['productGroup','Группа товаров'],['tasks','Заданий'],['plannedQty','По заданию'],['foundQty','Собрано'],['shortage','Недобор'],['time','Время'],['unitsHour','Норматив (ед/ч)'],['fillPct','Полнота'],['overdue','Просрочено']];
+  XLSX.utils.book_append_sheet(wb,aggToSheet(cats,catHead),'Особые условия');
+
+  // Детализация с группировкой по типу работ
+  const detHead=['Тип работы','Дата','Смена','Номер','Наименование','Товар','По заданию','Собрано','Факт, мин','План, мин','Норматив (ед/ч)','Источник'];
+  const detData=[detHead];
+  details.forEach(r=>detData.push([r.taskType,r.dateTime,r.shift,r.number,r.name,r.productGroup,r.plannedQty,r.foundQty,+r.actualMin.toFixed(2),+r.plannedMin.toFixed(2),+r.unitsHour.toFixed(2),r.source]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(detData),'Детализация');
+
+  XLSX.writeFile(wb,`Контроль_Задач_склада_${fmtDate(new Date()).replace(/\./g,'-')}.xlsx`);
+}
+
+function downloadBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},100);
+}
+
+function show(){
+  const rows=applyFilters();
+  if(!rows.length){
+    $('result').className='empty';
+    $('result').innerHTML='Нет задач по выбранным фильтрам. Измените дату, тип задачи или наименование.';
+    return;
+  }
+  const o=aggregate(rows)[0];
+
+  const shifts=buildShifts(rows);
+  const cats=buildCats(rows);
+
+  const metricCols=[['tasks','Заданий'],['foundQty','Собрано',null,r=>fmt(r.foundQty)],['shortage','Недобор',null,r=>fmt(r.shortage)],['time','Время'],['unitsHour','Норматив',null,r=>fmt(r.unitsHour)+' ед/ч'],['fillPct','Полнота',r=>r.fillPct>=95?'good':'bad',r=>pct(r.fillPct)],['overdue','Проср.']];
+  const shiftCols=[['repDate','Дата',r=>'txt'],['shift','Смена',r=>'txt'],['taskType','Тип задачи',r=>'txt'],['productGroup','Группа товаров',r=>'txt'],...metricCols];
+  
+  const type=$('typeFilter').value;
+  const isNonStdSel=normKey(type)===normKey(NONSTD_TYPE);
+  const catCols=isNonStdSel?
+    [['repDate','Дата',r=>'txt'],['shift','Смена',r=>'txt'],['name','Наименование',r=>'txt'],['productGroup','Группа товаров',r=>'txt'],...metricCols]:
+    [['repDate','Дата',r=>'txt'],['shift','Смена',r=>'txt'],['name','Особое условие',r=>'txt'],['productGroup','Группа товаров',r=>'txt'],...metricCols];
+
+  $('result').className='';
+  $('result').innerHTML=`
+    <div class="export-bar">
+      <span class="title">Сохранить отчёт</span>
+      <button id="expHtml" class="green">⬇ В HTML</button>
+      <button id="expExcel" class="orange">⬇ В Excel</button>
+    </div>
+    <div class="meta">Отобрано задач: ${o.tasks} из ${allTasks.length} (только выполненные). «Норматив» — собранных единиц в час (ед/ч).</div>
+    <section class="cards">
+      ${metric('Выполнено заданий',fmt(o.tasks),'по заданным фильтрам')}
+      ${metric('Собрано товара',fmt(o.foundQty),'из '+fmt(o.plannedQty)+' по заданиям')}
+      ${metric('Недобор',fmt(o.shortage),pct(o.fillPct)+' полнота')}
+      ${metric('Фактическое время',o.time,'сумма времени задач')}
+      ${metric('Выполнение норматива',fmt(o.unitsHour)+' ед/ч',o.normPct>=100?'норматив выполнен':'ниже норматива')}
+      ${metric('Просрочено',fmt(o.overdue),pct(o.overdue/o.tasks*100)+' от задач')}
+    </section>
+    <section class="panels">
+      <div class="panel"><h2>По сменам</h2>${table(shifts,shiftCols)}</div>
+      <div class="panel"><h2>Особые условия</h2>${table(cats,catCols)}</div>
+    </section>
+    <div class="toggles">
+      <button id="toggleDetails" class="ghost">${view.details?'Скрыть':'Показать'} «Детализация задач»</button>
+    </div>
+    <section class="panel${view.details?'':' hidden'}" id="detailsPanel" style="margin-top:18px"><h2>Детализация задач</h2>
+      <div class="filters">
+        <select id="fs"><option value="">Все смены</option></select>
+        <select id="fe"><option value="">Все сотрудники</option></select>
+        <select id="fc"><option value="">Все условия</option></select>
+        <select id="fp"><option value="">Все задачи</option><option value="overdue">Только просроченные</option><option value="shortage">Только с недобором</option></select>
+      </div>
+      <div id="details"></div>
+    </section>`;
+  $('toggleDetails').onclick=()=>{view.details=!view.details;show();};
+  $('expHtml').onclick=()=>showExportModal(blocks=>exportHTML(blocks));
+  $('expExcel').onclick=exportExcel;
+  fillDetailFilters(rows);
+  details();
+}
+function fillDetailFilters(rows){
+  for(const [id,field] of [['fs','shift'],['fe','employee'],['fc','category']]){
+    const s=$(id);
+    [...new Set(rows.map(x=>x[field]))].sort().forEach(v=>s.add(new Option(v,v)));
+    if([...s.options].some(o=>o.value===detailSel[id]))s.value=detailSel[id];
+    else detailSel[id]='';
+    s.onchange=()=>{detailSel[id]=s.value;details();};
+  }
+  const fp=$('fp');
+  if(detailSel.fp)fp.value=detailSel.fp;
+  fp.onchange=()=>{detailSel.fp=fp.value;details();};
+}
+function details(){
+  const s=detailSel.fs,e=detailSel.fe,c=detailSel.fc,p=detailSel.fp;
+  const rows=applyFilters().filter(x=>(!s||x.shift===s)&&(!e||x.employee===e)&&(!c||x.category===c)&&(!p||(p==='overdue'?x.overdue:x.foundQty<x.plannedQty)));
+  const cols=[['dateTime','Дата'],['shift','Смена'],['number','Номер'],['taskType','Тип работы'],['name','Наименование'],['productGroup','Товар'],['plannedQty','По заданию',null,r=>fmt(r.plannedQty)],['foundQty','Собрано',null,r=>fmt(r.foundQty)],['actualMin','Факт, мин',null,r=>fmt(r.actualMin)],['plannedMin','План, мин',null,r=>fmt(r.plannedMin)],['unitsHour','Норматив',null,r=>fmt(r.unitsHour)+' ед/ч'],['source','Источник']];
+  $('details').innerHTML=detailsTable(rows,cols);
+}
+
+$('typeFilter').addEventListener('change',()=>{renderNameChips();show();});
+$('resetFilters').addEventListener('click',()=>{
+  selectedDates.clear();
+  selectedNames.clear();
+  $('typeFilter').value='__all__';
+  renderDateChips();
+  renderNameChips();
+  show();
+});
+$('build').addEventListener('click',async()=>{
+  if(typeof XLSX==='undefined'){
+    $('messages').innerHTML='<div class="error">Библиотека SheetJS не загружена. Положите файл xlsx.full.min.js рядом со страницей или проверьте доступ в интернет.</div>';
+    return;
+  }
+  const files=[...$('files').files];
+  if(!files.length){
+    $('messages').innerHTML='<div class="error">Выберите хотя бы один Excel-файл.</div>';
+    return;
+  }
+  $('messages').innerHTML='<div class="meta">Читаю файлы…</div>';
+  try{
+    const sets=await Promise.all(files.map(readFile));
+    allTasks=sets.flat();
+    if(!allTasks.length)throw new Error('Не найдено подходящих выполненных задач с заполненными датами начала, планируемого и фактического срока выполнения. Проверьте формат выгрузки.');
+    selectedDates.clear();
+    selectedNames.clear();
+    detailSel.fs=detailSel.fe=detailSel.fc=detailSel.fp='';
+    view.details=false;
+    $('filtersBar').classList.remove('hidden');
+    renderDateChips();
+    fillTypes();
+    renderNameChips();
+    $('messages').innerHTML='';
+    show();
+  }catch(err){
+    $('messages').innerHTML='<div class="error">Ошибка: '+esc(err.message)+'</div>';
+  }
+});
+</script>
+</body>
+</html>
