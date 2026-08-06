@@ -79,5 +79,12 @@ async loadData(url) {
   }
 }
 
-// Global instance
-window.configLoader = new ConfigLoader();
+// Global instance (только в браузере)
+if (typeof window !== 'undefined') {
+  window.configLoader = new ConfigLoader();
+}
+
+// Экспорт для Node.js тестов
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { ConfigLoader };
+}
