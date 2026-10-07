@@ -323,6 +323,15 @@ select, input {
     color: #28a745; 
     font-weight: 500; 
 }
+.seasonal-bonus { 
+    color: #28a745; 
+    font-weight: 500; 
+}
+
+.seasonal-penalty { 
+    color: #e53935; 
+    font-weight: 500; 
+}    
 
 .task-start-time {
     background: var(--tg-button-color); 
@@ -572,7 +581,7 @@ select, input {
                 <!-- === ДОБАВЛЕНО: Средний процент выполнения нормативов === -->
                 <p><strong>📊 Выполнение нормативов:</strong> <span id="avg-normative">—</span></p>
                 <p><strong>Заработано за день:</strong> <span id="pay-day">—</span></p>
-                <p><strong>Из них сезонная доплата:</strong> <span id="xisBonusDay">—</span></p>
+                <p><strong>Поощрения и удержания:</strong> <span id="xisBonusDay">—</span></p>
                 <p><strong>Заработано за месяц:</strong> <span id="pay-month">—</span></p>
                 
                 <!-- === ДОБАВЛЕНО: Уведомления о нарушениях === -->
@@ -816,8 +825,12 @@ function normalizeRecords(data) {
 }
 
 function parseRussianNumber(numberStr) {
-    if (!numberStr || numberStr === '0,00 ₽') return 0;
-    const cleanStr = numberStr.replace(/[^\d,\s]/g, '').replace(/\s/g, '').replace(',', '.');
+    if (!numberStr) return 0;
+    // Разрешаем минус, цифры, запятую и пробелы
+    let cleanStr = numberStr
+        .replace(/\s/g, '')          // убираем пробелы (разделители разрядов)
+        .replace(/[^\d,\-]/g, '')    // оставляем только цифры, запятую и минус
+        .replace(',', '.');          // десятичный разделитель
     const result = parseFloat(cleanStr);
     return isNaN(result) ? 0 : result;
 }
@@ -1118,12 +1131,12 @@ function renderGroupedTasks(tasks) {
         <span>💰</span>
         <span class="task-total">${totalPayFormatted}</span>
         </div>
-        ${group.totalXisBonus > 0 ? `
-        <div class="task-group-summary-item">
-        <span>🎁</span>
-        <span class="seasonal-bonus">${totalXisBonusFormatted}</span>
-        </div>
-        ` : ''}
+${group.totalXisBonus !== 0 ? `
+<div class="task-group-summary-item">
+<span>🎁</span>
+<span class="${group.totalXisBonus < 0 ? 'seasonal-penalty' : 'seasonal-bonus'}">${totalXisBonusFormatted}</span>
+</div>
+` : ''}
         </div>
         </div>
         <div class="expand-icon">▼</div>
@@ -1155,7 +1168,8 @@ function renderGroupedTasks(tasks) {
             <div style="text-align: right;">
             <div class="task-payment-info">
             <span>${task.calculatedPay}</span>
-            ${task.xisBonus > 0 ? `<span class="seasonal-bonus">${task.calculatedXisBonus}</span>` : ''}
+${task.xisBonus !== 0 ? `<span class="${task.xisBonus < 0 ? 'seasonal-penalty' : 'seasonal-bonus'}">
+${task.calculatedXisBonus}</span>` : ''}
             </div>
             </div>
             </div>
@@ -1955,7 +1969,12 @@ function updateMainData() {
     document.getElementById('efficiency').textContent = currentRecord.efficiency;
     document.getElementById('avg-normative').innerHTML = currentRecord.avgNormative;
     document.getElementById('pay-day').textContent = currentRecord.payDay;
-    document.getElementById('xisBonusDay').textContent = currentRecord.xisBonusDay;
+    //document.getElementById('xisBonusDay').textContent = currentRecord.xisBonusDay;
+    const xisEl = document.getElementById('xisBonusDay');
+const xisVal = parseRussianNumber(currentRecord.xisBonusDay || '0');
+xisEl.textContent = currentRecord.xisBonusDay;
+xisEl.style.color = xisVal < 0 ? '#e53935' : (xisVal > 0 ? '#28a745' : 'inherit');
+xisEl.style.fontWeight = xisVal !== 0 ? '600' : 'normal';
     document.getElementById('pay-month').textContent = currentRecord.payMonth;
     mainDataLoading.classList.add('hidden');
     mainDataContent.classList.remove('hidden');
