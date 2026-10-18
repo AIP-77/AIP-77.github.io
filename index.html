@@ -940,6 +940,37 @@ select, input {
     box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
 }
 
+/* Баннер «Доступна новая версия» */
+.update-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+.update-banner-btn {
+    background: var(--tg-button-color);
+    color: var(--tg-button-text-color);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+#update-banner-close {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    color: var(--tg-hint-color);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+
 </style>
 </head>
 <body>
@@ -957,6 +988,14 @@ select, input {
 
     <h1>📊 Персональная панель</h1>
     <div id="version-info" class="version-info">(🛠 V.2026.10.18 🛠)</div>
+
+    <!-- Баннер «Доступна новая версия» (появляется сам, когда в info.json версия новее) -->
+    <div id="update-banner" class="update-banner hidden">
+        <span id="update-banner-text">Доступна новая версия</span>
+        <a id="update-banner-link" class="update-banner-btn" href="#" target="_blank" rel="noopener">⬇ Скачать</a>
+        <button id="update-banner-close" type="button" aria-label="Закрыть">✕</button>
+    </div>
+
     <div id="banner" class="banner"></div>
     
     <div class="tabs">
@@ -1218,6 +1257,9 @@ select, input {
 // ============================================
 // 1. КОНФИГУРАЦИЯ
 // ============================================
+// Версия приложения — должна совпадать с versionName в android/app/build.gradle
+const APP_VERSION = '1.2';
+
 const DATA_SOURCES = {
     staff: 'https://AIP-77.github.io/archive/staff.json',
     monthlyData: (year, month) => `https://AIP-77.github.io/archive/${year}-${month.toString().padStart(2, '0')}%20fullData.json`
@@ -2514,6 +2556,11 @@ async function init() {
             console.warn('Telegram WebApp init:', e);
         }
     }
+    const ubClose = document.getElementById('update-banner-close');
+    if (ubClose) ubClose.addEventListener('click', () => {
+        document.getElementById('update-banner').classList.add('hidden');
+    });
+
     authInput.value = '';
     const savedId = localStorage.getItem('userAuthId');
 
@@ -2945,13 +2992,47 @@ const Normatives = (() => {
 
     }
 
+    // Ссылки в тексте объявления делаем кликабельными
+    function linkify(text) {
+        const escaped = String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return escaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:#1a8cd8; word-break: break-all;">$1</a>');
+    }
+
     // Показ объявления: один раз для каждого текста; если текст в info.json изменился — покажется снова
     function maybeShowAnnouncement(text) {
         if (!text) return;
         if (localStorage.getItem('normAnnouncementShown') === text) return;
         localStorage.setItem('normAnnouncementShown', text);
-        el('norm-modal-text').textContent = text;
+        el('norm-modal-text').innerHTML = linkify(text);
         setTimeout(() => el('norm-attention-modal').classList.add('active'), 300);
+    }
+
+    // Сравнение версий вида "1.2" / "1.10": true, если remote новее local
+    function isNewerVersion(remote, local) {
+        const a = String(remote).split('.').map(Number);
+        const b = String(local).split('.').map(Number);
+        for (let i = 0; i < Math.max(a.length, b.length); i++) {
+            const x = a[i] || 0;
+            const y = b[i] || 0;
+            if (x > y) return true;
+            if (x < y) return false;
+        }
+        return false;
+    }
+
+    // Проверка обновлений: если в info.json версия новее — показываем баннер со ссылкой на APK
+    function checkForUpdate(info) {
+        try {
+            if (!info || !info.latestVersion || !info.apkUrl) return;
+            if (!isNewerVersion(info.latestVersion, APP_VERSION)) return;
+            const banner = el('update-banner');
+            if (!banner) return;
+            el('update-banner-text').textContent = `Доступна новая версия приложения — ${info.latestVersion}`;
+            el('update-banner-link').href = info.apkUrl;
+            banner.classList.remove('hidden');
+        } catch (e) {
+            console.warn('checkForUpdate:', e);
+        }
     }
 
     // Объявление «Внимание» из отдельного файла info.json
@@ -2962,6 +3043,7 @@ const Normatives = (() => {
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const info = await res.json();
             maybeShowAnnouncement(String(info.announcement ?? DEFAULT_ANNOUNCEMENT).trim());
+            checkForUpdate(info);
         } catch (err) {
             console.warn('info.json не удалось загрузить:', err.message);
             maybeShowAnnouncement(DEFAULT_ANNOUNCEMENT);
