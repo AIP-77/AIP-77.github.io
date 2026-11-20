@@ -701,7 +701,7 @@ select, input {
     overflow: hidden;
     transition: max-height 0.4s ease;
 }
-#info-view .norm-direction-block.open .norm-direction-body { max-height: 10000px; }
+#info-view .norm-direction-block.open .norm-direction-body { max-height: 30000px; }
 #info-view .norm-dept-block { border-bottom: 1px solid #e2e8f0; }
 #info-view .norm-dept-block:last-child { border-bottom: none; }
 #info-view .norm-dept-header {
@@ -751,63 +751,100 @@ select, input {
     overflow: hidden;
     transition: max-height 0.35s ease;
 }
-#info-view .norm-dept-block.open .norm-dept-body { max-height: 5000px; }
-#info-view .norm-table-scroll { overflow-x: auto; }
-#info-view table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
+#info-view .norm-dept-block.open .norm-dept-body { max-height: 15000px; }
+/* Список видов работ отдела: карточки вместо широкой таблицы (без горизонтальной прокрутки) */
+#info-view .norm-works-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px 16px;
 }
-#info-view thead th {
+#info-view .norm-work-card {
     background: #f8fafc;
-    padding: 10px 12px;
-    text-align: left;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+#info-view .norm-work-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+#info-view .norm-work-name {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.35;
+    color: #1e3a8a;
+}
+#info-view .norm-personnel-badge {
+    flex-shrink: 0;
+    font-size: 11px;
     font-weight: 600;
     color: #475569;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid #e2e8f0;
+    background: #e2e8f0;
+    padding: 3px 9px;
+    border-radius: 10px;
     white-space: nowrap;
 }
-#info-view tbody tr {
-    border-bottom: 1px solid #f1f5f9;
-    transition: background 0.15s;
-}
-#info-view tbody tr:last-child { border-bottom: none; }
-#info-view tbody tr:hover { background: #f8fafc; }
-#info-view tbody td {
-    padding: 10px 12px;
-    vertical-align: top;
-    color: var(--tg-text-color);
-}
-#info-view .norm-work-cell {
+#info-view .norm-norm-badge {
+    flex-shrink: 0;
+    font-size: 11px;
     font-weight: 600;
-    color: #1e3a8a;
-    min-width: 200px;
+    color: #92400e;
+    background: #fef3c7;
+    padding: 3px 9px;
+    border-radius: 10px;
+    white-space: nowrap;
 }
-#info-view .norm-tags-cell {
+#info-view .norm-group-block { margin-top: 10px; }
+#info-view .norm-group-name {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+#info-view .norm-group-tag {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #dcfce7;
+    color: #166534;
+}
+#info-view .norm-value-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 6px 0;
+    border-top: 1px dashed #e2e8f0;
+}
+#info-view .norm-value-line:first-child,
+#info-view .norm-group-name + .norm-value-line { border-top: none; }
+#info-view .norm-line-position {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e40af;
+    background: #dbeafe;
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+#info-view .norm-line-values {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    max-width: 280px;
+    align-items: baseline;
+    gap: 4px 12px;
+    font-size: 12.5px;
+    color: var(--tg-text-color);
 }
-#info-view .norm-tag {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    background: #f1f5f9;
-    color: #475569;
-    white-space: nowrap;
-}
-#info-view .norm-tag.position-resp { background: #dbeafe; color: #1e40af; }
-#info-view .norm-tag.position-emp { background: #e0e7ff; color: #3730a3; }
-#info-view .norm-tag.unit-tag { background: #fef3c7; color: #92400e; }
-#info-view .norm-tag.group-tag { background: #dcfce7; color: #166534; }
-#info-view .norm-tag.price-tag { background: #d1fae5; color: #065f46; }
-#info-view .norm-empty-cell { color: #cbd5e1; }
+#info-view .norm-line-item { white-space: nowrap; }
+#info-view .norm-line-label { font-size: 11px; color: #64748b; }
+#info-view .norm-line-values b { font-weight: 700; }
+#info-view .norm-line-unit { font-size: 11px; font-weight: 600; color: #92400e; }
 #info-view .norm-no-results {
     text-align: center;
     padding: 40px 20px;
@@ -971,6 +1008,67 @@ select, input {
     padding: 2px 6px;
 }
 
+/* Блок «Ознакомление с нормативами» */
+#info-view .norm-confirm-block {
+    background: #f0f9ff;
+    border: 1px solid #7dd3fc;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+#info-view .norm-confirm-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: #075985;
+    margin-bottom: 4px;
+}
+#info-view .norm-confirm-status {
+    font-size: 12px;
+    color: var(--tg-hint-color);
+    margin-bottom: 10px;
+}
+#info-view .norm-confirm-btn {
+    width: 100%;
+    background: #16a34a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+}
+#info-view .norm-confirm-view-btn {
+    width: 100%;
+    background: var(--card-bg);
+    color: var(--tg-text-color);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 8px;
+}
+#info-view .norm-certificate-text {
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #1e293b;
+}
+#info-view .norm-certificate-name-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    margin-top: 12px;
+    background: var(--input-bg);
+    color: var(--tg-text-color);
+}
+
 </style>
 </head>
 <body>
@@ -987,7 +1085,7 @@ select, input {
 </div>
 
     <h1>📊 Персональная панель</h1>
-    <div id="version-info" class="version-info">(🛠 V.2026.10.18 🛠)</div>
+    <div id="version-info" class="version-info">(🛠 V.1.3 🛠)</div>
 
     <!-- Баннер «Доступна новая версия» (появляется сам, когда в info.json версия новее) -->
     <div id="update-banner" class="update-banner hidden">
@@ -1048,6 +1146,8 @@ select, input {
                   </div>
                   <div id="violations-list" style="font-size: 13px; color: #bf360c;"></div>
                </div>
+               <div id="salary-check-notice" style="margin-top: 12px; padding: 12px; background: #ffebee; border-left: 4px solid #e53935; border-radius: 4px; display: none; color: #b71c1c; font-size: 14px;"></div>
+               <div id="manager-comment-notice" style="margin-top: 12px; padding: 12px; background: #fff8e1; border-left: 4px solid #f9a825; border-radius: 4px; display: none; color: #7a5a00; font-size: 13px; line-height: 1.45;"></div>
             </div>
         </div>
         <h5>🔄 Обновление данных происходит по расписанию, если заметили неточности сообщите Руководителю</h5>
@@ -1090,6 +1190,14 @@ select, input {
     <div style="display: flex; align-items: center; gap: 5px;">
         <div style="width: 16px; height: 16px; background: #ffcc80; border: 2px solid #ff9800; border-radius: 3px;"></div>
         <span>Нарушение (>12ч)</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 5px;">
+        <div style="width: 16px; height: 16px; background: #fff176; border: 2px solid #f9a825; border-radius: 3px;"></div>
+        <span>Комментарий руководителя</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 5px;">
+        <div style="width: 16px; height: 16px; background: #ef9a9a; border: 2px solid #e53935; border-radius: 3px;"></div>
+        <span>Проверка заработка смены</span>
     </div>
 </div>
     </div>
@@ -1153,6 +1261,14 @@ select, input {
             <h2>📋 Нормативы на проведение работ</h2>
             <div id="norm-update-badge" class="norm-update-badge hidden">Актуально на: <strong id="norm-update-date">—</strong></div>
 
+            <!-- Ознакомление с нормативами (появляется, если в info.json задан normativeVersion) -->
+            <div id="norm-confirm-block" class="norm-confirm-block hidden">
+                <div class="norm-confirm-title">📋 Ознакомление с нормативами</div>
+                <div id="norm-confirm-status" class="norm-confirm-status">—</div>
+                <button id="norm-confirm-btn" class="norm-confirm-btn" type="button">✅ Я ознакомлен(а) с нормативами</button>
+                <button id="norm-confirm-view-btn" class="norm-confirm-view-btn hidden" type="button">📄 Показать справку</button>
+            </div>
+
             <div id="norm-loading" class="loading">
                 <div class="spinner"></div>
                 <p>Загрузка нормативов...</p>
@@ -1209,6 +1325,25 @@ select, input {
                 </div>
             </div>
         </div>
+
+        <!-- Справка об ознакомлении (для скриншота) -->
+        <div id="norm-certificate-overlay" class="norm-modal-overlay">
+            <div class="norm-modal">
+                <div class="norm-modal-header">
+                    <div>
+                        <div class="norm-modal-title">Справка об ознакомлении</div>
+                        <div class="norm-modal-subtitle">Нормативы на проведение работ</div>
+                    </div>
+                </div>
+                <div class="norm-modal-body">
+                    <div id="norm-certificate-text" class="norm-certificate-text"></div>
+                    <input id="norm-certificate-name" class="norm-certificate-name-input hidden" type="text" placeholder="Ваши ФИО полностью" autocomplete="off">
+                </div>
+                <div class="norm-modal-footer">
+                    <button id="norm-certificate-save" class="norm-modal-btn" type="button">Сохранить</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Вкладка "Отдел" -->
@@ -1258,7 +1393,7 @@ select, input {
 // 1. КОНФИГУРАЦИЯ
 // ============================================
 // Версия приложения — должна совпадать с versionName в android/app/build.gradle
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 
 const DATA_SOURCES = {
     staff: 'https://AIP-77.github.io/archive/staff.json',
@@ -1401,6 +1536,82 @@ function bonusAmountHtml(numericValue) {
     return formatCurrency(numericValue);
 }
 
+function isYesValue(value) {
+    if (value === true) return true;
+    if (value === null || value === undefined) return false;
+    const s = String(value).trim().toLowerCase();
+    return s === 'да' || s === 'yes' || s === 'true' || s === '1';
+}
+
+function getTaskField(task, names) {
+    for (const n of names) {
+        if (task && Object.prototype.hasOwnProperty.call(task, n)) {
+            const v = task[n];
+            if (v !== null && v !== undefined && String(v).trim() !== '') return v;
+        }
+    }
+    return '';
+}
+
+function getDayFlags(tasks) {
+    let costCheckWork = false;
+    let salaryCheckDay = false;
+    const managerComments = [];
+    const seenComments = new Set();
+    (tasks || []).forEach(task => {
+        if (isYesValue(getTaskField(task, ['Требуется проверка стоимости работы']))) costCheckWork = true;
+        if (isYesValue(getTaskField(task, ['Требуется проверка заработка смены', 'Требуется проверка заработка  смены']))) salaryCheckDay = true;
+        const comment = String(getTaskField(task, ['Комментарий Руководителя', 'Комментарий руководителя']) || '').trim();
+        if (comment) {
+            const key = comment.replace(/\s+/g, ' ').trim();
+            if (!seenComments.has(key)) { seenComments.add(key); managerComments.push(comment); }
+        }
+    });
+    return { costCheckWork, salaryCheckDay, managerComments };
+}
+
+function getCalendarDayFlags(records, userName) {
+    const flagsByDate = {};
+    (records || []).forEach(record => {
+        if (record['Сотрудник'] !== userName || !record['Рабочий день']) return;
+        const date = record['Рабочий день'];
+        if (!flagsByDate[date]) flagsByDate[date] = { violation: false, salaryCheck: false, managerComment: false };
+        const f = flagsByDate[date];
+        const taskTimeSeconds = timeToSeconds(record['Рабочее время']);
+        if (taskTimeSeconds > (12 * 3600)) f.violation = true;
+        if (isYesValue(getTaskField(record, ['Требуется проверка заработка смены', 'Требуется проверка заработка  смены']))) f.salaryCheck = true;
+        const comment = String(getTaskField(record, ['Комментарий Руководителя', 'Комментарий руководителя']) || '').trim();
+        if (comment) f.managerComment = true;
+    });
+    return flagsByDate;
+}
+
+function escapeHtmlText(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderDailyReportFlags(tasks) {
+    const salaryBlock = document.getElementById('salary-check-notice');
+    const commentBlock = document.getElementById('manager-comment-notice');
+    if (!salaryBlock || !commentBlock) return;
+    const flags = getDayFlags(tasks);
+    if (flags.salaryCheckDay) {
+        salaryBlock.style.display = 'block';
+        salaryBlock.innerHTML = '<strong>⚠️ Требуется проверка заработка смены</strong>';
+    } else {
+        salaryBlock.style.display = 'none';
+        salaryBlock.innerHTML = '';
+    }
+    if (flags.managerComments.length) {
+        commentBlock.style.display = 'block';
+        commentBlock.innerHTML = '<div style="font-weight:600;margin-bottom:4px;">💬 Комментарий Руководителя</div>' +
+            flags.managerComments.map(c => `<div style="white-space:pre-wrap;">${escapeHtmlText(c)}</div>`).join('<hr style="border:none;border-top:1px solid #f0d58c;margin:6px 0;">');
+    } else {
+        commentBlock.style.display = 'none';
+        commentBlock.innerHTML = '';
+    }
+}
+
 // Кол-во людей без лишних нулей: "3,00" -> "3", "2,50" -> "2,5"
 function formatStaffCount(value) {
     const n = parseFloat(String(value).replace(',', '.'));
@@ -1493,14 +1704,14 @@ function updateLastUpdate() {
 
 function updateVersionInfo() {
     if (!dataLastUpdated) {
-        versionInfo.textContent = '(🛠 V.2026.10.18 🛠)';
+        versionInfo.textContent = '(🛠 V.1.3 🛠)';
         return;
     }
     try {
         const updateDate = new Date(dataLastUpdated);
-        versionInfo.innerHTML = `(🛠 V.2026.10.18 | Данные: ${updateDate.toLocaleDateString('ru-RU')} ${updateDate.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})} 🛠)`;
+        versionInfo.innerHTML = `(🛠 V.1.3 | Данные: ${updateDate.toLocaleDateString('ru-RU')} ${updateDate.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})} 🛠)`;
     } catch (err) {
-        versionInfo.textContent = '(🛠 V.2026.10.18 🛠)';
+        versionInfo.textContent = '(🛠 V.1.3 🛠)';
     }
 }
 
@@ -1540,7 +1751,10 @@ function groupTasksByType(tasks) {
             normStaff: task['Нормативное кол-во персонала'] || '',
             normative: normative,
             calculatedPay: task['Расчетная сумма'] || '0,00 ₽',
-            calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽'
+            calculatedXisBonus: task['Доплата XIS'] || '0,00 ₽',
+            costCheck: isYesValue(getTaskField(task, ['Требуется проверка стоимости работы'])),
+            salaryCheck: isYesValue(getTaskField(task, ['Требуется проверка заработка смены', 'Требуется проверка заработка  смены'])),
+            managerComment: String(getTaskField(task, ['Комментарий Руководителя', 'Комментарий руководителя']) || '').trim()
         });
         
         // Собираем значения норматива для расчета среднего (исключая определенные виды работ)
@@ -1596,6 +1810,8 @@ function renderGroupedTasks(tasks) {
     } else {
         violationsContainer.style.display = 'none';
     }
+
+    renderDailyReportFlags(tasks);
     
     // === ОСТАЛЬНОЙ КОД ГРУППИРОВКИ ===
     const groups = groupTasksByType(tasks);
@@ -1644,11 +1860,12 @@ function renderGroupedTasks(tasks) {
                 ? 'background: #fff3e0; border-left: 3px solid #ff9800;' 
                 : '';
             
+            const costCheckBadge = task.costCheck ? `<span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:600;vertical-align:middle;">Требуется проверка стоимости работы</span>` : '';
             html += `
             <div class="task-item" style="${violationStyle}">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div style="flex: 1;">
-            <div><strong>${task.count.toFixed(2)} ед.</strong></div>
+            <div><strong>${task.count.toFixed(2)} ед.</strong>${costCheckBadge}</div>
             <div class="task-time-info">
             <span style="color: var(--tg-hint-color);">Задача: ${task.supply}</span>
             <span> | </span>
@@ -1818,19 +2035,10 @@ function renderCalendarGrid(year, monthNum, userDates) {
         calendar.appendChild(document.createElement('div'));
     }
     
-    // === ПОДГОТОВКА: Собираем даты с нарушениями ===
-    const violationDates = new Set();
-    if (currentMonthData) {
-        const allRecords = normalizeRecords(currentMonthData);
-        allRecords.forEach(record => {
-            if (record['Сотрудник'] === currentUserData.name && record['Рабочий день']) {
-                const taskTimeSeconds = timeToSeconds(record['Рабочее время']);
-                if (taskTimeSeconds > (12 * 3600)) {
-                    violationDates.add(record['Рабочий день']);
-                }
-            }
-        });
-    }
+    // === ПОДГОТОВКА: Собираем флаги по дням (нарушения, комментарий руководителя, проверка заработка) ===
+    const dayFlags = (currentMonthData && currentUserData)
+        ? getCalendarDayFlags(normalizeRecords(currentMonthData), currentUserData.name)
+        : {};
     
     // Дни месяца
     for (let day = 1; day <= lastDayNum; day++) {
@@ -1846,21 +2054,35 @@ function renderCalendarGrid(year, monthNum, userDates) {
         const dateStr = `${dayStr}.${monthStr}.${year}`;
         
         if (userDates.has(dateStr)) {
-            // === ПРОВЕРКА НАРУШЕНИЙ ===
-            if (violationDates.has(dateStr)) {
-                // === Оранжевый цвет - есть нарушения ===
+            const f = dayFlags[dateStr] || {};
+            const titles = ['Рабочий день'];
+            if (f.salaryCheck) {
+                el.style.background = '#ef9a9a';
+                el.style.color = '#7f1d1d';
+                el.style.fontWeight = 'bold';
+                el.style.border = '2px solid #e53935';
+                titles.push('требуется проверка заработка смены');
+            } else if (f.managerComment) {
+                el.style.background = '#fff176';
+                el.style.color = '#6b4f00';
+                el.style.fontWeight = 'bold';
+                el.style.border = '2px solid #f9a825';
+                titles.push('есть комментарий руководителя');
+            } else if (f.violation) {
                 el.style.background = '#ffcc80';
                 el.style.color = '#e65100';
                 el.style.fontWeight = 'bold';
                 el.style.border = '2px solid #ff9800';
-                el.title = '⚠️ Есть нарушения времени работы (>12 часов)';
+                titles.push('нарушение времени работы (>12 часов)');
             } else {
-                // === ИЗМЕНЕНО: Голубой цвет - всё в норме ===
                 el.style.background = '#4FC3F7';
                 el.style.color = '#ffffff';
                 el.style.fontWeight = 'bold';
-                el.title = 'Рабочий день (без нарушений)';
+                titles.push('без замечаний');
             }
+            if (f.salaryCheck && f.managerComment) titles.push('есть комментарий руководителя');
+            if ((f.salaryCheck || f.managerComment) && f.violation) titles.push('есть нарушение времени (>12ч)');
+            el.title = titles.join(' • ');
             el.addEventListener('click', () => loadRecordByDate(year, monthNum, day));
         } else {
             el.style.color = 'var(--tg-hint-color)';
@@ -2687,7 +2909,7 @@ const Normatives = (() => {
     const INFO_URL = 'https://raw.githubusercontent.com/AIP-77/AIP-77.github.io/main/archive/info.json';
 
     // Текст объявления по умолчанию (если info.json недоступен или без поля announcement)
-    const DEFAULT_ANNOUNCEMENT = 'Нормативы и расценки на Стикеровку и упаковку в палет находятся на утверждении.\n2026.10.19';
+    const DEFAULT_ANNOUNCEMENT = 'С 1 июля 2026 вступили в силу новые расценки на оплату работ,\nа также изменились нормативы на некоторые виды работ.\n2026.07.07';
 
     const DIRECTION_ICONS = {
         'Общие': { icon: '📋', color: '#64748b', bg: '#f1f5f9' },
@@ -2732,12 +2954,6 @@ const Normatives = (() => {
         return d.toLocaleDateString('ru-RU', opts);
     }
 
-    function parseNorm(str) {
-        if (str === null || str === undefined || String(str).trim() === '') return null;
-        const m = String(str).match(/[\d.,]+/);
-        return m ? parseFloat(m[0].replace(',', '.')) : null;
-    }
-
     function uniqueValues(arr) {
         const seen = new Set();
         const result = [];
@@ -2755,6 +2971,20 @@ const Normatives = (() => {
         const dir = row[0] || '';
         const work = row[1] || '';
         return dir === '' && (String(work).includes('Установленая') || String(work).includes('Дополнительный список'));
+    }
+
+    // Убирает полные дубликаты строк (одинаковые группа/должность/ед./расценка/норматив/персонал)
+    function uniqueRows(rows) {
+        const seen = new Set();
+        const result = [];
+        rows.forEach(r => {
+            const key = [2, 3, 4, 5, 6, 11].map(i => String(r[i] ?? '').trim()).join('\u0001');
+            if (!seen.has(key)) {
+                seen.add(key);
+                result.push(r);
+            }
+        });
+        return result;
     }
 
     function buildHierarchy(data) {
@@ -2796,15 +3026,10 @@ const Normatives = (() => {
                     return {
                         name: dept.name,
                         works: dept.workOrder.map(workName => {
-                            const rows = dept.works[workName];
+                            const rows = uniqueRows(dept.works[workName]);
                             return {
                                 name: workName,
-                                groups: uniqueValues(rows.map(r => r[2])),
-                                positions: uniqueValues(rows.map(r => r[3])),
-                                units: uniqueValues(rows.map(r => r[4])),
-                                prices: uniqueValues(rows.map(r => r[5])),
-                                norm1: uniqueValues(rows.map(r => parseNorm(r[6]))),
-                                personnel: uniqueValues(rows.map(r => r[11])),
+                                rows,
                             };
                         })
                     };
@@ -2813,34 +3038,85 @@ const Normatives = (() => {
         });
     }
 
-    function renderTags(values, type) {
-        if (!values || values.length === 0) return '<span class="norm-empty-cell">—</span>';
-        return '<div class="norm-tags-cell">' + values.map(v => {
-            let cls = '';
-            if (type === 'position') {
-                cls = String(v).includes('Ответственн') ? 'position-resp' : 'position-emp';
-            } else if (type === 'unit') {
-                cls = 'unit-tag';
-            } else if (type === 'group') {
-                cls = 'group-tag';
+    // Карточка одного вида работ: строки сгруппированы по группе товара.
+    // Норматив — количество единиц В ЧАС, расценка — за ОДНУ единицу.
+    // В шапке группы — тег группы, число людей (персонал) и единый
+    // норматив («220 шт./час»); на строках позиций — должность и расценка
+    // за единицу («р. 2,05 / шт.»), плюс норматив, если он вдруг различается.
+    // Сразу видно, какое значение к чему относится, без горизонтальной прокрутки.
+    function renderWorkCard(work) {
+        const groupOrder = [];
+        const byGroup = {};
+        work.rows.forEach(r => {
+            const g = String(r[2] ?? '').trim();
+            if (!byGroup[g]) {
+                byGroup[g] = [];
+                groupOrder.push(g);
             }
-            return `<span class="norm-tag ${cls}">${v}</span>`;
-        }).join('') + '</div>';
-    }
+            byGroup[g].push(r);
+        });
 
-    function renderNormTags(values) {
-        if (!values || values.length === 0) return '<span class="norm-empty-cell">—</span>';
-        return '<div class="norm-tags-cell">' + values.map(v => {
-            const display = v === null ? '—' : String(v).replace('.', ',');
-            return `<span class="norm-tag">${display}</span>`;
-        }).join('') + '</div>';
-    }
+        const groupsHtml = groupOrder.map(g => {
+            const rows = byGroup[g];
+            const personnel = uniqueValues(rows.map(r => r[11]));
 
-    function renderPriceTags(values) {
-        if (!values || values.length === 0) return '<span class="norm-empty-cell">—</span>';
-        return '<div class="norm-tags-cell">' + values.map(v =>
-            `<span class="norm-tag price-tag">${v}</span>`
-        ).join('') + '</div>';
+            // Норматив у ответственного и сотрудника единый — выносим его
+            // в шапку группы, в одну строку с числом персонала.
+            // Если нормативы вдруг различаются — показываем их на строках позиций.
+            const normVals = uniqueValues(rows.map(r => String(r[6] ?? '').trim()));
+            const unitVals = uniqueValues(rows.map(r => String(r[4] ?? '').trim()));
+            const singleNorm = normVals.length === 1 && normVals[0] !== '' ? normVals[0] : null;
+            const singleUnit = singleNorm !== null && unitVals.length === 1 ? unitVals[0] : '';
+
+            // Подпись норматива: единица «час» — норматив измеряется в часах
+            // («126 час»); прочие единицы — количество в час («220 шт./час»);
+            // без единицы — просто «в час»
+            const normText = (normVal, unit) => {
+                if (/час/i.test(unit)) return `${normVal} ${unit}`.trim();
+                if (unit) return `${normVal} ${unit}/час`;
+                return `${normVal} в час`;
+            };
+
+            const head = [];
+            if (g) head.push(`<span class="norm-group-tag">${escapeHtml(g)}</span>`);
+            if (personnel.length) head.push(`<span class="norm-personnel-badge">Персонал: ${escapeHtml(personnel.join(', '))}</span>`);
+            if (singleNorm !== null) head.push(`<span class="norm-norm-badge">Норматив: ${escapeHtml(normText(singleNorm, singleUnit))}</span>`);
+            const headHtml = head.length ? `<div class="norm-group-name">${head.join(' ')}</div>` : '';
+
+            const lines = rows.map(r => {
+                const position = String(r[3] ?? '').trim();
+                const price = String(r[5] ?? '').trim();
+                const norm = singleNorm !== null ? '' : String(r[6] ?? '').trim();
+                const unit = String(r[4] ?? '').trim();
+
+                const parts = [];
+                // Расценка — за одну единицу измерения («р. 2,05 / шт.»)
+                if (price) parts.push(`<span class="norm-line-item"><span class="norm-line-label">Расценка:</span> <b>${escapeHtml(price)}</b>${unit ? ` <span class="norm-line-unit">/ ${escapeHtml(unit)}</span>` : ''}</span>`);
+                // Подстраховка: если норматив у позиций различается — показываем
+                // его на строках
+                if (norm) parts.push(`<span class="norm-line-item"><span class="norm-line-label">Норматив:</span> <b>${escapeHtml(normText(norm, unit))}</b></span>`);
+                if (!parts.length) parts.push('<span class="norm-line-item">—</span>');
+
+                const positionHtml = position
+                    ? `<span class="norm-line-position">${escapeHtml(position)}</span>`
+                    : '';
+
+                return `
+                                    <div class="norm-value-line">
+                                        ${positionHtml}
+                                        <span class="norm-line-values">${parts.join('')}</span>
+                                    </div>`;
+            }).join('');
+            return `<div class="norm-group-block">${headHtml}${lines}</div>`;
+        }).join('');
+
+        return `
+                                    <div class="norm-work-card">
+                                        <div class="norm-work-head">
+                                            <div class="norm-work-name">${escapeHtml(work.name)}</div>
+                                        </div>
+                                        ${groupsHtml}
+                                    </div>`;
     }
 
     function renderBlocks(hierarchy) {
@@ -2885,33 +3161,8 @@ const Normatives = (() => {
                             <svg class="norm-chevron norm-dept-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                         </div>
                         <div class="norm-dept-body">
-                            <div class="norm-table-scroll">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Вид работ</th>
-                                            <th>Группа товара</th>
-                                            <th>Должность</th>
-                                            <th>Ед. расчёта</th>
-                                            <th>Расценка</th>
-                                            <th>Норматив 1</th>
-                                            <th>Персонал</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${dept.works.map(w => `
-                                            <tr>
-                                                <td class="norm-work-cell">${w.name}</td>
-                                                <td>${renderTags(w.groups, 'group')}</td>
-                                                <td>${renderTags(w.positions, 'position')}</td>
-                                                <td>${renderTags(w.units, 'unit')}</td>
-                                                <td>${renderPriceTags(w.prices)}</td>
-                                                <td>${renderNormTags(w.norm1)}</td>
-                                                <td>${w.personnel.length > 0 ? renderTags(w.personnel) : '<span class="norm-empty-cell">—</span>'}</td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
+                            <div class="norm-works-list">
+                                ${dept.works.map(renderWorkCard).join('')}
                             </div>
                         </div>
                     </div>
@@ -2975,6 +3226,115 @@ const Normatives = (() => {
 
         const hierarchy = buildHierarchy(filteredRaw);
         renderBlocks(hierarchy);
+    }
+
+    // ===== Ознакомление с нормативами =====
+    // В info.json: normativeVersion (редакция) и confirmUrl (Google-форма). Нет полей — блок скрыт.
+    let confirmVersion = null;
+    let confirmUrl = null;
+    let confirmMode = 'input';
+
+    function setupConfirm(info) {
+        try {
+            if (!info || !info.normativeVersion) return;
+            confirmVersion = String(info.normativeVersion).trim();
+            confirmUrl = info.confirmUrl ? String(info.confirmUrl).trim() : null;
+            el('norm-confirm-block').classList.remove('hidden');
+            refreshConfirmStatus();
+        } catch (e) {
+            console.warn('setupConfirm:', e);
+        }
+    }
+
+    function confirmKey() {
+        return 'normConfirm:' + confirmVersion;
+    }
+
+    function getConfirmRecord() {
+        try { return JSON.parse(localStorage.getItem(confirmKey()) || 'null'); } catch (e) { return null; }
+    }
+
+    function refreshConfirmStatus() {
+        const rec = getConfirmRecord();
+        const btn = el('norm-confirm-btn');
+        const viewBtn = el('norm-confirm-view-btn');
+        if (rec && rec.name) {
+            el('norm-confirm-status').textContent = `✅ Подтверждено: ${rec.name} — ${rec.date}`;
+            btn.classList.add('hidden');
+            viewBtn.classList.remove('hidden');
+        } else {
+            el('norm-confirm-status').textContent = `Редакция от ${confirmVersion} — подтвердите ознакомление`;
+            btn.classList.remove('hidden');
+            viewBtn.classList.add('hidden');
+        }
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function buildCertificateHtml(name, datetime) {
+        return `<div style="font-weight:700;font-size:16px;margin-bottom:8px;">Я, ${escapeHtml(name)},</div>` +
+            `ознакомлен(а) с нормативами на проведение работ<br>` +
+            `(редакция от ${escapeHtml(confirmVersion)}).` +
+            `<div style="margin-top:10px;">${escapeHtml(datetime)}</div>` +
+            `<div style="margin-top:4px;color:var(--tg-hint-color);font-size:12px;">SAIS Panel v${APP_VERSION}</div>`;
+    }
+
+    function openCertificate(mode) {
+        confirmMode = mode;
+        const rec = getConfirmRecord();
+        const nameInput = el('norm-certificate-name');
+        const saveBtn = el('norm-certificate-save');
+        const textEl = el('norm-certificate-text');
+        if (mode === 'view' && rec) {
+            nameInput.classList.add('hidden');
+            saveBtn.textContent = 'Закрыть';
+            textEl.innerHTML = buildCertificateHtml(rec.name, rec.datetime);
+        } else {
+            nameInput.classList.remove('hidden');
+            saveBtn.textContent = 'Сохранить и показать';
+            nameInput.value = (currentUserData && currentUserData.name) ? currentUserData.name : '';
+            textEl.innerHTML = 'Подтвердите ознакомление с нормативами<br>(редакция от ' + escapeHtml(confirmVersion) + '):';
+        }
+        el('norm-certificate-overlay').classList.add('active');
+    }
+
+    function setupConfirmListeners() {
+        el('norm-confirm-btn').addEventListener('click', () => {
+            if (confirmUrl) window.open(confirmUrl, '_blank');
+            openCertificate('input');
+        });
+        el('norm-confirm-view-btn').addEventListener('click', () => openCertificate('view'));
+        el('norm-certificate-save').addEventListener('click', () => {
+            const saveBtn = el('norm-certificate-save');
+            const nameInput = el('norm-certificate-name');
+            if (confirmMode === 'input') {
+                const name = nameInput.value.trim();
+                if (!name) {
+                    nameInput.style.borderColor = '#d71923';
+                    return;
+                }
+                const now = new Date();
+                const datetime = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                localStorage.setItem(confirmKey(), JSON.stringify({ name: name, date: datetime, datetime: datetime, version: confirmVersion }));
+                nameInput.classList.add('hidden');
+                saveBtn.textContent = 'Закрыть';
+                el('norm-certificate-text').innerHTML = buildCertificateHtml(name, datetime);
+                refreshConfirmStatus();
+                confirmMode = 'view';
+            } else {
+                el('norm-certificate-overlay').classList.remove('active');
+            }
+        });
+        el('norm-certificate-overlay').addEventListener('click', (e) => {
+            if (e.target === el('norm-certificate-overlay')) el('norm-certificate-overlay').classList.remove('active');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && el('norm-certificate-overlay').classList.contains('active')) {
+                el('norm-certificate-overlay').classList.remove('active');
+            }
+        });
     }
 
     function setupModal() {
@@ -3044,6 +3404,7 @@ const Normatives = (() => {
             const info = await res.json();
             maybeShowAnnouncement(String(info.announcement ?? DEFAULT_ANNOUNCEMENT).trim());
             checkForUpdate(info);
+            setupConfirm(info);
         } catch (err) {
             console.warn('info.json не удалось загрузить:', err.message);
             maybeShowAnnouncement(DEFAULT_ANNOUNCEMENT);
@@ -3090,6 +3451,7 @@ const Normatives = (() => {
         if (initialized) return;
         initialized = true;
         setupModal();
+        setupConfirmListeners();
         loadInfo();
         loadData();
     }

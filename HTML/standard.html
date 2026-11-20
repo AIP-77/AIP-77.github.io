@@ -709,6 +709,16 @@ function isServiceRow(row) {
   return dir === '' && (String(work).includes('Установленая') || String(work).includes('Дополнительный список'));
 }
 
+function uniqueRows(rows) {
+  const seen = new Set();
+  const result = [];
+  rows.forEach(r => {
+    const key = [2, 3, 4, 5, 6, 11].map(i => String(r[i] ?? '').trim()).join('\u0001');
+    if (!seen.has(key)) { seen.add(key); result.push(r); }
+  });
+  return result;
+}
+
 function buildHierarchy(data) {
   const dirOrder = [];
   const dirs = {};
@@ -748,15 +758,10 @@ function buildHierarchy(data) {
         return {
           name: dept.name,
           works: dept.workOrder.map(workName => {
-            const rows = dept.works[workName];
+            const rows = uniqueRows(dept.works[workName]);
             return {
               name: workName,
-              groups: uniqueValues(rows.map(r => r[2])),
-              positions: uniqueValues(rows.map(r => r[3])),
-              units: uniqueValues(rows.map(r => r[4])),
-              prices: uniqueValues(rows.map(r => r[5])),
-              norm1: uniqueValues(rows.map(r => parseNorm(r[6]))),
-              personnel: uniqueValues(rows.map(r => r[11])),
+              rows,
             };
           })
         };
